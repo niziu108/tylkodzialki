@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Dzialka {
+  id             String   @id @default(cuid())
+
+  // obowiązkowe
+  tytul          String
+  powierzchniaM2 Int
+  cenaPln        Int
+  przeznaczenia  Przeznaczenie[]
+  telefon        String
+  email          String
+
+  // ✅ OPIS (Markdown) – opcjonalny
+  opis           String?  @db.Text
+
+  // sprzedający
+  sprzedajacyTyp SprzedajacyTyp @default(PRYWATNIE)
+  numerOferty    String?
+
+  // 📍 Lokalizacja
+  placeId        String?
+  locationFull   String?
+  locationLabel  String?
+  lat            Float?
+  lng            Float?
+  mapsUrl        String?
+  locationMode   LocationMode @default(EXACT)
+  parcelText     String?
+
+  // ⚡ Uzbrojenie (wg Twoich opcji)
+  prad           PradStatus @default(BRAK_PRZYLACZA)
+  woda           WodaStatus @default(BRAK_PRZYLACZA)
+  kanalizacja    KanalizacjaStatus @default(BRAK)
+  gaz            GazStatus @default(BRAK)
+  swiatlowod     SwiatlowodStatus @default(BRAK)
+
+  // checkboxy (opcjonalne)
+  wzWydane       Boolean @default(false)
+  mpzp           Boolean @default(false)
+  projektDomu    Boolean @default(false)
+
+  // teksty (opcjonalne)
+  klasaZiemi      String?
+  wymiary         String?
+  ksiegaWieczysta String?
+
+  editToken      String   @unique
+  expiresAt      DateTime?
+
+  zdjecia        Zdjecie[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([lat, lng])
+}
+
+model Zdjecie {
+  id         String   @id @default(cuid())
+  url        String
+  publicId   String
+  kolejnosc  Int      @default(0)
+
+  dzialkaId  String
+  dzialka    Dzialka  @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+}
+
+enum Przeznaczenie {
+  BUDOWLANA
+  USLUGOWA
+  ROLNA
+  LESNA
+  INWESTYCYJNA
+}
+
+enum LocationMode {
+  EXACT
+  APPROX
+}
+
+enum SprzedajacyTyp {
+  PRYWATNIE
+  BIURO
+}
+
+enum PradStatus {
+  BRAK_PRZYLACZA
+  PRZYLACZE_NA_DZIALCE
+  PRZYLACZE_W_DRODZE
+  WARUNKI_PRZYLACZENIA_WYDANE
+  MOZLIWOSC_PRZYLACZENIA
+}
+
+enum WodaStatus {
+  BRAK_PRZYLACZA
+  WODOCIAG_NA_DZIALCE
+  WODOCIAG_W_DRODZE
+  STUDNIA_GLEBINOWA
+  MOZLIWOSC_PODLACZENIA
+}
+
+enum KanalizacjaStatus {
+  BRAK
+  MIEJSKA_NA_DZIALCE
+  MIEJSKA_W_DRODZE
+  SZAMBO
+  PRZYDOMOWA_OCZYSZCZALNIA
+  MOZLIWOSC_PODLACZENIA
+}
+
+enum GazStatus {
+  BRAK
+  GAZ_NA_DZIALCE
+  GAZ_W_DRODZE
+  MOZLIWOSC_PODLACZENIA
+}
+
+enum SwiatlowodStatus {
+  BRAK
+  W_DRODZE
+  NA_DZIALCE
+}
