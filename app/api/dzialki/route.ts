@@ -8,6 +8,7 @@ import {
   KanalizacjaStatus,
   GazStatus,
   SwiatlowodStatus,
+  Prisma,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
@@ -70,7 +71,7 @@ export async function GET(req: Request) {
 
   const sort = (url.searchParams.get('sort') || 'newest').toLowerCase();
 
-  const where: any = {};
+  const where: Prisma.DzialkaWhereInput = {};
 
   if (q) {
     where.OR = [
@@ -95,10 +96,12 @@ export async function GET(req: Request) {
   }
 
   if (przeznaczenia.length) {
-    where.przeznaczenia = { hasSome: przeznaczenia };
+    // `hasSome` działa na polu listy enumów w Prisma
+    where.przeznaczenia = { hasSome: przeznaczenia as any };
   }
 
-  const orderBy =
+  // ✅ KLUCZ: orderBy musi być SortOrder (asc/desc), nie dowolny string
+  const orderBy: Prisma.DzialkaOrderByWithRelationInput =
     sort === 'price_asc'
       ? { cenaPln: 'asc' }
       : sort === 'price_desc'
