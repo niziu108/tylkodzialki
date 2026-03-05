@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { signOut, useSession } from 'next-auth/react';
 
 const BG = '#131313';
 const FG = '#d9d9d9';
-const ACCENT = '#d9d9d9';
+const GREEN = '#7aa333';
 
 function BurgerIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -27,9 +28,17 @@ function CrossIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export default function GlobalNav() {
   const [open, setOpen] = useState(false);
+
+  // dropdown dla “Moje konto” (desktop hover + mobile click)
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement | null>(null);
+
   const pathname = usePathname();
   const router = useRouter();
   const lastOverflow = useRef<string>('');
+
+  const { status, data: session } = useSession();
+  const isLogged = status === 'authenticated';
 
   useEffect(() => {
     if (!open) return;
@@ -42,15 +51,36 @@ export default function GlobalNav() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setAccountOpen(false);
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  // klik poza dropdown
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (!accountRef.current) return;
+      if (!accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, []);
+
   const go = (href: string) => {
     setOpen(false);
+    setAccountOpen(false);
     if (pathname !== href) router.push(href);
+  };
+
+  const goAuth = () => {
+    setOpen(false);
+    setAccountOpen(false);
+    const cb = encodeURIComponent(pathname || '/');
+    router.push(`/auth?callbackUrl=${cb}`);
   };
 
   const linkDesktop =
@@ -58,6 +88,8 @@ export default function GlobalNav() {
 
   const linkMobile =
     'font-display uppercase tracking-wide text-white text-[clamp(34px,9vw,60px)] hover:opacity-90 transition-opacity';
+
+  const authDesktop = 'font-display uppercase tracking-[0.20em] text-[12px] transition';
 
   return (
     <>
@@ -87,6 +119,65 @@ export default function GlobalNav() {
             <button onClick={() => go('/kontakt')} className={linkDesktop}>
               KONTAKT
             </button>
+
+            {/* ✅ AUTH / MOJE KONTO */}
+            {!isLogged ? (
+              <button onClick={goAuth} className={authDesktop} style={{ color: GREEN }}>
+                ZALOGUJ / REJESTRACJA
+              </button>
+            ) : (
+              <div
+                ref={accountRef}
+                className="relative"
+                onMouseEnter={() => setAccountOpen(true)}
+                onMouseLeave={() => setAccountOpen(false)}
+              >
+                <button
+                  type="button"
+                  onClick={() => setAccountOpen((v) => !v)} // mobile/klik i też działa na desktop
+                  className={linkDesktop}
+                  style={{ color: GREEN }}
+                >
+                  MOJE KONTO
+                </button>
+
+                <AnimatePresence>
+                  {accountOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.16 }}
+                      className="absolute right-0 mt-3 w-56 overflow-hidden rounded-2xl border border-white/12 bg-[#0f0f0f]/95 backdrop-blur-md shadow-lg"
+                    >
+                      <div className="px-4 py-3 border-b border-white/10">
+                        <div className="text-white/90 text-[12px] uppercase tracking-[0.18em]">Zalogowano</div>
+                        <div className="mt-1 text-white/70 text-[13px] truncate">
+                          {session?.user?.email ?? '—'}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => go('/panel')}
+                        className="w-full text-left px-4 py-3 text-[13px] text-white/80 hover:text-white hover:bg-white/5 transition"
+                      >
+                        Panel klienta
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setAccountOpen(false);
+                          signOut({ callbackUrl: '/' });
+                        }}
+                        className="w-full text-left px-4 py-3 text-[13px] text-white/80 hover:text-white hover:bg-white/5 transition"
+                      >
+                        Wyloguj
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </nav>
         </div>
       </header>
@@ -98,7 +189,7 @@ export default function GlobalNav() {
         className="fixed top-3 right-4 z-[120] md:hidden p-2"
         animate={{ rotate: open ? 180 : 0 }}
         transition={{ duration: 0.35 }}
-        style={{ color: ACCENT }}
+        style={{ color: FG }}
       >
         <div className="relative w-10 h-10">
           <motion.div
@@ -132,14 +223,7 @@ export default function GlobalNav() {
             <button aria-hidden onClick={() => setOpen(false)} className="absolute inset-0 -z-10" />
 
             <div className="flex-1 flex flex-col items-center justify-center gap-10 text-center px-6">
-              <Image
-                src="/logo.png"
-                alt="TylkoDziałki"
-                width={1024}
-                height={253}
-                priority
-                className="h-16 w-auto"
-              />
+              <Image src="/logo.png" alt="TylkoDziałki" width={1024} height={253} priority className="h-16 w-auto" />
 
               <div className="flex flex-col gap-8">
                 <button onClick={() => go('/')} className={linkMobile}>
@@ -154,6 +238,28 @@ export default function GlobalNav() {
                 <button onClick={() => go('/kontakt')} className={linkMobile}>
                   KONTAKT
                 </button>
+
+                {!isLogged ? (
+                  <button onClick={goAuth} className={linkMobile} style={{ color: GREEN }}>
+                    ZALOGUJ / REJESTRACJA
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={() => go('/panel')} className={linkMobile} style={{ color: GREEN }}>
+                      PANEL KLIENTA
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOpen(false);
+                        signOut({ callbackUrl: '/' });
+                      }}
+                      className={linkMobile}
+                      style={{ color: GREEN }}
+                    >
+                      WYLOGUJ
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </motion.aside>

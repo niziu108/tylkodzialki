@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import GlobalNav from '@/components/GlobalNav';
+import Providers from '@/components/Providers';
 import { Geist } from 'next/font/google';
 
 const geist = Geist({
@@ -22,8 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pl" className={geist.variable}>
       <body className="font-sans bg-[#131313] text-white">
-        <GlobalNav />
-        {children}
+        <Providers>
+          <GlobalNav />
+          {children}
+        </Providers>
       </body>
     </html>
   );

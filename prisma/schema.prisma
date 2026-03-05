@@ -7,8 +7,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  // ✅ do logowania email/hasło (opcjonalne dla OAuth)
+  passwordHash  String?
+
+  role          Role      @default(USER)
+
+  // NextAuth relacje
+  accounts      Account[]
+  sessions      Session[]
+
+  // ✅ relacja do ogłoszeń
+  dzialki       Dzialka[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model Dzialka {
   id             String   @id @default(cuid())
+
+  // ✅ właściciel ogłoszenia (stare ogłoszenia mogą mieć null)
+  ownerId        String?
+  owner          User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
   // obowiązkowe
   tytul          String
@@ -35,7 +106,7 @@ model Dzialka {
   locationMode   LocationMode @default(EXACT)
   parcelText     String?
 
-  // ⚡ Uzbrojenie (wg Twoich opcji)
+  // ⚡ Uzbrojenie
   prad           PradStatus @default(BRAK_PRZYLACZA)
   woda           WodaStatus @default(BRAK_PRZYLACZA)
   kanalizacja    KanalizacjaStatus @default(BRAK)
@@ -61,6 +132,7 @@ model Dzialka {
   updatedAt      DateTime @updatedAt
 
   @@index([lat, lng])
+  @@index([ownerId])
 }
 
 model Zdjecie {

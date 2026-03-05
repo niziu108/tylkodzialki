@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import {
   LocationMode,
   Przeznaczenie,
@@ -11,6 +12,8 @@ import {
   Prisma,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/auth-options";
 
 function badRequest(message: string, details?: any) {
   return NextResponse.json({ ok: false, message, details }, { status: 400 });
@@ -58,14 +61,12 @@ export async function GET(req: Request) {
   const przeznRaw = (url.searchParams.get('przeznaczenia') || '').trim();
   const przeznaczenia = przeznRaw ? przeznRaw.split(',').map((s) => s.trim()).filter(Boolean) : [];
 
-  // ✅ page / take
   const takeReq = Number(url.searchParams.get('take') || '20');
   const take = Math.min(Math.max(Number.isFinite(takeReq) ? takeReq : 20, 1), 100);
 
   const pageReq = Number(url.searchParams.get('page') || '1');
   const page = Math.max(Number.isFinite(pageReq) ? Math.floor(pageReq) : 1, 1);
 
-  // kompatybilność wstecz jeśli ktoś jeszcze wysyła skip
   const skipParam = url.searchParams.get('skip');
   const skip = skipParam != null ? Math.max(Number(skipParam) || 0, 0) : (page - 1) * take;
 
@@ -96,11 +97,9 @@ export async function GET(req: Request) {
   }
 
   if (przeznaczenia.length) {
-    // `hasSome` działa na polu listy enumów w Prisma
     where.przeznaczenia = { hasSome: przeznaczenia as any };
   }
 
-  // ✅ KLUCZ: orderBy musi być SortOrder (asc/desc), nie dowolny string
   const orderBy: Prisma.DzialkaOrderByWithRelationInput =
     sort === 'price_asc'
       ? { cenaPln: 'asc' }
@@ -141,6 +140,79 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  // ✅ właściciel z sesji (NextAuth v4) — bierzemy email i mapujemy na user.id
+  const session = await getServerSession(authOptions);
+  const sessionEmail = session?.user?.email;
+
+  if (!sessionEmail) {
+    return NextResponse.json({ ok: false, message: "Brak autoryzacji." }, { status: 401 });
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { email: sessionEmail },
+    select: { id: true },
+  });
+
+  if (!dbUser?.id) {
+    return NextResponse.json({ ok: false, message: "Nie znaleziono użytkownika w bazie." }, { status: 401 });
+  }
+
+  const ownerId = dbUser.id;
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Nieprawidłowy JSON body.");
+  }
+
+  const {
+    tytul,
+    powierzchniaM2,
+    cenaPln,
+    przeznaczenia,
+    telefon,
+    email: ogloszenieEmail,
+    opis,
+    sprzedajacyTyp,
+    numerOferty,
+    placeId,
+    locationFull,
+    locationLabel,
+    lat,
+    lng,
+    mapsUrl,
+    locationMode,
+    parcelText,
+    prad,
+    woda,
+    kanalizacja,
+    gaz,
+    swiatlowod,
+    wzWydane,
+    mpzp,
+    projektDomu,
+    klasaZiemi,
+    wymiary,
+    ksiegaWieczysta,
+    zdjecia,
+  } = body ?? {};
+
+  if (!email) {
+    return NextResponse.json({ ok: false, message: 'Brak autoryzacji.' }, { status: 401 });
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  if (!dbUser?.id) {
+    return NextResponse.json({ ok: false, message: 'Nie znaleziono użytkownika w bazie.' }, { status: 401 });
+  }
+
+  const ownerId = dbUser.id;
+
   let body: any;
   try {
     body = await req.json();
@@ -154,9 +226,8 @@ export async function POST(req: Request) {
     cenaPln,
     przeznaczenia,
     telefon,
-    email,
+    email: ogloszenieEmail,
 
-    // ✅ NOWE
     opis,
 
     sprzedajacyTyp,
@@ -193,7 +264,7 @@ export async function POST(req: Request) {
   if (!Number.isInteger(powierzchniaM2) || powierzchniaM2 <= 0) return badRequest('Podaj poprawną powierzchnię.');
   if (!Number.isInteger(cenaPln) || cenaPln <= 0) return badRequest('Podaj poprawną cenę.');
   if (!telefon || typeof telefon !== 'string') return badRequest('Brak telefonu.');
-  if (!email || typeof email !== 'string') return badRequest('Brak email.');
+  if (!ogloszenieEmail || typeof ogloszenieEmail !== 'string') return badRequest('Brak email.');
 
   if (!Array.isArray(przeznaczenia) || przeznaczenia.length < 1) {
     return badRequest('Wybierz co najmniej 1 przeznaczenie.');
@@ -208,7 +279,7 @@ export async function POST(req: Request) {
 
   if (typeof lat !== 'number' || typeof lng !== 'number') return badRequest('Wybierz lokalizację.');
 
-  // ✅ opis
+  // opis
   const opisClean = cleanOptionalString(opis);
   if (opisClean && opisClean.length > 8000) {
     return badRequest('Opis jest za długi (max 8000 znaków).');
@@ -237,7 +308,7 @@ export async function POST(req: Request) {
   const nr = cleanOptionalString(numerOferty);
   if (seller === SprzedajacyTyp.BIURO && !nr) return badRequest('Dla BIURA podaj numer oferty.');
 
-  // uzbrojenie (enumy)
+  // uzbrojenie
   const pradParsed = parseEnum(PradStatus, prad) ?? PradStatus.BRAK_PRZYLACZA;
   const wodaParsed = parseEnum(WodaStatus, woda) ?? WodaStatus.BRAK_PRZYLACZA;
   const kanalParsed = parseEnum(KanalizacjaStatus, kanalizacja) ?? KanalizacjaStatus.BRAK;
@@ -260,14 +331,15 @@ export async function POST(req: Request) {
   try {
     const created = await prisma.dzialka.create({
       data: {
+        ownerId, // ✅ POWIĄZANIE Z UŻYTKOWNIKIEM
+
         tytul,
         powierzchniaM2,
         cenaPln,
         przeznaczenia: mappedPrzeznaczenia,
         telefon,
-        email,
+        email: ogloszenieEmail,
 
-        // ✅ zapis opisu
         opis: opisClean,
 
         sprzedajacyTyp: seller,
