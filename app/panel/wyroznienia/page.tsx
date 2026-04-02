@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type FeaturedPackageKey = 'featured_1' | 'featured_3';
@@ -24,7 +24,7 @@ const initialInvoiceState: InvoiceFormState = {
   email: '',
 };
 
-export default function WyroznieniaPage() {
+function WyroznieniaPageContent() {
   const [loadingKey, setLoadingKey] = useState<FeaturedPackageKey | null>(null);
   const [invoiceType, setInvoiceType] = useState<InvoiceChoice>('NONE');
   const [invoice, setInvoice] = useState<InvoiceFormState>(initialInvoiceState);
@@ -272,5 +272,23 @@ export default function WyroznieniaPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function WyroznieniaPageFallback() {
+  return (
+    <main className="min-h-screen bg-[#131313] px-6 py-6 text-[#d9d9d9]">
+      <div className="mx-auto max-w-[1120px]">
+        <div className="text-center text-white/60">Ładowanie…</div>
+      </div>
+    </main>
+  );
+}
+
+export default function WyroznieniaPage() {
+  return (
+    <Suspense fallback={<WyroznieniaPageFallback />}>
+      <WyroznieniaPageContent />
+    </Suspense>
   );
 }
