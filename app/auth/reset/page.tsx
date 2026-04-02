@@ -1,14 +1,13 @@
 'use client';
 
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
-import { signIn } from 'next-auth/react';
 
 const BG = '#131313';
 const FG = '#F3EFF5';
 const GREEN = '#7aa333';
 
-export default function ResetPage() {
+function ResetPageContent() {
   const sp = useSearchParams();
   const token = useMemo(() => sp.get('token') || '', [sp]);
 
@@ -57,7 +56,10 @@ export default function ResetPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6" style={{ background: BG, color: FG }}>
+    <main
+      className="min-h-screen flex items-center justify-center px-6"
+      style={{ background: BG, color: FG }}
+    >
       <div className="w-full max-w-md rounded-3xl border border-white/10 p-7">
         <h1 className="text-white text-[26px] font-semibold">Ustaw nowe hasło</h1>
 
@@ -77,7 +79,9 @@ export default function ResetPage() {
         ) : (
           <form onSubmit={submit} className="mt-6 space-y-5">
             <label className="block">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Nowe hasło</div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+                Nowe hasło
+              </div>
               <input
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
@@ -105,5 +109,24 @@ export default function ResetPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function ResetPageFallback() {
+  return (
+    <main
+      className="min-h-screen flex items-center justify-center px-6"
+      style={{ background: BG, color: FG }}
+    >
+      <div className="text-white/60">Ładowanie…</div>
+    </main>
+  );
+}
+
+export default function ResetPage() {
+  return (
+    <Suspense fallback={<ResetPageFallback />}>
+      <ResetPageContent />
+    </Suspense>
   );
 }
