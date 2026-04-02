@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LocationPicker from '@/components/LocationPicker';
-import { uploadImage } from '@/lib/uploadImage';
 import MarkdownOpis from '@/components/MarkdownOpis';
 
 type Przeznaczenie = 'BUDOWLANA' | 'USLUGOWA' | 'ROLNA' | 'LESNA' | 'INWESTYCYJNA';
@@ -188,6 +187,27 @@ function formatThousandsSpaces(digits: string) {
 function parseFormattedNumber(formatted: string) {
   const digits = onlyDigits(formatted);
   return digits ? Number(digits) : NaN;
+}
+
+async function uploadImageViaApi(file: File): Promise<{ url: string; key: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch('/api/upload-image', {
+    method: 'POST',
+    body: formData,
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.message || 'Nie udało się wgrać zdjęcia.');
+  }
+
+  return {
+    url: data.url,
+    key: data.key,
+  };
 }
 
 function UnderlineField({
@@ -643,7 +663,7 @@ export default function DzialkaForm({
       const uploadedNow: UploadedPhoto[] = [];
 
       for (const file of filesToUpload) {
-        const out = await uploadImage(file);
+        const out = await uploadImageViaApi(file);
         uploadedNow.push({
           url: out.url,
           publicId: out.key,

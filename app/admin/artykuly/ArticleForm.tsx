@@ -1,11 +1,10 @@
-"use client";
+'use client';
 
-import { useRef, useState } from "react";
-import Link from "next/link";
-import { uploadToCloudinary } from "@/lib/cloudinaryUpload";
+import { useRef, useState } from 'react';
+import Link from 'next/link';
 
 type ArticleFormProps = {
-  mode: "create" | "edit";
+  mode: 'create' | 'edit';
   action: (formData: FormData) => void | Promise<void>;
   initialData?: {
     id: string;
@@ -20,12 +19,33 @@ type ArticleFormProps = {
   };
 };
 
+async function uploadImageViaApi(file: File): Promise<{ url: string; key: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch('/api/upload-image', {
+    method: 'POST',
+    body: formData,
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.message || 'Nie udało się wgrać zdjęcia.');
+  }
+
+  return {
+    url: data.url,
+    key: data.key,
+  };
+}
+
 export default function ArticleForm({
   mode,
   action,
   initialData,
 }: ArticleFormProps) {
-  const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || "");
+  const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -37,14 +57,14 @@ export default function ArticleForm({
     setUploading(true);
 
     try {
-      const result = await uploadToCloudinary(file);
+      const result = await uploadImageViaApi(file);
       setImageUrl(result.url);
     } catch (e: any) {
-      setUploadError(e?.message || "Nie udało się wgrać zdjęcia.");
+      setUploadError(e?.message || 'Nie udało się wgrać zdjęcia.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        fileInputRef.current.value = '';
       }
     }
   }
@@ -54,7 +74,7 @@ export default function ArticleForm({
       action={action}
       className="rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6"
     >
-      {mode === "edit" && initialData?.id ? (
+      {mode === 'edit' && initialData?.id ? (
         <input type="hidden" name="id" value={initialData.id} />
       ) : null}
 
@@ -68,7 +88,7 @@ export default function ArticleForm({
           <input
             type="text"
             name="title"
-            defaultValue={initialData?.title || ""}
+            defaultValue={initialData?.title || ''}
             placeholder="Np. MPZP – co to jest i jak sprawdzić plan dla działki?"
             className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
             required
@@ -82,7 +102,7 @@ export default function ArticleForm({
           <input
             type="text"
             name="slug"
-            defaultValue={initialData?.slug || ""}
+            defaultValue={initialData?.slug || ''}
             placeholder="Np. mpzp-co-to-jest"
             className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
           />
@@ -113,7 +133,7 @@ export default function ArticleForm({
 
             <div className="mt-3 flex flex-wrap gap-2">
               <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl bg-[#7aa333] px-4 py-2.5 text-sm font-semibold text-black transition hover:opacity-90">
-                {uploading ? "Wgrywam..." : imageUrl ? "Podmień zdjęcie" : "Wgraj zdjęcie"}
+                {uploading ? 'Wgrywam...' : imageUrl ? 'Podmień zdjęcie' : 'Wgraj zdjęcie'}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -126,7 +146,7 @@ export default function ArticleForm({
               {imageUrl ? (
                 <button
                   type="button"
-                  onClick={() => setImageUrl("")}
+                  onClick={() => setImageUrl('')}
                   className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
                 >
                   Usuń zdjęcie
@@ -147,7 +167,7 @@ export default function ArticleForm({
           <textarea
             name="excerpt"
             rows={4}
-            defaultValue={initialData?.excerpt || ""}
+            defaultValue={initialData?.excerpt || ''}
             placeholder="Krótki opis artykułu widoczny na liście bloga i w panelu admina..."
             className="w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
           />
@@ -160,7 +180,7 @@ export default function ArticleForm({
           <textarea
             name="content"
             rows={18}
-            defaultValue={initialData?.content || ""}
+            defaultValue={initialData?.content || ''}
             placeholder={`Np.
 
 # MPZP – co to jest?
@@ -189,7 +209,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
             defaultChecked={initialData?.isPublished || false}
             className="h-4 w-4 rounded border-white/20 bg-[#1b1b1b]"
           />
-          {mode === "create" ? "Opublikuj od razu" : "Artykuł opublikowany"}
+          {mode === 'create' ? 'Opublikuj od razu' : 'Artykuł opublikowany'}
         </label>
         <p className="mt-2 text-xs text-[#8f8f8f]">
           Jeśli zostawisz odznaczone, artykuł zapisze się jako szkic.
@@ -198,10 +218,10 @@ Miejscowy plan zagospodarowania przestrzennego to...
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-2 text-xs text-[#8f8f8f] sm:text-sm">
-          {mode === "edit" && initialData?.createdAt ? (
+          {mode === 'edit' && initialData?.createdAt ? (
             <span>Utworzono: {initialData.createdAt}</span>
           ) : null}
-          {mode === "edit" && initialData?.updatedAt ? (
+          {mode === 'edit' && initialData?.updatedAt ? (
             <span>Ostatnia aktualizacja: {initialData.updatedAt}</span>
           ) : null}
         </div>
@@ -220,10 +240,10 @@ Miejscowy plan zagospodarowania przestrzennego to...
             className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#7aa333] px-6 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {uploading
-              ? "Poczekaj, trwa upload..."
-              : mode === "create"
-              ? "Zapisz artykuł"
-              : "Zapisz zmiany"}
+              ? 'Poczekaj, trwa upload...'
+              : mode === 'create'
+              ? 'Zapisz artykuł'
+              : 'Zapisz zmiany'}
           </button>
         </div>
       </div>
