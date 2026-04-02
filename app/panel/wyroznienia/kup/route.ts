@@ -1,17 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import Stripe from "stripe";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import Stripe from 'stripe';
 
-import { authOptions } from "@/auth-options";
-import { prisma } from "@/lib/prisma";
+import { authOptions } from '@/auth-options';
+import { prisma } from '@/lib/prisma';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-08-27.basil',
+});
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   const email = session.user.email.toLowerCase().trim();
@@ -22,44 +24,43 @@ export async function GET(req: NextRequest) {
   });
 
   if (!user) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   const { searchParams } = new URL(req.url);
 
-  const plan = searchParams.get("plan");
-  const dzialkaId = searchParams.get("dzialkaId");
+  const plan = searchParams.get('plan');
+  const dzialkaId = searchParams.get('dzialkaId');
 
   let price = 0;
   let credits = 0;
-  let name = "";
+  let name = '';
 
-  if (plan === "featured_1") {
+  if (plan === 'featured_1') {
     price = 1900;
     credits = 1;
-    name = "Wyróżnienie ogłoszenia – 1 szt.";
+    name = 'Wyróżnienie ogłoszenia – 1 szt.';
   }
 
-  if (plan === "featured_3") {
+  if (plan === 'featured_3') {
     price = 3900;
     credits = 3;
-    name = "Pakiet wyróżnień – 3 szt.";
+    name = 'Pakiet wyróżnień – 3 szt.';
   }
 
   if (!price) {
-    return NextResponse.json({ error: "Nieprawidłowy plan." }, { status: 400 });
+    return NextResponse.json({ error: 'Nieprawidłowy plan.' }, { status: 400 });
   }
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
   const checkout = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    mode: "payment",
-
-    customer_email: user.email,
-
+    mode: 'payment',
+    customer_email: user.email ?? undefined,
     line_items: [
       {
         price_data: {
-          currency: "pln",
+          currency: 'pln',
           product_data: {
             name,
           },
@@ -68,17 +69,22 @@ export async function GET(req: NextRequest) {
         quantity: 1,
       },
     ],
-
     metadata: {
-      type: "featured",
+      type: 'featured',
       userId: user.id,
       featuredCredits: credits.toString(),
-      dzialkaId: dzialkaId ?? "",
+      dzialkaId: dzialkaId ?? '',
     },
-
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/panel/wyroznienia/sukces`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/panel/wyroznienia`,
+    success_url: `${appUrl}/panel/wyroznienia/sukces`,
+    cancel_url: `${appUrl}/panel/wyroznienia`,
   });
 
-  return NextResponse.redirect(checkout.url!);
+  if (!checkout.url) {
+    return NextResponse.json(
+      { error: 'Nie udało się utworzyć linku do płatności.' },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.redirect(checkout.url);
 }
