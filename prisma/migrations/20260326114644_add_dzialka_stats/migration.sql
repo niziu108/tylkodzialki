@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Dzialka" ADD COLUMN     "detailViewsCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "viewsCount" INTEGER NOT NULL DEFAULT 0;

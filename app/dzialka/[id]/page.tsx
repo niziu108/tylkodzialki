@@ -162,11 +162,39 @@ function labelSwiatlowod(v?: string | null) {
   return map[v] ?? v;
 }
 
+function SmartImg({
+  src,
+  alt,
+  className,
+  eager = false,
+  onClick,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  eager?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+      draggable={false}
+      onClick={onClick}
+    />
+  );
+}
+
 function InfoLine({ icon, value }: { icon: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3 min-w-0">
-      <img src={icon} alt="" className="mt-[2px] h-5 w-5 opacity-80 shrink-0" />
-      <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">{value}</div>
+      <SmartImg src={icon} alt="" className="mt-[2px] h-5 w-5 opacity-80 shrink-0" />
+      <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
+        {value}
+      </div>
     </div>
   );
 }
@@ -183,12 +211,11 @@ export default function DzialkaPage() {
   const [idx, setIdx] = useState(0);
   const [open, setOpen] = useState(false);
 
-  // swipe (fullscreen)
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
   }, [id]);
 
   useEffect(() => {
@@ -221,14 +248,41 @@ export default function DzialkaPage() {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!id) return;
+
+    const key = `TD_DETAIL_VIEWED_${id}`;
+    let shouldTrack = true;
+
+    try {
+      if (sessionStorage.getItem(key)) {
+        shouldTrack = false;
+      } else {
+        sessionStorage.setItem(key, '1');
+      }
+    } catch {
+      shouldTrack = true;
+    }
+
+    if (!shouldTrack) return;
+
+    fetch(`/api/dzialki/${id}/track-detail`, {
+      method: 'POST',
+      cache: 'no-store',
+    }).catch(() => {});
+  }, [id]);
+
   const photos = useMemo(() => {
-    const arr = (d?.zdjecia ?? [])
+    return (d?.zdjecia ?? [])
       .slice()
       .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0))
       .map((z) => z.url)
       .filter(Boolean);
-    return arr;
   }, [d]);
+
+  useEffect(() => {
+    setIdx(0);
+  }, [photos.length]);
 
   const hasPhotos = photos.length > 0;
   const cover = hasPhotos ? photos[Math.min(idx, photos.length - 1)] : null;
@@ -236,7 +290,7 @@ export default function DzialkaPage() {
   const area = d?.powierzchniaM2 ?? 0;
   const zlZaM2 = area ? Math.round((d?.cenaPln ?? 0) / area) : 0;
 
-  const przezn = Array.isArray(d?.przeznaczenia) ? d!.przeznaczenia!.filter(Boolean) : [];
+  const przezn = Array.isArray(d?.przeznaczenia) ? d.przeznaczenia.filter(Boolean) : [];
   const przeznText = przezn.length ? przezn.map(labelPrzeznaczenie).join(', ') : null;
 
   const loc = d?.locationLabel?.trim() || null;
@@ -268,12 +322,12 @@ export default function DzialkaPage() {
     if (photos.length < 2) return;
     setIdx((p) => (p - 1 + photos.length) % photos.length);
   };
+
   const next = () => {
     if (photos.length < 2) return;
     setIdx((p) => (p + 1) % photos.length);
   };
 
-  // ✅ POWRÓT DO LISTY: wraca na tę samą stronę i ten sam scroll
   const onBackToListClick = (e: React.MouseEvent) => {
     e.preventDefault();
 
@@ -283,7 +337,7 @@ export default function DzialkaPage() {
 
       if (y) sessionStorage.setItem('TD_KUP_RESTORE_Y', y);
 
-      router.push(url); // list page ma mieć scroll={false} i restore w useEffect
+      router.push(url);
     } catch {
       router.push('/kup');
     }
@@ -316,7 +370,6 @@ export default function DzialkaPage() {
     else if (dx < -TH) next();
   };
 
-  // ✅ blokada scrolla tła, kiedy fullscreen galeria otwarta
   useEffect(() => {
     if (!open) return;
     const prevOverflow = document.documentElement.style.overflow;
@@ -404,19 +457,17 @@ export default function DzialkaPage() {
           <span className="relative top-[-1px]">←</span> Wróć do listy
         </Link>
 
-        {/* ======= reszta Twojego pliku BEZ ZMIAN ======= */}
         <div className="mt-6 grid gap-10 lg:grid-cols-2">
-          {/* LEWA KOLUMNA */}
           <section className="min-w-0 space-y-8">
-            {/* GALERIA */}
             <div className="min-w-0 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
               <div className="relative aspect-video bg-white/5">
                 {cover ? (
                   <>
-                    <img
+                    <SmartImg
                       src={cover}
                       alt={d.tytul}
                       className="h-full w-full object-cover cursor-zoom-in"
+                      eager
                       onClick={() => setOpen(true)}
                     />
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
@@ -427,7 +478,9 @@ export default function DzialkaPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-white/50">Brak zdjęć</div>
+                  <div className="flex h-full w-full items-center justify-center text-sm text-white/50">
+                    Brak zdjęć
+                  </div>
                 )}
 
                 {hasPhotos && photos.length > 1 && (
@@ -476,7 +529,11 @@ export default function DzialkaPage() {
                       )}
                       title={`Zdjęcie ${i + 1}`}
                     >
-                      <img src={u} alt={`Zdjęcie ${i + 1}`} className="h-full w-full object-cover" />
+                      <SmartImg
+                        src={u}
+                        alt={`Zdjęcie ${i + 1}`}
+                        className="h-full w-full object-cover"
+                      />
                     </button>
                   ))}
                 </div>
@@ -486,7 +543,10 @@ export default function DzialkaPage() {
             {opis ? (
               <div className="hidden lg:block">
                 <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Opis</div>
-                <div className="td-opis mt-4 text-[15px] leading-relaxed text-white/85" dangerouslySetInnerHTML={{ __html: opis }} />
+                <div
+                  className="td-opis mt-4 text-[15px] leading-relaxed text-white/85"
+                  dangerouslySetInnerHTML={{ __html: opis }}
+                />
               </div>
             ) : null}
 
@@ -521,7 +581,6 @@ export default function DzialkaPage() {
             ) : null}
           </section>
 
-          {/* PRAWA KOLUMNA */}
           <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
             <div className="p-6 md:p-7">
               <div className="text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
@@ -532,11 +591,13 @@ export default function DzialkaPage() {
 
               <div className="py-5">
                 <div className="flex items-center gap-3 min-w-0">
-                  <img src={ICONS.price} alt="" className="h-5 w-5 opacity-80 shrink-0" />
+                  <SmartImg src={ICONS.price} alt="" className="h-5 w-5 opacity-80 shrink-0" />
                   <div className="min-w-0 text-[20px] md:text-[22px] font-semibold" style={{ color: GREEN }}>
                     {formatPLN(d.cenaPln)}
                     {zlZaM2 ? (
-                      <span className="ml-2 text-[12px] text-white/50 font-normal">({formatIntPL(zlZaM2)} zł/m²)</span>
+                      <span className="ml-2 text-[12px] text-white/50 font-normal">
+                        ({formatIntPL(zlZaM2)} zł/m²)
+                      </span>
                     ) : null}
                   </div>
                 </div>
@@ -546,7 +607,7 @@ export default function DzialkaPage() {
 
               <div className="py-5">
                 <div className="flex items-center gap-3 min-w-0">
-                  <img src={ICONS.area} alt="" className="h-5 w-5 opacity-80 shrink-0" />
+                  <SmartImg src={ICONS.area} alt="" className="h-5 w-5 opacity-80 shrink-0" />
                   <div className="text-[20px] md:text-[22px] font-semibold" style={{ color: GREEN }}>
                     {formatIntPL(area)} m²
                   </div>
@@ -568,7 +629,7 @@ export default function DzialkaPage() {
                 <>
                   <div className="py-5">
                     <div className="flex items-start gap-3 min-w-0">
-                      <img src={ICONS.loc} alt="" className="mt-[2px] h-5 w-5 opacity-80 shrink-0" />
+                      <SmartImg src={ICONS.loc} alt="" className="mt-[2px] h-5 w-5 opacity-80 shrink-0" />
                       <div className="min-w-0 text-white/90 text-[14px] leading-snug break-words">{loc}</div>
                     </div>
                   </div>
@@ -580,7 +641,7 @@ export default function DzialkaPage() {
                 <>
                   <div className="py-5">
                     <div className="flex items-center gap-3 min-w-0">
-                      <img src={ICONS.phone} alt="" className="h-5 w-5 opacity-80 shrink-0" />
+                      <SmartImg src={ICONS.phone} alt="" className="h-5 w-5 opacity-80 shrink-0" />
                       <a
                         href={`tel:${telefon.replace(/\s+/g, '')}`}
                         className="min-w-0 text-[20px] md:text-[22px] font-semibold underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
@@ -684,7 +745,10 @@ export default function DzialkaPage() {
                 <>
                   <div className="py-5 lg:hidden">
                     <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Opis</div>
-                    <div className="td-opis mt-4 text-[15px] leading-relaxed text-white/85" dangerouslySetInnerHTML={{ __html: opis }} />
+                    <div
+                      className="td-opis mt-4 text-[15px] leading-relaxed text-white/85"
+                      dangerouslySetInnerHTML={{ __html: opis }}
+                    />
                   </div>
                   <Hr className="lg:hidden" />
                 </>
@@ -708,7 +772,13 @@ export default function DzialkaPage() {
 
                   <div className="mt-4 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
                     <div className="aspect-video">
-                      <iframe title="Mapa" src={mapSrc!} className="h-full w-full" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+                      <iframe
+                        title="Mapa"
+                        src={mapSrc!}
+                        className="h-full w-full"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
                     </div>
                   </div>
                 </div>
@@ -718,7 +788,6 @@ export default function DzialkaPage() {
         </div>
       </div>
 
-      {/* FULLSCREEN GALERIA */}
       {open && hasPhotos ? (
         <div className="fixed inset-0 z-[999] bg-black/90 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
@@ -735,11 +804,11 @@ export default function DzialkaPage() {
 
                 <div className="overflow-hidden rounded-3xl">
                   <div className="relative w-full" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-                    <img
+                    <SmartImg
                       src={cover ?? photos[0]}
                       alt={d.tytul}
                       className="mx-auto w-full object-contain max-h-[82svh] sm:max-h-[78vh]"
-                      draggable={false}
+                      eager
                     />
 
                     {photos.length > 1 ? (
@@ -783,7 +852,11 @@ export default function DzialkaPage() {
                       )}
                       title={`Zdjęcie ${i + 1}`}
                     >
-                      <img src={u} alt={`Zdjęcie ${i + 1}`} className="h-full w-full object-cover" />
+                      <SmartImg
+                        src={u}
+                        alt={`Zdjęcie ${i + 1}`}
+                        className="h-full w-full object-cover"
+                      />
                     </button>
                   ))}
                 </div>

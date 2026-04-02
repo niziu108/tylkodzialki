@@ -16,6 +16,8 @@ type ApiDzialka = {
   lng?: number | null;
   przeznaczenia?: Przeznaczenie[];
   zdjecia?: ApiPhoto[];
+  isFeatured?: boolean | null;
+  featuredUntil?: string | Date | null;
 };
 
 const KM_OPTIONS = [0, 5, 10, 20, 40] as const;
@@ -35,7 +37,10 @@ function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   const dLat = ((bLat - aLat) * Math.PI) / 180;
   const dLng = ((bLng - aLng) * Math.PI) / 180;
   const s1 = Math.sin(dLat / 2) ** 2;
-  const s2 = Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  const s2 =
+    Math.cos((aLat * Math.PI) / 180) *
+    Math.cos((bLat * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(s1 + s2));
 }
 
@@ -50,25 +55,24 @@ function loadPlaces(apiKey: string) {
     s.id = id;
     s.async = true;
     s.defer = true;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&language=pl`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
+      apiKey
+    )}&libraries=places&language=pl`;
     s.onload = () => resolve();
     s.onerror = () => reject(new Error('Nie udało się załadować Google Places.'));
     document.head.appendChild(s);
   });
 }
 
-// ✅ tylko cyfry (usuwa spacje, przecinki, kropki itd.)
 function digitsOnly(s: string) {
   return s.replace(/\D/g, '');
 }
 
-// ✅ format PL: 1000 -> "1 000", 10000 -> "10 000", 1000000 -> "1 000 000"
 function formatPLThousands(digits: string) {
   if (!digits) return '';
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
-// ✅ handler: user nie wpisze spacji, a my je dodamy automatycznie
 function makeAutoPLHandler(setter: (v: string) => void) {
   return (e: React.ChangeEvent<HTMLInputElement>) => {
     const d = digitsOnly(e.target.value);
@@ -79,14 +83,38 @@ function makeAutoPLHandler(setter: (v: string) => void) {
 function buildMobilePages(page: number, total: number): Array<number | '…'> {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
 
-  // start
   if (page <= 4) return [1, 2, 3, 4, '…', total];
-
-  // end
   if (page >= total - 3) return [1, '…', total - 3, total - 2, total - 1, total];
 
-  // middle
   return [1, '…', page - 1, page, page + 1, '…', total];
+}
+
+function isFeaturedActive(item: ApiDzialka) {
+  return (
+    !!item.isFeatured &&
+    !!item.featuredUntil &&
+    new Date(item.featuredUntil).getTime() > Date.now()
+  );
+}
+
+function sortPublicItems(list: ApiDzialka[]) {
+  return [...list].sort((a, b) => {
+    const aFeatured = isFeaturedActive(a);
+    const bFeatured = isFeaturedActive(b);
+
+    if (aFeatured !== bFeatured) {
+      return aFeatured ? -1 : 1;
+    }
+
+    const aFeaturedUntil = a.featuredUntil ? new Date(a.featuredUntil).getTime() : 0;
+    const bFeaturedUntil = b.featuredUntil ? new Date(b.featuredUntil).getTime() : 0;
+
+    if (aFeatured && bFeatured && aFeaturedUntil !== bFeaturedUntil) {
+      return bFeaturedUntil - aFeaturedUntil;
+    }
+
+    return 0;
+  });
 }
 
 function PagerResponsive({
@@ -121,7 +149,6 @@ function PagerResponsive({
 
   return (
     <div className={className || ''}>
-      {/* ✅ MOBILE (ładne numerki) */}
       <div className="md:hidden">
         <div className="flex items-center justify-between gap-3">
           <button
@@ -136,7 +163,8 @@ function PagerResponsive({
               textDecoration: 'underline',
               textUnderlineOffset: '10px',
               textDecorationThickness: '1px',
-              textDecorationColor: page <= 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
+              textDecorationColor:
+                page <= 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
             }}
           >
             Poprzednia
@@ -187,7 +215,8 @@ function PagerResponsive({
               textDecoration: 'underline',
               textUnderlineOffset: '10px',
               textDecorationThickness: '1px',
-              textDecorationColor: page >= totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
+              textDecorationColor:
+                page >= totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
             }}
           >
             Następna
@@ -195,9 +224,7 @@ function PagerResponsive({
         </div>
       </div>
 
-      {/* ✅ DESKTOP (twoje idealne: prev 7/23 next + Idź do) */}
       <div className="hidden md:flex items-center justify-between gap-4">
-        {/* LEFT */}
         <div className="flex items-center gap-6">
           <button
             type="button"
@@ -211,7 +238,8 @@ function PagerResponsive({
               textDecoration: 'underline',
               textUnderlineOffset: '10px',
               textDecorationThickness: '1px',
-              textDecorationColor: page <= 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
+              textDecorationColor:
+                page <= 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
             }}
           >
             Poprzednia
@@ -233,14 +261,14 @@ function PagerResponsive({
               textDecoration: 'underline',
               textUnderlineOffset: '10px',
               textDecorationThickness: '1px',
-              textDecorationColor: page >= totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
+              textDecorationColor:
+                page >= totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
             }}
           >
             Następna
           </button>
         </div>
 
-        {/* RIGHT */}
         <div className="flex items-center gap-3">
           <div className="text-white/35 text-[11px] tracking-[0.22em] uppercase">Idź do</div>
 
@@ -248,8 +276,7 @@ function PagerResponsive({
             value={val}
             onChange={(e) => setVal(e.target.value.replace(/[^\d]/g, ''))}
             inputMode="numeric"
-            className="w-[72px] rounded-xl border border-white/20 bg-transparent px-3 py-2 text-white/85 text-[13px] outline-none
-                     focus:border-white/45 selection:bg-white/20 selection:text-white text-center"
+            className="w-[72px] rounded-xl border border-white/20 bg-transparent px-3 py-2 text-center text-[13px] text-white/85 outline-none focus:border-white/45 selection:bg-white/20 selection:text-white"
             placeholder="…"
             onKeyDown={(e) => {
               if (e.key === 'Enter') go();
@@ -259,7 +286,7 @@ function PagerResponsive({
           <button
             type="button"
             onClick={go}
-            className="rounded-xl border border-white/20 px-3 py-2 text-[11px] tracking-[0.22em] uppercase text-white/75 hover:border-white/40 transition"
+            className="rounded-xl border border-white/20 px-3 py-2 text-[11px] tracking-[0.22em] uppercase text-white/75 transition hover:border-white/40"
           >
             Idź
           </button>
@@ -273,19 +300,15 @@ export default function KupSearch() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // ✅ trzymamy pełną listę po filtrach (po API + radius)
   const [allItems, setAllItems] = useState<ApiDzialka[]>([]);
   const [count, setCount] = useState(0);
 
-  // ✅ paginacja
   const [page, setPage] = useState(1);
 
-  // FORM (to co user wpisuje)
   const [locText, setLocText] = useState('');
   const [radiusKm, setRadiusKm] = useState<(typeof KM_OPTIONS)[number]>(0);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
 
-  // UWAGA: trzymamy string z formatem (np "10 000")
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [areaMin, setAreaMin] = useState('');
@@ -293,7 +316,6 @@ export default function KupSearch() {
 
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>([]);
 
-  // APPLIED (faktyczne filtry użyte do szukania) — tu trzymamy JUŻ same cyfry
   const [applied, setApplied] = useState({
     locText: '',
     radiusKm: 0 as (typeof KM_OPTIONS)[number],
@@ -307,7 +329,6 @@ export default function KupSearch() {
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Google Places autocomplete (miasto/obszar)
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!key) return;
@@ -332,19 +353,17 @@ export default function KupSearch() {
           }
         });
       })
-      .catch(() => {
-        // działa dalej bez podpowiedzi
-      });
+      .catch(() => {});
   }, []);
 
   function togglePrzezn(k: Przeznaczenie) {
     setPrzezn((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
   }
 
-  // ✅ POBIERANIE zawsze na konkretnym obiekcie filtrów
   async function fetchDataWith(nextApplied: typeof applied) {
     setLoading(true);
     setErr(null);
+
     try {
       const sp = new URLSearchParams();
 
@@ -355,30 +374,36 @@ export default function KupSearch() {
       if (nextApplied.areaMax) sp.set('areaMax', nextApplied.areaMax);
       if (nextApplied.przezn.length) sp.set('przeznaczenia', nextApplied.przezn.join(','));
 
-      // ✅ pobieramy więcej, bo radius jest po stronie klienta
       sp.set('take', '200');
       sp.set('skip', '0');
       sp.set('sort', 'newest');
 
       const res = await fetch(`/api/dzialki?${sp.toString()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`GET /api/dzialki -> ${res.status}`);
-      const data = await res.json();
 
+      const data = await res.json();
       const list: ApiDzialka[] = data?.items ?? [];
+
       let filtered = list;
 
-      // Radius (tylko jeśli mamy center + radius > 0)
       if (nextApplied.center && nextApplied.radiusKm > 0) {
         filtered = list.filter((d) => {
           if (typeof d.lat !== 'number' || typeof d.lng !== 'number') return false;
-          return haversineKm(nextApplied.center!.lat, nextApplied.center!.lng, d.lat, d.lng) <= nextApplied.radiusKm;
+          return (
+            haversineKm(
+              nextApplied.center!.lat,
+              nextApplied.center!.lng,
+              d.lat,
+              d.lng
+            ) <= nextApplied.radiusKm
+          );
         });
       }
 
-      setAllItems(filtered);
-      setCount(filtered.length);
+      const sorted = sortPublicItems(filtered);
 
-      // ✅ jak zmieniasz filtry — wracamy na 1 stronę
+      setAllItems(sorted);
+      setCount(sorted.length);
       setPage(1);
     } catch (e: any) {
       setErr(e?.message ?? 'Błąd pobierania');
@@ -390,7 +415,6 @@ export default function KupSearch() {
     }
   }
 
-  // pierwszy load listy
   useEffect(() => {
     fetchDataWith(applied);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -401,13 +425,13 @@ export default function KupSearch() {
       locText,
       radiusKm,
       center,
-      // ✅ do API lecą TYLKO cyfry
       priceMin: digitsOnly(priceMin),
       priceMax: digitsOnly(priceMax),
       areaMin: digitsOnly(areaMin),
       areaMax: digitsOnly(areaMax),
       przezn,
     };
+
     setApplied(next);
     fetchDataWith(next);
   }
@@ -416,12 +440,10 @@ export default function KupSearch() {
     setLocText('');
     setCenter(null);
     setRadiusKm(0);
-
     setPriceMin('');
     setPriceMax('');
     setAreaMin('');
     setAreaMax('');
-
     setPrzezn([]);
 
     const next = {
@@ -439,7 +461,6 @@ export default function KupSearch() {
     fetchDataWith(next);
   }
 
-  // ✅ wyliczenia paginacji
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const safePage = Math.max(1, Math.min(totalPages, page));
 
@@ -454,7 +475,6 @@ export default function KupSearch() {
 
   return (
     <div className="w-full">
-      {/* HERO z tłem */}
       <section className="relative w-full">
         <div
           className="absolute inset-0"
@@ -465,16 +485,15 @@ export default function KupSearch() {
           }}
         />
 
-        {/* delikatny gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/0" />
 
         <div className="relative mx-auto max-w-6xl px-4 py-10 md:py-14">
-          {/* WYSZUKIWARKA */}
-          <div className="rounded-2xl border border-white/10 bg-[#0b0b0b]/78 backdrop-blur-sm p-5 md:p-8">
-            {/* Rząd 1: Lokalizacja + km */}
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-4">
+          <div className="rounded-2xl border border-white/10 bg-[#0b0b0b]/78 p-5 backdrop-blur-sm md:p-8">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_220px]">
               <div>
-                <label className="block text-[12px] tracking-[0.26em] text-white/85 uppercase">Lokalizacja</label>
+                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+                  Lokalizacja
+                </label>
                 <div className="mt-3 rounded-xl border border-white/25 bg-transparent">
                   <input
                     ref={inputRef}
@@ -484,7 +503,7 @@ export default function KupSearch() {
                       setCenter(null);
                     }}
                     placeholder="Wpisz lokalizację"
-                    className="w-full bg-transparent outline-none text-white/90 placeholder:text-white/35 px-4 py-3"
+                    className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') applyAndSearch();
                     }}
@@ -493,12 +512,14 @@ export default function KupSearch() {
               </div>
 
               <div>
-                <label className="block text-[12px] tracking-[0.26em] text-white/85 uppercase">Zasięg</label>
+                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+                  Zasięg
+                </label>
                 <div className="mt-3 rounded-xl border border-white/25">
                   <select
                     value={radiusKm}
                     onChange={(e) => setRadiusKm(Number(e.target.value) as any)}
-                    className="w-full bg-transparent outline-none text-white/90 px-4 py-3"
+                    className="w-full bg-transparent px-4 py-3 text-white/90 outline-none"
                   >
                     {KM_OPTIONS.map((km) => (
                       <option key={km} value={km} className="bg-[#131313]">
@@ -510,10 +531,11 @@ export default function KupSearch() {
               </div>
             </div>
 
-            {/* Rząd 2: Powierzchnia + Cena */}
-            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-[12px] tracking-[0.26em] text-white/85 uppercase">Powierzchnia</label>
+                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+                  Powierzchnia
+                </label>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div className="relative rounded-xl border border-white/25">
                     <input
@@ -521,9 +543,11 @@ export default function KupSearch() {
                       onChange={makeAutoPLHandler(setAreaMin)}
                       inputMode="numeric"
                       placeholder="od"
-                      className="w-full bg-transparent outline-none text-white/90 placeholder:text-white/35 px-4 py-3 pr-16"
+                      className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 text-sm">m²</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                      m²
+                    </span>
                   </div>
 
                   <div className="relative rounded-xl border border-white/25">
@@ -532,15 +556,19 @@ export default function KupSearch() {
                       onChange={makeAutoPLHandler(setAreaMax)}
                       inputMode="numeric"
                       placeholder="do"
-                      className="w-full bg-transparent outline-none text-white/90 placeholder:text-white/35 px-4 py-3 pr-16"
+                      className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 text-sm">m²</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                      m²
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[12px] tracking-[0.26em] text-white/85 uppercase">Cena</label>
+                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+                  Cena
+                </label>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div className="relative rounded-xl border border-white/25">
                     <input
@@ -548,9 +576,11 @@ export default function KupSearch() {
                       onChange={makeAutoPLHandler(setPriceMin)}
                       inputMode="numeric"
                       placeholder="od"
-                      className="w-full bg-transparent outline-none text-white/90 placeholder:text-white/35 px-4 py-3 pr-14"
+                      className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 text-sm">zł</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                      zł
+                    </span>
                   </div>
 
                   <div className="relative rounded-xl border border-white/25">
@@ -559,18 +589,21 @@ export default function KupSearch() {
                       onChange={makeAutoPLHandler(setPriceMax)}
                       inputMode="numeric"
                       placeholder="do"
-                      className="w-full bg-transparent outline-none text-white/90 placeholder:text-white/35 px-4 py-3 pr-14"
+                      className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 text-sm">zł</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                      zł
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Rząd 3: Przeznaczenie + przyciski */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-[1fr_260px] gap-4 items-end">
+            <div className="mt-6 grid grid-cols-1 items-end gap-4 md:grid-cols-[1fr_260px]">
               <div>
-                <label className="block text-[12px] tracking-[0.26em] text-white/85 uppercase">Przeznaczenie</label>
+                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+                  Przeznaczenie
+                </label>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {PRZEZN.map((p) => {
                     const active = przezn.includes(p.key);
@@ -580,8 +613,10 @@ export default function KupSearch() {
                         type="button"
                         onClick={() => togglePrzezn(p.key)}
                         className={[
-                          'px-3 py-2 rounded-full text-[12px] tracking-[0.14em] uppercase border transition',
-                          active ? 'border-white/80 text-white' : 'border-white/25 text-white/70 hover:border-white/45',
+                          'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                          active
+                            ? 'border-white/80 text-white'
+                            : 'border-white/25 text-white/70 hover:border-white/45',
                         ].join(' ')}
                       >
                         {p.label}
@@ -595,7 +630,7 @@ export default function KupSearch() {
                 <button
                   type="button"
                   onClick={reset}
-                  className="flex-1 rounded-xl border border-white/20 px-4 py-3 text-[12px] tracking-[0.22em] uppercase text-white/75 hover:border-white/40 transition"
+                  className="flex-1 rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
                 >
                   Wyczyść
                 </button>
@@ -603,18 +638,24 @@ export default function KupSearch() {
                 <button
                   type="button"
                   onClick={applyAndSearch}
-                  className="flex-1 rounded-xl bg-white text-black px-4 py-3 text-[12px] tracking-[0.22em] uppercase font-medium hover:bg-white/90 transition disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-white px-4 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:opacity-60"
                   disabled={loading}
-                  title={radiusKm > 0 && !center ? 'Żeby radius działał po kilometrach, wybierz lokalizację z podpowiedzi Google.' : ''}
+                  title={
+                    radiusKm > 0 && !center
+                      ? 'Żeby radius działał po kilometrach, wybierz lokalizację z podpowiedzi Google.'
+                      : ''
+                  }
                 >
                   {loading ? 'Szukam…' : 'Wyszukaj'}
                 </button>
               </div>
             </div>
 
-            <div className="mt-5 flex items-center justify-between gap-4 flex-wrap">
-              <div className="text-white/55 text-[12px] tracking-[0.18em] uppercase">Wyniki: {count}</div>
-              {err && <div className="text-red-300 text-sm">{err}</div>}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="text-[12px] uppercase tracking-[0.18em] text-white/55">
+                Wyniki: {count}
+              </div>
+              {err && <div className="text-sm text-red-300">{err}</div>}
             </div>
           </div>
 
@@ -622,8 +663,7 @@ export default function KupSearch() {
         </div>
       </section>
 
-      {/* LISTA */}
-      <section className="mx-auto max-w-6xl px-4 mt-8">
+      <section className="mx-auto mt-8 max-w-6xl px-4">
         <PagerResponsive
           page={safePage}
           totalPages={totalPages}

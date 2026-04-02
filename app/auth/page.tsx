@@ -35,21 +35,6 @@ function GoogleIcon() {
   );
 }
 
-function FacebookIconBlue() {
-  return (
-    <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-      <path
-        fill="#1877F2"
-        d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878V14.89H7.898V12h2.54V9.797c0-2.507 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.242 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.99 22 12c0-5.523-4.477-10-10-10z"
-      />
-      <path
-        fill="#FFFFFF"
-        d="M13.673 21.878V14.89h2.33l.443-2.89h-2.773v-1.676c0-.791.388-1.562 1.63-1.562h1.26v-2.46s-1.144-.195-2.238-.195c-2.285 0-3.777 1.383-3.777 3.89V12h-2.54v2.89h2.54v6.988c.508.08 1.03.122 1.562.122.532 0 1.054-.042 1.563-.122z"
-      />
-    </svg>
-  );
-}
-
 function CameraIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
@@ -107,12 +92,14 @@ export default function AuthPage() {
       setError('Podaj email i hasło.');
       return;
     }
+
     if (mode === 'register' && pass.length < 6) {
       setError('Hasło musi mieć minimum 6 znaków.');
       return;
     }
 
     setBusy(true);
+
     try {
       if (mode === 'register') {
         const res = await fetch('/api/auth/register', {
@@ -125,7 +112,7 @@ export default function AuthPage() {
 
         if (!res.ok) {
           setError(data?.message || 'Nie udało się zarejestrować.');
-          if (res.status === 409) setMode('login'); // konto istnieje -> przełącz na login
+          if (res.status === 409) setMode('login');
           return;
         }
       }
@@ -143,7 +130,11 @@ export default function AuthPage() {
       }
 
       if (result.error) {
-        setError(mode === 'login' ? 'Nieprawidłowy email lub hasło.' : 'Nie udało się zalogować po rejestracji.');
+        setError(
+          mode === 'login'
+            ? 'Nieprawidłowy email lub hasło.'
+            : 'Nie udało się zalogować po rejestracji.'
+        );
         return;
       }
 
@@ -160,7 +151,6 @@ export default function AuthPage() {
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
       <div className="min-h-screen w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
-          {/* LEWA (50%) */}
           <div className="flex items-center justify-center px-6 py-10 lg:py-0">
             <div className="w-full max-w-md">
               <div className="rounded-3xl border border-white/10 p-6 md:p-7">
@@ -173,13 +163,18 @@ export default function AuthPage() {
                     }}
                     className={tabBtn(mode === 'login')}
                     style={{
-                      border: mode === 'login' ? '1px solid rgba(255,255,255,0.55)' : '1px solid transparent',
+                      border:
+                        mode === 'login'
+                          ? '1px solid rgba(255,255,255,0.55)'
+                          : '1px solid transparent',
                       background: 'transparent',
                     }}
                   >
                     Zaloguj się
                   </button>
+
                   <div className="text-white/35">/</div>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -188,11 +183,14 @@ export default function AuthPage() {
                     }}
                     className={tabBtn(mode === 'register')}
                     style={{
-                      border: mode === 'register' ? '1px solid rgba(255,255,255,0.55)' : '1px solid transparent',
+                      border:
+                        mode === 'register'
+                          ? '1px solid rgba(255,255,255,0.55)'
+                          : '1px solid transparent',
                       background: 'transparent',
                     }}
                   >
-                    Rejestracja
+                    Zarejestruj się
                   </button>
                 </div>
 
@@ -205,32 +203,26 @@ export default function AuthPage() {
                     <GoogleIcon />
                     Kontynuuj z Google
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => signIn('facebook', { callbackUrl })}
-                    className="w-full rounded-2xl border border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition px-4 py-4 flex items-center justify-center gap-3 font-semibold"
-                  >
-                    <FacebookIconBlue />
-                    Kontynuuj z Facebook
-                  </button>
                 </div>
 
                 <div className="my-7 flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/10" />
-                  <div className="text-[12px] text-white/45 tracking-[0.14em] uppercase">albo</div>
+                  <div className="text-[12px] text-white/45 tracking-[0.14em] uppercase">
+                    albo
+                  </div>
                   <div className="h-px flex-1 bg-white/10" />
                 </div>
 
-                {/* FORM */}
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <label className="block">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Email</div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+                      Email
+                    </div>
                     <input
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       type="email"
-                      placeholder="np. daniel@..."
+                      placeholder="np. adres@email.pl"
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-white/90',
                         'border-0 border-b border-white/25 pb-2',
@@ -242,7 +234,9 @@ export default function AuthPage() {
                   </label>
 
                   <label className="block">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Hasło</div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+                      Hasło
+                    </div>
                     <input
                       value={pass}
                       onChange={(e) => setPass(e.target.value)}
@@ -264,25 +258,28 @@ export default function AuthPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
+                  <div className="pt-1">
+                    <a
+                      href="/auth/forgot"
                       className="text-[12px] text-white/55 hover:text-white/85 transition underline underline-offset-4 decoration-white/25"
                       style={{ textTransform: 'none' }}
-                      onClick={() => alert('Reset hasła zrobimy w kolejnym kroku.')}
                     >
                       zapomniałem hasła
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={busy}
-                      className={cx('text-[12px] font-semibold tracking-tight', busy && 'opacity-60 cursor-not-allowed')}
-                      style={{ color: GREEN }}
-                    >
-                      {busy ? '...' : mode === 'login' ? 'Zaloguj' : 'Zarejestruj'}
-                    </button>
+                    </a>
                   </div>
+
+                  <button
+                    type="submit"
+                    disabled={busy}
+                    className={cx(
+                      'w-full mt-2 rounded-2xl px-4 py-4 font-semibold text-[14px] transition',
+                      'border border-white/15 bg-white/[0.05] hover:bg-white/[0.08]',
+                      busy && 'opacity-60 cursor-not-allowed'
+                    )}
+                    style={{ color: GREEN }}
+                  >
+                    {busy ? '...' : mode === 'login' ? 'Zaloguj się' : 'Zarejestruj się'}
+                  </button>
                 </form>
 
                 <div className="mt-6 text-center text-[12px] text-white/40">
@@ -298,7 +295,7 @@ export default function AuthPage() {
                         className="underline underline-offset-4 decoration-white/25 hover:text-white/70 transition"
                         style={{ color: GREEN }}
                       >
-                        Rejestracja
+                        Zarejestruj się
                       </button>
                     </span>
                   ) : (
@@ -322,7 +319,6 @@ export default function AuthPage() {
             </div>
           </div>
 
-          {/* PRAWA (50%) */}
           <div
             className={cx(
               'relative w-full overflow-hidden',
@@ -358,9 +354,12 @@ export default function AuthPage() {
                         <BoltIcon />
                       </div>
                       <div>
-                        <div className="text-white font-semibold">Błyskawiczne dodanie oferty</div>
+                        <div className="text-white font-semibold">
+                          Błyskawiczne dodanie oferty
+                        </div>
                         <div className="text-white/85 text-[13px] mt-1">
-                          Dodasz ofertę w kilka minut, bez zbędnych formularzy, tylko to, co naprawdę ważne dla działki.
+                          Dodasz ofertę w kilka minut, bez zbędnych formularzy,
+                          tylko to, co naprawdę ważne dla działki.
                         </div>
                       </div>
                     </div>
@@ -374,7 +373,8 @@ export default function AuthPage() {
                       <div>
                         <div className="text-white font-semibold">Kontakt</div>
                         <div className="text-white/85 text-[13px] mt-1">
-                          Twój numer telefonu widoczny na górze ogłoszenia, kupujący kontaktują się od razu z Tobą.
+                          Twój numer telefonu widoczny na górze ogłoszenia,
+                          kupujący kontaktują się od razu z Tobą.
                         </div>
                       </div>
                     </div>
@@ -386,9 +386,12 @@ export default function AuthPage() {
                         <CameraIcon />
                       </div>
                       <div>
-                        <div className="text-white font-semibold">Profesjonalna prezentacja działki</div>
+                        <div className="text-white font-semibold">
+                          Profesjonalna prezentacja działki
+                        </div>
                         <div className="text-white/85 text-[13px] mt-1">
-                          Estetyczna, przejrzysta karta działki, Twoja oferta wygląda profesjonalnie i sprzedaje szybciej.
+                          Estetyczna, przejrzysta karta działki, Twoja oferta
+                          wygląda profesjonalnie i sprzedaje szybciej.
                         </div>
                       </div>
                     </div>

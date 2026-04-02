@@ -2,6 +2,9 @@ import './globals.css';
 import type { Metadata } from 'next';
 import GlobalNav from '@/components/GlobalNav';
 import Providers from '@/components/Providers';
+import Footer from '@/components/Footer';
+import CookieConsent from '@/components/CookieConsent';
+import ConsentScripts from '@/components/ConsentScripts';
 import { Geist } from 'next/font/google';
 
 const geist = Geist({
@@ -24,8 +27,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pl" className={geist.variable}>
       <body className="font-sans bg-[#131313] text-white">
         <Providers>
-          <GlobalNav />
-          {children}
+          <div className="flex min-h-screen flex-col">
+            <GlobalNav />
+
+            <main className="flex-1">
+              {children}
+            </main>
+
+            <Footer />
+          </div>
+
+          <ConsentScripts />
+          <CookieConsent />
         </Providers>
       </body>
     </html>

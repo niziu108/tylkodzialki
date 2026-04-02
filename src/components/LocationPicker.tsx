@@ -8,7 +8,7 @@ type LocationMode = 'EXACT' | 'APPROX';
 export type LocationValue = {
   placeId: string | null;
   locationFull: string | null;
-  locationLabel: string; // ✅ zawsze non-empty
+  locationLabel: string;
   lat: number;
   lng: number;
   mapsUrl: string | null;
@@ -49,7 +49,6 @@ export default function LocationPicker({ value, onChange }: Props) {
     return DEFAULT_CENTER;
   }, [value?.lat, value?.lng]);
 
-  // ✅ emit always provides locationLabel (never empty)
   function emit(partial: Partial<LocationValue> & { lat: number; lng: number }) {
     const lat = partial.lat;
     const lng = partial.lng;
@@ -67,7 +66,7 @@ export default function LocationPicker({ value, onChange }: Props) {
     onChange({
       placeId: partial.placeId ?? value?.placeId ?? null,
       locationFull: full || null,
-      locationLabel: label, // ✅ always non-empty
+      locationLabel: label,
       lat,
       lng,
       mapsUrl: partial.mapsUrl ?? mapsUrl(lat, lng),
@@ -121,16 +120,15 @@ export default function LocationPicker({ value, onChange }: Props) {
         map,
         center,
         radius: 800,
-        fillColor: '#000000',
-        fillOpacity: 0.12,
-        strokeColor: '#000000',
-        strokeOpacity: 0.35,
+        fillColor: '#7aa333',
+        fillOpacity: 0.14,
+        strokeColor: '#7aa333',
+        strokeOpacity: 0.4,
         strokeWeight: 1,
         visible: false,
       });
       circleRef.current = circle;
 
-      // click on map -> sets point and also creates label fallback
       map.addListener('click', (e: google.maps.MapMouseEvent) => {
         if (!e.latLng) return;
 
@@ -143,7 +141,6 @@ export default function LocationPicker({ value, onChange }: Props) {
         emit({ lat, lng, locationMode: mode, parcelText });
       });
 
-      // drag marker
       marker.addListener('dragend', () => {
         const pos = marker.getPosition();
         if (!pos) return;
@@ -156,7 +153,6 @@ export default function LocationPicker({ value, onChange }: Props) {
         emit({ lat, lng, locationMode: mode, parcelText });
       });
 
-      // Places autocomplete
       if (inputRef.current) {
         const ac = new google.maps.places.Autocomplete(inputRef.current, {
           componentRestrictions: { country: 'pl' },
@@ -198,7 +194,6 @@ export default function LocationPicker({ value, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // visuals on mode change
   useEffect(() => {
     const marker = markerRef.current;
     const circle = circleRef.current;
@@ -208,14 +203,12 @@ export default function LocationPicker({ value, onChange }: Props) {
     circle.setVisible(isApprox);
     marker.setOpacity(isApprox ? 0.7 : 1);
 
-    // keep value consistent
     if (value?.lat != null && value?.lng != null) {
       emit({ lat: value.lat, lng: value.lng, locationMode: mode, parcelText });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  // keep parcel text synced
   useEffect(() => {
     if (value?.lat != null && value?.lng != null) {
       emit({ lat: value.lat, lng: value.lng, locationMode: mode, parcelText });
@@ -224,15 +217,15 @@ export default function LocationPicker({ value, onChange }: Props) {
   }, [parcelText]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <input
         ref={inputRef}
         placeholder="Wpisz miejscowość lub adres…"
         defaultValue={value?.locationLabel ?? ''}
-        className="w-full rounded-lg border border-white/20 bg-white text-black px-3 py-2 outline-none"
+        className="w-full rounded-xl border border-white/15 bg-black/25 px-4 py-3 text-white outline-none placeholder:text-white/35 focus:border-[#7aa333]/60"
       />
 
-      <div className="flex gap-4 text-sm">
+      <div className="flex flex-wrap gap-6 text-sm text-white/85">
         <label className="flex items-center gap-2">
           <input type="radio" checked={mode === 'EXACT'} onChange={() => setMode('EXACT')} />
           <span>Dokładna lokalizacja</span>
@@ -246,17 +239,17 @@ export default function LocationPicker({ value, onChange }: Props) {
 
       <input
         placeholder="Numer działki / obręb (opcjonalnie)"
-        className="w-full rounded-lg border border-white/20 bg-black text-white px-3 py-2 outline-none"
+        className="w-full rounded-xl border border-white/15 bg-black/25 px-4 py-3 text-white outline-none placeholder:text-white/35 focus:border-[#7aa333]/60"
         value={parcelText}
         onChange={(e) => setParcelText(e.target.value)}
       />
 
-      <div className="rounded-xl border border-white/15 bg-white p-2">
-        <div ref={mapDivRef} className="h-80 w-full rounded-lg" />
+      <div className="rounded-2xl border border-white/10 bg-white p-2">
+        <div ref={mapDivRef} className="h-80 w-full rounded-xl" />
       </div>
 
       {value?.lat != null && value?.lng != null && (
-        <div className="text-xs opacity-70">
+        <div className="text-xs text-white/55">
           Punkt: {value.lat.toFixed(6)}, {value.lng.toFixed(6)} | tryb: {mode}
         </div>
       )}

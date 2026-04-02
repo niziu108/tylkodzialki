@@ -12,139 +12,38 @@ enum Role {
   ADMIN
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-
-  // ✅ do logowania email/hasło (opcjonalne dla OAuth)
-  passwordHash  String?
-
-  role          Role      @default(USER)
-
-  // NextAuth relacje
-  accounts      Account[]
-  sessions      Session[]
-
-  // ✅ relacja do ogłoszeń
-  dzialki       Dzialka[]
-
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+enum DzialkaStatus {
+  AKTYWNE
+  ZAKONCZONE
 }
 
-model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@index([userId])
+enum ListingCreditSourceType {
+  MANUAL
+  FREE
+  PACKAGE_PURCHASE
+  SINGLE_PURCHASE
+  ADMIN_GRANT
+  FEATURED_BONUS
+  FEATURED_USAGE
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
+enum ListingPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+  REFUNDED
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
+enum ListingPackageType {
+  SINGLE
+  PACK_10
+  PACK_40
 }
 
-model Dzialka {
-  id             String   @id @default(cuid())
-
-  // ✅ właściciel ogłoszenia (stare ogłoszenia mogą mieć null)
-  ownerId        String?
-  owner          User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-
-  // obowiązkowe
-  tytul          String
-  powierzchniaM2 Int
-  cenaPln        Int
-  przeznaczenia  Przeznaczenie[]
-  telefon        String
-  email          String
-
-  // ✅ OPIS (Markdown) – opcjonalny
-  opis           String?  @db.Text
-
-  // sprzedający
-  sprzedajacyTyp SprzedajacyTyp @default(PRYWATNIE)
-  numerOferty    String?
-
-  // 📍 Lokalizacja
-  placeId        String?
-  locationFull   String?
-  locationLabel  String?
-  lat            Float?
-  lng            Float?
-  mapsUrl        String?
-  locationMode   LocationMode @default(EXACT)
-  parcelText     String?
-
-  // ⚡ Uzbrojenie
-  prad           PradStatus @default(BRAK_PRZYLACZA)
-  woda           WodaStatus @default(BRAK_PRZYLACZA)
-  kanalizacja    KanalizacjaStatus @default(BRAK)
-  gaz            GazStatus @default(BRAK)
-  swiatlowod     SwiatlowodStatus @default(BRAK)
-
-  // checkboxy (opcjonalne)
-  wzWydane       Boolean @default(false)
-  mpzp           Boolean @default(false)
-  projektDomu    Boolean @default(false)
-
-  // teksty (opcjonalne)
-  klasaZiemi      String?
-  wymiary         String?
-  ksiegaWieczysta String?
-
-  editToken      String   @unique
-  expiresAt      DateTime?
-
-  zdjecia        Zdjecie[]
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([lat, lng])
-  @@index([ownerId])
-}
-
-model Zdjecie {
-  id         String   @id @default(cuid())
-  url        String
-  publicId   String
-  kolejnosc  Int      @default(0)
-
-  dzialkaId  String
-  dzialka    Dzialka  @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
-
-  createdAt  DateTime @default(now())
+enum BuyerInvoiceType {
+  NONE
+  COMPANY
 }
 
 enum Przeznaczenie {
@@ -201,4 +100,371 @@ enum SwiatlowodStatus {
   BRAK
   W_DRODZE
   NA_DZIALCE
+}
+
+enum SalesInvoiceType {
+  LISTING_PACKAGE
+  FEATURED_PACKAGE
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum InvoiceSource {
+  INTERNAL
+  KSEF
+}
+
+enum EmailSendType {
+  REMINDER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  passwordHash String?
+
+  role Role @default(USER)
+
+  // publikacje
+  listingCredits          Int       @default(0)
+  listingCreditsExpiresAt DateTime?
+
+  // wyróżnienia
+  featuredCredits          Int       @default(0)
+  featuredCreditsExpiresAt DateTime?
+
+  // NextAuth
+  accounts Account[]
+  sessions Session[]
+
+  // ogłoszenia
+  dzialki Dzialka[]
+
+  // historia publikacji
+  creditTransactions ListingCreditTransaction[]
+
+  // historia płatności
+  listingOrders ListingOrder[]
+
+  // faktury
+  invoices Invoice[]
+
+  // log wysyłek maili
+  emailSendLogs EmailSendLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Dzialka {
+  id String @id @default(cuid())
+
+  // właściciel ogłoszenia
+  ownerId String?
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  // podstawowe dane
+  tytul          String
+  powierzchniaM2 Int
+  cenaPln        Int
+  przeznaczenia  Przeznaczenie[]
+  telefon        String
+  email          String
+
+  // status i czas życia
+  status      DzialkaStatus @default(AKTYWNE)
+  publishedAt DateTime      @default(now())
+  expiresAt   DateTime?
+  endedAt     DateTime?
+
+  // wyróżnienie
+  isFeatured    Boolean   @default(false)
+  featuredUntil DateTime?
+
+  // statystyki
+  viewsCount       Int @default(0)
+  detailViewsCount Int @default(0)
+
+  // opis
+  opis String? @db.Text
+
+  // sprzedający
+  sprzedajacyTyp SprzedajacyTyp @default(PRYWATNIE)
+  numerOferty    String?
+
+  // lokalizacja
+  placeId       String?
+  locationFull  String?
+  locationLabel String?
+  lat           Float?
+  lng           Float?
+  mapsUrl       String?
+  locationMode  LocationMode @default(EXACT)
+  parcelText    String?
+
+  // uzbrojenie
+  prad        PradStatus        @default(BRAK_PRZYLACZA)
+  woda        WodaStatus        @default(BRAK_PRZYLACZA)
+  kanalizacja KanalizacjaStatus @default(BRAK)
+  gaz         GazStatus         @default(BRAK)
+  swiatlowod  SwiatlowodStatus  @default(BRAK)
+
+  // checkboxy
+  wzWydane    Boolean @default(false)
+  mpzp        Boolean @default(false)
+  projektDomu Boolean @default(false)
+
+  // teksty
+  klasaZiemi      String?
+  wymiary         String?
+  ksiegaWieczysta String?
+
+  editToken String @unique
+
+  zdjecia Zdjecie[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lat, lng])
+  @@index([ownerId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([isFeatured])
+  @@index([featuredUntil])
+}
+
+model Zdjecie {
+  id        String @id @default(cuid())
+  url       String
+  publicId  String
+  kolejnosc Int    @default(0)
+
+  dzialkaId String
+  dzialka   Dzialka @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model AppConfig {
+  id              String  @id @default(cuid())
+  paymentsEnabled Boolean @default(false)
+
+  freeListingCredits     Int  @default(0)
+  freeListingCreditsDays Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ListingCreditTransaction {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  delta        Int
+  balanceAfter Int
+
+  sourceType ListingCreditSourceType
+  note       String?
+
+  expiresAt DateTime?
+
+  orderId String?
+  order   ListingOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([sourceType])
+}
+
+model ListingOrder {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  packageType ListingPackageType
+  packageName String
+
+  // publikacje
+  credits Int
+
+  // wyróżnienia
+  featuredCredits Int @default(0)
+
+  validityDays Int?
+
+  amountGrossPln Int
+  currency       String @default("PLN")
+
+  status ListingPaymentStatus @default(PENDING)
+
+  stripeSessionId       String? @unique
+  stripePaymentIntentId String? @unique
+
+  paidAt DateTime?
+
+  // dane do faktury
+  invoiceType BuyerInvoiceType @default(NONE)
+
+  buyerCompanyName  String?
+  buyerNip          String?
+  buyerAddressLine1 String?
+  buyerPostalCode   String?
+  buyerCity         String?
+  buyerEmail        String?
+
+  invoiceNumber   String?
+  invoiceIssuedAt DateTime?
+  invoicePdfUrl   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creditTransactions ListingCreditTransaction[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([packageType])
+}
+
+model Invoice {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripeSessionId       String? @unique
+  stripePaymentIntentId String? @unique
+  stripeCheckoutUrl     String?
+
+  invoiceNumber String?          @unique
+  type          SalesInvoiceType
+  status        InvoiceStatus    @default(PENDING)
+  source        InvoiceSource    @default(INTERNAL)
+
+  amountGross Int
+  currency    String @default("PLN")
+
+  buyerType    String?
+  companyName  String?
+  nip          String?
+  addressLine1 String?
+  addressLine2 String?
+  postalCode   String?
+  city         String?
+  country      String? @default("PL")
+  invoiceEmail String?
+
+  itemName String?
+  quantity Int     @default(1)
+
+  issuedAt DateTime?
+  paidAt   DateTime?
+
+  pdfPath     String?
+  pdfFileName String?
+
+  // pola pod przyszły KSeF
+  ksefReferenceNumber String?
+  ksefInvoiceNumber   String?
+  ksefStatus          String?
+  ksefSentAt          DateTime?
+  ksefAcceptedAt      DateTime?
+  ksefErrorMessage    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+}
+
+model EmailSendLog {
+  id          String        @id @default(cuid())
+  type        EmailSendType
+  campaignKey String
+  email       String
+  userId      String?
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sentAt      DateTime      @default(now())
+
+  @@unique([type, campaignKey, email])
+  @@index([userId])
+  @@index([campaignKey])
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String?  @db.Text
+  content     String   @db.Text
+  imageUrl    String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isPublished, createdAt])
 }

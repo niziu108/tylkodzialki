@@ -10,10 +10,13 @@ import {
   GazStatus,
   SwiatlowodStatus,
   Prisma,
+  DzialkaStatus,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth-options";
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/auth-options';
+
+const MAX_PHOTOS = 7;
 
 function badRequest(message: string, details?: any) {
   return NextResponse.json({ ok: false, message, details }, { status: 400 });
@@ -48,7 +51,26 @@ function normalizeKw(v: any): string | null {
   return kw;
 }
 
-// ✅ GET z filtrami + PAGINACJA: { ok, count, items, meta }
+function addDays(date: Date, days: number) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+async function getAppConfig() {
+  let config = await prisma.appConfig.findFirst();
+
+  if (!config) {
+    config = await prisma.appConfig.create({
+      data: {
+        paymentsEnabled: false,
+        freeListingCredits: 0,
+        freeListingCreditsDays: null,
+      },
+    });
+  }
+
+  return config;
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
 
@@ -72,33 +94,48 @@ export async function GET(req: Request) {
 
   const sort = (url.searchParams.get('sort') || 'newest').toLowerCase();
 
-  const where: Prisma.DzialkaWhereInput = {};
+  const andFilters: Prisma.DzialkaWhereInput[] = [
+    { status: DzialkaStatus.AKTYWNE },
+    {
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+    },
+  ];
 
   if (q) {
-    where.OR = [
-      { tytul: { contains: q, mode: 'insensitive' } },
-      { locationLabel: { contains: q, mode: 'insensitive' } },
-      { locationFull: { contains: q, mode: 'insensitive' } },
-      { parcelText: { contains: q, mode: 'insensitive' } },
-      { opis: { contains: q, mode: 'insensitive' } },
-    ];
+    andFilters.push({
+      OR: [
+        { tytul: { contains: q, mode: 'insensitive' } },
+        { locationLabel: { contains: q, mode: 'insensitive' } },
+        { locationFull: { contains: q, mode: 'insensitive' } },
+        { parcelText: { contains: q, mode: 'insensitive' } },
+        { opis: { contains: q, mode: 'insensitive' } },
+      ],
+    });
   }
 
   if (priceMin || priceMax) {
-    where.cenaPln = {};
-    if (priceMin) where.cenaPln.gte = Number(priceMin);
-    if (priceMax) where.cenaPln.lte = Number(priceMax);
+    const cenaPln: Prisma.IntFilter = {};
+    if (priceMin) cenaPln.gte = Number(priceMin);
+    if (priceMax) cenaPln.lte = Number(priceMax);
+    andFilters.push({ cenaPln });
   }
 
   if (areaMin || areaMax) {
-    where.powierzchniaM2 = {};
-    if (areaMin) where.powierzchniaM2.gte = Number(areaMin);
-    if (areaMax) where.powierzchniaM2.lte = Number(areaMax);
+    const powierzchniaM2: Prisma.IntFilter = {};
+    if (areaMin) powierzchniaM2.gte = Number(areaMin);
+    if (areaMax) powierzchniaM2.lte = Number(areaMax);
+    andFilters.push({ powierzchniaM2 });
   }
 
   if (przeznaczenia.length) {
-    where.przeznaczenia = { hasSome: przeznaczenia as any };
+    andFilters.push({
+      przeznaczenia: { hasSome: przeznaczenia as any },
+    });
   }
+
+  const where: Prisma.DzialkaWhereInput = {
+    AND: andFilters,
+  };
 
   const orderBy: Prisma.DzialkaOrderByWithRelationInput =
     sort === 'price_asc'
@@ -140,78 +177,30 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  // ✅ właściciel z sesji (NextAuth v4) — bierzemy email i mapujemy na user.id
   const session = await getServerSession(authOptions);
-  const sessionEmail = session?.user?.email;
+  const sessionEmail = session?.user?.email?.toLowerCase().trim();
 
   if (!sessionEmail) {
-    return NextResponse.json({ ok: false, message: "Brak autoryzacji." }, { status: 401 });
-  }
-
-  const dbUser = await prisma.user.findUnique({
-    where: { email: sessionEmail },
-    select: { id: true },
-  });
-
-  if (!dbUser?.id) {
-    return NextResponse.json({ ok: false, message: "Nie znaleziono użytkownika w bazie." }, { status: 401 });
-  }
-
-  const ownerId = dbUser.id;
-
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequest("Nieprawidłowy JSON body.");
-  }
-
-  const {
-    tytul,
-    powierzchniaM2,
-    cenaPln,
-    przeznaczenia,
-    telefon,
-    email: ogloszenieEmail,
-    opis,
-    sprzedajacyTyp,
-    numerOferty,
-    placeId,
-    locationFull,
-    locationLabel,
-    lat,
-    lng,
-    mapsUrl,
-    locationMode,
-    parcelText,
-    prad,
-    woda,
-    kanalizacja,
-    gaz,
-    swiatlowod,
-    wzWydane,
-    mpzp,
-    projektDomu,
-    klasaZiemi,
-    wymiary,
-    ksiegaWieczysta,
-    zdjecia,
-  } = body ?? {};
-
-  if (!email) {
     return NextResponse.json({ ok: false, message: 'Brak autoryzacji.' }, { status: 401 });
   }
 
   const dbUser = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
+    where: { email: sessionEmail },
+    select: {
+      id: true,
+      listingCredits: true,
+    },
   });
 
   if (!dbUser?.id) {
-    return NextResponse.json({ ok: false, message: 'Nie znaleziono użytkownika w bazie.' }, { status: 401 });
+    return NextResponse.json(
+      { ok: false, message: 'Nie znaleziono użytkownika w bazie.' },
+      { status: 401 }
+    );
   }
 
   const ownerId = dbUser.id;
+  const appConfig = await getAppConfig();
 
   let body: any;
   try {
@@ -227,12 +216,9 @@ export async function POST(req: Request) {
     przeznaczenia,
     telefon,
     email: ogloszenieEmail,
-
     opis,
-
     sprzedajacyTyp,
     numerOferty,
-
     placeId,
     locationFull,
     locationLabel,
@@ -241,27 +227,24 @@ export async function POST(req: Request) {
     mapsUrl,
     locationMode,
     parcelText,
-
     prad,
     woda,
     kanalizacja,
     gaz,
     swiatlowod,
-
     wzWydane,
     mpzp,
     projektDomu,
-
     klasaZiemi,
     wymiary,
     ksiegaWieczysta,
-
     zdjecia,
   } = body ?? {};
 
-  // required
   if (!tytul || typeof tytul !== 'string') return badRequest('Brak tytułu.');
-  if (!Number.isInteger(powierzchniaM2) || powierzchniaM2 <= 0) return badRequest('Podaj poprawną powierzchnię.');
+  if (!Number.isInteger(powierzchniaM2) || powierzchniaM2 <= 0) {
+    return badRequest('Podaj poprawną powierzchnię.');
+  }
   if (!Number.isInteger(cenaPln) || cenaPln <= 0) return badRequest('Podaj poprawną cenę.');
   if (!telefon || typeof telefon !== 'string') return badRequest('Brak telefonu.');
   if (!ogloszenieEmail || typeof ogloszenieEmail !== 'string') return badRequest('Brak email.');
@@ -273,13 +256,21 @@ export async function POST(req: Request) {
   if (!Array.isArray(zdjecia) || zdjecia.length < 1) {
     return badRequest('Wymagane jest minimum 1 zdjęcie.');
   }
-  for (const z of zdjecia) {
-    if (!z?.url || !z?.publicId) return badRequest('Każde zdjęcie musi mieć url i publicId.');
+
+  if (zdjecia.length > MAX_PHOTOS) {
+    return badRequest(`Maksymalnie ${MAX_PHOTOS} zdjęć.`);
   }
 
-  if (typeof lat !== 'number' || typeof lng !== 'number') return badRequest('Wybierz lokalizację.');
+  for (const z of zdjecia) {
+    if (!z?.url || !z?.publicId) {
+      return badRequest('Każde zdjęcie musi mieć url i publicId.');
+    }
+  }
 
-  // opis
+  if (typeof lat !== 'number' || typeof lng !== 'number') {
+    return badRequest('Wybierz lokalizację.');
+  }
+
   const opisClean = cleanOptionalString(opis);
   if (opisClean && opisClean.length > 8000) {
     return badRequest('Opis jest za długi (max 8000 znaków).');
@@ -292,30 +283,32 @@ export async function POST(req: Request) {
 
   const mode: LocationMode = locationMode === 'APPROX' ? LocationMode.APPROX : LocationMode.EXACT;
 
-  // przeznaczenia -> enum validation
   let mappedPrzeznaczenia: Przeznaczenie[];
   try {
     mappedPrzeznaczenia = przeznaczenia.map((p: any) => {
-      if (!Object.values(Przeznaczenie).includes(p)) throw new Error(`Nieprawidłowe przeznaczenie: ${p}`);
+      if (!Object.values(Przeznaczenie).includes(p)) {
+        throw new Error(`Nieprawidłowe przeznaczenie: ${p}`);
+      }
       return p as Przeznaczenie;
     });
   } catch (e: any) {
     return badRequest(e?.message ?? 'Nieprawidłowe przeznaczenia.');
   }
 
-  // seller
-  const seller: SprzedajacyTyp = sprzedajacyTyp === 'BIURO' ? SprzedajacyTyp.BIURO : SprzedajacyTyp.PRYWATNIE;
-  const nr = cleanOptionalString(numerOferty);
-  if (seller === SprzedajacyTyp.BIURO && !nr) return badRequest('Dla BIURA podaj numer oferty.');
+  const seller: SprzedajacyTyp =
+    sprzedajacyTyp === 'BIURO' ? SprzedajacyTyp.BIURO : SprzedajacyTyp.PRYWATNIE;
 
-  // uzbrojenie
+  const nr = cleanOptionalString(numerOferty);
+  if (seller === SprzedajacyTyp.BIURO && !nr) {
+    return badRequest('Dla BIURA podaj numer oferty.');
+  }
+
   const pradParsed = parseEnum(PradStatus, prad) ?? PradStatus.BRAK_PRZYLACZA;
   const wodaParsed = parseEnum(WodaStatus, woda) ?? WodaStatus.BRAK_PRZYLACZA;
   const kanalParsed = parseEnum(KanalizacjaStatus, kanalizacja) ?? KanalizacjaStatus.BRAK;
   const gazParsed = parseEnum(GazStatus, gaz) ?? GazStatus.BRAK;
   const swiatParsed = parseEnum(SwiatlowodStatus, swiatlowod) ?? SwiatlowodStatus.BRAK;
 
-  // opcjonalne
   const klasa = cleanOptionalString(klasaZiemi);
   const wym = cleanOptionalString(wymiary);
 
@@ -328,62 +321,105 @@ export async function POST(req: Request) {
 
   const editToken = genEditToken();
 
+  const now = new Date();
+  const expiresAt = addDays(now, 30);
+
   try {
-    const created = await prisma.dzialka.create({
-      data: {
-        ownerId, // ✅ POWIĄZANIE Z UŻYTKOWNIKIEM
+    const created = await prisma.$transaction(async (tx) => {
+      if (appConfig.paymentsEnabled) {
+        const updated = await tx.user.updateMany({
+          where: {
+            id: ownerId,
+            listingCredits: {
+              gt: 0,
+            },
+          },
+          data: {
+            listingCredits: {
+              decrement: 1,
+            },
+          },
+        });
 
-        tytul,
-        powierzchniaM2,
-        cenaPln,
-        przeznaczenia: mappedPrzeznaczenia,
-        telefon,
-        email: ogloszenieEmail,
+        if (updated.count === 0) {
+          throw new Error('NO_LISTING_CREDITS');
+        }
+      }
 
-        opis: opisClean,
+      const item = await tx.dzialka.create({
+        data: {
+          ownerId,
 
-        sprzedajacyTyp: seller,
-        numerOferty: seller === SprzedajacyTyp.BIURO ? nr : null,
+          tytul,
+          powierzchniaM2,
+          cenaPln,
+          przeznaczenia: mappedPrzeznaczenia,
+          telefon,
+          email: ogloszenieEmail,
 
-        placeId: typeof placeId === 'string' ? placeId : null,
-        locationFull: typeof locationFull === 'string' ? locationFull : null,
-        locationLabel: safeLocationLabel,
-        lat,
-        lng,
-        mapsUrl: typeof mapsUrl === 'string' ? mapsUrl : null,
-        locationMode: mode,
-        parcelText: typeof parcelText === 'string' ? parcelText : null,
+          status: DzialkaStatus.AKTYWNE,
+          publishedAt: now,
+          expiresAt,
+          endedAt: null,
 
-        prad: pradParsed,
-        woda: wodaParsed,
-        kanalizacja: kanalParsed,
-        gaz: gazParsed,
-        swiatlowod: swiatParsed,
+          opis: opisClean,
 
-        wzWydane: !!wzWydane,
-        mpzp: !!mpzp,
-        projektDomu: !!projektDomu,
+          sprzedajacyTyp: seller,
+          numerOferty: seller === SprzedajacyTyp.BIURO ? nr : null,
 
-        klasaZiemi: klasa,
-        wymiary: wym,
-        ksiegaWieczysta: kw,
+          placeId: typeof placeId === 'string' ? placeId : null,
+          locationFull: typeof locationFull === 'string' ? locationFull : null,
+          locationLabel: safeLocationLabel,
+          lat,
+          lng,
+          mapsUrl: typeof mapsUrl === 'string' ? mapsUrl : null,
+          locationMode: mode,
+          parcelText: typeof parcelText === 'string' ? parcelText : null,
 
-        editToken,
-        expiresAt: null,
+          prad: pradParsed,
+          woda: wodaParsed,
+          kanalizacja: kanalParsed,
+          gaz: gazParsed,
+          swiatlowod: swiatParsed,
 
-        zdjecia: {
-          create: zdjecia.map((z: any, i: number) => ({
-            url: z.url,
-            publicId: z.publicId,
-            kolejnosc: Number.isInteger(z.kolejnosc) ? z.kolejnosc : i,
-          })),
+          wzWydane: !!wzWydane,
+          mpzp: !!mpzp,
+          projektDomu: !!projektDomu,
+
+          klasaZiemi: klasa,
+          wymiary: wym,
+          ksiegaWieczysta: kw,
+
+          editToken,
+
+          zdjecia: {
+            create: zdjecia.map((z: any, i: number) => ({
+              url: z.url,
+              publicId: z.publicId,
+              kolejnosc: Number.isInteger(z.kolejnosc) ? z.kolejnosc : i,
+            })),
+          },
         },
-      },
-      include: { zdjecia: { orderBy: { kolejnosc: 'asc' } } },
+        include: { zdjecia: { orderBy: { kolejnosc: 'asc' } } },
+      });
+
+      return item;
     });
 
     return NextResponse.json({ ok: true, item: created });
   } catch (e: any) {
+    if (e?.message === 'NO_LISTING_CREDITS') {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'NO_LISTING_CREDITS',
+          message: 'Brak dostępnych publikacji. Wybierz pakiet, aby opublikować ogłoszenie.',
+          redirectTo: '/panel/pakiety',
+        },
+        { status: 402 }
+      );
+    }
+
     return NextResponse.json(
       { ok: false, message: 'Nie udało się dodać działki.', error: e?.message ?? String(e) },
       { status: 500 }

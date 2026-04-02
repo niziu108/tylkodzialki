@@ -28,8 +28,6 @@ function CrossIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export default function GlobalNav() {
   const [open, setOpen] = useState(false);
-
-  // dropdown dla “Moje konto” (desktop hover + mobile click)
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement | null>(null);
 
@@ -60,7 +58,6 @@ export default function GlobalNav() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  // klik poza dropdown
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!accountRef.current) return;
@@ -69,6 +66,19 @@ export default function GlobalNav() {
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (window.location.hash === '#footer') {
+      const footer = document.getElementById('footer');
+      if (footer) {
+        setTimeout(() => {
+          footer.scrollIntoView({ behavior: 'smooth' });
+        }, 80);
+      }
+    }
+  }, [pathname]);
 
   const go = (href: string) => {
     setOpen(false);
@@ -83,18 +93,37 @@ export default function GlobalNav() {
     router.push(`/auth?callbackUrl=${cb}`);
   };
 
-  const linkDesktop =
-    'font-display uppercase tracking-[0.20em] text-[12px] text-white/85 hover:text-white transition';
+  const goToFooter = () => {
+    setOpen(false);
+    setAccountOpen(false);
+
+    if (pathname !== '/') {
+      router.push('/#footer');
+      return;
+    }
+
+    const footer = document.getElementById('footer');
+    if (footer) {
+      footer.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const navBtnBase =
+    'relative inline-flex h-[72px] items-center justify-center font-display uppercase tracking-[0.20em] text-[12px] transition';
+
+  const navBtnWhite =
+    'text-white/85 hover:text-white after:absolute after:left-0 after:right-0 after:bottom-[18px] after:h-px after:origin-center after:scale-x-0 after:bg-white/70 after:transition-transform after:duration-200 hover:after:scale-x-100';
+
+  const navBtnGreen =
+    'text-[#7aa333] hover:text-[#9fd14b] after:absolute after:left-0 after:right-0 after:bottom-[18px] after:h-px after:origin-center after:scale-x-0 after:bg-[#7aa333] after:transition-transform after:duration-200 hover:after:scale-x-100';
 
   const linkMobile =
     'font-display uppercase tracking-wide text-white text-[clamp(34px,9vw,60px)] hover:opacity-90 transition-opacity';
 
-  const authDesktop = 'font-display uppercase tracking-[0.20em] text-[12px] transition';
-
   return (
     <>
-      <header className="sticky top-0 left-0 z-[100] w-full bg-[#131313] border-b border-white/10">
-        <div className="w-full px-4 sm:px-8 h-[72px] flex items-center justify-between">
+      <header className="sticky top-0 left-0 z-[100] w-full border-b border-white/10 bg-[#131313]">
+        <div className="flex h-[72px] w-full items-center justify-between px-4 sm:px-8">
           <button onClick={() => go('/')} className="flex items-center">
             <Image
               src="/logo1.png"
@@ -102,41 +131,42 @@ export default function GlobalNav() {
               width={1024}
               height={253}
               priority
-              className="h-10 sm:h-12 md:h-12 w-auto"
+              className="h-10 w-auto sm:h-12 md:h-12"
             />
           </button>
 
-          <nav className="hidden md:flex items-center gap-16">
-            <button onClick={() => go('/')} className={linkDesktop}>
+          <nav className="hidden items-center gap-14 md:flex">
+            <button onClick={() => go('/')} className={`${navBtnBase} ${navBtnWhite}`}>
               START
             </button>
-            <button onClick={() => go('/kup')} className={linkDesktop}>
-              KUP
+
+            <button onClick={() => go('/kup')} className={`${navBtnBase} ${navBtnWhite}`}>
+              SZUKAJ DZIAŁKI
             </button>
-            <button onClick={() => go('/sprzedaj')} className={linkDesktop}>
+
+            <button onClick={() => go('/sprzedaj')} className={`${navBtnBase} ${navBtnWhite}`}>
               SPRZEDAJ
             </button>
-            <button onClick={() => go('/kontakt')} className={linkDesktop}>
+
+            <button onClick={goToFooter} className={`${navBtnBase} ${navBtnWhite}`}>
               KONTAKT
             </button>
 
-            {/* ✅ AUTH / MOJE KONTO */}
             {!isLogged ? (
-              <button onClick={goAuth} className={authDesktop} style={{ color: GREEN }}>
+              <button onClick={goAuth} className={`${navBtnBase} ${navBtnGreen}`}>
                 ZALOGUJ / REJESTRACJA
               </button>
             ) : (
               <div
                 ref={accountRef}
-                className="relative"
+                className="relative flex h-[72px] items-center"
                 onMouseEnter={() => setAccountOpen(true)}
                 onMouseLeave={() => setAccountOpen(false)}
               >
                 <button
                   type="button"
-                  onClick={() => setAccountOpen((v) => !v)} // mobile/klik i też działa na desktop
-                  className={linkDesktop}
-                  style={{ color: GREEN }}
+                  onClick={() => setAccountOpen((v) => !v)}
+                  className={`${navBtnBase} ${navBtnGreen}`}
                 >
                   MOJE KONTO
                 </button>
@@ -144,22 +174,24 @@ export default function GlobalNav() {
                 <AnimatePresence>
                   {accountOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: -6 }}
+                      initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
+                      exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.16 }}
-                      className="absolute right-0 mt-3 w-56 overflow-hidden rounded-2xl border border-white/12 bg-[#0f0f0f]/95 backdrop-blur-md shadow-lg"
+                      className="absolute right-0 top-[62px] w-60 overflow-hidden rounded-2xl border border-white/12 bg-[#0f0f0f]/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
                     >
-                      <div className="px-4 py-3 border-b border-white/10">
-                        <div className="text-white/90 text-[12px] uppercase tracking-[0.18em]">Zalogowano</div>
-                        <div className="mt-1 text-white/70 text-[13px] truncate">
+                      <div className="border-b border-white/10 px-4 py-3">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+                          Zalogowano
+                        </div>
+                        <div className="mt-1 truncate text-[13px] text-white/75">
                           {session?.user?.email ?? '—'}
                         </div>
                       </div>
 
                       <button
                         onClick={() => go('/panel')}
-                        className="w-full text-left px-4 py-3 text-[13px] text-white/80 hover:text-white hover:bg-white/5 transition"
+                        className="w-full px-4 py-3 text-left text-[13px] text-white/80 transition hover:bg-white/5 hover:text-white"
                       >
                         Panel klienta
                       </button>
@@ -169,7 +201,7 @@ export default function GlobalNav() {
                           setAccountOpen(false);
                           signOut({ callbackUrl: '/' });
                         }}
-                        className="w-full text-left px-4 py-3 text-[13px] text-white/80 hover:text-white hover:bg-white/5 transition"
+                        className="w-full px-4 py-3 text-left text-[13px] text-white/80 transition hover:bg-white/5 hover:text-white"
                       >
                         Wyloguj
                       </button>
@@ -182,34 +214,32 @@ export default function GlobalNav() {
         </div>
       </header>
 
-      {/* BURGER — mobile */}
       <motion.button
         aria-label={open ? 'Zamknij menu' : 'Otwórz menu'}
         onClick={() => setOpen((s) => !s)}
-        className="fixed top-3 right-4 z-[120] md:hidden p-2"
+        className="fixed top-3 right-4 z-[120] p-2 md:hidden"
         animate={{ rotate: open ? 180 : 0 }}
         transition={{ duration: 0.35 }}
         style={{ color: FG }}
       >
-        <div className="relative w-10 h-10">
+        <div className="relative h-10 w-10">
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
             initial={false}
             animate={{ opacity: open ? 0 : 1 }}
           >
-            <BurgerIcon className="w-9 h-9" />
+            <BurgerIcon className="h-9 w-9" />
           </motion.div>
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
             initial={false}
             animate={{ opacity: open ? 1 : 0 }}
           >
-            <CrossIcon className="w-9 h-9" />
+            <CrossIcon className="h-9 w-9" />
           </motion.div>
         </div>
       </motion.button>
 
-      {/* OVERLAY mobile */}
       <AnimatePresence>
         {open && (
           <motion.aside
@@ -217,25 +247,32 @@ export default function GlobalNav() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '-100%', opacity: 0 }}
             transition={{ duration: 0.28 }}
-            className="fixed inset-0 z-[110] md:hidden flex flex-col"
+            className="fixed inset-0 z-[110] flex flex-col md:hidden"
             style={{ backgroundColor: BG, color: FG }}
           >
             <button aria-hidden onClick={() => setOpen(false)} className="absolute inset-0 -z-10" />
 
-            <div className="flex-1 flex flex-col items-center justify-center gap-10 text-center px-6">
-              <Image src="/logo.png" alt="TylkoDziałki" width={1024} height={253} priority className="h-16 w-auto" />
+            <div className="flex flex-1 flex-col items-center justify-center gap-10 px-6 text-center">
+              <Image
+                src="/logo.png"
+                alt="TylkoDziałki"
+                width={1024}
+                height={253}
+                priority
+                className="h-16 w-auto"
+              />
 
               <div className="flex flex-col gap-8">
                 <button onClick={() => go('/')} className={linkMobile}>
                   START
                 </button>
                 <button onClick={() => go('/kup')} className={linkMobile}>
-                  KUP
+                  SZUKAJ DZIAŁKI
                 </button>
                 <button onClick={() => go('/sprzedaj')} className={linkMobile}>
                   SPRZEDAJ
                 </button>
-                <button onClick={() => go('/kontakt')} className={linkMobile}>
+                <button onClick={goToFooter} className={linkMobile}>
                   KONTAKT
                 </button>
 

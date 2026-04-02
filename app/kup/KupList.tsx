@@ -19,6 +19,8 @@ export type Dzialka = {
   locationLabel?: string | null;
   przeznaczenia?: Przeznaczenie[];
   zdjecia?: Photo[];
+  isFeatured?: boolean | null;
+  featuredUntil?: string | Date | null;
 };
 
 function formatPLN(value: number) {
@@ -42,6 +44,10 @@ function labelPrzeznaczenie(p: Przeznaczenie) {
     .replace('BUDOWLANA', 'BUDOWLANA');
 }
 
+function isFeaturedActive(d: Dzialka) {
+  return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
+}
+
 const ICONS = {
   area: '/powierzchnia.webp',
   price: '/cena.webp',
@@ -50,6 +56,29 @@ const ICONS = {
 };
 
 const GREEN = '#7aa333';
+
+function SmartImg({
+  src,
+  alt,
+  className,
+  eager = false,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  eager?: boolean;
+}) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+      draggable={false}
+    />
+  );
+}
 
 export default function KupList({
   items,
@@ -60,9 +89,8 @@ export default function KupList({
   loading: boolean;
   error: string | null;
 }) {
-  // ✅ ZAPAMIĘTUJ SCROLL + URL LISTY (bez zmiany UI)
   useEffect(() => {
-    let t: any = null;
+    let t: ReturnType<typeof setTimeout> | null = null;
 
     const save = () => {
       try {
@@ -80,7 +108,8 @@ export default function KupList({
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
-    save(); // od razu (np. po wejściu / po zmianie strony)
+    save();
+
     return () => {
       window.removeEventListener('scroll', onScroll);
       if (t) clearTimeout(t);
@@ -92,9 +121,12 @@ export default function KupList({
       return (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="overflow-hidden rounded-3xl border border-white/12 bg-[#0f0f0f]/20">
+            <div
+              key={i}
+              className="overflow-hidden rounded-3xl border border-white/12 bg-[#0f0f0f]/20"
+            >
               <div className="aspect-video animate-pulse bg-white/5" />
-              <div className="p-6 space-y-4">
+              <div className="space-y-4 p-6">
                 <div className="h-4 w-40 animate-pulse rounded bg-white/5" />
                 <div className="h-4 w-64 animate-pulse rounded bg-white/5" />
                 <div className="h-4 w-56 animate-pulse rounded bg-white/5" />
@@ -112,7 +144,7 @@ export default function KupList({
           <div className="font-medium text-white/90">Nie udało się pobrać ofert</div>
           <div className="mt-2 text-sm text-white/60">{error}</div>
           <button
-            className="mt-4 rounded-full border border-white/20 px-4 py-2 text-[12px] tracking-[0.18em] uppercase text-white/75 hover:border-white/40 transition"
+            className="mt-4 rounded-full border border-white/20 px-4 py-2 text-[12px] uppercase tracking-[0.18em] text-white/75 transition hover:border-white/40"
             onClick={() => window.location.reload()}
           >
             Odśwież
@@ -131,8 +163,8 @@ export default function KupList({
 
     return (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {items.map((d) => (
-          <DzialkaCard key={d.id} d={d} />
+        {items.map((d, index) => (
+          <DzialkaCard key={d.id} d={d} eagerImage={index < 2} />
         ))}
       </div>
     );
@@ -141,7 +173,7 @@ export default function KupList({
   return content;
 }
 
-function DzialkaCard({ d }: { d: Dzialka }) {
+function DzialkaCard({ d, eagerImage = false }: { d: Dzialka; eagerImage?: boolean }) {
   const photos = (d.zdjecia ?? [])
     .slice()
     .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
@@ -150,39 +182,50 @@ function DzialkaCard({ d }: { d: Dzialka }) {
   const loc = d.locationLabel?.trim() || 'Lokalizacja niepodana';
   const area = d.powierzchniaM2 ?? 0;
   const zlZaM2 = area ? Math.round(d.cenaPln / area) : 0;
+  const przezn = d.przeznaczenia?.length
+    ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ')
+    : '—';
 
-  const przezn = d.przeznaczenia?.length ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ') : '—';
+  const featured = isFeaturedActive(d);
 
   return (
     <Link
       href={`/dzialka/${d.id}`}
       scroll={false}
       onClick={() => {
-        // ✅ zapisz stan listy w momencie wejścia w ofertę
         try {
           sessionStorage.setItem('TD_KUP_SCROLL_Y', String(window.scrollY || 0));
           sessionStorage.setItem('TD_KUP_URL', window.location.pathname + window.location.search);
         } catch {}
       }}
-      className="group block overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/20 hover:border-white/30 transition"
+      className={`group block overflow-hidden rounded-3xl border transition ${
+        featured
+          ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
+          : 'border-white/14 bg-[#0f0f0f]/20 hover:border-white/30'
+      }`}
     >
-      <Carousel photos={photos} coverFallback={coverFallback} title={d.tytul} />
+      <Carousel
+        photos={photos}
+        coverFallback={coverFallback}
+        title={d.tytul}
+        featured={featured}
+        eagerImage={eagerImage}
+      />
 
-      <div className="p-6 space-y-4">
-        {/* CENA – NA GÓRZE I NA ZIELONO */}
+      <div className="space-y-4 p-6">
         <div className="flex items-center gap-3">
-          <img src={ICONS.price} alt="" className="h-5 w-5 opacity-80" />
+          <SmartImg src={ICONS.price} alt="" className="h-5 w-5 opacity-80" />
           <div className="text-[18px] font-semibold" style={{ color: GREEN }}>
             {formatPLN(d.cenaPln)}
             {zlZaM2 ? (
-              <span className="ml-2 text-[12px] text-white/50 font-normal">({formatIntPL(zlZaM2)} zł/m²)</span>
+              <span className="ml-2 text-[12px] font-normal text-white/50">
+                ({formatIntPL(zlZaM2)} zł/m²)
+              </span>
             ) : null}
           </div>
         </div>
 
-        {/* POWIERZCHNIA – POD CENĄ */}
         <InfoLine icon={ICONS.area} value={`${formatIntPL(area)} m²`} />
-
         <InfoLine icon={ICONS.type} value={przezn} />
         <InfoLine icon={ICONS.loc} value={loc} />
       </div>
@@ -193,8 +236,8 @@ function DzialkaCard({ d }: { d: Dzialka }) {
 function InfoLine({ icon, value }: { icon: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3">
-      <img src={icon} alt="" className="h-5 w-5 opacity-80" loading="lazy" />
-      <div className="text-white/90 text-[14px] leading-snug">{value}</div>
+      <SmartImg src={icon} alt="" className="h-5 w-5 opacity-80" />
+      <div className="text-[14px] leading-snug text-white/90">{value}</div>
     </div>
   );
 }
@@ -203,15 +246,26 @@ function Carousel({
   photos,
   coverFallback,
   title,
+  featured,
+  eagerImage = false,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
   title: string;
+  featured: boolean;
+  eagerImage?: boolean;
 }) {
-  const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
-  const has = list.length > 0;
+  const list = useMemo(
+    () => (photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : []),
+    [photos, coverFallback]
+  );
 
+  const has = list.length > 0;
   const [i, setI] = useState(0);
+
+  useEffect(() => {
+    setI(0);
+  }, [list]);
 
   const prev = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -231,11 +285,27 @@ function Carousel({
     <div className="relative aspect-video bg-white/5">
       {has ? (
         <>
-          <img src={list[i]} alt={title} className="h-full w-full object-cover" loading="lazy" />
+          <SmartImg
+            src={list[i]}
+            alt={title}
+            className="h-full w-full object-cover"
+            eager={eagerImage}
+          />
+
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
 
+          {featured ? (
+            <div className="absolute left-4 top-4 z-10">
+              <span className="inline-flex items-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
+                WYRÓŻNIONE
+              </span>
+            </div>
+          ) : null}
+
           <div className="absolute bottom-0 left-0 right-0 p-6">
-            <div className="text-center text-white text-[18px] font-medium leading-tight drop-shadow">{title}</div>
+            <div className="text-center text-[18px] font-medium leading-tight text-white drop-shadow">
+              {title}
+            </div>
           </div>
 
           {list.length > 1 && (
@@ -243,23 +313,26 @@ function Carousel({
               <button
                 type="button"
                 onClick={prev}
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/40 text-white backdrop-blur-sm
-                           opacity-100 md:opacity-0 md:group-hover:opacity-100 transition"
+                className="absolute left-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ‹
               </button>
               <button
                 type="button"
                 onClick={next}
-                className="absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/40 text-white backdrop-blur-sm
-                           opacity-100 md:opacity-0 md:group-hover:opacity-100 transition"
+                className="absolute right-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ›
               </button>
 
               <div className="absolute right-4 top-4 flex gap-2">
                 {list.slice(0, 6).map((_, idx) => (
-                  <span key={idx} className={`h-2 w-2 rounded-full ${idx === i ? 'bg-black' : 'bg-black/40'}`} />
+                  <span
+                    key={idx}
+                    className={`h-2 w-2 rounded-full ${
+                      idx === i ? 'bg-black' : 'bg-black/40'
+                    }`}
+                  />
                 ))}
               </div>
             </>
