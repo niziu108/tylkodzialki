@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 
@@ -65,7 +65,7 @@ function ShieldIcon() {
   );
 }
 
-export default function AuthPage() {
+function AuthPageContent() {
   const sp = useSearchParams();
   const callbackUrl = useMemo(() => sp.get('callbackUrl') || '/', [sp]);
 
@@ -150,7 +150,7 @@ export default function AuthPage() {
   return (
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
       <div className="min-h-screen w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
+        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
           <div className="flex items-center justify-center px-6 py-10 lg:py-0">
             <div className="w-full max-w-md">
               <div className="rounded-3xl border border-white/10 p-6 md:p-7">
@@ -198,7 +198,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() => signIn('google', { callbackUrl })}
-                    className="w-full rounded-2xl border border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition px-4 py-4 flex items-center justify-center gap-3 font-semibold"
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/[0.03] px-4 py-4 font-semibold transition hover:bg-white/[0.06]"
                   >
                     <GoogleIcon />
                     Kontynuuj z Google
@@ -207,7 +207,7 @@ export default function AuthPage() {
 
                 <div className="my-7 flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/10" />
-                  <div className="text-[12px] text-white/45 tracking-[0.14em] uppercase">
+                  <div className="text-[12px] uppercase tracking-[0.14em] text-white/45">
                     albo
                   </div>
                   <div className="h-px flex-1 bg-white/10" />
@@ -261,7 +261,7 @@ export default function AuthPage() {
                   <div className="pt-1">
                     <a
                       href="/auth/forgot"
-                      className="text-[12px] text-white/55 hover:text-white/85 transition underline underline-offset-4 decoration-white/25"
+                      className="text-[12px] text-white/55 underline decoration-white/25 underline-offset-4 transition hover:text-white/85"
                       style={{ textTransform: 'none' }}
                     >
                       zapomniałem hasła
@@ -272,9 +272,8 @@ export default function AuthPage() {
                     type="submit"
                     disabled={busy}
                     className={cx(
-                      'w-full mt-2 rounded-2xl px-4 py-4 font-semibold text-[14px] transition',
-                      'border border-white/15 bg-white/[0.05] hover:bg-white/[0.08]',
-                      busy && 'opacity-60 cursor-not-allowed'
+                      'mt-2 w-full rounded-2xl border border-white/15 bg-white/[0.05] px-4 py-4 text-[14px] font-semibold transition hover:bg-white/[0.08]',
+                      busy && 'cursor-not-allowed opacity-60'
                     )}
                     style={{ color: GREEN }}
                   >
@@ -292,7 +291,7 @@ export default function AuthPage() {
                           setMode('register');
                           setError('');
                         }}
-                        className="underline underline-offset-4 decoration-white/25 hover:text-white/70 transition"
+                        className="underline decoration-white/25 underline-offset-4 transition hover:text-white/70"
                         style={{ color: GREEN }}
                       >
                         Zarejestruj się
@@ -307,7 +306,7 @@ export default function AuthPage() {
                           setMode('login');
                           setError('');
                         }}
-                        className="underline underline-offset-4 decoration-white/25 hover:text-white/70 transition"
+                        className="underline decoration-white/25 underline-offset-4 transition hover:text-white/70"
                         style={{ color: GREEN }}
                       >
                         Zaloguj się
@@ -336,28 +335,28 @@ export default function AuthPage() {
             />
             <div className="absolute inset-0 bg-black/75" />
 
-            <div className="relative h-full w-full px-8 lg:px-12 flex items-start lg:items-center">
+            <div className="relative flex h-full w-full items-start px-8 lg:items-center lg:px-12">
               <div className="w-full max-w-xl">
-                <div className="text-white text-[40px] md:text-[52px] font-semibold tracking-tight leading-[1.05]">
+                <div className="text-[40px] font-semibold leading-[1.05] tracking-tight text-white md:text-[52px]">
                   Zaufaj Nam
                 </div>
 
-                <div className="mt-5 text-white/90 text-[16px] md:text-[18px] leading-relaxed">
+                <div className="mt-5 text-[16px] leading-relaxed text-white/90 md:text-[18px]">
                   Zaloguj się lub zarejestruj i wystaw swoją działkę w 3 minuty.
                   <span className="text-white/85"> Premium prezentacja.</span>
                 </div>
 
                 <div className="mt-8 space-y-4">
-                  <div className="rounded-2xl border border-[#7aa333]/20 bg-black/25 backdrop-blur-sm p-4">
+                  <div className="rounded-2xl border border-[#7aa333]/20 bg-black/25 p-4 backdrop-blur-sm">
                     <div className="flex items-start gap-3">
-                      <div className="text-white/90 mt-0.5">
+                      <div className="mt-0.5 text-white/90">
                         <BoltIcon />
                       </div>
                       <div>
-                        <div className="text-white font-semibold">
+                        <div className="font-semibold text-white">
                           Błyskawiczne dodanie oferty
                         </div>
-                        <div className="text-white/85 text-[13px] mt-1">
+                        <div className="mt-1 text-[13px] text-white/85">
                           Dodasz ofertę w kilka minut, bez zbędnych formularzy,
                           tylko to, co naprawdę ważne dla działki.
                         </div>
@@ -365,14 +364,14 @@ export default function AuthPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-[#7aa333]/20 bg-black/25 backdrop-blur-sm p-4">
+                  <div className="rounded-2xl border border-[#7aa333]/20 bg-black/25 p-4 backdrop-blur-sm">
                     <div className="flex items-start gap-3">
-                      <div className="text-white/90 mt-0.5">
+                      <div className="mt-0.5 text-white/90">
                         <ShieldIcon />
                       </div>
                       <div>
-                        <div className="text-white font-semibold">Kontakt</div>
-                        <div className="text-white/85 text-[13px] mt-1">
+                        <div className="font-semibold text-white">Kontakt</div>
+                        <div className="mt-1 text-[13px] text-white/85">
                           Twój numer telefonu widoczny na górze ogłoszenia,
                           kupujący kontaktują się od razu z Tobą.
                         </div>
@@ -380,16 +379,16 @@ export default function AuthPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-[#7aa333]/20 bg-black/25 backdrop-blur-sm p-4">
+                  <div className="rounded-2xl border border-[#7aa333]/20 bg-black/25 p-4 backdrop-blur-sm">
                     <div className="flex items-start gap-3">
-                      <div className="text-white/90 mt-0.5">
+                      <div className="mt-0.5 text-white/90">
                         <CameraIcon />
                       </div>
                       <div>
-                        <div className="text-white font-semibold">
+                        <div className="font-semibold text-white">
                           Profesjonalna prezentacja działki
                         </div>
-                        <div className="text-white/85 text-[13px] mt-1">
+                        <div className="mt-1 text-[13px] text-white/85">
                           Estetyczna, przejrzysta karta działki, Twoja oferta
                           wygląda profesjonalnie i sprzedaje szybciej.
                         </div>
@@ -405,5 +404,23 @@ export default function AuthPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function AuthPageFallback() {
+  return (
+    <main className="min-h-screen" style={{ background: BG, color: FG }}>
+      <div className="flex min-h-screen items-center justify-center px-6">
+        <div className="text-white/60">Ładowanie…</div>
+      </div>
+    </main>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<AuthPageFallback />}>
+      <AuthPageContent />
+    </Suspense>
   );
 }
