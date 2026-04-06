@@ -101,9 +101,9 @@ function WyroznieniaPageContent() {
                     : 'border-white/10 bg-black/20 text-white/75 hover:border-white/20'
                 }`}
               >
-                <div className="text-sm font-semibold">Bez faktury</div>
+                <div className="text-sm font-semibold">Osoba prywatna</div>
                 <div className="mt-1 text-xs leading-6 text-white/60">
-                  Zakup jako osoba prywatna
+                  Szybki zakup bez dodatkowych pól
                 </div>
               </button>
 
@@ -116,9 +116,9 @@ function WyroznieniaPageContent() {
                     : 'border-white/10 bg-black/20 text-white/75 hover:border-white/20'
                 }`}
               >
-                <div className="text-sm font-semibold">Chcę fakturę</div>
+                <div className="text-sm font-semibold">Firma</div>
                 <div className="mt-1 text-xs leading-6 text-white/60">
-                  Zakup na firmę
+                  Zakup na dane firmowe
                 </div>
               </button>
             </div>
@@ -179,7 +179,12 @@ function WyroznieniaPageContent() {
                   </div>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="mx-auto mt-5 max-w-[920px] rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm text-white/65">
+                Dla osoby prywatnej nie pokazujemy dodatkowych pól. System użyje
+                danych konta i adresu e-mail przypisanego do użytkownika.
+              </div>
+            )}
           </div>
         </div>
 

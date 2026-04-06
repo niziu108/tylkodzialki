@@ -46,6 +46,18 @@ enum BuyerInvoiceType {
   COMPANY
 }
 
+enum InvoiceBuyerType {
+  PRIVATE
+  COMPANY
+}
+
+enum KsefStatus {
+  READY
+  SENT
+  ACCEPTED
+  ERROR
+}
+
 enum Przeznaczenie {
   BUDOWLANA
   USLUGOWA
@@ -134,32 +146,21 @@ model User {
 
   role Role @default(USER)
 
-  // publikacje
   listingCredits          Int       @default(0)
   listingCreditsExpiresAt DateTime?
 
-  // wyróżnienia
   featuredCredits          Int       @default(0)
   featuredCreditsExpiresAt DateTime?
 
-  // NextAuth
   accounts Account[]
   sessions Session[]
 
-  // ogłoszenia
   dzialki Dzialka[]
 
-  // historia publikacji
   creditTransactions ListingCreditTransaction[]
-
-  // historia płatności
-  listingOrders ListingOrder[]
-
-  // faktury
-  invoices Invoice[]
-
-  // log wysyłek maili
-  emailSendLogs EmailSendLog[]
+  listingOrders      ListingOrder[]
+  invoices           Invoice[]
+  emailSendLogs      EmailSendLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -207,11 +208,9 @@ model VerificationToken {
 model Dzialka {
   id String @id @default(cuid())
 
-  // właściciel ogłoszenia
   ownerId String?
   owner   User?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  // podstawowe dane
   tytul          String
   powierzchniaM2 Int
   cenaPln        Int
@@ -219,28 +218,22 @@ model Dzialka {
   telefon        String
   email          String
 
-  // status i czas życia
   status      DzialkaStatus @default(AKTYWNE)
   publishedAt DateTime      @default(now())
   expiresAt   DateTime?
   endedAt     DateTime?
 
-  // wyróżnienie
   isFeatured    Boolean   @default(false)
   featuredUntil DateTime?
 
-  // statystyki
   viewsCount       Int @default(0)
   detailViewsCount Int @default(0)
 
-  // opis
   opis String? @db.Text
 
-  // sprzedający
   sprzedajacyTyp SprzedajacyTyp @default(PRYWATNIE)
   numerOferty    String?
 
-  // lokalizacja
   placeId       String?
   locationFull  String?
   locationLabel String?
@@ -250,19 +243,16 @@ model Dzialka {
   locationMode  LocationMode @default(EXACT)
   parcelText    String?
 
-  // uzbrojenie
   prad        PradStatus        @default(BRAK_PRZYLACZA)
   woda        WodaStatus        @default(BRAK_PRZYLACZA)
   kanalizacja KanalizacjaStatus @default(BRAK)
   gaz         GazStatus         @default(BRAK)
   swiatlowod  SwiatlowodStatus  @default(BRAK)
 
-  // checkboxy
   wzWydane    Boolean @default(false)
   mpzp        Boolean @default(false)
   projektDomu Boolean @default(false)
 
-  // teksty
   klasaZiemi      String?
   wymiary         String?
   ksiegaWieczysta String?
@@ -346,10 +336,7 @@ model ListingOrder {
   packageType ListingPackageType
   packageName String
 
-  // publikacje
   credits Int
-
-  // wyróżnienia
   featuredCredits Int @default(0)
 
   validityDays Int?
@@ -364,7 +351,6 @@ model ListingOrder {
 
   paidAt DateTime?
 
-  // dane do faktury
   invoiceType BuyerInvoiceType @default(NONE)
 
   buyerCompanyName  String?
@@ -405,7 +391,8 @@ model Invoice {
   amountGross Int
   currency    String @default("PLN")
 
-  buyerType    String?
+  buyerType    InvoiceBuyerType?
+  buyerName    String?
   companyName  String?
   nip          String?
   addressLine1 String?
@@ -416,7 +403,7 @@ model Invoice {
   invoiceEmail String?
 
   itemName String?
-  quantity Int     @default(1)
+  quantity Int @default(1)
 
   issuedAt DateTime?
   paidAt   DateTime?
@@ -424,10 +411,10 @@ model Invoice {
   pdfPath     String?
   pdfFileName String?
 
-  // pola pod przyszły KSeF
+  ksefRequired        Boolean    @default(true)
+  ksefStatus          KsefStatus @default(READY)
   ksefReferenceNumber String?
   ksefInvoiceNumber   String?
-  ksefStatus          String?
   ksefSentAt          DateTime?
   ksefAcceptedAt      DateTime?
   ksefErrorMessage    String?
@@ -438,6 +425,10 @@ model Invoice {
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@index([type, createdAt])
+  @@index([buyerType, createdAt])
+  @@index([ksefStatus, createdAt])
+  @@index([invoiceNumber])
+  @@index([nip])
 }
 
 model EmailSendLog {

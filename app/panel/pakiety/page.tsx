@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
-type PackageKey = "single" | "pack10" | "pack40";
-type InvoiceChoice = "NONE" | "COMPANY";
+type PackageKey = 'single' | 'pack10' | 'pack40';
+type InvoiceChoice = 'NONE' | 'COMPANY';
 
 type InvoiceFormState = {
   companyName: string;
@@ -16,18 +16,18 @@ type InvoiceFormState = {
 };
 
 const initialInvoiceState: InvoiceFormState = {
-  companyName: "",
-  nip: "",
-  addressLine1: "",
-  addressLine2: "",
-  postalCode: "",
-  city: "",
-  email: "",
+  companyName: '',
+  nip: '',
+  addressLine1: '',
+  addressLine2: '',
+  postalCode: '',
+  city: '',
+  email: '',
 };
 
 export default function PakietyPage() {
   const [loadingKey, setLoadingKey] = useState<PackageKey | null>(null);
-  const [invoiceType, setInvoiceType] = useState<InvoiceChoice>("NONE");
+  const [invoiceType, setInvoiceType] = useState<InvoiceChoice>('NONE');
   const [invoice, setInvoice] = useState<InvoiceFormState>(initialInvoiceState);
 
   function updateInvoiceField(key: keyof InvoiceFormState, value: string) {
@@ -42,7 +42,7 @@ export default function PakietyPage() {
       setLoadingKey(packageKey);
 
       const body =
-        invoiceType === "COMPANY"
+        invoiceType === 'COMPANY'
           ? {
               packageKey,
               invoiceType,
@@ -50,24 +50,24 @@ export default function PakietyPage() {
             }
           : {
               packageKey,
-              invoiceType: "NONE" as const,
+              invoiceType: 'NONE' as const,
             };
 
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !data?.url) {
-        throw new Error(data?.message || "Nie udało się rozpocząć płatności.");
+        throw new Error(data?.message || 'Nie udało się rozpocząć płatności.');
       }
 
       window.location.href = data.url;
     } catch (e: any) {
-      alert(e?.message || "Nie udało się rozpocząć płatności.");
+      alert(e?.message || 'Nie udało się rozpocząć płatności.');
       setLoadingKey(null);
     }
   }
@@ -86,43 +86,43 @@ export default function PakietyPage() {
             <div className="mx-auto flex max-w-[520px] gap-3">
               <button
                 type="button"
-                onClick={() => setInvoiceType("NONE")}
+                onClick={() => setInvoiceType('NONE')}
                 className={`flex-1 rounded-2xl border px-4 py-4 text-left transition ${
-                  invoiceType === "NONE"
-                    ? "border-[#7aa333]/60 bg-[#7aa333]/12 text-white"
-                    : "border-white/10 bg-black/20 text-white/75 hover:border-white/20"
+                  invoiceType === 'NONE'
+                    ? 'border-[#7aa333]/60 bg-[#7aa333]/12 text-white'
+                    : 'border-white/10 bg-black/20 text-white/75 hover:border-white/20'
                 }`}
               >
-                <div className="text-sm font-semibold">Bez faktury</div>
+                <div className="text-sm font-semibold">Osoba prywatna</div>
                 <div className="mt-1 text-xs leading-6 text-white/60">
-                  Zakup jako osoba prywatna
+                  Szybki zakup bez dodatkowych pól
                 </div>
               </button>
 
               <button
                 type="button"
-                onClick={() => setInvoiceType("COMPANY")}
+                onClick={() => setInvoiceType('COMPANY')}
                 className={`flex-1 rounded-2xl border px-4 py-4 text-left transition ${
-                  invoiceType === "COMPANY"
-                    ? "border-[#7aa333]/60 bg-[#7aa333]/12 text-white"
-                    : "border-white/10 bg-black/20 text-white/75 hover:border-white/20"
+                  invoiceType === 'COMPANY'
+                    ? 'border-[#7aa333]/60 bg-[#7aa333]/12 text-white'
+                    : 'border-white/10 bg-black/20 text-white/75 hover:border-white/20'
                 }`}
               >
-                <div className="text-sm font-semibold">Chcę fakturę</div>
+                <div className="text-sm font-semibold">Firma</div>
                 <div className="mt-1 text-xs leading-6 text-white/60">
-                  Zakup na firmę
+                  Zakup na dane firmowe
                 </div>
               </button>
             </div>
 
-            {invoiceType === "COMPANY" ? (
+            {invoiceType === 'COMPANY' ? (
               <div className="mx-auto mt-5 max-w-[920px]">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-4">
                     <input
                       value={invoice.companyName}
                       onChange={(e) =>
-                        updateInvoiceField("companyName", e.target.value)
+                        updateInvoiceField('companyName', e.target.value)
                       }
                       className="h-12 w-full rounded-2xl border border-white/20 bg-[#171717] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/40"
                       placeholder="Nazwa firmy"
@@ -131,7 +131,7 @@ export default function PakietyPage() {
                     <input
                       value={invoice.email}
                       onChange={(e) =>
-                        updateInvoiceField("email", e.target.value)
+                        updateInvoiceField('email', e.target.value)
                       }
                       className="h-12 w-full rounded-2xl border border-white/20 bg-[#171717] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/40"
                       placeholder="Email"
@@ -139,7 +139,7 @@ export default function PakietyPage() {
 
                     <input
                       value={invoice.nip}
-                      onChange={(e) => updateInvoiceField("nip", e.target.value)}
+                      onChange={(e) => updateInvoiceField('nip', e.target.value)}
                       className="h-12 w-full rounded-2xl border border-white/20 bg-[#171717] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/40"
                       placeholder="NIP"
                     />
@@ -149,7 +149,7 @@ export default function PakietyPage() {
                     <input
                       value={invoice.addressLine1}
                       onChange={(e) =>
-                        updateInvoiceField("addressLine1", e.target.value)
+                        updateInvoiceField('addressLine1', e.target.value)
                       }
                       className="h-12 w-full rounded-2xl border border-white/20 bg-[#171717] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/40"
                       placeholder="Adres"
@@ -158,7 +158,7 @@ export default function PakietyPage() {
                     <input
                       value={invoice.postalCode}
                       onChange={(e) =>
-                        updateInvoiceField("postalCode", e.target.value)
+                        updateInvoiceField('postalCode', e.target.value)
                       }
                       className="h-12 w-full rounded-2xl border border-white/20 bg-[#171717] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/40"
                       placeholder="Kod pocztowy"
@@ -166,14 +166,19 @@ export default function PakietyPage() {
 
                     <input
                       value={invoice.city}
-                      onChange={(e) => updateInvoiceField("city", e.target.value)}
+                      onChange={(e) => updateInvoiceField('city', e.target.value)}
                       className="h-12 w-full rounded-2xl border border-white/20 bg-[#171717] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/40"
                       placeholder="Miasto"
                     />
                   </div>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="mx-auto mt-5 max-w-[920px] rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm text-white/65">
+                Dla osoby prywatnej nie pokazujemy dodatkowych pól. System użyje
+                danych konta i adresu e-mail przypisanego do użytkownika.
+              </div>
+            )}
           </div>
         </div>
 
@@ -208,11 +213,11 @@ export default function PakietyPage() {
             </div>
 
             <button
-              onClick={() => handleCheckout("single")}
+              onClick={() => handleCheckout('single')}
               disabled={loadingKey !== null}
               className="mt-5 h-12 w-full rounded-2xl bg-[#7aa333] text-base font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
             >
-              {loadingKey === "single" ? "Przekierowanie…" : "Kup pakiet"}
+              {loadingKey === 'single' ? 'Przekierowanie…' : 'Kup pakiet'}
             </button>
           </div>
 
@@ -254,11 +259,11 @@ export default function PakietyPage() {
             </div>
 
             <button
-              onClick={() => handleCheckout("pack10")}
+              onClick={() => handleCheckout('pack10')}
               disabled={loadingKey !== null}
               className="mt-5 h-12 w-full rounded-2xl bg-[#7aa333] text-base font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
             >
-              {loadingKey === "pack10" ? "Przekierowanie…" : "Kup pakiet"}
+              {loadingKey === 'pack10' ? 'Przekierowanie…' : 'Kup pakiet'}
             </button>
           </div>
 
@@ -296,11 +301,11 @@ export default function PakietyPage() {
             </div>
 
             <button
-              onClick={() => handleCheckout("pack40")}
+              onClick={() => handleCheckout('pack40')}
               disabled={loadingKey !== null}
               className="mt-5 h-12 w-full rounded-2xl bg-[#7aa333] text-base font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
             >
-              {loadingKey === "pack40" ? "Przekierowanie…" : "Kup pakiet"}
+              {loadingKey === 'pack40' ? 'Przekierowanie…' : 'Kup pakiet'}
             </button>
           </div>
         </div>

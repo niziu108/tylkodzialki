@@ -76,6 +76,7 @@ export async function POST(req: Request) {
       select: {
         id: true,
         email: true,
+        name: true,
       },
     });
 
@@ -160,8 +161,12 @@ export async function POST(req: Request) {
           invoiceType === BuyerInvoiceType.COMPANY ? addressLine1 : null,
         buyerPostalCode:
           invoiceType === BuyerInvoiceType.COMPANY ? postalCode : null,
-        buyerCity: invoiceType === BuyerInvoiceType.COMPANY ? city : null,
-        buyerEmail: invoiceType === BuyerInvoiceType.COMPANY ? invoiceEmail : null,
+        buyerCity:
+          invoiceType === BuyerInvoiceType.COMPANY ? city : null,
+        buyerEmail:
+          invoiceType === BuyerInvoiceType.COMPANY
+            ? invoiceEmail
+            : user.email || null,
       },
       select: {
         id: true,
@@ -199,20 +204,28 @@ export async function POST(req: Request) {
         featuredCredits: String(selected.featuredCredits),
 
         buyerType:
-          invoiceType === BuyerInvoiceType.COMPANY ? 'company' : 'none',
+          invoiceType === BuyerInvoiceType.COMPANY ? 'company' : 'private',
+        buyerName:
+          invoiceType === BuyerInvoiceType.COMPANY
+            ? ''
+            : (user.name || '').trim(),
         companyName:
           invoiceType === BuyerInvoiceType.COMPANY ? companyName : '',
-        nip: invoiceType === BuyerInvoiceType.COMPANY ? nip : '',
+        nip:
+          invoiceType === BuyerInvoiceType.COMPANY ? nip : '',
         addressLine1:
           invoiceType === BuyerInvoiceType.COMPANY ? addressLine1 : '',
         addressLine2:
           invoiceType === BuyerInvoiceType.COMPANY ? addressLine2 : '',
         postalCode:
           invoiceType === BuyerInvoiceType.COMPANY ? postalCode : '',
-        city: invoiceType === BuyerInvoiceType.COMPANY ? city : '',
+        city:
+          invoiceType === BuyerInvoiceType.COMPANY ? city : '',
         country: 'PL',
         invoiceEmail:
-          invoiceType === BuyerInvoiceType.COMPANY ? invoiceEmail : '',
+          invoiceType === BuyerInvoiceType.COMPANY
+            ? invoiceEmail
+            : (user.email || ''),
       },
     });
 

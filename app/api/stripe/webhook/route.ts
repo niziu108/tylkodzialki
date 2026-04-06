@@ -39,6 +39,10 @@ function getItemName(params: {
 }
 
 function resolveBuyerFromMetadata(metadata: Record<string, string>) {
+  const buyerType =
+    metadata.buyerType === 'company' ? 'COMPANY' : 'PRIVATE';
+
+  const buyerName = (metadata.buyerName || '').trim() || null;
   const companyName = (metadata.companyName || '').trim() || null;
   const nip = (metadata.nip || '').trim() || null;
   const addressLine1 = (metadata.addressLine1 || '').trim() || null;
@@ -48,15 +52,9 @@ function resolveBuyerFromMetadata(metadata: Record<string, string>) {
   const country = (metadata.country || '').trim() || 'PL';
   const invoiceEmail = (metadata.invoiceEmail || '').trim() || null;
 
-  const buyerType =
-    companyName || nip || addressLine1 || postalCode || city
-      ? 'company'
-      : metadata.buyerType === 'company'
-      ? 'company'
-      : 'none';
-
   return {
     buyerType,
+    buyerName,
     companyName,
     nip,
     addressLine1,
@@ -134,7 +132,8 @@ export async function POST(req: Request) {
           return NextResponse.json({ received: true });
         }
 
-        const invoiceNumber = await generateInvoiceNumber(new Date());
+        const now = new Date();
+        const invoiceNumber = await generateInvoiceNumber(now);
         const itemName = getItemName({
           type,
           featuredCredits,
@@ -169,12 +168,17 @@ export async function POST(req: Request) {
               currency,
 
               buyerType: buyer.buyerType,
-              companyName: buyer.companyName,
-              nip: buyer.nip,
-              addressLine1: buyer.addressLine1,
-              addressLine2: buyer.addressLine2,
-              postalCode: buyer.postalCode,
-              city: buyer.city,
+              buyerName: buyer.buyerType === 'PRIVATE' ? buyer.buyerName : null,
+              companyName:
+                buyer.buyerType === 'COMPANY' ? buyer.companyName : null,
+              nip: buyer.buyerType === 'COMPANY' ? buyer.nip : null,
+              addressLine1:
+                buyer.buyerType === 'COMPANY' ? buyer.addressLine1 : null,
+              addressLine2:
+                buyer.buyerType === 'COMPANY' ? buyer.addressLine2 : null,
+              postalCode:
+                buyer.buyerType === 'COMPANY' ? buyer.postalCode : null,
+              city: buyer.buyerType === 'COMPANY' ? buyer.city : null,
               country: buyer.country,
               invoiceEmail:
                 buyer.invoiceEmail || session.customer_details?.email || null,
@@ -182,8 +186,11 @@ export async function POST(req: Request) {
               itemName,
               quantity: 1,
 
-              issuedAt: new Date(),
-              paidAt: new Date(),
+              issuedAt: now,
+              paidAt: now,
+
+              ksefRequired: true,
+              ksefStatus: 'READY',
             },
           });
         });
@@ -317,12 +324,17 @@ export async function POST(req: Request) {
               currency,
 
               buyerType: buyer.buyerType,
-              companyName: buyer.companyName,
-              nip: buyer.nip,
-              addressLine1: buyer.addressLine1,
-              addressLine2: buyer.addressLine2,
-              postalCode: buyer.postalCode,
-              city: buyer.city,
+              buyerName: buyer.buyerType === 'PRIVATE' ? buyer.buyerName : null,
+              companyName:
+                buyer.buyerType === 'COMPANY' ? buyer.companyName : null,
+              nip: buyer.buyerType === 'COMPANY' ? buyer.nip : null,
+              addressLine1:
+                buyer.buyerType === 'COMPANY' ? buyer.addressLine1 : null,
+              addressLine2:
+                buyer.buyerType === 'COMPANY' ? buyer.addressLine2 : null,
+              postalCode:
+                buyer.buyerType === 'COMPANY' ? buyer.postalCode : null,
+              city: buyer.buyerType === 'COMPANY' ? buyer.city : null,
               country: buyer.country,
               invoiceEmail:
                 buyer.invoiceEmail || session.customer_details?.email || null,
@@ -337,6 +349,9 @@ export async function POST(req: Request) {
 
               issuedAt: now,
               paidAt: now,
+
+              ksefRequired: true,
+              ksefStatus: 'READY',
             },
           });
 
