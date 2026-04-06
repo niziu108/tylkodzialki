@@ -20,7 +20,7 @@ type ApiDzialka = {
   featuredUntil?: string | Date | null;
 };
 
-const KM_OPTIONS = [0, 5, 10, 20, 40] as const;
+const KM_OPTIONS = [5, 10, 20, 40] as const;
 
 const PRZEZN: { key: Przeznaczenie; label: string }[] = [
   { key: 'BUDOWLANA', label: 'BUDOWLANA' },
@@ -306,7 +306,7 @@ export default function KupSearch() {
   const [page, setPage] = useState(1);
 
   const [locText, setLocText] = useState('');
-  const [radiusKm, setRadiusKm] = useState<(typeof KM_OPTIONS)[number]>(0);
+  const [radiusKm, setRadiusKm] = useState<(typeof KM_OPTIONS)[number]>(5);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
 
   const [priceMin, setPriceMin] = useState('');
@@ -318,7 +318,7 @@ export default function KupSearch() {
 
   const [applied, setApplied] = useState({
     locText: '',
-    radiusKm: 0 as (typeof KM_OPTIONS)[number],
+    radiusKm: 5 as (typeof KM_OPTIONS)[number],
     center: null as { lat: number; lng: number } | null,
     priceMin: '',
     priceMax: '',
@@ -444,7 +444,7 @@ export default function KupSearch() {
   function reset() {
     setLocText('');
     setCenter(null);
-    setRadiusKm(0);
+    setRadiusKm(5);
     setPriceMin('');
     setPriceMax('');
     setAreaMin('');
@@ -453,7 +453,7 @@ export default function KupSearch() {
 
     const next = {
       locText: '',
-      radiusKm: 0 as (typeof KM_OPTIONS)[number],
+      radiusKm: 5 as (typeof KM_OPTIONS)[number],
       center: null as { lat: number; lng: number } | null,
       priceMin: '',
       priceMax: '',
