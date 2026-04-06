@@ -67,7 +67,10 @@ function ShieldIcon() {
 
 function AuthPageContent() {
   const sp = useSearchParams();
-  const callbackUrl = useMemo(() => sp.get('callbackUrl') || '/', [sp]);
+  const callbackUrl = useMemo(() => {
+    const url = sp.get('callbackUrl');
+    return url && url.trim() ? url : '/panel';
+  }, [sp]);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
