@@ -209,7 +209,7 @@ model Dzialka {
 
   // właściciel ogłoszenia
   ownerId String?
-  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   // podstawowe dane
   tytul          String

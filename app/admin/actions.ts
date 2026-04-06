@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { sendMail } from "@/lib/mailer";
+import { deleteUserCompletely } from "@/lib/delete-user-completely";
 
 const APP_URL = "https://tylkodzialki.pl";
 const LOGIN_URL = `${APP_URL}/auth`;
@@ -193,11 +194,11 @@ export async function deleteUserAction(formData: FormData) {
     throw new Error("Nie możesz usunąć własnego konta admina.");
   }
 
-  await prisma.user.delete({
-    where: { id: userId },
-  });
+  await deleteUserCompletely(userId);
 
   revalidatePath("/admin");
+  revalidatePath("/kup");
+  revalidatePath("/panel");
 }
 
 export async function toggleUserRoleAction(formData: FormData) {
