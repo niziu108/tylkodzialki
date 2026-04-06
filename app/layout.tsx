@@ -29,11 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="flex min-h-screen flex-col">
             <GlobalNav />
-
-            <main className="flex-1">
-              {children}
-            </main>
-
+            <main className="flex-1">{children}</main>
             <Footer />
           </div>
 
