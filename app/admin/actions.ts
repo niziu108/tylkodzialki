@@ -6,6 +6,12 @@ import { authOptions } from "@/auth-options";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
+import { sendMail } from "@/lib/mailer";
+
+const APP_URL = "https://tylkodzialki.pl";
+const LOGIN_URL = `${APP_URL}/auth`;
+
+type MailAudience = "ALL" | "LISTER" | "EXPIRED";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -43,6 +49,138 @@ async function getAppConfig() {
   }
 
   return config;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function bodyToHtml(body: string) {
+  return body
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `<p style="margin:0 0 16px;">${escapeHtml(line)}</p>`)
+    .join("");
+}
+
+function buildMailHtml(subject: string, body: string) {
+  return `
+    <div style="margin:0;padding:24px;background:#f5f5f5;">
+      <div style="max-width:700px;margin:0 auto;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e8e8e8;">
+        <div style="padding:28px 28px 18px;background:#131313;color:#ffffff;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#9fd14b;">
+            TylkoDziałki
+          </div>
+          <h1 style="margin:14px 0 0;font-size:28px;line-height:1.2;font-weight:700;color:#ffffff;">
+            ${escapeHtml(subject)}
+          </h1>
+        </div>
+
+        <div style="padding:28px;color:#111111;font-family:Arial,sans-serif;font-size:15px;line-height:1.7;">
+          ${bodyToHtml(body)}
+
+          <div style="margin-top:28px;">
+            <a
+              href="${LOGIN_URL}"
+              style="display:inline-block;background:#7aa333;color:#111111;text-decoration:none;padding:12px 20px;border-radius:12px;font-weight:700;"
+            >
+              Zaloguj się do konta
+            </a>
+          </div>
+
+          <p style="margin:24px 0 0;font-size:12px;color:#666666;">
+            Jeśli nie planujesz teraz żadnych działań, możesz po prostu zignorować tę wiadomość.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildMailText(body: string) {
+  return `${body}
+
+Zaloguj się do konta:
+${LOGIN_URL}`;
+}
+
+async function getRecipients(audience: MailAudience) {
+  if (audience === "ALL") {
+    return prisma.user.findMany({
+      where: {
+        email: {
+          not: null,
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  if (audience === "LISTER") {
+    return prisma.user.findMany({
+      where: {
+        email: {
+          not: null,
+        },
+        dzialki: {
+          some: {},
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  const now = new Date();
+
+  return prisma.user.findMany({
+    where: {
+      email: {
+        not: null,
+      },
+      dzialki: {
+        some: {
+          OR: [
+            {
+              status: "ZAKONCZONE",
+            },
+            {
+              expiresAt: {
+                lt: now,
+              },
+            },
+          ],
+        },
+      },
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 }
 
 export async function deleteUserAction(formData: FormData) {
@@ -107,4 +245,107 @@ export async function togglePaymentsAction() {
   revalidatePath("/admin");
   revalidatePath("/panel");
   revalidatePath("/sprzedaj");
+}
+
+export async function sendAdminMailTestAction(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const adminUser = await prisma.user.findUnique({
+    where: { id: admin.id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+    },
+  });
+
+  if (!adminUser?.email) {
+    redirect("/admin?mailError=Brak-maila-admina");
+  }
+
+  const subject = String(formData.get("subject") || "").trim();
+  const body = String(formData.get("body") || "").trim();
+
+  if (!subject || !body) {
+    redirect("/admin?mailError=Uzupelnij-temat-i-tresc");
+  }
+
+  await sendMail({
+    to: adminUser.email,
+    subject: `[TEST] ${subject}`,
+    html: buildMailHtml(subject, body),
+    text: buildMailText(body),
+  });
+
+  revalidatePath("/admin");
+  redirect("/admin?mailSent=test");
+}
+
+export async function sendAdminMailAction(formData: FormData) {
+  await requireAdmin();
+
+  const subject = String(formData.get("subject") || "").trim();
+  const body = String(formData.get("body") || "").trim();
+  const audience = String(formData.get("audience") || "LISTER") as MailAudience;
+
+  if (!subject || !body) {
+    redirect("/admin?mailError=Uzupelnij-temat-i-tresc");
+  }
+
+  if (!["ALL", "LISTER", "EXPIRED"].includes(audience)) {
+    redirect("/admin?mailError=Nieprawidlowa-grupa");
+  }
+
+  const recipients = await getRecipients(audience);
+
+  if (!recipients.length) {
+    redirect("/admin?mailError=Brak-odbiorcow");
+  }
+
+  const uniqueRecipients = Array.from(
+    new Map(
+      recipients
+        .filter((user) => !!user.email)
+        .map((user) => [user.email as string, user])
+    ).values()
+  );
+
+  let sent = 0;
+  let failed = 0;
+
+  const campaignKey = `manual-${Date.now()}`;
+
+  for (const user of uniqueRecipients) {
+    if (!user.email) continue;
+
+    try {
+      await sendMail({
+        to: user.email,
+        subject,
+        html: buildMailHtml(subject, body),
+        text: buildMailText(body),
+      });
+
+      sent += 1;
+
+      try {
+        await prisma.emailSendLog.create({
+          data: {
+            type: "REMINDER",
+            campaignKey,
+            email: user.email,
+            userId: user.id,
+          },
+        });
+      } catch (logError) {
+        console.error("EMAIL_SEND_LOG_ERROR", user.email, logError);
+      }
+    } catch (error) {
+      failed += 1;
+      console.error("ADMIN_BULK_EMAIL_ERROR", user.email, error);
+    }
+  }
+
+  revalidatePath("/admin");
+  redirect(`/admin?mailSent=all&sent=${sent}&failed=${failed}`);
 }

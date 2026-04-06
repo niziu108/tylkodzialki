@@ -8,10 +8,15 @@ import {
   togglePaymentsAction,
   toggleUserRoleAction,
 } from "./actions";
+import AdminMailComposer from "./AdminMailComposer";
 
 type AdminPageProps = {
   searchParams?: Promise<{
     q?: string;
+    mailSent?: string;
+    sent?: string;
+    failed?: string;
+    mailError?: string;
   }>;
 };
 
@@ -29,6 +34,21 @@ async function getAppConfig() {
   }
 
   return config;
+}
+
+function decodeMailError(code: string) {
+  switch (code) {
+    case "Brak-maila-admina":
+      return "Admin nie ma przypisanego adresu e-mail.";
+    case "Uzupelnij-temat-i-tresc":
+      return "Uzupełnij temat i treść wiadomości.";
+    case "Nieprawidlowa-grupa":
+      return "Wybrano nieprawidłową grupę odbiorców.";
+    case "Brak-odbiorcow":
+      return "Brak odbiorców dla wybranej grupy.";
+    default:
+      return code || "";
+  }
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -53,6 +73,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const params = await searchParams;
   const q = params?.q?.trim() || "";
+  const mailSent = params?.mailSent || "";
+  const sentCount = Number(params?.sent || 0);
+  const failedCount = Number(params?.failed || 0);
+  const mailError = decodeMailError(params?.mailError || "");
 
   const [users, config, invoices, articles] = await Promise.all([
     prisma.user.findMany({
@@ -165,6 +189,38 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </form>
             </div>
           </div>
+        </section>
+
+        <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-white">
+              Maile / komunikacja
+            </h2>
+            <p className="mt-1 text-sm text-[#bdbdbd]">
+              Napisz własną wiadomość, wybierz odbiorców, sprawdź podgląd i wyślij ręcznie.
+            </p>
+          </div>
+
+          {mailSent === "test" && (
+            <div className="mb-4 rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 py-3 text-sm text-[#dff2b2]">
+              Testowy mail został wysłany poprawnie.
+            </div>
+          )}
+
+          {mailSent === "all" && (
+            <div className="mb-4 rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 py-3 text-sm text-[#dff2b2]">
+              Wysyłka zakończona. Wysłano: <strong>{sentCount}</strong>, błędy:{" "}
+              <strong>{failedCount}</strong>.
+            </div>
+          )}
+
+          {!!mailError && (
+            <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              {mailError}
+            </div>
+          )}
+
+          <AdminMailComposer />
         </section>
 
         <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
