@@ -6,8 +6,6 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendWelcomeEmail } from "@/lib/welcomeEmail";
 
-const APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
-
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
 
@@ -86,15 +84,15 @@ export const authOptions: NextAuthOptions = {
     },
 
     async redirect({ url, baseUrl }) {
+      if (url === "/" || url === `${baseUrl}/`) {
+        return `${baseUrl}/panel`;
+      }
+
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       }
 
       if (url.startsWith(baseUrl)) {
-        return url;
-      }
-
-      if (url.startsWith(APP_URL)) {
         return url;
       }
 

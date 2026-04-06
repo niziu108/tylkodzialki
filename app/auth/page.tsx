@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 
 const BG = '#131313';
@@ -67,9 +67,16 @@ function ShieldIcon() {
 
 function AuthPageContent() {
   const sp = useSearchParams();
+  const { status } = useSession();
+
   const callbackUrl = useMemo(() => {
-    const url = sp.get('callbackUrl');
-    return url && url.trim() ? url : '/panel';
+    const url = sp.get('callbackUrl')?.trim();
+
+    if (!url || url === '/' || url === '') {
+      return '/panel';
+    }
+
+    return url;
   }, [sp]);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -77,6 +84,12 @@ function AuthPageContent() {
   const [pass, setPass] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      window.location.replace('/panel');
+    }
+  }, [status]);
 
   const tabBtn = (active: boolean) =>
     cx(
@@ -141,13 +154,23 @@ function AuthPageContent() {
         return;
       }
 
-      window.location.href = result.url || callbackUrl;
+      window.location.replace(result.url || callbackUrl);
     } catch (err) {
       console.error(err);
       setError('Wystąpił błąd. Spróbuj ponownie.');
     } finally {
       setBusy(false);
     }
+  }
+
+  if (status === 'loading') {
+    return (
+      <main className="min-h-screen" style={{ background: BG, color: FG }}>
+        <div className="flex min-h-screen items-center justify-center px-6">
+          <div className="text-white/60">Ładowanie…</div>
+        </div>
+      </main>
+    );
   }
 
   return (
