@@ -391,7 +391,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                             ).toLocaleDateString("pl-PL")}
                           </td>
                           <td className="px-5 py-4 text-white/70">
-                            {invoice.buyerType === "company"
+                            {invoice.buyerType === "COMPANY"
                               ? invoice.companyName || "Faktura firmowa"
                               : "Osoba prywatna"}
                           </td>

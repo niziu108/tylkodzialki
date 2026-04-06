@@ -518,7 +518,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       </td>
 
                       <td className="px-4 py-4 text-white/80">
-                        {invoice.buyerType === "company"
+                        {invoice.buyerType === "COMPANY"
                           ? invoice.companyName || "Faktura firmowa"
                           : "Osoba prywatna"}
                       </td>

@@ -1,6 +1,8 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { InvoiceBuyerType, KsefStatus } from '@prisma/client';
+
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import { generateInvoiceNumber } from '@/lib/invoices';
@@ -38,9 +40,24 @@ function getItemName(params: {
   return `Pakiet publikacji (${credits})`;
 }
 
-function resolveBuyerFromMetadata(metadata: Record<string, string>) {
-  const buyerType =
-    metadata.buyerType === 'company' ? 'COMPANY' : 'PRIVATE';
+type ResolvedBuyer = {
+  buyerType: InvoiceBuyerType;
+  buyerName: string | null;
+  companyName: string | null;
+  nip: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  postalCode: string | null;
+  city: string | null;
+  country: string;
+  invoiceEmail: string | null;
+};
+
+function resolveBuyerFromMetadata(metadata: Record<string, string>): ResolvedBuyer {
+  const buyerType: InvoiceBuyerType =
+    metadata.buyerType === 'company'
+      ? InvoiceBuyerType.COMPANY
+      : InvoiceBuyerType.PRIVATE;
 
   const buyerName = (metadata.buyerName || '').trim() || null;
   const companyName = (metadata.companyName || '').trim() || null;
@@ -134,10 +151,6 @@ export async function POST(req: Request) {
 
         const now = new Date();
         const invoiceNumber = await generateInvoiceNumber(now);
-        const itemName = getItemName({
-          type,
-          featuredCredits,
-        });
 
         await prisma.$transaction(async (tx) => {
           await tx.user.update({
@@ -168,35 +181,54 @@ export async function POST(req: Request) {
               currency,
 
               buyerType: buyer.buyerType,
-              buyerName: buyer.buyerType === 'PRIVATE' ? buyer.buyerName : null,
+              buyerName:
+                buyer.buyerType === InvoiceBuyerType.PRIVATE
+                  ? buyer.buyerName
+                  : null,
               companyName:
-                buyer.buyerType === 'COMPANY' ? buyer.companyName : null,
-              nip: buyer.buyerType === 'COMPANY' ? buyer.nip : null,
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.companyName
+                  : null,
+              nip:
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.nip
+                  : null,
               addressLine1:
-                buyer.buyerType === 'COMPANY' ? buyer.addressLine1 : null,
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.addressLine1
+                  : null,
               addressLine2:
-                buyer.buyerType === 'COMPANY' ? buyer.addressLine2 : null,
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.addressLine2
+                  : null,
               postalCode:
-                buyer.buyerType === 'COMPANY' ? buyer.postalCode : null,
-              city: buyer.buyerType === 'COMPANY' ? buyer.city : null,
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.postalCode
+                  : null,
+              city:
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.city
+                  : null,
               country: buyer.country,
               invoiceEmail:
                 buyer.invoiceEmail || session.customer_details?.email || null,
 
-              itemName,
+              itemName: getItemName({
+                type,
+                featuredCredits,
+              }),
               quantity: 1,
 
               issuedAt: now,
               paidAt: now,
 
               ksefRequired: true,
-              ksefStatus: 'READY',
+              ksefStatus: KsefStatus.READY,
             },
           });
         });
 
         console.log('[STRIPE WEBHOOK] featuredCredits + invoice dodane pomyślnie');
-
         return NextResponse.json({ received: true });
       }
 
@@ -324,17 +356,34 @@ export async function POST(req: Request) {
               currency,
 
               buyerType: buyer.buyerType,
-              buyerName: buyer.buyerType === 'PRIVATE' ? buyer.buyerName : null,
+              buyerName:
+                buyer.buyerType === InvoiceBuyerType.PRIVATE
+                  ? buyer.buyerName
+                  : null,
               companyName:
-                buyer.buyerType === 'COMPANY' ? buyer.companyName : null,
-              nip: buyer.buyerType === 'COMPANY' ? buyer.nip : null,
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.companyName
+                  : null,
+              nip:
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.nip
+                  : null,
               addressLine1:
-                buyer.buyerType === 'COMPANY' ? buyer.addressLine1 : null,
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.addressLine1
+                  : null,
               addressLine2:
-                buyer.buyerType === 'COMPANY' ? buyer.addressLine2 : null,
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.addressLine2
+                  : null,
               postalCode:
-                buyer.buyerType === 'COMPANY' ? buyer.postalCode : null,
-              city: buyer.buyerType === 'COMPANY' ? buyer.city : null,
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.postalCode
+                  : null,
+              city:
+                buyer.buyerType === InvoiceBuyerType.COMPANY
+                  ? buyer.city
+                  : null,
               country: buyer.country,
               invoiceEmail:
                 buyer.invoiceEmail || session.customer_details?.email || null,
@@ -351,7 +400,7 @@ export async function POST(req: Request) {
               paidAt: now,
 
               ksefRequired: true,
-              ksefStatus: 'READY',
+              ksefStatus: KsefStatus.READY,
             },
           });
 
