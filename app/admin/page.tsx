@@ -51,6 +51,47 @@ function decodeMailError(code: string) {
   }
 }
 
+function getInvoiceTypeLabel(type: string) {
+  switch (type) {
+    case "FEATURED_PACKAGE":
+      return "Wyróżnienie";
+    case "LISTING_PACKAGE":
+      return "Pakiet publikacji";
+    default:
+      return type;
+  }
+}
+
+function getInvoiceStatusLabel(status: string) {
+  switch (status) {
+    case "PAID":
+      return "Zapłacono";
+    case "PENDING":
+      return "Oczekuje";
+    case "FAILED":
+      return "Błąd";
+    case "REFUNDED":
+      return "Zwrot";
+    default:
+      return status;
+  }
+}
+
+function getInvoiceStatusBadgeClass(status: string) {
+  switch (status) {
+    case "PAID":
+      return "bg-[#7aa333]/20 text-[#9fd14b]";
+    case "PENDING":
+      return "bg-white/10 text-white/70";
+    case "FAILED":
+      return "bg-red-500/15 text-red-300";
+    case "REFUNDED":
+      return "bg-orange-500/15 text-orange-300";
+    default:
+      return "bg-white/10 text-white/70";
+  }
+}
+
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const session = await getServerSession(authOptions);
 
@@ -142,6 +183,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
 
           <div className="flex flex-wrap gap-3">
+            <Link
+              href="/admin/faktury"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Faktury
+            </Link>
+
             <Link
               href="/admin/artykuly"
               className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#7aa333] px-5 text-sm font-semibold text-black transition hover:opacity-90"
@@ -445,13 +493,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
 
         <section className="rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-white">
-              Faktury i sprzedaż
-            </h2>
-            <p className="mt-1 text-sm text-[#bdbdbd]">
-              Ostatnie dokumenty sprzedażowe wygenerowane w systemie.
-            </p>
+          <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-white">
+                Faktury i sprzedaż
+              </h2>
+              <p className="mt-1 text-sm text-[#bdbdbd]">
+                Ostatnie dokumenty sprzedażowe wygenerowane w systemie.
+              </p>
+            </div>
+
+            <Link
+              href="/admin/faktury"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-5 text-sm font-semibold text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+            >
+              Zobacz wszystkie faktury
+            </Link>
           </div>
 
           {invoices.length === 0 ? (
@@ -460,7 +517,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </div>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/20">
-              <table className="w-full min-w-[1220px] text-sm">
+              <table className="w-full min-w-[1360px] text-sm">
                 <thead>
                   <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
                     <th className="px-4 py-4 font-medium">Numer</th>
@@ -475,6 +532,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <th className="px-4 py-4 font-medium">Data</th>
                     <th className="px-4 py-4 font-medium">Źródło</th>
                     <th className="px-4 py-4 font-medium">PDF</th>
+                    <th className="px-4 py-4 font-medium text-right">
+                      Szczegóły
+                    </th>
                   </tr>
                 </thead>
 
@@ -489,9 +549,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       </td>
 
                       <td className="px-4 py-4 text-white/80">
-                        {invoice.type === "FEATURED_PACKAGE"
-                          ? "Wyróżnienie"
-                          : "Pakiet publikacji"}
+                        {getInvoiceTypeLabel(invoice.type)}
                       </td>
 
                       <td className="px-4 py-4 text-white/80">
@@ -501,26 +559,20 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                       <td className="px-4 py-4">
                         <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                            invoice.status === "PAID"
-                              ? "bg-[#7aa333]/20 text-[#9fd14b]"
-                              : invoice.status === "PENDING"
-                                ? "bg-white/10 text-white/70"
-                                : "bg-red-500/15 text-red-300"
-                          }`}
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getInvoiceStatusBadgeClass(
+                            invoice.status
+                          )}`}
                         >
-                          {invoice.status === "PAID"
-                            ? "Zapłacono"
-                            : invoice.status === "PENDING"
-                              ? "Oczekuje"
-                              : "Błąd"}
+                          {getInvoiceStatusLabel(invoice.status)}
                         </span>
                       </td>
 
                       <td className="px-4 py-4 text-white/80">
                         {invoice.buyerType === "COMPANY"
                           ? invoice.companyName || "Faktura firmowa"
-                          : "Osoba prywatna"}
+                          : invoice.buyerName ||
+                            invoice.invoiceEmail ||
+                            "Osoba prywatna"}
                       </td>
 
                       <td className="px-4 py-4 text-white/70">
@@ -550,6 +602,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         >
                           PDF
                         </a>
+                      </td>
+
+                      <td className="px-4 py-4 text-right">
+                        <Link
+                          href={`/admin/faktury/${invoice.id}`}
+                          className="inline-flex rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/[0.04]"
+                        >
+                          Szczegóły
+                        </Link>
                       </td>
                     </tr>
                   ))}
