@@ -7,6 +7,277 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                       String                     @id @default(cuid())
+  name                     String?
+  email                    String?                    @unique
+  emailVerified            DateTime?
+  image                    String?
+  passwordHash             String?
+  role                     Role                       @default(USER)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  listingCredits           Int                        @default(0)
+  listingCreditsExpiresAt  DateTime?
+  featuredCredits          Int                        @default(0)
+  featuredCreditsExpiresAt DateTime?
+  accounts                 Account[]
+  dzialki                  Dzialka[]
+  emailSendLogs            EmailSendLog[]
+  invoices                 Invoice[]
+  creditTransactions       ListingCreditTransaction[]
+  listingOrders            ListingOrder[]
+  sessions                 Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Dzialka {
+  id               String            @id @default(cuid())
+  tytul            String
+  cenaPln          Int
+  powierzchniaM2   Int
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  editToken        String            @unique
+  email            String
+  expiresAt        DateTime?
+  lat              Float?
+  lng              Float?
+  locationFull     String?
+  locationLabel    String?
+  locationMode     LocationMode      @default(EXACT)
+  mapsUrl          String?
+  parcelText       String?
+  placeId          String?
+  przeznaczenia    Przeznaczenie[]
+  telefon          String
+  klasaZiemi       String?
+  ksiegaWieczysta  String?
+  mpzp             Boolean           @default(false)
+  projektDomu      Boolean           @default(false)
+  wymiary          String?
+  wzWydane         Boolean           @default(false)
+  numerOferty      String?
+  sprzedajacyTyp   SprzedajacyTyp    @default(PRYWATNIE)
+  kanalizacja      KanalizacjaStatus @default(BRAK)
+  gaz              GazStatus         @default(BRAK)
+  swiatlowod       SwiatlowodStatus  @default(BRAK)
+  prad             PradStatus        @default(BRAK_PRZYLACZA)
+  woda             WodaStatus        @default(BRAK_PRZYLACZA)
+  opis             String?
+  ownerId          String?
+  endedAt          DateTime?
+  publishedAt      DateTime          @default(now())
+  status           DzialkaStatus     @default(AKTYWNE)
+  featuredUntil    DateTime?
+  isFeatured       Boolean           @default(false)
+  detailViewsCount Int               @default(0)
+  viewsCount       Int               @default(0)
+  owner            User?             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  zdjecia          Zdjecie[]
+
+  @@index([lat, lng])
+  @@index([ownerId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([isFeatured])
+  @@index([featuredUntil])
+}
+
+model Zdjecie {
+  id        String   @id @default(cuid())
+  url       String
+  publicId  String
+  kolejnosc Int      @default(0)
+  dzialkaId String
+  createdAt DateTime @default(now())
+  dzialka   Dzialka  @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model AppConfig {
+  id                     String   @id @default(cuid())
+  paymentsEnabled        Boolean  @default(false)
+  freeListingCredits     Int      @default(0)
+  freeListingCreditsDays Int?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model ListingCreditTransaction {
+  id           String                  @id @default(cuid())
+  userId       String
+  delta        Int
+  balanceAfter Int
+  sourceType   ListingCreditSourceType
+  note         String?
+  expiresAt    DateTime?
+  orderId      String?
+  createdAt    DateTime                @default(now())
+  order        ListingOrder?           @relation(fields: [orderId], references: [id])
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([sourceType])
+}
+
+model ListingOrder {
+  id                    String                     @id @default(cuid())
+  userId                String
+  packageType           ListingPackageType
+  packageName           String
+  credits               Int
+  validityDays          Int?
+  amountGrossPln        Int
+  currency              String                     @default("PLN")
+  status                ListingPaymentStatus       @default(PENDING)
+  stripeSessionId       String?                    @unique
+  stripePaymentIntentId String?                    @unique
+  paidAt                DateTime?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  featuredCredits       Int                        @default(0)
+  buyerAddressLine1     String?
+  buyerCity             String?
+  buyerCompanyName      String?
+  buyerEmail            String?
+  buyerNip              String?
+  buyerPostalCode       String?
+  invoiceIssuedAt       DateTime?
+  invoiceNumber         String?
+  invoicePdfUrl         String?
+  invoiceType           BuyerInvoiceType           @default(NONE)
+  creditTransactions    ListingCreditTransaction[]
+  user                  User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([packageType])
+}
+
+model Invoice {
+  id                    String            @id @default(cuid())
+  userId                String
+  stripeSessionId       String?           @unique
+  stripePaymentIntentId String?           @unique
+  stripeCheckoutUrl     String?
+  invoiceNumber         String?           @unique
+  type                  SalesInvoiceType
+  status                InvoiceStatus     @default(PENDING)
+  source                InvoiceSource     @default(INTERNAL)
+  amountGross           Int
+  currency              String            @default("PLN")
+  companyName           String?
+  nip                   String?
+  addressLine1          String?
+  addressLine2          String?
+  postalCode            String?
+  city                  String?
+  country               String?           @default("PL")
+  invoiceEmail          String?
+  itemName              String?
+  quantity              Int               @default(1)
+  issuedAt              DateTime?
+  paidAt                DateTime?
+  pdfPath               String?
+  pdfFileName           String?
+  ksefReferenceNumber   String?
+  ksefInvoiceNumber     String?
+  ksefSentAt            DateTime?
+  ksefAcceptedAt        DateTime?
+  ksefErrorMessage      String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  buyerName             String?
+  ksefRequired          Boolean           @default(true)
+  buyerType             InvoiceBuyerType?
+  ksefStatus            KsefStatus        @default(READY)
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+  @@index([buyerType, createdAt])
+  @@index([ksefStatus, createdAt])
+  @@index([invoiceNumber])
+  @@index([nip])
+}
+
+model EmailSendLog {
+  id          String        @id @default(cuid())
+  type        EmailSendType
+  campaignKey String
+  email       String
+  userId      String?
+  sentAt      DateTime      @default(now())
+  user        User?         @relation(fields: [userId], references: [id])
+
+  @@unique([type, campaignKey, email])
+  @@index([userId])
+  @@index([campaignKey])
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String?
+  content     String
+  imageUrl    String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isPublished, createdAt])
+}
+
 enum Role {
   USER
   ADMIN
@@ -133,329 +404,4 @@ enum InvoiceSource {
 
 enum EmailSendType {
   REMINDER
-}
-
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-
-  passwordHash String?
-
-  role Role @default(USER)
-
-  listingCredits          Int       @default(0)
-  listingCreditsExpiresAt DateTime?
-
-  featuredCredits          Int       @default(0)
-  featuredCreditsExpiresAt DateTime?
-
-  accounts Account[]
-  sessions Session[]
-
-  dzialki Dzialka[]
-
-  creditTransactions ListingCreditTransaction[]
-  listingOrders      ListingOrder[]
-  invoices           Invoice[]
-  emailSendLogs      EmailSendLog[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@index([userId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model Dzialka {
-  id String @id @default(cuid())
-
-  ownerId String?
-  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  tytul          String
-  powierzchniaM2 Int
-  cenaPln        Int
-  przeznaczenia  Przeznaczenie[]
-  telefon        String
-  email          String
-
-  status      DzialkaStatus @default(AKTYWNE)
-  publishedAt DateTime      @default(now())
-  expiresAt   DateTime?
-  endedAt     DateTime?
-
-  isFeatured    Boolean   @default(false)
-  featuredUntil DateTime?
-
-  viewsCount       Int @default(0)
-  detailViewsCount Int @default(0)
-
-  opis String? @db.Text
-
-  sprzedajacyTyp SprzedajacyTyp @default(PRYWATNIE)
-  numerOferty    String?
-
-  placeId       String?
-  locationFull  String?
-  locationLabel String?
-  lat           Float?
-  lng           Float?
-  mapsUrl       String?
-  locationMode  LocationMode @default(EXACT)
-  parcelText    String?
-
-  prad        PradStatus        @default(BRAK_PRZYLACZA)
-  woda        WodaStatus        @default(BRAK_PRZYLACZA)
-  kanalizacja KanalizacjaStatus @default(BRAK)
-  gaz         GazStatus         @default(BRAK)
-  swiatlowod  SwiatlowodStatus  @default(BRAK)
-
-  wzWydane    Boolean @default(false)
-  mpzp        Boolean @default(false)
-  projektDomu Boolean @default(false)
-
-  klasaZiemi      String?
-  wymiary         String?
-  ksiegaWieczysta String?
-
-  editToken String @unique
-
-  zdjecia Zdjecie[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([lat, lng])
-  @@index([ownerId])
-  @@index([status])
-  @@index([expiresAt])
-  @@index([isFeatured])
-  @@index([featuredUntil])
-}
-
-model Zdjecie {
-  id        String @id @default(cuid())
-  url       String
-  publicId  String
-  kolejnosc Int    @default(0)
-
-  dzialkaId String
-  dzialka   Dzialka @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-}
-
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  email     String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@index([email])
-}
-
-model AppConfig {
-  id              String  @id @default(cuid())
-  paymentsEnabled Boolean @default(false)
-
-  freeListingCredits     Int  @default(0)
-  freeListingCreditsDays Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ListingCreditTransaction {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  delta        Int
-  balanceAfter Int
-
-  sourceType ListingCreditSourceType
-  note       String?
-
-  expiresAt DateTime?
-
-  orderId String?
-  order   ListingOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([orderId])
-  @@index([sourceType])
-}
-
-model ListingOrder {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  packageType ListingPackageType
-  packageName String
-
-  credits Int
-  featuredCredits Int @default(0)
-
-  validityDays Int?
-
-  amountGrossPln Int
-  currency       String @default("PLN")
-
-  status ListingPaymentStatus @default(PENDING)
-
-  stripeSessionId       String? @unique
-  stripePaymentIntentId String? @unique
-
-  paidAt DateTime?
-
-  invoiceType BuyerInvoiceType @default(NONE)
-
-  buyerCompanyName  String?
-  buyerNip          String?
-  buyerAddressLine1 String?
-  buyerPostalCode   String?
-  buyerCity         String?
-  buyerEmail        String?
-
-  invoiceNumber   String?
-  invoiceIssuedAt DateTime?
-  invoicePdfUrl   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  creditTransactions ListingCreditTransaction[]
-
-  @@index([userId])
-  @@index([status])
-  @@index([packageType])
-}
-
-model Invoice {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  stripeSessionId       String? @unique
-  stripePaymentIntentId String? @unique
-  stripeCheckoutUrl     String?
-
-  invoiceNumber String?          @unique
-  type          SalesInvoiceType
-  status        InvoiceStatus    @default(PENDING)
-  source        InvoiceSource    @default(INTERNAL)
-
-  amountGross Int
-  currency    String @default("PLN")
-
-  buyerType    InvoiceBuyerType?
-  buyerName    String?
-  companyName  String?
-  nip          String?
-  addressLine1 String?
-  addressLine2 String?
-  postalCode   String?
-  city         String?
-  country      String? @default("PL")
-  invoiceEmail String?
-
-  itemName String?
-  quantity Int @default(1)
-
-  issuedAt DateTime?
-  paidAt   DateTime?
-
-  pdfPath     String?
-  pdfFileName String?
-
-  ksefRequired        Boolean    @default(true)
-  ksefStatus          KsefStatus @default(READY)
-  ksefReferenceNumber String?
-  ksefInvoiceNumber   String?
-  ksefSentAt          DateTime?
-  ksefAcceptedAt      DateTime?
-  ksefErrorMessage    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId, createdAt])
-  @@index([status, createdAt])
-  @@index([type, createdAt])
-  @@index([buyerType, createdAt])
-  @@index([ksefStatus, createdAt])
-  @@index([invoiceNumber])
-  @@index([nip])
-}
-
-model EmailSendLog {
-  id          String        @id @default(cuid())
-  type        EmailSendType
-  campaignKey String
-  email       String
-  userId      String?
-  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  sentAt      DateTime      @default(now())
-
-  @@unique([type, campaignKey, email])
-  @@index([userId])
-  @@index([campaignKey])
-}
-
-model Article {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  excerpt     String?  @db.Text
-  content     String   @db.Text
-  imageUrl    String?
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([slug])
-  @@index([isPublished, createdAt])
 }

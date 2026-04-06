@@ -27,7 +27,32 @@ function safeText(value?: string | null) {
   return (value ?? '').trim();
 }
 
-function getItemName(invoice: any) {
+type InvoicePdfInput = {
+  invoiceNumber?: string | null;
+  createdAt: Date | string;
+  amountGross: number;
+  currency?: string | null;
+  buyerType?: string | null;
+  buyerName?: string | null;
+  companyName?: string | null;
+  nip?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  country?: string | null;
+  invoiceEmail?: string | null;
+  itemName?: string | null;
+  quantity?: number | null;
+  type?: string | null;
+  metadata?: Record<string, string | undefined> | null;
+};
+
+function getItemName(invoice: InvoicePdfInput) {
+  if (invoice.itemName && safeText(invoice.itemName)) {
+    return safeText(invoice.itemName);
+  }
+
   if (invoice.type === 'FEATURED') {
     if (invoice.metadata?.featuredCredits === '3') return 'Pakiet 3 wyróżnień';
     return 'Wyróżnienie ogłoszenia';
@@ -42,7 +67,7 @@ function getItemName(invoice: any) {
   return 'Usługa';
 }
 
-export async function buildInvoicePdf(invoice: any) {
+export async function buildInvoicePdf(invoice: InvoicePdfInput) {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
@@ -59,8 +84,18 @@ export async function buildInvoicePdf(invoice: any) {
   const colorBrand = hexToRgb(BRAND_HEX);
   const colorSoft = rgb(0.97, 0.98, 0.95);
 
-  const regularFontPath = path.join(process.cwd(), 'public', 'fonts', 'Inter-Regular.ttf');
-  const boldFontPath = path.join(process.cwd(), 'public', 'fonts', 'Inter-Bold.ttf');
+  const regularFontPath = path.join(
+    process.cwd(),
+    'public',
+    'fonts',
+    'Inter-Regular.ttf'
+  );
+  const boldFontPath = path.join(
+    process.cwd(),
+    'public',
+    'fonts',
+    'Inter-Bold.ttf'
+  );
   const logoPath = path.join(process.cwd(), 'public', 'logomail.png');
 
   if (!fs.existsSync(regularFontPath)) {
@@ -139,12 +174,7 @@ export async function buildInvoicePdf(invoice: any) {
     });
   };
 
-  const wrapText = (
-    text: string,
-    font: any,
-    size: number,
-    maxWidth: number
-  ) => {
+  const wrapText = (text: string, font: any, size: number, maxWidth: number) => {
     const words = text.split(/\s+/).filter(Boolean);
     const lines: string[] = [];
     let currentLine = '';
@@ -204,12 +234,11 @@ export async function buildInvoicePdf(invoice: any) {
     };
   };
 
-  // amountGross w groszach
   const gross = Number(invoice.amountGross || 0) / 100;
   const net = gross / (1 + VAT_RATE / 100);
   const vat = gross - net;
+  const quantity = Number(invoice.quantity || 1);
 
-  // Top accent
   page.drawRectangle({
     x: 0,
     y: pageHeight - 10,
@@ -218,7 +247,6 @@ export async function buildInvoicePdf(invoice: any) {
     color: colorBrand,
   });
 
-  // Logo
   page.drawImage(logoImage, {
     x: marginX,
     y: pageHeight - 78,
@@ -226,7 +254,6 @@ export async function buildInvoicePdf(invoice: any) {
     height: logoDims.height,
   });
 
-  // Header right
   drawRightText('FAKTURA VAT', pageWidth - marginX, pageHeight - 52, {
     size: 22,
     font: 'bold',
@@ -241,12 +268,17 @@ export async function buildInvoicePdf(invoice: any) {
 
   y = pageHeight - 120;
 
-  // Meta
   drawText('Data wystawienia', marginX, y, { size: 9, color: colorMuted });
-  drawText(formatDate(invoice.createdAt), marginX, y - 14, { size: 11, font: 'bold' });
+  drawText(formatDate(invoice.createdAt), marginX, y - 14, {
+    size: 11,
+    font: 'bold',
+  });
 
   drawText('Data sprzedaży', marginX + 170, y, { size: 9, color: colorMuted });
-  drawText(formatDate(invoice.createdAt), marginX + 170, y - 14, { size: 11, font: 'bold' });
+  drawText(formatDate(invoice.createdAt), marginX + 170, y - 14, {
+    size: 11,
+    font: 'bold',
+  });
 
   drawText('Waluta', marginX + 340, y, { size: 9, color: colorMuted });
   drawText((invoice.currency || 'PLN').toUpperCase(), marginX + 340, y - 14, {
@@ -258,7 +290,6 @@ export async function buildInvoicePdf(invoice: any) {
   drawLine(y);
   y -= 28;
 
-  // Boxy
   const boxTop = y;
   const boxHeight = 145;
   const leftBoxX = marginX;
@@ -307,11 +338,14 @@ export async function buildInvoicePdf(invoice: any) {
   ];
 
   const buyerLines = [
-    invoice.buyerType === 'company'
+    invoice.buyerType === 'COMPANY'
       ? safeText(invoice.companyName || 'Firma')
-      : 'Osoba prywatna',
+      : safeText(invoice.buyerName || 'Osoba prywatna'),
     safeText(invoice.addressLine1 || ''),
-    [safeText(invoice.postalCode || ''), safeText(invoice.city || '')].filter(Boolean).join(' '),
+    safeText(invoice.addressLine2 || ''),
+    [safeText(invoice.postalCode || ''), safeText(invoice.city || '')]
+      .filter(Boolean)
+      .join(' '),
     invoice.nip ? `NIP: ${invoice.nip}` : '',
     safeText(invoice.invoiceEmail || ''),
   ].filter(Boolean);
@@ -336,7 +370,6 @@ export async function buildInvoicePdf(invoice: any) {
 
   y = boxTop - boxHeight - 30;
 
-  // Tabela
   page.drawRectangle({
     x: marginX,
     y: y - 24,
@@ -345,7 +378,6 @@ export async function buildInvoicePdf(invoice: any) {
     color: colorBrand,
   });
 
-  // Kolumny - poprawione żeby nic nie ucinało
   const colLp = 60;
   const colName = 95;
   const colQty = 315;
@@ -353,12 +385,36 @@ export async function buildInvoicePdf(invoice: any) {
   const colVatRight = 490;
   const colGrossRight = 540;
 
-  drawText('LP', colLp, y - 16, { size: 9, font: 'bold', color: rgb(1, 1, 1) });
-  drawText('NAZWA', colName, y - 16, { size: 9, font: 'bold', color: rgb(1, 1, 1) });
-  drawText('ILOŚĆ', colQty, y - 16, { size: 9, font: 'bold', color: rgb(1, 1, 1) });
-  drawRightText('NETTO', colNetRight, y - 16, { size: 9, font: 'bold', color: rgb(1, 1, 1) });
-  drawRightText(`VAT ${VAT_RATE}%`, colVatRight, y - 16, { size: 9, font: 'bold', color: rgb(1, 1, 1) });
-  drawRightText('BRUTTO', colGrossRight, y - 16, { size: 9, font: 'bold', color: rgb(1, 1, 1) });
+  drawText('LP', colLp, y - 16, {
+    size: 9,
+    font: 'bold',
+    color: rgb(1, 1, 1),
+  });
+  drawText('NAZWA', colName, y - 16, {
+    size: 9,
+    font: 'bold',
+    color: rgb(1, 1, 1),
+  });
+  drawText('ILOŚĆ', colQty, y - 16, {
+    size: 9,
+    font: 'bold',
+    color: rgb(1, 1, 1),
+  });
+  drawRightText('NETTO', colNetRight, y - 16, {
+    size: 9,
+    font: 'bold',
+    color: rgb(1, 1, 1),
+  });
+  drawRightText(`VAT ${VAT_RATE}%`, colVatRight, y - 16, {
+    size: 9,
+    font: 'bold',
+    color: rgb(1, 1, 1),
+  });
+  drawRightText('BRUTTO', colGrossRight, y - 16, {
+    size: 9,
+    font: 'bold',
+    color: rgb(1, 1, 1),
+  });
 
   y -= 24;
 
@@ -373,15 +429,20 @@ export async function buildInvoicePdf(invoice: any) {
   });
 
   drawText('1', colLp, y - 21, { size: 10 });
-  drawText(getItemName(invoice), colName, y - 21, { size: 10, maxWidth: 190 });
-  drawText('1', colQty, y - 21, { size: 10 });
+  drawText(getItemName(invoice), colName, y - 21, {
+    size: 10,
+    maxWidth: 190,
+  });
+  drawText(String(quantity), colQty, y - 21, { size: 10 });
   drawRightText(formatMoney(net), colNetRight, y - 21, { size: 10 });
   drawRightText(formatMoney(vat), colVatRight, y - 21, { size: 10 });
-  drawRightText(formatMoney(gross), colGrossRight, y - 21, { size: 10, font: 'bold' });
+  drawRightText(formatMoney(gross), colGrossRight, y - 21, {
+    size: 10,
+    font: 'bold',
+  });
 
   y -= 58;
 
-  // Podsumowanie
   const summaryX = 350;
   const summaryW = 195;
   const summaryTop = y;
@@ -396,19 +457,28 @@ export async function buildInvoicePdf(invoice: any) {
     borderWidth: 1,
   });
 
-  drawText('Razem netto', summaryX + 14, summaryTop - 18, { size: 10, color: colorMuted });
+  drawText('Razem netto', summaryX + 14, summaryTop - 18, {
+    size: 10,
+    color: colorMuted,
+  });
   drawRightText(`${formatMoney(net)} PLN`, summaryX + summaryW - 14, summaryTop - 18, {
     size: 10,
     font: 'bold',
   });
 
-  drawText(`VAT ${VAT_RATE}%`, summaryX + 14, summaryTop - 38, { size: 10, color: colorMuted });
+  drawText(`VAT ${VAT_RATE}%`, summaryX + 14, summaryTop - 38, {
+    size: 10,
+    color: colorMuted,
+  });
   drawRightText(`${formatMoney(vat)} PLN`, summaryX + summaryW - 14, summaryTop - 38, {
     size: 10,
     font: 'bold',
   });
 
-  drawText('Razem brutto', summaryX + 14, summaryTop - 60, { size: 12, font: 'bold' });
+  drawText('Razem brutto', summaryX + 14, summaryTop - 60, {
+    size: 12,
+    font: 'bold',
+  });
   drawRightText(`${formatMoney(gross)} PLN`, summaryX + summaryW - 14, summaryTop - 60, {
     size: 12,
     font: 'bold',

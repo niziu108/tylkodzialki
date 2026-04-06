@@ -52,6 +52,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
     amountGross: invoice.amountGross,
     currency: invoice.currency,
     buyerType: invoice.buyerType,
+    buyerName: invoice.buyerName,
     companyName: invoice.companyName,
     nip: invoice.nip,
     addressLine1: invoice.addressLine1,
