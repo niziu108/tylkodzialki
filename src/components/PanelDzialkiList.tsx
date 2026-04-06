@@ -36,7 +36,6 @@ export type Dzialka = {
   endedAt?: string | Date | null;
   isFeatured?: boolean | null;
   featuredUntil?: string | Date | null;
-
   viewsCount?: number | null;
   detailViewsCount?: number | null;
 };
@@ -352,6 +351,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   const effectiveStatus = getEffectiveStatus(d.status, d.expiresAt);
   const daysLeft = getDaysLeft(d.expiresAt);
   const isFeaturedActive = isFeaturedNow(d);
+  const isIndefinite = effectiveStatus === 'AKTYWNE' && !d.expiresAt;
 
   const viewsCount = d.viewsCount ?? 0;
   const detailViewsCount = d.detailViewsCount ?? 0;
@@ -466,12 +466,19 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
             ) : null}
 
             {effectiveStatus === 'AKTYWNE' ? (
-              <div className="text-[12px] text-white/55">
-                Widoczne do: {formatDatePL(d.expiresAt)}
-                {typeof daysLeft === 'number' && daysLeft >= 0 ? (
-                  <span className="ml-2 text-white/40">({daysLeft} dni)</span>
-                ) : null}
-              </div>
+              isIndefinite ? (
+                <div className="text-[12px] text-white/55">
+                  Bezterminowo
+                  <span className="ml-2 text-white/40">(do czasu włączenia płatności)</span>
+                </div>
+              ) : (
+                <div className="text-[12px] text-white/55">
+                  Widoczne do: {formatDatePL(d.expiresAt)}
+                  {typeof daysLeft === 'number' && daysLeft >= 0 ? (
+                    <span className="ml-2 text-white/40">({daysLeft} dni)</span>
+                  ) : null}
+                </div>
+              )
             ) : (
               <div className="text-[12px] text-white/45">
                 {d.status === 'ZAKONCZONE'
@@ -682,23 +689,77 @@ function Carousel({
   const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
   const has = list.length > 0;
   const [i, setI] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  useEffect(() => {
+    setI(0);
+  }, [photos, coverFallback]);
+
+  const goPrev = () => {
+    if (list.length < 2) return;
+    setI((v) => (v - 1 + list.length) % list.length);
+  };
+
+  const goNext = () => {
+    if (list.length < 2) return;
+    setI((v) => (v + 1) % list.length);
+  };
 
   const prev = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (list.length < 2) return;
-    setI((v) => (v - 1 + list.length) % list.length);
+    goPrev();
   };
 
   const next = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    goNext();
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
     if (list.length < 2) return;
-    setI((v) => (v + 1) % list.length);
+    touchStartX.current = e.changedTouches[0]?.clientX ?? null;
+    touchEndX.current = null;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (list.length < 2) return;
+    touchEndX.current = e.changedTouches[0]?.clientX ?? null;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (list.length < 2) return;
+
+    const start = touchStartX.current;
+    const end = touchEndX.current ?? e.changedTouches[0]?.clientX ?? null;
+
+    if (start == null || end == null) return;
+
+    const diff = start - end;
+    const threshold = 40;
+
+    if (Math.abs(diff) < threshold) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (diff > 0) {
+      goNext();
+    } else {
+      goPrev();
+    }
   };
 
   return (
-    <div className="relative aspect-video bg-white/5">
+    <div
+      className="relative aspect-video bg-white/5"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ touchAction: 'pan-y' }}
+    >
       {has ? (
         <>
           <img src={list[i]} alt={title} className="h-full w-full object-cover" loading="lazy" />
@@ -751,4 +812,4 @@ function Carousel({
       )}
     </div>
   );
-} 
+}

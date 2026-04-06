@@ -235,17 +235,48 @@ export async function togglePaymentsAction() {
   await requireAdmin();
 
   const config = await getAppConfig();
+  const nextPaymentsEnabled = !config.paymentsEnabled;
+  const now = new Date();
+  const transitionExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-  await prisma.appConfig.update({
-    where: { id: config.id },
-    data: {
-      paymentsEnabled: !config.paymentsEnabled,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.appConfig.update({
+      where: { id: config.id },
+      data: {
+        paymentsEnabled: nextPaymentsEnabled,
+      },
+    });
+
+    if (nextPaymentsEnabled) {
+      await tx.dzialka.updateMany({
+        where: {
+          ownerId: { not: null },
+          status: "AKTYWNE",
+          endedAt: null,
+          expiresAt: null,
+        },
+        data: {
+          expiresAt: transitionExpiresAt,
+        },
+      });
+    } else {
+      await tx.dzialka.updateMany({
+        where: {
+          ownerId: { not: null },
+          status: "AKTYWNE",
+          endedAt: null,
+        },
+        data: {
+          expiresAt: null,
+        },
+      });
+    }
   });
 
   revalidatePath("/admin");
   revalidatePath("/panel");
   revalidatePath("/sprzedaj");
+  revalidatePath("/kup");
 }
 
 export async function sendAdminMailTestAction(formData: FormData) {

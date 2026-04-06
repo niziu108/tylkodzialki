@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Przeznaczenie } from '@prisma/client';
 
@@ -119,14 +119,14 @@ export default function KupList({
   const content = useMemo(() => {
     if (loading) {
       return (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
               className="overflow-hidden rounded-3xl border border-white/12 bg-[#0f0f0f]/20"
             >
               <div className="aspect-video animate-pulse bg-white/5" />
-              <div className="space-y-4 p-6">
+              <div className="space-y-4 p-5 md:p-6">
                 <div className="h-4 w-40 animate-pulse rounded bg-white/5" />
                 <div className="h-4 w-64 animate-pulse rounded bg-white/5" />
                 <div className="h-4 w-56 animate-pulse rounded bg-white/5" />
@@ -162,7 +162,7 @@ export default function KupList({
     }
 
     return (
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {items.map((d, index) => (
           <DzialkaCard key={d.id} d={d} eagerImage={index < 2} />
         ))}
@@ -212,7 +212,7 @@ function DzialkaCard({ d, eagerImage = false }: { d: Dzialka; eagerImage?: boole
         eagerImage={eagerImage}
       />
 
-      <div className="space-y-4 p-6">
+      <div className="space-y-4 p-5 md:p-6">
         <div className="flex items-center gap-3">
           <SmartImg src={ICONS.price} alt="" className="h-5 w-5 opacity-80" />
           <div className="text-[18px] font-semibold" style={{ color: GREEN }}>
@@ -262,27 +262,77 @@ function Carousel({
 
   const has = list.length > 0;
   const [i, setI] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   useEffect(() => {
     setI(0);
   }, [list]);
 
+  const goPrev = () => {
+    if (list.length < 2) return;
+    setI((v) => (v - 1 + list.length) % list.length);
+  };
+
+  const goNext = () => {
+    if (list.length < 2) return;
+    setI((v) => (v + 1) % list.length);
+  };
+
   const prev = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (list.length < 2) return;
-    setI((v) => (v - 1 + list.length) % list.length);
+    goPrev();
   };
 
   const next = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    goNext();
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
     if (list.length < 2) return;
-    setI((v) => (v + 1) % list.length);
+    touchStartX.current = e.changedTouches[0]?.clientX ?? null;
+    touchEndX.current = null;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (list.length < 2) return;
+    touchEndX.current = e.changedTouches[0]?.clientX ?? null;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (list.length < 2) return;
+
+    const start = touchStartX.current;
+    const end = touchEndX.current ?? e.changedTouches[0]?.clientX ?? null;
+
+    if (start == null || end == null) return;
+
+    const diff = start - end;
+    const threshold = 40;
+
+    if (Math.abs(diff) < threshold) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (diff > 0) {
+      goNext();
+    } else {
+      goPrev();
+    }
   };
 
   return (
-    <div className="relative aspect-video bg-white/5">
+    <div
+      className="relative aspect-[16/10] bg-white/5 md:aspect-video"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ touchAction: 'pan-y' }}
+    >
       {has ? (
         <>
           <SmartImg
@@ -302,8 +352,8 @@ function Carousel({
             </div>
           ) : null}
 
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <div className="text-center text-[18px] font-medium leading-tight text-white drop-shadow">
+          <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
+            <div className="text-center text-[17px] font-medium leading-tight text-white drop-shadow md:text-[18px]">
               {title}
             </div>
           </div>
@@ -313,14 +363,14 @@ function Carousel({
               <button
                 type="button"
                 onClick={prev}
-                className="absolute left-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ‹
               </button>
               <button
                 type="button"
                 onClick={next}
-                className="absolute right-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ›
               </button>
@@ -330,7 +380,7 @@ function Carousel({
                   <span
                     key={idx}
                     className={`h-2 w-2 rounded-full ${
-                      idx === i ? 'bg-black' : 'bg-black/40'
+                      idx === i ? 'bg-white' : 'bg-white/40'
                     }`}
                   />
                 ))}

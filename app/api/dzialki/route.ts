@@ -81,10 +81,12 @@ export async function GET(req: Request) {
   const areaMax = url.searchParams.get('areaMax');
 
   const przeznRaw = (url.searchParams.get('przeznaczenia') || '').trim();
-  const przeznaczenia = przeznRaw ? przeznRaw.split(',').map((s) => s.trim()).filter(Boolean) : [];
+  const przeznaczenia = przeznRaw
+    ? przeznRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
 
   const takeReq = Number(url.searchParams.get('take') || '20');
-  const take = Math.min(Math.max(Number.isFinite(takeReq) ? takeReq : 20, 1), 100);
+  const take = Math.min(Math.max(Number.isFinite(takeReq) ? takeReq : 20, 1), 500);
 
   const pageReq = Number(url.searchParams.get('page') || '1');
   const page = Math.max(Number.isFinite(pageReq) ? Math.floor(pageReq) : 1, 1);
@@ -95,6 +97,7 @@ export async function GET(req: Request) {
   const sort = (url.searchParams.get('sort') || 'newest').toLowerCase();
 
   const andFilters: Prisma.DzialkaWhereInput[] = [
+    { ownerId: { not: null } },
     { status: DzialkaStatus.AKTYWNE },
     {
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
@@ -281,7 +284,8 @@ export async function POST(req: Request) {
       ? locationLabel.trim()
       : fallbackLocationLabel(lat, lng);
 
-  const mode: LocationMode = locationMode === 'APPROX' ? LocationMode.APPROX : LocationMode.EXACT;
+  const mode: LocationMode =
+    locationMode === 'APPROX' ? LocationMode.APPROX : LocationMode.EXACT;
 
   let mappedPrzeznaczenia: Przeznaczenie[];
   try {
@@ -322,7 +326,7 @@ export async function POST(req: Request) {
   const editToken = genEditToken();
 
   const now = new Date();
-  const expiresAt = addDays(now, 30);
+  const expiresAt = appConfig.paymentsEnabled ? addDays(now, 30) : null;
 
   try {
     const created = await prisma.$transaction(async (tx) => {

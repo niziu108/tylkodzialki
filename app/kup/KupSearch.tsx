@@ -339,7 +339,6 @@ export default function KupSearch() {
         // @ts-ignore
         const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
           fields: ['geometry', 'formatted_address', 'name'],
-          types: ['(cities)'],
         });
 
         ac.addListener('place_changed', () => {
@@ -367,14 +366,19 @@ export default function KupSearch() {
     try {
       const sp = new URLSearchParams();
 
-      if (nextApplied.locText.trim()) sp.set('q', nextApplied.locText.trim());
+      const useRadiusSearch = !!nextApplied.center && nextApplied.radiusKm > 0;
+
+      if (!useRadiusSearch && nextApplied.locText.trim()) {
+        sp.set('q', nextApplied.locText.trim());
+      }
+
       if (nextApplied.priceMin) sp.set('priceMin', nextApplied.priceMin);
       if (nextApplied.priceMax) sp.set('priceMax', nextApplied.priceMax);
       if (nextApplied.areaMin) sp.set('areaMin', nextApplied.areaMin);
       if (nextApplied.areaMax) sp.set('areaMax', nextApplied.areaMax);
       if (nextApplied.przezn.length) sp.set('przeznaczenia', nextApplied.przezn.join(','));
 
-      sp.set('take', '200');
+      sp.set('take', useRadiusSearch ? '500' : '200');
       sp.set('skip', '0');
       sp.set('sort', 'newest');
 
@@ -389,6 +393,7 @@ export default function KupSearch() {
       if (nextApplied.center && nextApplied.radiusKm > 0) {
         filtered = list.filter((d) => {
           if (typeof d.lat !== 'number' || typeof d.lng !== 'number') return false;
+
           return (
             haversineKm(
               nextApplied.center!.lat,
@@ -479,7 +484,7 @@ export default function KupSearch() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `url(/sprzedaj.webp)`,
+            backgroundImage: 'url(/sprzedaj.webp)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -487,7 +492,7 @@ export default function KupSearch() {
 
         <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/0" />
 
-        <div className="relative mx-auto max-w-6xl px-4 py-10 md:py-14">
+        <div className="relative mx-auto max-w-6xl px-3 py-10 md:px-4 md:py-14">
           <div className="rounded-2xl border border-white/10 bg-[#0b0b0b]/78 p-5 backdrop-blur-sm md:p-8">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_220px]">
               <div>
@@ -663,7 +668,7 @@ export default function KupSearch() {
         </div>
       </section>
 
-      <section className="mx-auto mt-8 max-w-6xl px-4">
+      <section className="mx-auto mt-8 max-w-6xl px-3 md:px-4">
         <PagerResponsive
           page={safePage}
           totalPages={totalPages}

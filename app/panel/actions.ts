@@ -96,51 +96,68 @@ export async function przedluzOgloszenieAction(dzialkaId: string) {
 
   const appConfig = await getAppConfig();
   const now = new Date();
-
   const currentExpiresAt = dzialka.expiresAt ? new Date(dzialka.expiresAt) : null;
-  const isStillActive =
-    dzialka.status !== DzialkaStatus.ZAKONCZONE &&
-    !!currentExpiresAt &&
-    currentExpiresAt.getTime() > now.getTime();
-
-  let newExpiresAt: Date;
-
-  if (isStillActive && currentExpiresAt) {
-    const daysLeft = Math.ceil(
-      (currentExpiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (daysLeft > 30) {
-      throw new Error(
-        'To ogłoszenie można przedłużyć dopiero wtedy, gdy do końca zostanie 30 dni lub mniej.'
-      );
-    }
-
-    newExpiresAt = addDays(currentExpiresAt, 30);
-  } else {
-    newExpiresAt = addDays(now, 30);
-  }
 
   try {
     await prisma.$transaction(async (tx) => {
-      if (appConfig.paymentsEnabled) {
-        const updatedUser = await tx.user.updateMany({
-          where: {
-            id: ownerId,
-            listingCredits: {
-              gt: 0,
-            },
-          },
+      if (!appConfig.paymentsEnabled) {
+        await tx.dzialka.update({
+          where: { id: dzialkaId },
           data: {
-            listingCredits: {
-              decrement: 1,
-            },
+            status: DzialkaStatus.AKTYWNE,
+            endedAt: null,
+            expiresAt: null,
+            publishedAt:
+              dzialka.status === DzialkaStatus.ZAKONCZONE ||
+              !currentExpiresAt ||
+              currentExpiresAt.getTime() <= now.getTime()
+                ? now
+                : undefined,
           },
         });
 
-        if (updatedUser.count === 0) {
-          throw new Error('NO_LISTING_CREDITS');
+        return;
+      }
+
+      const isStillActive =
+        dzialka.status !== DzialkaStatus.ZAKONCZONE &&
+        !!currentExpiresAt &&
+        currentExpiresAt.getTime() > now.getTime();
+
+      let newExpiresAt: Date;
+
+      if (isStillActive && currentExpiresAt) {
+        const daysLeft = Math.ceil(
+          (currentExpiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        if (daysLeft > 30) {
+          throw new Error(
+            'To ogłoszenie można przedłużyć dopiero wtedy, gdy do końca zostanie 30 dni lub mniej.'
+          );
         }
+
+        newExpiresAt = addDays(currentExpiresAt, 30);
+      } else {
+        newExpiresAt = addDays(now, 30);
+      }
+
+      const updatedUser = await tx.user.updateMany({
+        where: {
+          id: ownerId,
+          listingCredits: {
+            gt: 0,
+          },
+        },
+        data: {
+          listingCredits: {
+            decrement: 1,
+          },
+        },
+      });
+
+      if (updatedUser.count === 0) {
+        throw new Error('NO_LISTING_CREDITS');
       }
 
       await tx.dzialka.update({
@@ -165,7 +182,7 @@ export async function przedluzOgloszenieAction(dzialkaId: string) {
       );
     }
 
-    throw new Error('Nie udało się przedłużyć ogłoszenia.');
+    throw e;
   }
 
   revalidatePath('/panel');
