@@ -94,9 +94,6 @@ export default function PakietyPage() {
                 }`}
               >
                 <div className="text-sm font-semibold">Osoba prywatna</div>
-                <div className="mt-1 text-xs leading-6 text-white/60">
-                  Szybki zakup bez dodatkowych pól
-                </div>
               </button>
 
               <button
@@ -109,9 +106,6 @@ export default function PakietyPage() {
                 }`}
               >
                 <div className="text-sm font-semibold">Firma</div>
-                <div className="mt-1 text-xs leading-6 text-white/60">
-                  Zakup na dane firmowe
-                </div>
               </button>
             </div>
 
@@ -173,12 +167,7 @@ export default function PakietyPage() {
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="mx-auto mt-5 max-w-[920px] rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm text-white/65">
-                Dla osoby prywatnej nie pokazujemy dodatkowych pól. System użyje
-                danych konta i adresu e-mail przypisanego do użytkownika.
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
 
