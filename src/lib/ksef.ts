@@ -22,6 +22,32 @@ function getRequiredEnv(name: string) {
   return value;
 }
 
+function normalizePolishNip(input: string) {
+  return input.replace(/^PL/i, "").replace(/\D/g, "");
+}
+
+function assertValidPolishNip(nip: string) {
+  if (!/^\d{10}$/.test(nip)) {
+    throw new Error(
+      `Nieprawidłowy KSEF_NIP po normalizacji. Oczekiwano 10 cyfr, otrzymano: "${nip}"`
+    );
+  }
+
+  const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+  const sum = weights.reduce((acc, weight, index) => {
+    return acc + Number(nip[index]) * weight;
+  }, 0);
+
+  const checksum = sum % 11;
+  const controlDigit = Number(nip[9]);
+
+  if (checksum === 10 || checksum !== controlDigit) {
+    throw new Error(`KSEF_NIP nie przechodzi walidacji sumy kontrolnej: "${nip}"`);
+  }
+
+  return nip;
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -129,7 +155,8 @@ async function getAuthChallenge() {
 
 async function authenticateWithKsefToken() {
   const tokenKsef = getRequiredEnv("KSEF_TOKEN");
-  const contextNip = getRequiredEnv("KSEF_NIP");
+  const rawContextNip = getRequiredEnv("KSEF_NIP");
+  const contextNip = assertValidPolishNip(normalizePolishNip(rawContextNip));
 
   const challenge = await getAuthChallenge();
   const certs = await fetchPublicCertificates();
