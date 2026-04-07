@@ -14,12 +14,27 @@ type KsefCertificateRecord = {
   keyId?: string;
 };
 
+type KsefContextType = "Nip" | "Pesel";
+
 function getRequiredEnv(name: string) {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Brak zmiennej środowiskowej: ${name}`);
   }
   return value;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function base64DerToPem(base64Der: string) {
+  const chunks = base64Der.match(/.{1,64}/g)?.join("\n") ?? base64Der;
+  return `-----BEGIN CERTIFICATE-----\n${chunks}\n-----END CERTIFICATE-----`;
+}
+
+function sha256Base64(data: Buffer) {
+  return crypto.createHash("sha256").update(data).digest("base64");
 }
 
 function normalizePolishNip(input: string) {
@@ -29,7 +44,7 @@ function normalizePolishNip(input: string) {
 function assertValidPolishNip(nip: string) {
   if (!/^\d{10}$/.test(nip)) {
     throw new Error(
-      `Nieprawidłowy KSEF_NIP po normalizacji. Oczekiwano 10 cyfr, otrzymano: "${nip}"`
+      `Nieprawidłowy NIP po normalizacji. Oczekiwano 10 cyfr, otrzymano: "${nip}"`
     );
   }
 
@@ -42,19 +57,76 @@ function assertValidPolishNip(nip: string) {
   const controlDigit = Number(nip[9]);
 
   if (checksum === 10 || checksum !== controlDigit) {
-    throw new Error(`KSEF_NIP nie przechodzi walidacji sumy kontrolnej: "${nip}"`);
+    throw new Error(`NIP nie przechodzi walidacji sumy kontrolnej: "${nip}"`);
   }
 
   return nip;
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function normalizePolishPesel(input: string) {
+  return input.replace(/\D/g, "");
 }
 
-function base64DerToPem(base64Der: string) {
-  const chunks = base64Der.match(/.{1,64}/g)?.join("\n") ?? base64Der;
-  return `-----BEGIN CERTIFICATE-----\n${chunks}\n-----END CERTIFICATE-----`;
+function assertValidPolishPesel(pesel: string) {
+  if (!/^\d{11}$/.test(pesel)) {
+    throw new Error(
+      `Nieprawidłowy PESEL po normalizacji. Oczekiwano 11 cyfr, otrzymano: "${pesel}"`
+    );
+  }
+
+  const weights = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
+  const sum = weights.reduce((acc, weight, index) => {
+    return acc + Number(pesel[index]) * weight;
+  }, 0);
+
+  const checksum = (10 - (sum % 10)) % 10;
+  const controlDigit = Number(pesel[10]);
+
+  if (checksum !== controlDigit) {
+    throw new Error(`PESEL nie przechodzi walidacji sumy kontrolnej: "${pesel}"`);
+  }
+
+  return pesel;
+}
+
+function resolveKsefContext(): { type: KsefContextType; value: string } {
+  const rawType = (process.env.KSEF_CONTEXT_TYPE || "Nip").trim();
+  const type =
+    rawType.toLowerCase() === "pesel"
+      ? "Pesel"
+      : rawType.toLowerCase() === "nip"
+      ? "Nip"
+      : null;
+
+  if (!type) {
+    throw new Error(
+      `Nieprawidłowy KSEF_CONTEXT_TYPE="${rawType}". Dozwolone: Nip albo Pesel`
+    );
+  }
+
+  const rawValue =
+    process.env.KSEF_CONTEXT_VALUE ||
+    (type === "Nip" ? process.env.KSEF_NIP : process.env.KSEF_PESEL);
+
+  if (!rawValue) {
+    throw new Error(
+      `Brak wartości kontekstu dla ${type}. Ustaw KSEF_CONTEXT_VALUE albo ${
+        type === "Nip" ? "KSEF_NIP" : "KSEF_PESEL"
+      }`
+    );
+  }
+
+  if (type === "Nip") {
+    return {
+      type,
+      value: assertValidPolishNip(normalizePolishNip(rawValue)),
+    };
+  }
+
+  return {
+    type,
+    value: assertValidPolishPesel(normalizePolishPesel(rawValue)),
+  };
 }
 
 async function ksefFetch(
@@ -131,10 +203,6 @@ function encryptWithCertificateBase64(base64DerCert: string, input: Buffer) {
   );
 }
 
-function sha256Base64(data: Buffer) {
-  return crypto.createHash("sha256").update(data).digest("base64");
-}
-
 async function getAuthChallenge() {
   const response = await ksefFetch("/auth/challenge", {
     method: "POST",
@@ -154,9 +222,17 @@ async function getAuthChallenge() {
 }
 
 async function authenticateWithKsefToken() {
-  const tokenKsef = getRequiredEnv("KSEF_TOKEN");
-  const rawContextNip = getRequiredEnv("KSEF_NIP");
-  const contextNip = assertValidPolishNip(normalizePolishNip(rawContextNip));
+  const tokenKsef = getRequiredEnv("KSEF_TOKEN").trim();
+  const context = resolveKsefContext();
+
+  console.log("KSEF DEBUG AUTH INPUT", {
+    baseUrl: DEFAULT_BASE_URL,
+    contextType: context.type,
+    contextValue: context.value,
+    tokenLength: tokenKsef.length,
+    tokenPrefix: tokenKsef.slice(0, 8),
+    tokenSuffix: tokenKsef.slice(-6),
+  });
 
   const challenge = await getAuthChallenge();
   const certs = await fetchPublicCertificates();
@@ -171,11 +247,17 @@ async function authenticateWithKsefToken() {
   const payload = {
     challenge: challenge.challenge,
     contextIdentifier: {
-      type: "Nip",
-      value: contextNip,
+      type: context.type,
+      value: context.value,
     },
     encryptedToken,
   };
+
+  console.log("KSEF DEBUG AUTH PAYLOAD", {
+    challenge: challenge.challenge,
+    contextIdentifier: payload.contextIdentifier,
+    encryptedTokenLength: encryptedToken.length,
+  });
 
   const startResponse = await ksefFetch("/auth/ksef-token", {
     method: "POST",
@@ -201,6 +283,11 @@ async function authenticateWithKsefToken() {
 
   const authenticationToken = started.authenticationToken?.token;
   const referenceNumber = started.referenceNumber;
+
+  console.log("KSEF DEBUG AUTH STARTED", {
+    hasAuthenticationToken: Boolean(authenticationToken),
+    referenceNumber,
+  });
 
   if (!authenticationToken || !referenceNumber) {
     throw new Error(
@@ -235,13 +322,21 @@ async function authenticateWithKsefToken() {
 
     statusCode = statusJson.status?.code ?? null;
 
+    console.log("KSEF DEBUG AUTH STATUS", {
+      iteration: i + 1,
+      statusCode,
+      description: statusJson.status?.description ?? null,
+    });
+
     if (statusCode === 200) {
       break;
     }
 
     if (statusCode && statusCode !== 100) {
       throw new Error(
-        `KSeF auth failed with status=${statusCode} ${statusJson.status?.description ?? ""}`
+        `KSeF auth failed with status=${statusCode} ${
+          statusJson.status?.description ?? ""
+        }`
       );
     }
   }
@@ -278,6 +373,11 @@ async function authenticateWithKsefToken() {
     redeemed.accessToken?.token || (redeemed as any).accessToken || null;
   const refreshToken =
     redeemed.refreshToken?.token || (redeemed as any).refreshToken || null;
+
+  console.log("KSEF DEBUG AUTH REDEEMED", {
+    hasAccessToken: Boolean(accessToken),
+    hasRefreshToken: Boolean(refreshToken),
+  });
 
   if (!accessToken) {
     throw new Error("KSeF redeem nie zwrócił accessToken");
@@ -460,6 +560,15 @@ export async function sendSingleInvoiceToKsef(invoiceId: string) {
     city: invoice.city,
     country: invoice.country,
     invoiceEmail: invoice.invoiceEmail,
+  });
+
+  console.log("KSEF DEBUG SEND SINGLE", {
+    invoiceId: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    ksefStatus: invoice.ksefStatus,
+    ksefRequired: invoice.ksefRequired,
+    amountGross: invoice.amountGross,
+    currency: invoice.currency,
   });
 
   const certs = await fetchPublicCertificates();
