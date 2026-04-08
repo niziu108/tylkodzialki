@@ -139,10 +139,24 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             ],
           }
         : undefined,
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        emailVerified: true,
+        listingCredits: true,
+        createdAt: true,
         _count: {
           select: {
             dzialki: true,
+          },
+        },
+        dzialki: {
+          select: {
+            id: true,
+            status: true,
+            expiresAt: true,
           },
         },
       },
@@ -168,6 +182,33 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       take: 6,
     }),
   ]);
+
+  const now = new Date();
+
+  const usersWithStats = users
+    .map((user) => {
+      const activeListings = user.dzialki.filter((d) => {
+        const isActiveStatus = d.status === "AKTYWNE";
+        const isNotExpired = !d.expiresAt || d.expiresAt > now;
+        return isActiveStatus && isNotExpired;
+      }).length;
+
+      return {
+        ...user,
+        activeListings,
+      };
+    })
+    .sort((a, b) => {
+      if (b._count.dzialki !== a._count.dzialki) {
+        return b._count.dzialki - a._count.dzialki;
+      }
+
+      if (b.activeListings !== a.activeListings) {
+        return b.activeListings - a.activeListings;
+      }
+
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   return (
     <main className="min-h-screen bg-[#131313] px-6 py-10 text-[#d9d9d9]">
@@ -376,26 +417,27 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             {q ? (
               <>
                 Wyniki dla: <span className="text-white">„{q}”</span> —
-                znaleziono <span className="text-white">{users.length}</span>
+                znaleziono <span className="text-white">{usersWithStats.length}</span>
               </>
             ) : (
               <>
                 Wszystkich użytkowników:{" "}
-                <span className="text-white">{users.length}</span>
+                <span className="text-white">{usersWithStats.length}</span>
               </>
             )}
           </div>
         </div>
 
         <div className="mb-8 overflow-x-auto rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
-          <table className="w-full min-w-[980px] text-sm">
+          <table className="w-full min-w-[1120px] text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
                 <th className="px-4 py-4 font-medium">Email</th>
                 <th className="px-4 py-4 font-medium">Imię</th>
                 <th className="px-4 py-4 font-medium">Rola</th>
                 <th className="px-4 py-4 font-medium">Zweryfikowany</th>
-                <th className="px-4 py-4 font-medium">Ogłoszenia</th>
+                <th className="px-4 py-4 font-medium">Wszystkie oferty</th>
+                <th className="px-4 py-4 font-medium">Aktywne</th>
                 <th className="px-4 py-4 font-medium">Kredyty</th>
                 <th className="px-4 py-4 font-medium">Data rejestracji</th>
                 <th className="px-4 py-4 font-medium text-right">Akcje</th>
@@ -403,17 +445,17 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </thead>
 
             <tbody>
-              {users.length === 0 ? (
+              {usersWithStats.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-10 text-center text-sm text-[#9f9f9f]"
                   >
                     Brak użytkowników pasujących do wyszukiwania.
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                usersWithStats.map((user) => (
                   <tr
                     key={user.id}
                     className="border-b border-white/5 hover:bg-white/[0.03]"
@@ -449,7 +491,21 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </td>
 
                     <td className="px-4 py-4 align-middle">
-                      {user._count.dzialki}
+                      <span className="font-semibold text-white">
+                        {user._count.dzialki}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-4 align-middle">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          user.activeListings > 0
+                            ? "bg-[#7aa333]/20 text-[#9fd14b]"
+                            : "bg-white/10 text-[#bdbdbd]"
+                        }`}
+                      >
+                        {user.activeListings}
+                      </span>
                     </td>
 
                     <td className="px-4 py-4 align-middle">

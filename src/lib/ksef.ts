@@ -1,682 +1,90 @@
-import crypto, { X509Certificate } from "crypto";
-import { prisma } from "@/lib/prisma";
-import { buildKsefInvoiceXml } from "@/lib/buildKsefInvoiceXml";
+import axios from "axios";
+import { buildKsefInvoiceXml } from "./buildKsefInvoiceXml";
 
-const DEFAULT_BASE_URL =
-  process.env.KSEF_BASE_URL || "https://api.ksef.mf.gov.pl/api/v2";
+// TODO: zrobimy osobny plik do podpisu
+import { signXmlWithXades } from "./ksefSign";
 
-type KsefCertificateRecord = {
-  certificate: string;
-  certificateId: string;
-  validFrom: string;
-  validTo: string;
-  usage: string[];
-  keyId?: string;
-};
+const BASE_URL = process.env.KSEF_BASE_URL!;
 
-type KsefContextType = "Nip" | "Pesel";
+async function authenticateWithCertificate() {
+  // 1. XML request
+  const xml = `
+    <AuthTokenRequest>
+      <Context>
+        <Identifier>
+          <Type>onip</Type>
+          <Value>${process.env.KSEF_NIP}</Value>
+        </Identifier>
+      </Context>
+    </AuthTokenRequest>
+  `;
 
-function getRequiredEnv(name: string) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Brak zmiennej środowiskowej: ${name}`);
-  }
-  return value;
-}
+  // 2. podpis XAdES
+  const signedXml = await signXmlWithXades(xml);
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function base64DerToPem(base64Der: string) {
-  const chunks = base64Der.match(/.{1,64}/g)?.join("\n") ?? base64Der;
-  return `-----BEGIN CERTIFICATE-----\n${chunks}\n-----END CERTIFICATE-----`;
-}
-
-function sha256Base64(data: Buffer) {
-  return crypto.createHash("sha256").update(data).digest("base64");
-}
-
-function normalizePolishNip(input: string) {
-  return input.replace(/^PL/i, "").replace(/\D/g, "");
-}
-
-function assertValidPolishNip(nip: string) {
-  if (!/^\d{10}$/.test(nip)) {
-    throw new Error(
-      `Nieprawidłowy NIP po normalizacji. Oczekiwano 10 cyfr, otrzymano: "${nip}"`
-    );
-  }
-
-  const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
-  const sum = weights.reduce((acc, weight, index) => {
-    return acc + Number(nip[index]) * weight;
-  }, 0);
-
-  const checksum = sum % 11;
-  const controlDigit = Number(nip[9]);
-
-  if (checksum === 10 || checksum !== controlDigit) {
-    throw new Error(`NIP nie przechodzi walidacji sumy kontrolnej: "${nip}"`);
-  }
-
-  return nip;
-}
-
-function normalizePolishPesel(input: string) {
-  return input.replace(/\D/g, "");
-}
-
-function assertValidPolishPesel(pesel: string) {
-  if (!/^\d{11}$/.test(pesel)) {
-    throw new Error(
-      `Nieprawidłowy PESEL po normalizacji. Oczekiwano 11 cyfr, otrzymano: "${pesel}"`
-    );
-  }
-
-  const weights = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
-  const sum = weights.reduce((acc, weight, index) => {
-    return acc + Number(pesel[index]) * weight;
-  }, 0);
-
-  const checksum = (10 - (sum % 10)) % 10;
-  const controlDigit = Number(pesel[10]);
-
-  if (checksum !== controlDigit) {
-    throw new Error(`PESEL nie przechodzi walidacji sumy kontrolnej: "${pesel}"`);
-  }
-
-  return pesel;
-}
-
-function resolveKsefContext(): { type: KsefContextType; value: string } {
-  const rawType = (process.env.KSEF_CONTEXT_TYPE || "Nip").trim();
-  const type =
-    rawType.toLowerCase() === "pesel"
-      ? "Pesel"
-      : rawType.toLowerCase() === "nip"
-      ? "Nip"
-      : null;
-
-  if (!type) {
-    throw new Error(
-      `Nieprawidłowy KSEF_CONTEXT_TYPE="${rawType}". Dozwolone: Nip albo Pesel`
-    );
-  }
-
-  const rawValue =
-    process.env.KSEF_CONTEXT_VALUE ||
-    (type === "Nip" ? process.env.KSEF_NIP : process.env.KSEF_PESEL);
-
-  if (!rawValue) {
-    throw new Error(
-      `Brak wartości kontekstu dla ${type}. Ustaw KSEF_CONTEXT_VALUE albo ${
-        type === "Nip" ? "KSEF_NIP" : "KSEF_PESEL"
-      }`
-    );
-  }
-
-  if (type === "Nip") {
-    return {
-      type,
-      value: assertValidPolishNip(normalizePolishNip(rawValue)),
-    };
-  }
-
-  return {
-    type,
-    value: assertValidPolishPesel(normalizePolishPesel(rawValue)),
-  };
-}
-
-async function ksefFetch(
-  path: string,
-  init?: RequestInit,
-  bearerToken?: string
-): Promise<Response> {
-  const headers = new Headers(init?.headers ?? {});
-  headers.set("Accept", "application/json");
-
-  if (bearerToken) {
-    headers.set("Authorization", `Bearer ${bearerToken}`);
-  }
-
-  return fetch(`${DEFAULT_BASE_URL}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  });
-}
-
-async function fetchPublicCertificates(): Promise<KsefCertificateRecord[]> {
-  const response = await ksefFetch("/security/public-key-certificates", {
-    method: "GET",
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `KSeF certificates error: ${response.status} ${response.statusText} ${text}`
-    );
-  }
-
-  return (await response.json()) as KsefCertificateRecord[];
-}
-
-function pickCertificateForUsage(
-  certs: KsefCertificateRecord[],
-  usage: "KsefTokenEncryption" | "SymmetricKeyEncryption"
-) {
-  const now = Date.now();
-
-  const filtered = certs
-    .filter((c) => Array.isArray(c.usage) && c.usage.includes(usage))
-    .filter((c) => {
-      const from = new Date(c.validFrom).getTime();
-      const to = new Date(c.validTo).getTime();
-      return from <= now && now <= to;
-    })
-    .sort(
-      (a, b) =>
-        new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime()
-    );
-
-  if (!filtered.length) {
-    throw new Error(`Nie znaleziono ważnego certyfikatu KSeF dla usage=${usage}`);
-  }
-
-  return filtered[0];
-}
-
-function encryptWithCertificateBase64(base64DerCert: string, input: Buffer) {
-  const pem = base64DerToPem(base64DerCert);
-  const cert = new X509Certificate(pem);
-  const publicKey = cert.publicKey;
-
-  return crypto.publicEncrypt(
+  // 3. wysyłka do KSeF
+  const res = await axios.post(
+    `${BASE_URL}/auth/online/Session/InitSigned`,
+    signedXml,
     {
-      key: publicKey,
-      oaepHash: "sha256",
-      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-    },
-    input
-  );
-}
-
-async function getAuthChallenge() {
-  const response = await ksefFetch("/auth/challenge", {
-    method: "POST",
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `KSeF auth/challenge error: ${response.status} ${response.statusText} ${text}`
-    );
-  }
-
-  return (await response.json()) as {
-    challenge: string;
-    timestamp: number;
-  };
-}
-
-async function authenticateWithKsefToken() {
-  const tokenKsef = getRequiredEnv("KSEF_TOKEN").trim();
-  const context = resolveKsefContext();
-
-  console.log("KSEF DEBUG AUTH INPUT", {
-    baseUrl: DEFAULT_BASE_URL,
-    contextType: context.type,
-    contextValue: context.value,
-    tokenLength: tokenKsef.length,
-    tokenPrefix: tokenKsef.slice(0, 8),
-    tokenSuffix: tokenKsef.slice(-6),
-  });
-
-  const challenge = await getAuthChallenge();
-  const certs = await fetchPublicCertificates();
-  const authCert = pickCertificateForUsage(certs, "KsefTokenEncryption");
-
-  const plaintext = `${tokenKsef}|${challenge.timestamp}`;
-  const encryptedToken = encryptWithCertificateBase64(
-    authCert.certificate,
-    Buffer.from(plaintext, "utf8")
-  ).toString("base64");
-
-  const payload = {
-    challenge: challenge.challenge,
-    contextIdentifier: {
-      type: context.type,
-      value: context.value,
-    },
-    encryptedToken,
-  };
-
-  console.log("KSEF DEBUG AUTH PAYLOAD", {
-    challenge: challenge.challenge,
-    contextIdentifier: payload.contextIdentifier,
-    encryptedTokenLength: encryptedToken.length,
-  });
-
-  const startResponse = await ksefFetch("/auth/ksef-token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!startResponse.ok) {
-    const text = await startResponse.text();
-    throw new Error(
-      `KSeF auth/ksef-token error: ${startResponse.status} ${startResponse.statusText} ${text}`
-    );
-  }
-
-  const started = (await startResponse.json()) as {
-    authenticationToken?: {
-      token?: string;
-    };
-    referenceNumber?: string;
-  };
-
-  const authenticationToken = started.authenticationToken?.token;
-  const referenceNumber = started.referenceNumber;
-
-  console.log("KSEF DEBUG AUTH STARTED", {
-    hasAuthenticationToken: Boolean(authenticationToken),
-    referenceNumber,
-  });
-
-  if (!authenticationToken || !referenceNumber) {
-    throw new Error(
-      "KSeF auth start response nie zawiera authenticationToken/referenceNumber"
-    );
-  }
-
-  let statusCode: number | null = null;
-
-  for (let i = 0; i < 15; i++) {
-    await sleep(i === 0 ? 400 : 1000);
-
-    const statusResponse = await ksefFetch(
-      `/auth/${encodeURIComponent(referenceNumber)}`,
-      { method: "GET" },
-      authenticationToken
-    );
-
-    if (!statusResponse.ok) {
-      const text = await statusResponse.text();
-      throw new Error(
-        `KSeF auth status error: ${statusResponse.status} ${statusResponse.statusText} ${text}`
-      );
+      headers: {
+        "Content-Type": "application/xml",
+      },
     }
+  );
 
-    const statusJson = (await statusResponse.json()) as {
-      status?: {
-        code?: number;
-        description?: string;
-      };
-    };
+  const referenceNumber = res.data?.referenceNumber;
 
-    statusCode = statusJson.status?.code ?? null;
+  if (!referenceNumber) {
+    throw new Error("Brak referenceNumber z KSeF");
+  }
 
-    console.log("KSEF DEBUG AUTH STATUS", {
-      iteration: i + 1,
-      statusCode,
-      description: statusJson.status?.description ?? null,
-    });
+  // 4. polling
+  let accessToken = null;
 
-    if (statusCode === 200) {
+  for (let i = 0; i < 10; i++) {
+    const statusRes = await axios.get(
+      `${BASE_URL}/auth/online/Session/${referenceNumber}`
+    );
+
+    if (statusRes.data?.status === "Ready") {
+      accessToken = statusRes.data?.accessToken;
       break;
     }
 
-    if (statusCode && statusCode !== 100) {
-      throw new Error(
-        `KSeF auth failed with status=${statusCode} ${
-          statusJson.status?.description ?? ""
-        }`
-      );
-    }
+    await new Promise((r) => setTimeout(r, 1000));
   }
-
-  if (statusCode !== 200) {
-    throw new Error("KSeF auth timeout: nie udało się uzyskać statusu 200");
-  }
-
-  const redeemResponse = await ksefFetch(
-    "/auth/token/redeem",
-    {
-      method: "POST",
-    },
-    authenticationToken
-  );
-
-  if (!redeemResponse.ok) {
-    const text = await redeemResponse.text();
-    throw new Error(
-      `KSeF token/redeem error: ${redeemResponse.status} ${redeemResponse.statusText} ${text}`
-    );
-  }
-
-  const redeemed = (await redeemResponse.json()) as {
-    accessToken?: {
-      token?: string;
-    };
-    refreshToken?: {
-      token?: string;
-    };
-  };
-
-  const accessToken =
-    redeemed.accessToken?.token || (redeemed as any).accessToken || null;
-  const refreshToken =
-    redeemed.refreshToken?.token || (redeemed as any).refreshToken || null;
-
-  console.log("KSEF DEBUG AUTH REDEEMED", {
-    hasAccessToken: Boolean(accessToken),
-    hasRefreshToken: Boolean(refreshToken),
-  });
 
   if (!accessToken) {
-    throw new Error("KSeF redeem nie zwrócił accessToken");
+    throw new Error("Nie udało się uzyskać accessToken");
   }
 
-  return {
-    accessToken,
-    refreshToken,
-  };
+  return accessToken;
 }
 
-function encryptInvoiceXml(xml: string, publicCertBase64: string) {
-  const key = crypto.randomBytes(32);
-  const iv = crypto.randomBytes(16);
+// 🔥 TO MUSI ZOSTAĆ
+export async function sendSingleInvoiceToKsef(invoice: any) {
+  const token = await authenticateWithCertificate();
 
-  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
-  const encrypted = Buffer.concat([
-    cipher.update(Buffer.from(xml, "utf8")),
-    cipher.final(),
-  ]);
+  const xml = buildKsefInvoiceXml(invoice);
 
-  const encryptedDocument = Buffer.concat([iv, encrypted]);
-  const encryptedKey = encryptWithCertificateBase64(publicCertBase64, key);
-
-  return {
-    encryptedDocumentBase64: encryptedDocument.toString("base64"),
-    encryptedSymmetricKeyBase64: encryptedKey.toString("base64"),
-    initializationVectorBase64: iv.toString("base64"),
-    originalHashBase64: sha256Base64(Buffer.from(xml, "utf8")),
-    originalSize: Buffer.byteLength(xml, "utf8"),
-    encryptedHashBase64: sha256Base64(encryptedDocument),
-    encryptedSize: encryptedDocument.length,
-  };
-}
-
-async function openOnlineSession(
-  accessToken: string,
-  symmetricCertBase64: string
-) {
-  const emptyKey = crypto.randomBytes(32);
-  const encryptedKey = encryptWithCertificateBase64(
-    symmetricCertBase64,
-    emptyKey
-  ).toString("base64");
-
-  const iv = crypto.randomBytes(16).toString("base64");
-
-  const payload = {
-    formCode: {
-      systemCode: "FA (3)",
-      schemaVersion: "1-0E",
-      value: "FA",
-    },
-    encryption: {
-      encryptedSymmetricKey: encryptedKey,
-      initializationVector: iv,
-    },
-  };
-
-  const response = await ksefFetch(
-    "/sessions/online",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    },
-    accessToken
-  );
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `KSeF open session error: ${response.status} ${response.statusText} ${text}`
-    );
-  }
-
-  return (await response.json()) as {
-    referenceNumber: string;
-    validUntil?: string;
-  };
-}
-
-async function sendInvoiceToOnlineSession(
-  accessToken: string,
-  sessionReferenceNumber: string,
-  xml: string,
-  symmetricCertBase64: string
-) {
-  const encrypted = encryptInvoiceXml(xml, symmetricCertBase64);
-
-  const payload = {
-    invoiceHash: encrypted.originalHashBase64,
-    invoiceSize: encrypted.originalSize,
-    encryptedInvoiceHash: encrypted.encryptedHashBase64,
-    encryptedInvoiceSize: encrypted.encryptedSize,
-    encryptedInvoiceContent: encrypted.encryptedDocumentBase64,
-  };
-
-  const response = await ksefFetch(
-    `/sessions/online/${encodeURIComponent(sessionReferenceNumber)}/invoices`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    },
-    accessToken
-  );
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `KSeF send invoice error: ${response.status} ${response.statusText} ${text}`
-    );
-  }
-
-  return (await response.json()) as {
-    referenceNumber?: string;
-    invoiceReferenceNumber?: string;
-  };
-}
-
-async function closeOnlineSession(
-  accessToken: string,
-  sessionReferenceNumber: string
-) {
-  const response = await ksefFetch(
-    `/sessions/online/${encodeURIComponent(sessionReferenceNumber)}/close`,
-    {
-      method: "POST",
-    },
-    accessToken
-  );
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `KSeF close session error: ${response.status} ${response.statusText} ${text}`
-    );
-  }
-
-  return await response.json().catch(() => ({}));
-}
-
-export async function sendSingleInvoiceToKsef(invoiceId: string) {
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-  });
-
-  if (!invoice) {
-    throw new Error("Nie znaleziono faktury");
-  }
-
-  if (!invoice.ksefRequired) {
-    throw new Error("Ta faktura nie jest oznaczona do wysyłki do KSeF");
-  }
-
-  if (invoice.ksefStatus !== "READY") {
-    throw new Error(`Faktura ma status ${invoice.ksefStatus}, a nie READY`);
-  }
-
-  const xml = buildKsefInvoiceXml({
-    invoiceNumber: invoice.invoiceNumber || "FAKTURA",
-    issueDate: invoice.issuedAt || invoice.createdAt,
-    saleDate: invoice.issuedAt || invoice.createdAt,
-    currency: invoice.currency,
-    amountGross: invoice.amountGross,
-    quantity: invoice.quantity,
-    itemName: invoice.itemName,
-    buyerType: invoice.buyerType,
-    buyerName: invoice.buyerName,
-    companyName: invoice.companyName,
-    nip: invoice.nip,
-    addressLine1: invoice.addressLine1,
-    addressLine2: invoice.addressLine2,
-    postalCode: invoice.postalCode,
-    city: invoice.city,
-    country: invoice.country,
-    invoiceEmail: invoice.invoiceEmail,
-  });
-
-  console.log("KSEF DEBUG SEND SINGLE", {
-    invoiceId: invoice.id,
-    invoiceNumber: invoice.invoiceNumber,
-    ksefStatus: invoice.ksefStatus,
-    ksefRequired: invoice.ksefRequired,
-    amountGross: invoice.amountGross,
-    currency: invoice.currency,
-  });
-
-  const certs = await fetchPublicCertificates();
-  const symmetricCert = pickCertificateForUsage(
-    certs,
-    "SymmetricKeyEncryption"
-  );
-  const auth = await authenticateWithKsefToken();
-
-  const session = await openOnlineSession(
-    auth.accessToken,
-    symmetricCert.certificate
-  );
-
-  const sentAt = new Date();
-
-  await prisma.invoice.update({
-    where: { id: invoice.id },
-    data: {
-      ksefStatus: "SENT",
-      ksefSentAt: sentAt,
-      ksefReferenceNumber: session.referenceNumber,
-      ksefErrorMessage: null,
-    },
-  });
-
-  const sentInvoice = await sendInvoiceToOnlineSession(
-    auth.accessToken,
-    session.referenceNumber,
+  const res = await axios.post(
+    `${BASE_URL}/invoices/send`,
     xml,
-    symmetricCert.certificate
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/xml",
+      },
+    }
   );
 
-  await closeOnlineSession(auth.accessToken, session.referenceNumber);
-
-  await prisma.invoice.update({
-    where: { id: invoice.id },
-    data: {
-      ksefStatus: "ACCEPTED",
-      ksefAcceptedAt: new Date(),
-      ksefInvoiceNumber:
-        sentInvoice.invoiceReferenceNumber ||
-        sentInvoice.referenceNumber ||
-        session.referenceNumber,
-      ksefErrorMessage: null,
-    },
-  });
-
-  return {
-    invoiceId: invoice.id,
-    sessionReferenceNumber: session.referenceNumber,
-    invoiceReferenceNumber:
-      sentInvoice.invoiceReferenceNumber ||
-      sentInvoice.referenceNumber ||
-      session.referenceNumber,
-  };
+  return res.data;
 }
 
-export async function sendReadyInvoicesToKsef(limit = 5) {
-  const invoices = await prisma.invoice.findMany({
-    where: {
-      ksefRequired: true,
-      ksefStatus: "READY",
-      status: "PAID",
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-    take: limit,
-    select: {
-      id: true,
-    },
-  });
-
-  const results: Array<{
-    invoiceId: string;
-    ok: boolean;
-    result?: unknown;
-    error?: string;
-  }> = [];
-
+// 🔥 TO MUSI ZOSTAĆ
+export async function sendReadyInvoicesToKsef(invoices: any[]) {
   for (const invoice of invoices) {
-    try {
-      const result = await sendSingleInvoiceToKsef(invoice.id);
-      results.push({
-        invoiceId: invoice.id,
-        ok: true,
-        result,
-      });
-    } catch (error: any) {
-      const message =
-        error instanceof Error ? error.message : "Nieznany błąd KSeF";
-
-      await prisma.invoice.update({
-        where: { id: invoice.id },
-        data: {
-          ksefStatus: "ERROR",
-          ksefErrorMessage: message,
-        },
-      });
-
-      results.push({
-        invoiceId: invoice.id,
-        ok: false,
-        error: message,
-      });
-    }
+    await sendSingleInvoiceToKsef(invoice);
   }
-
-  return results;
 }
