@@ -144,7 +144,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         email: true,
         name: true,
         role: true,
-        emailVerified: true,
         listingCredits: true,
         createdAt: true,
         _count: {
@@ -157,6 +156,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             id: true,
             status: true,
             expiresAt: true,
+            telefon: true,
+            createdAt: true,
+          },
+          orderBy: {
+            createdAt: "desc",
           },
         },
       },
@@ -193,9 +197,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         return isActiveStatus && isNotExpired;
       }).length;
 
+      const phoneFromListings =
+        user.dzialki.find((d) => d.telefon?.trim())?.telefon || null;
+
       return {
         ...user,
         activeListings,
+        phoneFromListings,
       };
     })
     .sort((a, b) => {
@@ -429,13 +437,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
 
         <div className="mb-8 overflow-x-auto rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
-          <table className="w-full min-w-[1120px] text-sm">
+          <table className="w-full min-w-[1220px] text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
                 <th className="px-4 py-4 font-medium">Email</th>
                 <th className="px-4 py-4 font-medium">Imię</th>
+                <th className="px-4 py-4 font-medium">Telefon</th>
                 <th className="px-4 py-4 font-medium">Rola</th>
-                <th className="px-4 py-4 font-medium">Zweryfikowany</th>
                 <th className="px-4 py-4 font-medium">Wszystkie oferty</th>
                 <th className="px-4 py-4 font-medium">Aktywne</th>
                 <th className="px-4 py-4 font-medium">Kredyty</th>
@@ -471,6 +479,19 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </td>
 
                     <td className="px-4 py-4 align-middle">
+                      {user.phoneFromListings ? (
+                        <a
+                          href={`tel:${user.phoneFromListings}`}
+                          className="font-medium text-white transition hover:text-[#9fd14b]"
+                        >
+                          {user.phoneFromListings}
+                        </a>
+                      ) : (
+                        <span className="text-[#8f8f8f]">—</span>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-4 align-middle">
                       <span
                         className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
                           user.role === "ADMIN"
@@ -480,14 +501,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       >
                         {user.role}
                       </span>
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      {user.emailVerified ? (
-                        <span className="text-[#9fd14b]">TAK</span>
-                      ) : (
-                        <span className="text-[#ff8a8a]">NIE</span>
-                      )}
                     </td>
 
                     <td className="px-4 py-4 align-middle">
