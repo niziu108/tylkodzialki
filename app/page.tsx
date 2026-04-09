@@ -37,17 +37,6 @@ function labelPrzeznaczenie(p: Przeznaczenie) {
     .replace("BUDOWLANA", "BUDOWLANA");
 }
 
-function isFeaturedActive(d: {
-  isFeatured?: boolean | null;
-  featuredUntil?: string | Date | null;
-}) {
-  return (
-    !!d.isFeatured &&
-    !!d.featuredUntil &&
-    new Date(d.featuredUntil).getTime() > Date.now()
-  );
-}
-
 type HomePhoto = {
   id?: string;
   url: string;
@@ -63,8 +52,6 @@ type HomeListing = {
   locationLabel?: string | null;
   przeznaczenia?: Przeznaczenie[];
   zdjecia?: HomePhoto[];
-  isFeatured?: boolean | null;
-  featuredUntil?: string | Date | null;
   isPlaceholder?: boolean;
 };
 
@@ -87,12 +74,10 @@ function HomeListingCarousel({
   photos,
   coverFallback,
   title,
-  featured,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
   title: string;
-  featured: boolean;
 }) {
   const list = photos.length
     ? photos.map((p) => p.url)
@@ -113,14 +98,6 @@ function HomeListingCarousel({
             loading="lazy"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-
-          {featured ? (
-            <div className="absolute left-4 top-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
-                WYRÓŻNIONE
-              </span>
-            </div>
-          ) : null}
 
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <div className="text-center text-[18px] font-medium leading-tight text-white drop-shadow">
@@ -150,23 +127,17 @@ function HomeListingCard({ d }: { d: HomeListing }) {
     ? d.przeznaczenia.map(labelPrzeznaczenie).join(", ")
     : "—";
 
-  const featured = isFeaturedActive(d);
   const href = d.isPlaceholder ? "/kup" : `/dzialka/${d.id}`;
 
   return (
     <Link
       href={href}
-      className={`group min-w-[86%] snap-start overflow-hidden rounded-3xl border transition md:min-w-[360px] xl:min-w-[380px] ${
-        featured
-          ? "border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70"
-          : "border-white/14 bg-[#0f0f0f]/20 hover:border-white/30"
-      }`}
+      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/20 transition hover:border-white/30 md:min-w-[360px] xl:min-w-[380px]"
     >
       <HomeListingCarousel
         photos={photos}
         coverFallback={coverFallback}
         title={d.tytul}
-        featured={featured}
       />
 
       <div className="space-y-4 p-6">
@@ -199,22 +170,7 @@ function HomeListingCard({ d }: { d: HomeListing }) {
 export default async function HomePage() {
   const now = new Date();
 
-  const [featuredListings, latestListings, latestArticles] = await Promise.all([
-    prisma.dzialka.findMany({
-      where: {
-        status: "AKTYWNE",
-        isFeatured: true,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      },
-      include: {
-        zdjecia: {
-          orderBy: { kolejnosc: "asc" },
-          take: 1,
-        },
-      },
-      orderBy: [{ publishedAt: "desc" }],
-      take: 6,
-    }),
+  const [latestListings, latestArticles] = await Promise.all([
     prisma.dzialka.findMany({
       where: {
         status: "AKTYWNE",
@@ -236,22 +192,6 @@ export default async function HomePage() {
     }),
   ]);
 
-  const featuredCards: HomeListing[] =
-    featuredListings.length > 0
-      ? (featuredListings as HomeListing[])
-      : Array.from({ length: 6 }, (_, i) => ({
-          id: `placeholder-featured-${i}`,
-          tytul: "Wyróżniona oferta wkrótce",
-          cenaPln: 0,
-          powierzchniaM2: 0,
-          locationLabel: "TylkoDziałki",
-          przeznaczenia: [],
-          zdjecia: [],
-          isFeatured: true,
-          featuredUntil: new Date(Date.now() + 86400000),
-          isPlaceholder: true,
-        }));
-
   const latestCards: HomeListing[] =
     latestListings.length > 0
       ? (latestListings as HomeListing[])
@@ -263,8 +203,6 @@ export default async function HomePage() {
           locationLabel: "TylkoDziałki",
           przeznaczenia: [],
           zdjecia: [],
-          isFeatured: false,
-          featuredUntil: null,
           isPlaceholder: true,
         }));
 
@@ -313,7 +251,7 @@ export default async function HomePage() {
 
             <div className="relative z-10 flex flex-col items-center px-6 text-center">
               <h1 className="font-bungee text-[30px] tracking-wide text-[#F3EFF5] md:text-[52px]">
-              SZUKAM DZIAŁKI
+                SZUKAM DZIAŁKI
               </h1>
 
               <div
@@ -355,96 +293,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="border-t border-white/10" style={{ background: PAGE_BG }}>
+      <section style={{ background: PAGE_BG }}>
         <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">
           <div className="flex items-end justify-between">
             <div>
               <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-                Wyróżnione oferty
+                Oferty
               </div>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                Najlepsze działki
-              </h2>
-            </div>
-          </div>
-
-          <div className="mt-10">
-            <HomeHorizontalSlider>
-              {featuredCards.map((item) => (
-                <HomeListingCard key={item.id} d={item} />
-              ))}
-            </HomeHorizontalSlider>
-          </div>
-
-          <div className="mt-6 flex justify-center md:justify-start">
-            <Link
-              href="/kup"
-              className="inline-flex text-sm text-white/60 transition hover:text-white"
-            >
-              Zobacz wszystkie wyróżnione →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t border-white/10" style={{ background: PAGE_BG }}>
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-          <div className="max-w-4xl">
-            <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-              O nas
-            </div>
-
-            <h2 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
-              Portal stworzony wyłącznie pod działki
-            </h2>
-
-            <p className="mt-6 max-w-3xl text-base leading-8 text-white/72 md:text-lg">
-              TylkoDziałki to miejsce stworzone dla osób, które chcą szybko i
-              wygodnie kupić lub sprzedać działkę. Tworzymy portal, który ma być
-              czytelny, nowoczesny i naprawdę pomocny dla osób szukających
-              konkretnych ofert.
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
-            <div className="rounded-[28px] border border-[#7aa333]/25 bg-gradient-to-br from-[#7aa333]/12 to-[#7aa333]/[0.02] p-7 transition hover:border-[#7aa333]/45">
-              <div className="text-2xl font-semibold text-[#9fd14b]">01</div>
-              <h3 className="mt-4 text-xl font-semibold text-white">Skupienie</h3>
-              <p className="mt-3 text-sm leading-7 text-white/68">
-                100% ofert i funkcji skupionych wokół działek.
-              </p>
-            </div>
-
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.045]">
-              <div className="text-2xl font-semibold text-[#9fd14b]">02</div>
-              <h3 className="mt-4 text-xl font-semibold text-white">
-                Proste dodawanie
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-white/68">
-                Intuicyjne wystawianie ofert i wygodne zarządzanie ogłoszeniami.
-              </p>
-            </div>
-
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.045]">
-              <div className="text-2xl font-semibold text-[#9fd14b]">03</div>
-              <h3 className="mt-4 text-xl font-semibold text-white">Rozwój</h3>
-              <p className="mt-3 text-sm leading-7 text-white/68">
-                Stale rozwijamy portal i docieramy do nowych osób szukających działek.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t border-white/10" style={{ background: PAGE_BG }}>
-        <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">
-          <div className="flex items-end justify-between">
-            <div>
-              <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
                 Najnowsze oferty
-              </div>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                Świeżo dodane działki
               </h2>
             </div>
           </div>
@@ -468,7 +325,60 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="border-t border-white/10" style={{ background: PAGE_BG }}>
+      <section style={{ background: PAGE_BG }}>
+        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
+          <div className="max-w-4xl">
+            <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
+              O nas
+            </div>
+
+            <h2 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
+              Portal stworzony wyłącznie pod działki
+            </h2>
+
+            <p className="mt-6 max-w-3xl text-base leading-8 text-white/72 md:text-lg">
+              TylkoDziałki to miejsce stworzone dla osób, które chcą szybko i
+              wygodnie kupić lub sprzedać działkę. Tworzymy portal, który ma być
+              czytelny, nowoczesny i naprawdę pomocny dla osób szukających
+              konkretnych ofert.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
+            <div className="rounded-[28px] border border-[#7aa333]/25 bg-gradient-to-br from-[#7aa333]/12 to-[#7aa333]/[0.02] p-7 transition hover:border-[#7aa333]/45">
+              <div className="text-2xl font-semibold text-[#9fd14b]">01</div>
+              <h3 className="mt-4 text-xl font-semibold text-white">
+                Tylko działki
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-white/68">
+                Portal skupiony wyłącznie na działkach, bez przypadkowych ofert z
+                innych kategorii.
+              </p>
+            </div>
+
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.045]">
+              <div className="text-2xl font-semibold text-[#9fd14b]">02</div>
+              <h3 className="mt-4 text-xl font-semibold text-white">
+                Proste dodawanie
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-white/68">
+                Intuicyjne wystawianie ofert i wygodne zarządzanie ogłoszeniami.
+              </p>
+            </div>
+
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.045]">
+              <div className="text-2xl font-semibold text-[#9fd14b]">03</div>
+              <h3 className="mt-4 text-xl font-semibold text-white">Rozwój</h3>
+              <p className="mt-3 text-sm leading-7 text-white/68">
+                Stale rozwijamy portal i docieramy do nowych osób szukających
+                działek.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ background: PAGE_BG }}>
         <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">
           <div className="flex items-end justify-between">
             <div>

@@ -1189,11 +1189,11 @@ export default function DzialkaForm({
               values={przeznaczenia}
               toggle={(v) => togglePrzeznaczenie(v as Przeznaczenie)}
               options={[
-                { value: 'BUDOWLANA', label: 'BUDOWLANA' },
-                { value: 'USLUGOWA', label: 'USŁUGOWA' },
-                { value: 'ROLNA', label: 'ROLNA' },
-                { value: 'LESNA', label: 'LEŚNA' },
-                { value: 'INWESTYCYJNA', label: 'INWESTYCYJNA' },
+                { value: 'BUDOWLANA', label: 'Budowlana' },
+                { value: 'USLUGOWA', label: 'Usługowa' },
+                { value: 'ROLNA', label: 'Rolna' },
+                { value: 'LESNA', label: 'Leśna' },
+                { value: 'INWESTYCYJNA', label: 'Inwestycyjna' },
               ]}
             />
 

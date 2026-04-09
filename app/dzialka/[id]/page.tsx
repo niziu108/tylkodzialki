@@ -549,36 +549,6 @@ export default function DzialkaPage() {
                 />
               </div>
             ) : null}
-
-            {showMap ? (
-              <div className="hidden lg:block">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Lokalizacja</div>
-                {loc ? <div className="mt-2 text-white/85 text-[14px] break-words">{loc}</div> : null}
-
-                {d.mapsUrl ? (
-                  <a
-                    href={d.mapsUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 inline-flex text-[12px] tracking-[0.18em] uppercase text-white/70 hover:text-white transition underline decoration-white/20 underline-offset-8"
-                  >
-                    OTWÓRZ W MAPACH GOOGLE
-                  </a>
-                ) : null}
-
-                <div className="mt-4 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-                  <div className="aspect-video">
-                    <iframe
-                      title="Mapa"
-                      src={mapSrc!}
-                      className="h-full w-full"
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : null}
           </section>
 
           <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
@@ -620,18 +590,6 @@ export default function DzialkaPage() {
                 <>
                   <div className="py-5">
                     <InfoLine icon={ICONS.type} value={przeznText} />
-                  </div>
-                  <Hr />
-                </>
-              ) : null}
-
-              {loc ? (
-                <>
-                  <div className="py-5">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <SmartImg src={ICONS.loc} alt="" className="mt-[2px] h-5 w-5 opacity-80 shrink-0" />
-                      <div className="min-w-0 text-white/90 text-[14px] leading-snug break-words">{loc}</div>
-                    </div>
                   </div>
                   <Hr />
                 </>
@@ -754,33 +712,40 @@ export default function DzialkaPage() {
                 </>
               ) : null}
 
-              {showMap ? (
-                <div className="py-5 lg:hidden">
+              {(loc || showMap) ? (
+                <div className="py-5">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Lokalizacja</div>
-                  {loc ? <div className="mt-2 text-white/85 text-[14px] break-words">{loc}</div> : null}
+
+                  {loc ? (
+                    <div className="mt-3">
+                      <InfoLine icon={ICONS.loc} value={loc} />
+                    </div>
+                  ) : null}
 
                   {d.mapsUrl ? (
                     <a
                       href={d.mapsUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-3 inline-flex text-[12px] tracking-[0.18em] uppercase text-white/70 hover:text-white transition underline decoration-white/20 underline-offset-8"
+                      className="mt-4 inline-flex text-[12px] tracking-[0.18em] uppercase text-white/70 hover:text-white transition underline decoration-white/20 underline-offset-8"
                     >
                       OTWÓRZ W MAPACH GOOGLE
                     </a>
                   ) : null}
 
-                  <div className="mt-4 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-                    <div className="aspect-video">
-                      <iframe
-                        title="Mapa"
-                        src={mapSrc!}
-                        className="h-full w-full"
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
+                  {showMap ? (
+                    <div className="mt-4 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
+                      <div className="aspect-video">
+                        <iframe
+                          title="Mapa"
+                          src={mapSrc!}
+                          className="h-full w-full"
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
