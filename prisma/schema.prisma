@@ -75,7 +75,7 @@ model Dzialka {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   editToken        String            @unique
-  email            String
+  email            String?
   expiresAt        DateTime?
   lat              Float?
   lng              Float?

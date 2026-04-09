@@ -191,6 +191,7 @@ export async function POST(req: Request) {
     where: { email: sessionEmail },
     select: {
       id: true,
+      email: true,
       listingCredits: true,
     },
   });
@@ -218,7 +219,6 @@ export async function POST(req: Request) {
     cenaPln,
     przeznaczenia,
     telefon,
-    email: ogloszenieEmail,
     opis,
     sprzedajacyTyp,
     numerOferty,
@@ -250,7 +250,6 @@ export async function POST(req: Request) {
   }
   if (!Number.isInteger(cenaPln) || cenaPln <= 0) return badRequest('Podaj poprawną cenę.');
   if (!telefon || typeof telefon !== 'string') return badRequest('Brak telefonu.');
-  if (!ogloszenieEmail || typeof ogloszenieEmail !== 'string') return badRequest('Brak email.');
 
   if (!Array.isArray(przeznaczenia) || przeznaczenia.length < 1) {
     return badRequest('Wybierz co najmniej 1 przeznaczenie.');
@@ -359,7 +358,7 @@ export async function POST(req: Request) {
           cenaPln,
           przeznaczenia: mappedPrzeznaczenia,
           telefon,
-          email: ogloszenieEmail,
+          email: dbUser.email ?? null,
 
           status: DzialkaStatus.AKTYWNE,
           publishedAt: now,
