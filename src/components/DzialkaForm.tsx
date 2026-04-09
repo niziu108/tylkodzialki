@@ -30,7 +30,6 @@ type UploadedPhoto = {
 type DzialkaDraft = {
   tytul: string;
   telefon: string;
-  email: string;
   cenaPln: string;
   powierzchniaM2: string;
   sprzedajacyTyp: SprzedajacyTypUI;
@@ -75,7 +74,7 @@ export type DzialkaFormInitialData = {
   id?: string;
   tytul: string;
   telefon: string;
-  email: string;
+  email?: string;
   cenaPln: number;
   powierzchniaM2: number;
   sprzedajacyTyp: 'PRYWATNIE' | 'BIURO';
@@ -392,7 +391,6 @@ export default function DzialkaForm({
 
   const [tytul, setTytul] = useState(initialData?.tytul ?? '');
   const [telefon, setTelefon] = useState(initialData?.telefon ?? '');
-  const [email, setEmail] = useState(initialData?.email ?? '');
 
   const [cenaPln, setCenaPln] = useState(
     typeof initialData?.cenaPln === 'number' ? formatThousandsSpaces(String(initialData.cenaPln)) : ''
@@ -515,7 +513,6 @@ export default function DzialkaForm({
 
     setTytul(draft.tytul ?? '');
     setTelefon(draft.telefon ?? '');
-    setEmail(draft.email ?? '');
     setCenaPln(draft.cenaPln ?? '');
     setPowierzchniaM2(draft.powierzchniaM2 ?? '');
     setSprzedajacyTyp(draft.sprzedajacyTyp ?? 'PRYWATNIE');
@@ -525,7 +522,7 @@ export default function DzialkaForm({
     setOpis(draft.opis ?? '');
     setPrad(draft.prad ?? 'BRAK_PRZYLACZA');
     setWoda(draft.woda ?? 'BRAK_PRZYLACZA');
-    setKanalizacja(draft.kanalizacja ?? 'BRAK');
+    setKanalizacja((draft.kanalizacja ?? 'BRAK') as any);
     setGaz(draft.gaz ?? 'BRAK');
     setSwiatlowod(draft.swiatlowod ?? 'BRAK');
     setWzWydane(!!draft.wzWydane);
@@ -547,7 +544,6 @@ export default function DzialkaForm({
     saveCreateDraft({
       tytul,
       telefon,
-      email,
       cenaPln,
       powierzchniaM2,
       sprzedajacyTyp,
@@ -574,7 +570,6 @@ export default function DzialkaForm({
     draftHydrated,
     tytul,
     telefon,
-    email,
     cenaPln,
     powierzchniaM2,
     sprzedajacyTyp,
@@ -704,7 +699,6 @@ export default function DzialkaForm({
       cenaPln: cena,
       przeznaczenia,
       telefon,
-      email,
       opis: opis.trim() ? opis.trim().slice(0, MAX_OPIS_CHARS) : null,
       sprzedajacyTyp: sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' ? 'BIURO' : 'PRYWATNIE',
       numerOferty: sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' ? numerOferty.trim() : null,
@@ -737,7 +731,6 @@ export default function DzialkaForm({
     if (!Number.isFinite(pm2) || pm2 <= 0) return setErr('Podaj poprawną powierzchnię.');
     if (!Number.isFinite(cena) || cena <= 0) return setErr('Podaj poprawną cenę.');
     if (!telefon.trim()) return setErr('Podaj telefon.');
-    if (!email.trim()) return setErr('Podaj email.');
     if (przeznaczenia.length < 1) return setErr('Wybierz min. 1 przeznaczenie.');
     if (!location) return setErr('Wybierz lokalizację.');
     if (uploaded.length < 1) return setErr('Dodaj minimum 1 zdjęcie.');
@@ -773,7 +766,6 @@ export default function DzialkaForm({
             saveCreateDraft({
               tytul,
               telefon,
-              email,
               cenaPln,
               powierzchniaM2,
               sprzedajacyTyp,
@@ -1138,8 +1130,12 @@ export default function DzialkaForm({
             <SectionTitle>Podstawowe informacje</SectionTitle>
 
             <div className="grid gap-10 md:grid-cols-2">
-              <UnderlineField label="Telefon" value={telefon} onChange={setTelefon} placeholder="Np. 605 000 000" />
-              <UnderlineField label="Email" value={email} onChange={setEmail} placeholder="Np. kontakt@..." type="email" />
+              <UnderlineField
+                label="Telefon"
+                value={telefon}
+                onChange={setTelefon}
+                placeholder="Np. 605 000 000"
+              />
 
               <UnderlineField
                 label="Cena (PLN)"

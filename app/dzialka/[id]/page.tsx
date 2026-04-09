@@ -98,7 +98,7 @@ function labelPrzeznaczenie(p: string) {
     .replace('LESNA', 'Leśna')
     .replace('INWESTYCYJNA', 'Inwestycyjna')
     .replace('ROLNA', 'Rolna')
-    .replace('BUDOWLANA', 'Bodowlana');
+    .replace('BUDOWLANA', 'Budowlana');
 }
 
 function labelPrad(v?: string | null) {
