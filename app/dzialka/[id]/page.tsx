@@ -72,14 +72,6 @@ const BG = '#131313';
 const FG = '#F3EFF5';
 const GREEN = '#7aa333';
 
-const ICONS = {
-  price: '/cena.webp',
-  area: '/powierzchnia.webp',
-  type: '/przeznaczenie.webp',
-  loc: '/lokalizacja.webp',
-  phone: '/telefon.webp',
-};
-
 function cx(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(' ');
 }
@@ -102,11 +94,11 @@ function formatIntPL(value: number) {
 
 function labelPrzeznaczenie(p: string) {
   return String(p)
-    .replace('USLUGOWA', 'USŁUGOWA')
-    .replace('LESNA', 'LEŚNA')
-    .replace('INWESTYCYJNA', 'INWESTYCYJNA')
-    .replace('ROLNA', 'ROLNA')
-    .replace('BUDOWLANA', 'BUDOWLANA');
+    .replace('USLUGOWA', 'Usługowa')
+    .replace('LESNA', 'Leśna')
+    .replace('INWESTYCYJNA', 'Inwestycyjna')
+    .replace('ROLNA', 'Rolna')
+    .replace('BUDOWLANA', 'Bodowlana');
 }
 
 function labelPrad(v?: string | null) {
@@ -188,13 +180,17 @@ function SmartImg({
   );
 }
 
-function InfoLine({ icon, value }: { icon: string; value: React.ReactNode }) {
+function FieldBlock({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-start gap-3 min-w-0">
-      <SmartImg src={icon} alt="" className="mt-[2px] h-5 w-5 opacity-80 shrink-0" />
-      <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
-        {value}
-      </div>
+    <div className="py-5">
+      <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">{label}</div>
+      <div className="mt-2">{children}</div>
     </div>
   );
 }
@@ -559,75 +555,66 @@ export default function DzialkaPage() {
 
               <Hr className="mt-6" />
 
-              <div className="py-5">
-                <div className="flex items-center gap-3 min-w-0">
-                  <SmartImg src={ICONS.price} alt="" className="h-5 w-5 opacity-80 shrink-0" />
-                  <div className="min-w-0 text-[20px] md:text-[22px] font-semibold" style={{ color: GREEN }}>
-                    {formatPLN(d.cenaPln)}
-                    {zlZaM2 ? (
-                      <span className="ml-2 text-[12px] text-white/50 font-normal">
-                        ({formatIntPL(zlZaM2)} zł/m²)
-                      </span>
-                    ) : null}
-                  </div>
+              <FieldBlock label="Cena">
+                <div className="min-w-0 text-[20px] md:text-[22px] font-semibold" style={{ color: GREEN }}>
+                  {formatPLN(d.cenaPln)}
+                  {zlZaM2 ? (
+                    <span className="ml-2 text-[12px] text-white/50 font-normal">
+                      ({formatIntPL(zlZaM2)} zł/m²)
+                    </span>
+                  ) : null}
                 </div>
-              </div>
+              </FieldBlock>
 
               <Hr />
 
-              <div className="py-5">
-                <div className="flex items-center gap-3 min-w-0">
-                  <SmartImg src={ICONS.area} alt="" className="h-5 w-5 opacity-80 shrink-0" />
-                  <div className="text-[20px] md:text-[22px] font-semibold" style={{ color: GREEN }}>
-                    {formatIntPL(area)} m²
-                  </div>
+              <FieldBlock label="Powierzchnia">
+                <div className="text-[20px] md:text-[22px] font-semibold" style={{ color: GREEN }}>
+                  {formatIntPL(area)} m²
                 </div>
-              </div>
+              </FieldBlock>
 
               <Hr />
 
               {przeznText ? (
                 <>
-                  <div className="py-5">
-                    <InfoLine icon={ICONS.type} value={przeznText} />
-                  </div>
+                  <FieldBlock label="Przeznaczenie">
+                    <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
+                      {przeznText}
+                    </div>
+                  </FieldBlock>
                   <Hr />
                 </>
               ) : null}
 
               {telefon ? (
                 <>
-                  <div className="py-5">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <SmartImg src={ICONS.phone} alt="" className="h-5 w-5 opacity-80 shrink-0" />
-                      <a
-                        href={`tel:${telefon.replace(/\s+/g, '')}`}
-                        className="min-w-0 text-[20px] md:text-[22px] font-semibold underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
-                        style={{ color: GREEN }}
-                      >
-                        {telefon}
-                      </a>
-                    </div>
-                  </div>
+                  <FieldBlock label="Kontakt">
+                    <a
+                      href={`tel:${telefon.replace(/\s+/g, '')}`}
+                      className="min-w-0 text-[20px] md:text-[22px] font-semibold underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
+                      style={{ color: GREEN }}
+                    >
+                      {telefon}
+                    </a>
+                  </FieldBlock>
                   <Hr />
                 </>
               ) : null}
 
               {numerOferty ? (
                 <>
-                  <div className="py-5">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Numer oferty</div>
-                    <div className="mt-2 text-white/85 text-[15px] break-words">{numerOferty}</div>
-                  </div>
+                  <FieldBlock label="Numer oferty">
+                    <div className="text-white/85 text-[15px] break-words">{numerOferty}</div>
+                  </FieldBlock>
                   <Hr />
                 </>
               ) : null}
 
               {hasUzbrojenie ? (
                 <>
-                  <div className="py-5">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Uzbrojenie</div>
-                    <div className="mt-3 space-y-2 text-[14px] text-white/85">
+                  <FieldBlock label="Uzbrojenie">
+                    <div className="space-y-2 text-[14px] text-white/85">
                       {prad ? (
                         <div className="break-words">
                           Prąd: <span className="text-white/95">{prad}</span>
@@ -654,30 +641,28 @@ export default function DzialkaPage() {
                         </div>
                       ) : null}
                     </div>
-                  </div>
+                  </FieldBlock>
                   <Hr />
                 </>
               ) : null}
 
               {hasDocs ? (
                 <>
-                  <div className="py-5">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Dokumenty / plan</div>
-                    <div className="mt-3 space-y-2 text-[14px] text-white/85">
+                  <FieldBlock label="Dokumenty / plan">
+                    <div className="space-y-2 text-[14px] text-white/85">
                       {d.mpzp ? <div>Obowiązuje MPZP</div> : null}
                       {d.wzWydane ? <div>Wydane warunki zabudowy</div> : null}
                       {d.projektDomu ? <div>Działka posiada projekt domu</div> : null}
                     </div>
-                  </div>
+                  </FieldBlock>
                   <Hr />
                 </>
               ) : null}
 
               {(klasaZiemi || wymiary || ksiega) ? (
                 <>
-                  <div className="py-5">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Dodatkowe informacje</div>
-                    <div className="mt-3 space-y-2 text-[14px] text-white/85">
+                  <FieldBlock label="Dodatkowe informacje">
+                    <div className="space-y-2 text-[14px] text-white/85">
                       {klasaZiemi ? (
                         <div className="break-words">
                           Klasa ziemi: <span className="text-white/95">{klasaZiemi}</span>
@@ -694,7 +679,7 @@ export default function DzialkaPage() {
                         </div>
                       ) : null}
                     </div>
-                  </div>
+                  </FieldBlock>
                   <Hr />
                 </>
               ) : null}
@@ -717,8 +702,8 @@ export default function DzialkaPage() {
                   <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Lokalizacja</div>
 
                   {loc ? (
-                    <div className="mt-3">
-                      <InfoLine icon={ICONS.loc} value={loc} />
+                    <div className="mt-2 min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
+                      {loc}
                     </div>
                   ) : null}
 

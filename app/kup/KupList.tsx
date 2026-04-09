@@ -37,23 +37,16 @@ function formatIntPL(value: number) {
 
 function labelPrzeznaczenie(p: Przeznaczenie) {
   return String(p)
-    .replace('USLUGOWA', 'USŁUGOWA')
-    .replace('LESNA', 'LEŚNA')
-    .replace('INWESTYCYJNA', 'INWESTYCYJNA')
-    .replace('ROLNA', 'ROLNA')
-    .replace('BUDOWLANA', 'BUDOWLANA');
+    .replace('USLUGOWA', 'Usługowa')
+    .replace('LESNA', 'Leśna')
+    .replace('INWESTYCYJNA', 'Inwestycyjna')
+    .replace('ROLNA', 'Rolna')
+    .replace('BUDOWLANA', 'Budowlana');
 }
 
 function isFeaturedActive(d: Dzialka) {
   return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
 }
-
-const ICONS = {
-  area: '/powierzchnia.webp',
-  price: '/cena.webp',
-  type: '/przeznaczenie.webp',
-  loc: '/lokalizacja.webp',
-};
 
 const GREEN = '#7aa333';
 
@@ -126,11 +119,18 @@ export default function KupList({
               className="overflow-hidden rounded-3xl border border-white/12 bg-[#0f0f0f]/20"
             >
               <div className="aspect-video animate-pulse bg-white/5" />
-              <div className="space-y-4 p-5 md:p-6">
-                <div className="h-4 w-40 animate-pulse rounded bg-white/5" />
-                <div className="h-4 w-64 animate-pulse rounded bg-white/5" />
-                <div className="h-4 w-56 animate-pulse rounded bg-white/5" />
-                <div className="h-4 w-72 animate-pulse rounded bg-white/5" />
+              <div className="space-y-6 p-5 md:p-6">
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-4">
+                  <div className="h-14 animate-pulse rounded bg-white/5" />
+                  <div className="w-px bg-white/5" />
+                  <div className="h-14 animate-pulse rounded bg-white/5" />
+                </div>
+                <div className="h-5 w-52 animate-pulse rounded bg-white/5 mx-auto" />
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-4">
+                  <div className="h-14 animate-pulse rounded bg-white/5" />
+                  <div className="w-px bg-white/5" />
+                  <div className="h-14 animate-pulse rounded bg-white/5" />
+                </div>
               </div>
             </div>
           ))}
@@ -212,32 +212,100 @@ function DzialkaCard({ d, eagerImage = false }: { d: Dzialka; eagerImage?: boole
         eagerImage={eagerImage}
       />
 
-      <div className="space-y-4 p-5 md:p-6">
-        <div className="flex items-center gap-3">
-          <SmartImg src={ICONS.price} alt="" className="h-5 w-5 opacity-80" />
-          <div className="text-[18px] font-semibold" style={{ color: GREEN }}>
-            {formatPLN(d.cenaPln)}
-            {zlZaM2 ? (
-              <span className="ml-2 text-[12px] font-normal text-white/50">
-                ({formatIntPL(zlZaM2)} zł/m²)
-              </span>
-            ) : null}
+      <div className="p-5 md:p-6">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <MetricBlock
+            label="Cena"
+            align="center"
+            value={
+              <div
+                className="text-[22px] font-semibold leading-none md:text-[24px]"
+                style={{ color: GREEN }}
+              >
+                {formatPLN(d.cenaPln)}
+              </div>
+            }
+            subValue={
+              zlZaM2 ? (
+                <div className="mt-1 text-[12px] text-white/45">
+                  {formatIntPL(zlZaM2)} zł/m²
+                </div>
+              ) : null
+            }
+          />
+
+          <div className="h-14 w-px bg-white/10" />
+
+          <MetricBlock
+            label="Powierzchnia"
+            align="center"
+            value={
+              <div className="text-[20px] font-medium leading-none text-white/95 md:text-[22px]">
+                {formatIntPL(area)} m²
+              </div>
+            }
+          />
+        </div>
+
+        <div className="mt-6">
+          <div className="mx-auto max-w-[92%] text-center text-[16px] font-medium leading-[1.35] text-white/92 md:text-[17px]">
+            {d.tytul}
           </div>
         </div>
 
-        <InfoLine icon={ICONS.area} value={`${formatIntPL(area)} m²`} />
-        <InfoLine icon={ICONS.type} value={przezn} />
-        <InfoLine icon={ICONS.loc} value={loc} />
+        <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <MetricBlock
+            label="Lokalizacja"
+            align="center"
+            value={
+              <div className="break-words text-[14px] leading-[1.4] text-white/90">
+                {loc}
+              </div>
+            }
+          />
+
+          <div className="h-14 w-px bg-white/10" />
+
+          <MetricBlock
+            label="Przeznaczenie"
+            align="center"
+            value={
+              <div className="break-words text-[14px] leading-[1.4] text-white/90">
+                {przezn}
+              </div>
+            }
+          />
+        </div>
       </div>
     </Link>
   );
 }
 
-function InfoLine({ icon, value }: { icon: string; value: React.ReactNode }) {
+function MetricBlock({
+  label,
+  value,
+  subValue,
+  align = 'center',
+}: {
+  label: string;
+  value: React.ReactNode;
+  subValue?: React.ReactNode;
+  align?: 'left' | 'center' | 'right';
+}) {
+  const alignClass =
+    align === 'left'
+      ? 'text-left items-start'
+      : align === 'right'
+      ? 'text-right items-end'
+      : 'text-center items-center';
+
   return (
-    <div className="flex items-center gap-3">
-      <SmartImg src={icon} alt="" className="h-5 w-5 opacity-80" />
-      <div className="text-[14px] leading-snug text-white/90">{value}</div>
+    <div className={`min-w-0 flex flex-col ${alignClass}`}>
+      <div className="text-[11px] uppercase tracking-[0.16em] text-white/35">
+        {label}
+      </div>
+      <div className="mt-2 min-w-0">{value}</div>
+      {subValue ? <div className="min-w-0">{subValue}</div> : null}
     </div>
   );
 }
@@ -342,7 +410,7 @@ function Carousel({
             eager={eagerImage}
           />
 
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
 
           {featured ? (
             <div className="absolute left-4 top-4 z-10">
@@ -351,12 +419,6 @@ function Carousel({
               </span>
             </div>
           ) : null}
-
-          <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
-            <div className="text-center text-[17px] font-medium leading-tight text-white drop-shadow md:text-[18px]">
-              {title}
-            </div>
-          </div>
 
           {list.length > 1 && (
             <>

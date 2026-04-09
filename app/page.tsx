@@ -7,13 +7,6 @@ const ACCENT = "#2F5E46";
 const GREEN = "#7aa333";
 const PAGE_BG = "#131313";
 
-const ICONS = {
-  area: "/powierzchnia.webp",
-  price: "/cena.webp",
-  type: "/przeznaczenie.webp",
-  loc: "/lokalizacja.webp",
-};
-
 function formatPLN(value: number) {
   return new Intl.NumberFormat("pl-PL", {
     style: "currency",
@@ -30,11 +23,11 @@ function formatIntPL(value: number) {
 
 function labelPrzeznaczenie(p: Przeznaczenie) {
   return String(p)
-    .replace("USLUGOWA", "USŁUGOWA")
-    .replace("LESNA", "LEŚNA")
-    .replace("INWESTYCYJNA", "INWESTYCYJNA")
-    .replace("ROLNA", "ROLNA")
-    .replace("BUDOWLANA", "BUDOWLANA");
+    .replace("USLUGOWA", "Usługowa")
+    .replace("LESNA", "Leśna")
+    .replace("INWESTYCYJNA", "Inwestycyjna")
+    .replace("ROLNA", "Rolna")
+    .replace("BUDOWLANA", "Budowlana");
 }
 
 type HomePhoto = {
@@ -54,21 +47,6 @@ type HomeListing = {
   zdjecia?: HomePhoto[];
   isPlaceholder?: boolean;
 };
-
-function HomeInfoLine({
-  icon,
-  value,
-}: {
-  icon: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <img src={icon} alt="" className="h-5 w-5 opacity-80" loading="lazy" />
-      <div className="text-[14px] leading-snug text-white/90">{value}</div>
-    </div>
-  );
-}
 
 function HomeListingCarousel({
   photos,
@@ -97,19 +75,33 @@ function HomeListingCarousel({
             className="h-full w-full object-cover"
             loading="lazy"
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <div className="text-center text-[18px] font-medium leading-tight text-white drop-shadow">
-              {title}
-            </div>
-          </div>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
         </>
       ) : (
         <div className="flex h-full items-center justify-center text-white/50">
           Brak zdjęć
         </div>
       )}
+    </div>
+  );
+}
+
+function MetricBlock({
+  label,
+  value,
+  subValue,
+}: {
+  label: string;
+  value: React.ReactNode;
+  subValue?: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0 flex flex-col items-center text-center">
+      <div className="text-[11px] uppercase tracking-[0.16em] text-white/35">
+        {label}
+      </div>
+      <div className="mt-2 min-w-0">{value}</div>
+      {subValue ? <div className="min-w-0">{subValue}</div> : null}
     </div>
   );
 }
@@ -140,28 +132,66 @@ function HomeListingCard({ d }: { d: HomeListing }) {
         title={d.tytul}
       />
 
-      <div className="space-y-4 p-6">
-        <div className="flex items-center gap-3">
-          <img src={ICONS.price} alt="" className="h-5 w-5 opacity-80" />
-          <div className="text-[18px] font-semibold" style={{ color: GREEN }}>
-            {d.isPlaceholder ? "Wkrótce pojawią się oferty" : formatPLN(d.cenaPln)}
-            {!d.isPlaceholder && zlZaM2 ? (
-              <span className="ml-2 text-[12px] font-normal text-white/50">
-                ({formatIntPL(zlZaM2)} zł/m²)
-              </span>
-            ) : null}
+      <div className="p-5 md:p-6">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <MetricBlock
+            label="Cena"
+            value={
+              <div
+                className="text-[22px] font-semibold leading-none md:text-[24px]"
+                style={{ color: GREEN }}
+              >
+                {d.isPlaceholder ? "Wkrótce" : formatPLN(d.cenaPln)}
+              </div>
+            }
+            subValue={
+              !d.isPlaceholder && zlZaM2 ? (
+                <div className="mt-1 text-[12px] text-white/45">
+                  {formatIntPL(zlZaM2)} zł/m²
+                </div>
+              ) : null
+            }
+          />
+
+          <div className="h-14 w-px bg-white/10" />
+
+          <MetricBlock
+            label="Powierzchnia"
+            value={
+              <div className="text-[20px] font-medium leading-none text-white/95 md:text-[22px]">
+                {d.isPlaceholder ? "—" : `${formatIntPL(area)} m²`}
+              </div>
+            }
+          />
+        </div>
+
+        <div className="mt-6">
+          <div className="mx-auto max-w-[92%] text-center text-[16px] font-medium leading-[1.35] text-white/92 md:text-[17px]">
+            {d.tytul}
           </div>
         </div>
 
-        <HomeInfoLine
-          icon={ICONS.area}
-          value={d.isPlaceholder ? "—" : `${formatIntPL(area)} m²`}
-        />
-        <HomeInfoLine icon={ICONS.type} value={d.isPlaceholder ? "—" : przezn} />
-        <HomeInfoLine
-          icon={ICONS.loc}
-          value={d.isPlaceholder ? "TylkoDziałki" : loc}
-        />
+        <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <MetricBlock
+            label="Lokalizacja"
+            value={
+              <div className="break-words text-[14px] leading-[1.4] text-white/90">
+                {d.isPlaceholder ? "TylkoDziałki" : loc}
+              </div>
+            }
+          />
+
+          <div className="h-14 w-px bg-white/10" />
+
+          <MetricBlock
+            label="Przeznaczenie"
+            value={
+              <div className="break-words text-[14px] leading-[1.4] text-white/90">
+                {d.isPlaceholder ? "—" : przezn}
+              </div>
+            }
+          />
+        </div>
       </div>
     </Link>
   );
