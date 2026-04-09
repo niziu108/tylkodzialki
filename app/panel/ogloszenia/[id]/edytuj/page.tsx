@@ -57,7 +57,7 @@ export default async function EdytujOgloszeniePage({ params }: Props) {
         id: dzialka.id,
         tytul: dzialka.tytul,
         telefon: dzialka.telefon,
-        email: dzialka.email,
+        email: dzialka.email ?? '',
         cenaPln: dzialka.cenaPln,
         powierzchniaM2: dzialka.powierzchniaM2,
         sprzedajacyTyp: dzialka.sprzedajacyTyp,
