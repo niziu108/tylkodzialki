@@ -26,6 +26,83 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl" className={geist.variable}>
+      <head>
+        {/* Consent bootstrap + lazy GA load after consent */}
+        <Script id="consent-and-ga-bootstrap" strategy="beforeInteractive">
+          {`
+            (function () {
+              window.dataLayer = window.dataLayer || [];
+              window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
+
+              // Domyślnie brak zgody
+              window.gtag('consent', 'default', {
+                analytics_storage: 'denied',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied',
+                wait_for_update: 500
+              });
+
+              window.__gaLoaded = false;
+
+              window.__loadGoogleAnalytics = function () {
+                if (window.__gaLoaded) return;
+                window.__gaLoaded = true;
+
+                var script = document.createElement('script');
+                script.async = true;
+                script.src = 'https://www.googletagmanager.com/gtag/js?id=G-V9YZ7E7EBD';
+                document.head.appendChild(script);
+
+                window.gtag('js', new Date());
+
+                // Po zgodzie odblokowujemy analytics
+                window.gtag('consent', 'update', {
+                  analytics_storage: 'granted',
+                  ad_storage: 'denied',
+                  ad_user_data: 'denied',
+                  ad_personalization: 'denied'
+                });
+
+                window.gtag('config', 'G-V9YZ7E7EBD', {
+                  anonymize_ip: true
+                });
+              };
+
+              function hasAnalyticsConsent() {
+                try {
+                  // Preferujemy osobną zgodę analytics,
+                  // ale zostawiamy fallback na marketing, jeśli banner dziś tak działa.
+                  return (
+                    localStorage.getItem('cookie-consent-analytics') === 'true' ||
+                    localStorage.getItem('cookie-consent-marketing') === 'true'
+                  );
+                } catch (e) {
+                  return false;
+                }
+              }
+
+              // Jeśli zgoda była już wcześniej zapisana
+              if (hasAnalyticsConsent()) {
+                window.__loadGoogleAnalytics();
+              }
+
+              // Nasłuch aktualizacji z bannera
+              window.addEventListener('cookieConsentAccepted', function (e) {
+                var analyticsGranted =
+                  !!(e && e.detail && (
+                    e.detail.analytics === true || e.detail.marketing === true
+                  ));
+
+                if (analyticsGranted) {
+                  window.__loadGoogleAnalytics();
+                }
+              });
+            })();
+          `}
+        </Script>
+      </head>
+
       <body className="font-sans bg-[#131313] text-white">
         <Providers>
           <div className="flex min-h-screen flex-col">
@@ -71,20 +148,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               `,
             }}
           />
-
-          {/* GOOGLE ANALYTICS */}
-          <Script
-            src="https://www.googletagmanager.com/gtag/js?id=G-V9YZ7E7EBD"
-            strategy="afterInteractive"
-          />
-          <Script id="google-analytics" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-V9YZ7E7EBD');
-            `}
-          </Script>
 
           <CookieConsent />
         </Providers>
