@@ -61,7 +61,7 @@ export default function BlogSearchSection({
                   Blog TylkoDziałki
                 </div>
 
-                <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-white md:text-6xl">
+                <h1 className="mt-5 max-w-1xl text-2xl font-semibold tracking-tight text-white md:text-5xl">
                   Wiedza o działkach,
                   <br className="hidden md:block" />
                   prosto i konkretnie
