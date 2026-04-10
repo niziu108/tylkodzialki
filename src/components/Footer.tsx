@@ -58,32 +58,38 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* MEDIA SPOŁECZNOŚCIOWE */}
+            {/* SOCIAL */}
             <div className="space-y-6">
               <h3 className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#7aa333]">
                 Media społecznościowe
               </h3>
 
               <div className="flex flex-col gap-4 text-[15px] text-white/70">
+
                 <a
-                  href="#"
+                  href="https://www.instagram.com/tylkodzialki.pl/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex w-fit items-center gap-3 transition hover:text-white"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M7 2C4.239 2 2 4.239 2 7v10c0 2.761 2.239 5 5 5h10c2.761 0 5-2.239 5-5V7c0-2.761-2.239-5-5-5H7zm0 2h10c1.657 0 3 1.343 3 3v10c0 1.657-1.343 3-3 3H7c-1.657 0-3-1.343-3-3V7c0-1.657 1.343-3 3-3zm10.5 1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" />
                   </svg>
                   Instagram
                 </a>
 
                 <a
-                  href="#"
+                  href="https://www.facebook.com/profile.php?id=61573292127976"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex w-fit items-center gap-3 transition hover:text-white"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M13.5 22v-8h2.7l.4-3h-3.1V9.1c0-.9.3-1.6 1.7-1.6H17V4.8c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.2V11H8v3h2.6v8h2.9z" />
                   </svg>
                   Facebook
                 </a>
+
               </div>
             </div>
           </div>
