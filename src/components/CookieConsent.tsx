@@ -312,16 +312,16 @@ export default function CookieConsent() {
                   <button
                     type="button"
                     onClick={() => setAnalytics((v) => !v)}
-                    className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition ${
+                    className={\`relative inline-flex h-7 w-12 shrink-0 rounded-full transition \${
                       analytics ? 'bg-[#7aa333]' : 'bg-white/15'
-                    }`}
+                    }\`}
                     aria-pressed={analytics}
                     aria-label="Przełącz cookies analityczne"
                   >
                     <span
-                      className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${
+                      className={\`absolute top-1 h-5 w-5 rounded-full bg-white transition \${
                         analytics ? 'left-6' : 'left-1'
-                      }`}
+                      }\`}
                     />
                   </button>
                 </div>
@@ -342,16 +342,16 @@ export default function CookieConsent() {
                   <button
                     type="button"
                     onClick={() => setMarketing((v) => !v)}
-                    className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition ${
+                    className={\`relative inline-flex h-7 w-12 shrink-0 rounded-full transition \${
                       marketing ? 'bg-[#7aa333]' : 'bg-white/15'
-                    }`}
+                    }\`}
                     aria-pressed={marketing}
                     aria-label="Przełącz cookies marketingowe"
                   >
                     <span
-                      className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${
+                      className={\`absolute top-1 h-5 w-5 rounded-full bg-white transition \${
                         marketing ? 'left-6' : 'left-1'
-                      }`}
+                      }\`}
                     />
                   </button>
                 </div>
