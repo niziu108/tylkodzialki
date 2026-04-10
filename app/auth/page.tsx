@@ -87,9 +87,9 @@ function AuthPageContent() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      window.location.replace('/panel');
+      window.location.replace(callbackUrl);
     }
-  }, [status]);
+  }, [status, callbackUrl]);
 
   const tabBtn = (active: boolean) =>
     cx(
@@ -223,7 +223,12 @@ function AuthPageContent() {
                 <div className="mt-8 space-y-3">
                   <button
                     type="button"
-                    onClick={() => signIn('google', { callbackUrl })}
+                    onClick={() =>
+                      signIn('google', {
+                        callbackUrl,
+                        prompt: 'select_account',
+                      })
+                    }
                     className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/[0.03] px-4 py-4 font-semibold transition hover:bg-white/[0.06]"
                   >
                     <GoogleIcon />
