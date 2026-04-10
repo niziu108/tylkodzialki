@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
 import type { Przeznaczenie } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const ACCENT = "#2F5E46";
 const GREEN = "#7aa333";
 const PAGE_BG = "#131313";
