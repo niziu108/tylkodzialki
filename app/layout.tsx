@@ -1,12 +1,12 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import GlobalNav from '@/components/GlobalNav';
 import Providers from '@/components/Providers';
 import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
 import ConsentScripts from '@/components/ConsentScripts';
 import { Geist } from 'next/font/google';
-import { GoogleAnalytics } from '@next/third-parties/google';
 
 const geist = Geist({
   subsets: ['latin'],
@@ -72,10 +72,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }}
           />
 
-          <CookieConsent />
+          {/* GOOGLE ANALYTICS */}
+          <Script
+            src="https://www.googletagmanager.com/gtag/js?id=G-QSBPVGMT2W"
+            strategy="afterInteractive"
+          />
+          <Script id="google-analytics" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-QSBPVGMT2W');
+            `}
+          </Script>
 
-          {/* 🔥 GOOGLE ANALYTICS */}
-          <GoogleAnalytics gaId="G-QSBPVGMT2W" />
+          <CookieConsent />
         </Providers>
       </body>
     </html>
