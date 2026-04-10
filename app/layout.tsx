@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
 import ConsentScripts from '@/components/ConsentScripts';
 import { Geist } from 'next/font/google';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 const geist = Geist({
   subsets: ['latin'],
@@ -72,6 +73,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
 
           <CookieConsent />
+
+          {/* 🔥 GOOGLE ANALYTICS */}
+          <GoogleAnalytics gaId="G-QSBPVGMT2W" />
         </Providers>
       </body>
     </html>
