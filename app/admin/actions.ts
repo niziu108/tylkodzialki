@@ -45,6 +45,11 @@ async function getAppConfig() {
         paymentsEnabled: false,
         freeListingCredits: 0,
         freeListingCreditsDays: null,
+        listingSinglePriceGrossPln: 1900,
+        listingPack10PriceGrossPln: 14900,
+        listingPack40PriceGrossPln: 39900,
+        featuredSinglePriceGrossPln: 1900,
+        featuredPack3PriceGrossPln: 3900,
       },
     });
   }
@@ -182,6 +187,45 @@ async function getRecipients(audience: MailAudience) {
       createdAt: "desc",
     },
   });
+}
+
+function toGross(value: FormDataEntryValue | null) {
+  const str = String(value || "").replace(",", ".").trim();
+  const num = Number(str);
+
+  if (!Number.isFinite(num) || num <= 0) {
+    throw new Error("Nieprawidłowa cena.");
+  }
+
+  return Math.round(num * 100);
+}
+
+export async function savePricingAction(formData: FormData) {
+  await requireAdmin();
+
+  const listingSinglePriceGrossPln = toGross(formData.get("listingSinglePrice"));
+  const listingPack10PriceGrossPln = toGross(formData.get("listingPack10Price"));
+  const listingPack40PriceGrossPln = toGross(formData.get("listingPack40Price"));
+  const featuredSinglePriceGrossPln = toGross(formData.get("featuredSinglePrice"));
+  const featuredPack3PriceGrossPln = toGross(formData.get("featuredPack3Price"));
+
+  const config = await getAppConfig();
+
+  await prisma.appConfig.update({
+    where: { id: config.id },
+    data: {
+      listingSinglePriceGrossPln,
+      listingPack10PriceGrossPln,
+      listingPack40PriceGrossPln,
+      featuredSinglePriceGrossPln,
+      featuredPack3PriceGrossPln,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/panel");
+  revalidatePath("/panel/pakiety");
+  revalidatePath("/panel/wyroznienia");
 }
 
 export async function deleteUserAction(formData: FormData) {

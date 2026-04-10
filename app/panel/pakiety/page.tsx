@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type PackageKey = 'single' | 'pack10' | 'pack40';
 type InvoiceChoice = 'NONE' | 'COMPANY';
@@ -15,6 +15,17 @@ type InvoiceFormState = {
   email: string;
 };
 
+type PricingResponse = {
+  ok: boolean;
+  pricing?: {
+    listingSinglePriceGrossPln: number;
+    listingPack10PriceGrossPln: number;
+    listingPack40PriceGrossPln: number;
+    featuredSinglePriceGrossPln: number;
+    featuredPack3PriceGrossPln: number;
+  };
+};
+
 const initialInvoiceState: InvoiceFormState = {
   companyName: '',
   nip: '',
@@ -25,10 +36,56 @@ const initialInvoiceState: InvoiceFormState = {
   email: '',
 };
 
+function formatPrice(grosze: number) {
+  return `${Math.round(grosze / 100)} zł`;
+}
+
 export default function PakietyPage() {
   const [loadingKey, setLoadingKey] = useState<PackageKey | null>(null);
   const [invoiceType, setInvoiceType] = useState<InvoiceChoice>('NONE');
   const [invoice, setInvoice] = useState<InvoiceFormState>(initialInvoiceState);
+
+  const [pricing, setPricing] = useState({
+    listingSinglePriceGrossPln: 1900,
+    listingPack10PriceGrossPln: 14900,
+    listingPack40PriceGrossPln: 39900,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPricing() {
+      try {
+        const res = await fetch('/api/pricing', { cache: 'no-store' });
+        const data = (await res.json().catch(() => null)) as PricingResponse | null;
+
+        if (!cancelled && data?.ok && data.pricing) {
+          setPricing({
+            listingSinglePriceGrossPln: data.pricing.listingSinglePriceGrossPln,
+            listingPack10PriceGrossPln: data.pricing.listingPack10PriceGrossPln,
+            listingPack40PriceGrossPln: data.pricing.listingPack40PriceGrossPln,
+          });
+        }
+      } catch (e) {
+        console.error('LOAD_PRICING_ERROR', e);
+      }
+    }
+
+    loadPricing();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const singlePrice = pricing.listingSinglePriceGrossPln;
+  const pack10Price = pricing.listingPack10PriceGrossPln;
+  const pack40Price = pricing.listingPack40PriceGrossPln;
+
+  const savingsPack10 = useMemo(() => {
+    const value = singlePrice * 10 - pack10Price;
+    return value > 0 ? value : 0;
+  }, [singlePrice, pack10Price]);
 
   function updateInvoiceField(key: keyof InvoiceFormState, value: string) {
     setInvoice((prev) => ({
@@ -183,7 +240,7 @@ export default function PakietyPage() {
             </div>
 
             <div className="mb-2 text-5xl font-bold tracking-tight text-white">
-              19 zł
+              {formatPrice(singlePrice)}
             </div>
 
             <p className="mx-auto max-w-[240px] text-sm leading-relaxed text-[#bdbdbd]">
@@ -225,11 +282,13 @@ export default function PakietyPage() {
             </div>
 
             <div className="mb-2 text-5xl font-bold tracking-tight text-white">
-              149 zł
+              {formatPrice(pack10Price)}
             </div>
 
             <div className="text-sm font-medium text-[#9fd14b]">
-              Oszczędzasz 41 zł
+              {savingsPack10 > 0
+                ? `Oszczędzasz ${formatPrice(savingsPack10)}`
+                : 'Lepsza cena za publikację'}
             </div>
 
             <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-[#d6dec4]">
@@ -267,7 +326,7 @@ export default function PakietyPage() {
             </div>
 
             <div className="mb-2 text-5xl font-bold tracking-tight text-white">
-              399 zł
+              {formatPrice(pack40Price)}
             </div>
 
             <div className="text-sm font-medium text-[#9fd14b]">

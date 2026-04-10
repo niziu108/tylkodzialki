@@ -28,35 +28,58 @@ type CheckoutBody = {
   };
 };
 
-const PACKAGE_MAP: Record<string, PackageConfig> = {
-  single: {
-    packageType: ListingPackageType.SINGLE,
-    packageName: 'Pakiet 1',
-    amountGrossPln: 1900,
-    credits: 1,
-    featuredCredits: 0,
-    validityDays: null,
-  },
-  pack10: {
-    packageType: ListingPackageType.PACK_10,
-    packageName: 'Pakiet 10',
-    amountGrossPln: 14900,
-    credits: 10,
-    featuredCredits: 1,
-    validityDays: null,
-  },
-  pack40: {
-    packageType: ListingPackageType.PACK_40,
-    packageName: 'Pakiet 40',
-    amountGrossPln: 39900,
-    credits: 40,
-    featuredCredits: 3,
-    validityDays: null,
-  },
-};
-
 function onlyDigits(value: string) {
   return value.replace(/\D/g, '');
+}
+
+async function getAppConfig() {
+  let config = await prisma.appConfig.findFirst();
+
+  if (!config) {
+    config = await prisma.appConfig.create({
+      data: {
+        paymentsEnabled: false,
+        freeListingCredits: 0,
+        freeListingCreditsDays: null,
+        listingSinglePriceGrossPln: 1900,
+        listingPack10PriceGrossPln: 14900,
+        listingPack40PriceGrossPln: 39900,
+        featuredSinglePriceGrossPln: 1900,
+        featuredPack3PriceGrossPln: 3900,
+      },
+    });
+  }
+
+  return config;
+}
+
+function buildPackageMap(config: Awaited<ReturnType<typeof getAppConfig>>): Record<string, PackageConfig> {
+  return {
+    single: {
+      packageType: ListingPackageType.SINGLE,
+      packageName: 'Pakiet 1',
+      amountGrossPln: config.listingSinglePriceGrossPln,
+      credits: 1,
+      featuredCredits: 0,
+      validityDays: null,
+    },
+    pack10: {
+      packageType: ListingPackageType.PACK_10,
+      packageName: 'Pakiet 10',
+      amountGrossPln: config.listingPack10PriceGrossPln,
+      credits: 10,
+      featuredCredits: 1,
+      validityDays: null,
+    },
+    pack40: {
+      packageType: ListingPackageType.PACK_40,
+      packageName: 'Pakiet 40',
+      amountGrossPln: config.listingPack40PriceGrossPln,
+      credits: 40,
+      featuredCredits: 3,
+      validityDays: null,
+    },
+  };
 }
 
 export async function POST(req: Request) {
@@ -86,6 +109,9 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
+
+    const config = await getAppConfig();
+    const PACKAGE_MAP = buildPackageMap(config);
 
     const body = (await req.json().catch(() => null)) as CheckoutBody | null;
     const packageKey = String(body?.packageKey || '');

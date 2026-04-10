@@ -25,6 +25,27 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, '');
 }
 
+async function getAppConfig() {
+  let config = await prisma.appConfig.findFirst();
+
+  if (!config) {
+    config = await prisma.appConfig.create({
+      data: {
+        paymentsEnabled: false,
+        freeListingCredits: 0,
+        freeListingCreditsDays: null,
+        listingSinglePriceGrossPln: 1900,
+        listingPack10PriceGrossPln: 14900,
+        listingPack40PriceGrossPln: 39900,
+        featuredSinglePriceGrossPln: 1900,
+        featuredPack3PriceGrossPln: 3900,
+      },
+    });
+  }
+
+  return config;
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -56,6 +77,8 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
+
+    const config = await getAppConfig();
 
     const invoiceType = body?.invoiceType === 'COMPANY' ? 'COMPANY' : 'NONE';
     const invoice = body?.invoice || {};
@@ -97,13 +120,13 @@ export async function POST(req: Request) {
     let name = '';
 
     if (packageKey === 'featured_1') {
-      price = 1900;
+      price = config.featuredSinglePriceGrossPln;
       credits = 1;
       name = 'Wyróżnienie ogłoszenia';
     }
 
     if (packageKey === 'featured_3') {
-      price = 3900;
+      price = config.featuredPack3PriceGrossPln;
       credits = 3;
       name = 'Pakiet 3 wyróżnień';
     }

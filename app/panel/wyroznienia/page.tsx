@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type FeaturedPackageKey = 'featured_1' | 'featured_3';
@@ -15,6 +15,17 @@ type InvoiceFormState = {
   email: string;
 };
 
+type PricingResponse = {
+  ok: boolean;
+  pricing?: {
+    listingSinglePriceGrossPln: number;
+    listingPack10PriceGrossPln: number;
+    listingPack40PriceGrossPln: number;
+    featuredSinglePriceGrossPln: number;
+    featuredPack3PriceGrossPln: number;
+  };
+};
+
 const initialInvoiceState: InvoiceFormState = {
   companyName: '',
   nip: '',
@@ -24,12 +35,47 @@ const initialInvoiceState: InvoiceFormState = {
   email: '',
 };
 
+function formatPrice(grosze: number) {
+  return `${Math.round(grosze / 100)} zł`;
+}
+
 function WyroznieniaPageContent() {
   const [loadingKey, setLoadingKey] = useState<FeaturedPackageKey | null>(null);
   const [invoiceType, setInvoiceType] = useState<InvoiceChoice>('NONE');
   const [invoice, setInvoice] = useState<InvoiceFormState>(initialInvoiceState);
 
+  const [pricing, setPricing] = useState({
+    featuredSinglePriceGrossPln: 1900,
+    featuredPack3PriceGrossPln: 3900,
+  });
+
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPricing() {
+      try {
+        const res = await fetch('/api/pricing', { cache: 'no-store' });
+        const data = (await res.json().catch(() => null)) as PricingResponse | null;
+
+        if (!cancelled && data?.ok && data.pricing) {
+          setPricing({
+            featuredSinglePriceGrossPln: data.pricing.featuredSinglePriceGrossPln,
+            featuredPack3PriceGrossPln: data.pricing.featuredPack3PriceGrossPln,
+          });
+        }
+      } catch (e) {
+        console.error('LOAD_PRICING_ERROR', e);
+      }
+    }
+
+    loadPricing();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const dzialkaId = useMemo(() => {
     const raw = searchParams.get('dzialkaId');
@@ -189,7 +235,7 @@ function WyroznieniaPageContent() {
             </div>
 
             <div className="mb-2 text-5xl font-bold tracking-tight text-white">
-              19 zł
+              {formatPrice(pricing.featuredSinglePriceGrossPln)}
             </div>
 
             <p className="mx-auto max-w-[240px] text-sm leading-relaxed text-[#bdbdbd]">
@@ -232,7 +278,7 @@ function WyroznieniaPageContent() {
             </div>
 
             <div className="mb-2 text-5xl font-bold tracking-tight text-white">
-              39 zł
+              {formatPrice(pricing.featuredPack3PriceGrossPln)}
             </div>
 
             <div className="text-sm font-medium text-[#9fd14b]">

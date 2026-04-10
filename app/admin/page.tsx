@@ -5,6 +5,7 @@ import { authOptions } from "@/auth-options";
 import { redirect } from "next/navigation";
 import {
   deleteUserAction,
+  savePricingAction,
   togglePaymentsAction,
   toggleUserRoleAction,
 } from "./actions";
@@ -29,6 +30,11 @@ async function getAppConfig() {
         paymentsEnabled: false,
         freeListingCredits: 0,
         freeListingCreditsDays: null,
+        listingSinglePriceGrossPln: 1900,
+        listingPack10PriceGrossPln: 14900,
+        listingPack40PriceGrossPln: 39900,
+        featuredSinglePriceGrossPln: 1900,
+        featuredPack3PriceGrossPln: 3900,
       },
     });
   }
@@ -90,6 +96,10 @@ function getInvoiceStatusBadgeClass(status: string) {
     default:
       return "bg-white/10 text-white/70";
   }
+}
+
+function formatPlnFromGrosze(value: number) {
+  return (value / 100).toFixed(2).replace(".", ",");
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -286,6 +296,103 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </form>
             </div>
           </div>
+        </section>
+
+        <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-white">
+              Cennik pakietów i wyróżnień
+            </h2>
+            <p className="mt-1 text-sm text-[#bdbdbd]">
+              Zmieniasz ceny tutaj, a checkout Stripe pobiera je automatycznie z bazy.
+            </p>
+          </div>
+
+          <form action={savePricingAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <label className="mb-2 block text-sm font-medium text-white">
+                Pakiet 1
+              </label>
+              <input
+                type="number"
+                name="listingSinglePrice"
+                min="1"
+                step="0.01"
+                defaultValue={formatPlnFromGrosze(config.listingSinglePriceGrossPln)}
+                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
+              />
+              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN, np. 22.00</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <label className="mb-2 block text-sm font-medium text-white">
+                Pakiet 10
+              </label>
+              <input
+                type="number"
+                name="listingPack10Price"
+                min="1"
+                step="0.01"
+                defaultValue={formatPlnFromGrosze(config.listingPack10PriceGrossPln)}
+                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
+              />
+              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <label className="mb-2 block text-sm font-medium text-white">
+                Pakiet 40
+              </label>
+              <input
+                type="number"
+                name="listingPack40Price"
+                min="1"
+                step="0.01"
+                defaultValue={formatPlnFromGrosze(config.listingPack40PriceGrossPln)}
+                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
+              />
+              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <label className="mb-2 block text-sm font-medium text-white">
+                Wyróżnienie 1
+              </label>
+              <input
+                type="number"
+                name="featuredSinglePrice"
+                min="1"
+                step="0.01"
+                defaultValue={formatPlnFromGrosze(config.featuredSinglePriceGrossPln)}
+                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
+              />
+              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <label className="mb-2 block text-sm font-medium text-white">
+                Pakiet 3 wyróżnień
+              </label>
+              <input
+                type="number"
+                name="featuredPack3Price"
+                min="1"
+                step="0.01"
+                defaultValue={formatPlnFromGrosze(config.featuredPack3PriceGrossPln)}
+                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
+              />
+              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN</p>
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="h-12 w-full rounded-2xl bg-[#7aa333] px-5 text-sm font-semibold text-black transition hover:opacity-90"
+              >
+                Zapisz ceny
+              </button>
+            </div>
+          </form>
         </section>
 
         <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
