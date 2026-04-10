@@ -1,6 +1,18 @@
+'use client';
+
+import { useEffect } from 'react';
 import Link from 'next/link';
 
 export default function PakietySuccessPage() {
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      (window as any).fbq('track', 'Purchase', {
+        value: 149, // możesz później zrobić dynamiczne
+        currency: 'PLN',
+      });
+    }
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#131313] px-6 py-16 text-[#d9d9d9]">
       <div className="mx-auto max-w-2xl rounded-[28px] border border-white/10 bg-white/5 p-8 text-center">
