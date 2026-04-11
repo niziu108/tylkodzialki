@@ -467,11 +467,6 @@ export default function DzialkaPage() {
                       onClick={() => setOpen(true)}
                     />
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <div className="text-center text-white text-[18px] font-medium leading-tight drop-shadow break-words">
-                        {d.tytul}
-                      </div>
-                    </div>
                   </>
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-sm text-white/50">
