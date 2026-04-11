@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   title: 'TylkoDziałki',
   description: 'Kup i sprzedawaj działki bez pośredników.',
   icons: {
-    icon: '/logo.png',
-    shortcut: '/logo.png',
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
     apple: '/logo.png',
   },
 };
