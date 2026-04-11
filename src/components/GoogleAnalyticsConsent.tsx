@@ -61,30 +61,28 @@ export default function GoogleAnalyticsConsent() {
   if (!enabled) return null;
 
   return (
-    <>
-      <Script
-        id="td-ga-script"
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-        strategy="afterInteractive"
-        onLoad={() => {
-          window.dataLayer = window.dataLayer || [];
-          window.gtag = function gtag(...args: unknown[]) {
-            window.dataLayer.push(args);
-          };
+    <Script
+      id="td-ga-script"
+      src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+      strategy="afterInteractive"
+      onLoad={() => {
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function gtag(...args: unknown[]) {
+          window.dataLayer.push(args);
+        };
 
-          if (window.__tdGaConfigured) return;
-          window.__tdGaConfigured = true;
+        if (window.__tdGaConfigured) return;
+        window.__tdGaConfigured = true;
 
-          window.gtag('js', new Date());
-          window.gtag('config', GA_ID, {
-            debug_mode: true,
-            anonymize_ip: true,
-            send_page_view: true,
-          });
+        window.gtag('js', new Date());
+        window.gtag('config', GA_ID, {
+          debug_mode: true,
+          anonymize_ip: true,
+          send_page_view: true,
+        });
 
-          console.log('[TD] GA loaded');
-        }}
-      />
-    </>
+        console.log('[TD] GA loaded');
+      }}
+    />
   );
 }
