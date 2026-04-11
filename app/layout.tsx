@@ -6,7 +6,6 @@ import Providers from '@/components/Providers';
 import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
 import ConsentScripts from '@/components/ConsentScripts';
-import GoogleAnalyticsConsent from '@/components/GoogleAnalyticsConsent';
 import { Geist } from 'next/font/google';
 
 const geist = Geist({
@@ -27,6 +26,26 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl" className={geist.variable}>
+      <head>
+        {/* GOOGLE ANALYTICS TEST */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-QSBPVGMT2W"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics-test" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
+
+            gtag('js', new Date());
+            gtag('config', 'G-QSBPVGMT2W');
+
+            console.log('GA TEST DZIALA: G-QSBPVGMT2W');
+          `}
+        </Script>
+      </head>
+
       <body className="font-sans bg-[#131313] text-white">
         <Providers>
           <div className="flex min-h-screen flex-col">
@@ -37,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <ConsentScripts />
 
-          {/* Meta Pixel ładowany dopiero po zgodzie marketingowej */}
+          {/* META PIXEL */}
           <Script id="td-meta-pixel" strategy="afterInteractive">
             {`
               (function() {
@@ -90,7 +109,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `}
           </Script>
 
-          <GoogleAnalyticsConsent />
           <CookieConsent />
         </Providers>
       </body>
