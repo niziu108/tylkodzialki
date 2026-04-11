@@ -598,9 +598,8 @@ export default function DzialkaPage() {
 
               {sprzedajacyTyp === 'PRYWATNIE' ? (
                 <>
-                  <FieldBlock label="Sprzedający">
+                  <FieldBlock label="Ogłoszenie prywatne">
                     <div className="space-y-2 text-[14px] text-white/85">
-                      <div className="text-white/95 font-medium">Ogłoszenie prywatne</div>
                       {sprzedajacyImie ? (
                         <div className="break-words">
                           Imię: <span className="text-white/95">{sprzedajacyImie}</span>
@@ -614,10 +613,8 @@ export default function DzialkaPage() {
 
               {sprzedajacyTyp === 'BIURO' ? (
                 <>
-                  <FieldBlock label="Sprzedający">
+                  <FieldBlock label="Ogłoszenie biura nieruchomości">
                     <div className="space-y-3 text-[14px] text-white/85">
-                      <div className="text-white/95 font-medium">Ogłoszenie biura nieruchomości</div>
-
                       {biuroLogoUrl ? (
                         <div className="inline-flex overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                           <img
