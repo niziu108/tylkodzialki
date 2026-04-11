@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <ConsentScripts />
 
-          {/* META PIXEL */}
+          {/* Meta Pixel ładowany dopiero po zgodzie marketingowej */}
           <Script id="td-meta-pixel" strategy="afterInteractive">
             {`
               (function() {

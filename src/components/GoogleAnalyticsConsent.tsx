@@ -33,6 +33,14 @@ function readConsent(): ConsentState | null {
   }
 }
 
+declare global {
+  interface Window {
+    dataLayer: unknown[];
+    gtag?: (...args: unknown[]) => void;
+    __tdGaConfigured?: boolean;
+  }
+}
+
 export default function GoogleAnalyticsConsent() {
   const [enabled, setEnabled] = useState(false);
 
@@ -58,17 +66,21 @@ export default function GoogleAnalyticsConsent() {
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
         strategy="afterInteractive"
       />
-      <Script id="google-analytics" strategy="afterInteractive">
+      <Script id="td-google-analytics-config" strategy="afterInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
+          function gtag(){window.dataLayer.push(arguments);}
           window.gtag = gtag;
-          gtag('js', new Date());
-          gtag('config', '${GA_ID}', {
-            debug_mode: true,
-            anonymize_ip: true
-          });
-          console.log('[TD] GA configured');
+
+          if (!window.__tdGaConfigured) {
+            window.__tdGaConfigured = true;
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}', {
+              anonymize_ip: true,
+              send_page_view: true
+            });
+            console.log('[TD] GA configured');
+          }
         `}
       </Script>
     </>
