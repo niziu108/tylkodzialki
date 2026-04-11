@@ -5,7 +5,6 @@ import GlobalNav from '@/components/GlobalNav';
 import Providers from '@/components/Providers';
 import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
-import ConsentScripts from '@/components/ConsentScripts';
 import { Geist } from 'next/font/google';
 
 const geist = Geist({
@@ -30,15 +29,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="td-consent-bootstrap" strategy="beforeInteractive">
           {`
             (function () {
-              function getCookie(name) {
-                var escaped = name.replace(/[-[\\]{}()*+?.,\\\\^$|#\\s]/g, '\\\\$&');
-                var match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
-                return match ? decodeURIComponent(match[1]) : null;
+              var GA_ID = 'G-V9YZ7E7EBD';
+              var PIXEL_ID = '1374422448037164';
+
+              function getCookieValue(name) {
+                var prefix = name + '=';
+                var parts = document.cookie ? document.cookie.split('; ') : [];
+                for (var i = 0; i < parts.length; i++) {
+                  if (parts[i].indexOf(prefix) === 0) {
+                    return decodeURIComponent(parts[i].slice(prefix.length));
+                  }
+                }
+                return null;
               }
 
               function readConsent() {
                 try {
-                  var raw = getCookie('td_cookie_consent');
+                  var raw = getCookieValue('td_cookie_consent');
                   if (!raw) return null;
                   return JSON.parse(raw);
                 } catch (e) {
@@ -47,18 +54,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               }
 
               window.dataLayer = window.dataLayer || [];
-              window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
-
-              window.gtag('consent', 'default', {
-                analytics_storage: 'denied',
-                ad_storage: 'denied',
-                ad_user_data: 'denied',
-                ad_personalization: 'denied',
-                wait_for_update: 500
-              });
+              window.gtag = window.gtag || function () {
+                window.dataLayer.push(arguments);
+              };
 
               window.__tdGaLoaded = false;
               window.__tdPixelLoaded = false;
+
+              function sendInitialPageView() {
+                window.gtag('event', 'page_view', {
+                  page_title: document.title,
+                  page_location: window.location.href,
+                  page_path: window.location.pathname + window.location.search,
+                });
+              }
 
               window.__loadGoogleAnalytics = function () {
                 if (window.__tdGaLoaded) return;
@@ -66,21 +75,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                 var gaScript = document.createElement('script');
                 gaScript.async = true;
-                gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-V9YZ7E7EBD';
+                gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+                gaScript.onload = function () {
+                  window.gtag('js', new Date());
+                  window.gtag('config', GA_ID, {
+                    debug_mode: true,
+                    send_page_view: false
+                  });
+                  sendInitialPageView();
+                  console.log('[TD] GA loaded');
+                };
                 document.head.appendChild(gaScript);
-
-                window.gtag('js', new Date());
-
-                window.gtag('consent', 'update', {
-                  analytics_storage: 'granted',
-                  ad_storage: 'denied',
-                  ad_user_data: 'denied',
-                  ad_personalization: 'denied'
-                });
-
-                window.gtag('config', 'G-V9YZ7E7EBD', {
-                  anonymize_ip: true
-                });
               };
 
               window.__loadMetaPixel = function () {
@@ -97,12 +102,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 s.parentNode.insertBefore(t,s)}
                 (window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
 
-                fbq('init', '1374422448037164');
+                fbq('init', PIXEL_ID);
                 fbq('track', 'PageView');
+                console.log('[TD] Meta Pixel loaded');
               };
 
-              function applyStoredConsent() {
-                var consent = readConsent();
+              function applyConsent(consent) {
                 if (!consent) return;
 
                 if (consent.analytics === true) {
@@ -114,19 +119,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 }
               }
 
-              applyStoredConsent();
+              var existingConsent = readConsent();
+              applyConsent(existingConsent);
 
               window.addEventListener('cookie-consent-updated', function (e) {
-                var consent = e && e.detail ? e.detail : null;
-                if (!consent) return;
-
-                if (consent.analytics === true) {
-                  window.__loadGoogleAnalytics();
-                }
-
-                if (consent.marketing === true) {
-                  window.__loadMetaPixel();
-                }
+                var consent = e && e.detail ? e.detail : readConsent();
+                applyConsent(consent);
               });
             })();
           `}
@@ -141,7 +139,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Footer />
           </div>
 
-          <ConsentScripts />
           <CookieConsent />
         </Providers>
       </body>
