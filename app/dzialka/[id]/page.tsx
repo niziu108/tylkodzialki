@@ -74,7 +74,6 @@ type Dzialka = {
 
 const BG = '#131313';
 const FG = '#F3EFF5';
-const GREEN = '#7aa333';
 
 function cx(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(' ');
@@ -566,7 +565,7 @@ export default function DzialkaPage() {
               <Hr className="mt-6" />
 
               <FieldBlock label="Cena">
-                <div className="min-w-0 text-[20px] md:text-[22px] font-semibold" style={{ color: GREEN }}>
+                <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 break-words">
                   {formatPLN(d.cenaPln)}
                   {zlZaM2 ? (
                     <span className="ml-2 text-[12px] text-white/50 font-normal">
@@ -579,7 +578,7 @@ export default function DzialkaPage() {
               <Hr />
 
               <FieldBlock label="Powierzchnia">
-                <div className="text-[20px] md:text-[22px] font-semibold" style={{ color: GREEN }}>
+                <div className="text-[15px] md:text-[16px] font-medium text-white/95 break-words">
                   {formatIntPL(area)} m²
                 </div>
               </FieldBlock>
@@ -602,7 +601,11 @@ export default function DzialkaPage() {
                   <FieldBlock label="Sprzedający">
                     <div className="space-y-2 text-[14px] text-white/85">
                       <div className="text-white/95 font-medium">Ogłoszenie prywatne</div>
-                      {sprzedajacyImie ? <div className="break-words">{sprzedajacyImie}</div> : null}
+                      {sprzedajacyImie ? (
+                        <div className="break-words">
+                          Imię: <span className="text-white/95">{sprzedajacyImie}</span>
+                        </div>
+                      ) : null}
                     </div>
                   </FieldBlock>
                   <Hr />
@@ -647,8 +650,7 @@ export default function DzialkaPage() {
                   <FieldBlock label="Kontakt">
                     <a
                       href={`tel:${telefon.replace(/\s+/g, '')}`}
-                      className="min-w-0 text-[20px] md:text-[22px] font-semibold underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
-                      style={{ color: GREEN }}
+                      className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
                     >
                       {telefon}
                     </a>
@@ -660,7 +662,7 @@ export default function DzialkaPage() {
               {numerOferty ? (
                 <>
                   <FieldBlock label="Numer oferty">
-                    <div className="text-white/85 text-[15px] break-words">{numerOferty}</div>
+                    <div className="text-white/90 text-[14px] break-words">{numerOferty}</div>
                   </FieldBlock>
                   <Hr />
                 </>

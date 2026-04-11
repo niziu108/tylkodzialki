@@ -52,8 +52,6 @@ function isFeaturedActive(d: Dzialka) {
   return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
 }
 
-const GREEN = '#7aa333';
-
 function SmartImg({
   src,
   alt,
@@ -222,19 +220,16 @@ function DzialkaCard({ d, eagerImage = false }: { d: Dzialka; eagerImage?: boole
             label="Cena"
             align="center"
             value={
-              <div
-                className="text-[22px] font-semibold leading-none md:text-[24px]"
-                style={{ color: GREEN }}
-              >
-                {formatPLN(d.cenaPln)}
+              <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
+                <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
+                  {formatPLN(d.cenaPln)}
+                </span>
+                {zlZaM2 ? (
+                  <span className="text-[12px] text-white/50">
+                    ({formatIntPL(zlZaM2)} zł/m²)
+                  </span>
+                ) : null}
               </div>
-            }
-            subValue={
-              zlZaM2 ? (
-                <div className="mt-1 text-[12px] text-white/45">
-                  {formatIntPL(zlZaM2)} zł/m²
-                </div>
-              ) : null
             }
           />
 
