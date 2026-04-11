@@ -112,6 +112,9 @@ export async function GET(req: Request) {
         { locationFull: { contains: q, mode: 'insensitive' } },
         { parcelText: { contains: q, mode: 'insensitive' } },
         { opis: { contains: q, mode: 'insensitive' } },
+        { sprzedajacyImie: { contains: q, mode: 'insensitive' } },
+        { biuroNazwa: { contains: q, mode: 'insensitive' } },
+        { biuroOpiekun: { contains: q, mode: 'insensitive' } },
       ],
     });
   }
@@ -221,6 +224,10 @@ export async function POST(req: Request) {
     telefon,
     opis,
     sprzedajacyTyp,
+    sprzedajacyImie,
+    biuroNazwa,
+    biuroOpiekun,
+    biuroLogoUrl,
     numerOferty,
     placeId,
     locationFull,
@@ -301,9 +308,24 @@ export async function POST(req: Request) {
   const seller: SprzedajacyTyp =
     sprzedajacyTyp === 'BIURO' ? SprzedajacyTyp.BIURO : SprzedajacyTyp.PRYWATNIE;
 
+  const telefonClean = telefon.trim();
   const nr = cleanOptionalString(numerOferty);
-  if (seller === SprzedajacyTyp.BIURO && !nr) {
-    return badRequest('Dla BIURA podaj numer oferty.');
+  const sprzedajacyImieClean = cleanOptionalString(sprzedajacyImie);
+  const biuroNazwaClean = cleanOptionalString(biuroNazwa);
+  const biuroOpiekunClean = cleanOptionalString(biuroOpiekun);
+  const biuroLogoUrlClean = cleanOptionalString(biuroLogoUrl);
+
+  if (seller === SprzedajacyTyp.PRYWATNIE && !sprzedajacyImieClean) {
+    return badRequest('Dla ogłoszenia prywatnego podaj imię.');
+  }
+
+  if (seller === SprzedajacyTyp.BIURO) {
+    if (!biuroNazwaClean) {
+      return badRequest('Dla BIURA podaj nazwę biura.');
+    }
+    if (!biuroOpiekunClean) {
+      return badRequest('Dla BIURA podaj imię opiekuna.');
+    }
   }
 
   const pradParsed = parseEnum(PradStatus, prad) ?? PradStatus.BRAK_PRZYLACZA;
@@ -353,11 +375,11 @@ export async function POST(req: Request) {
         data: {
           ownerId,
 
-          tytul,
+          tytul: tytul.trim(),
           powierzchniaM2,
           cenaPln,
           przeznaczenia: mappedPrzeznaczenia,
-          telefon,
+          telefon: telefonClean,
           email: dbUser.email ?? null,
 
           status: DzialkaStatus.AKTYWNE,
@@ -368,6 +390,10 @@ export async function POST(req: Request) {
           opis: opisClean,
 
           sprzedajacyTyp: seller,
+          sprzedajacyImie: seller === SprzedajacyTyp.PRYWATNIE ? sprzedajacyImieClean : null,
+          biuroNazwa: seller === SprzedajacyTyp.BIURO ? biuroNazwaClean : null,
+          biuroOpiekun: seller === SprzedajacyTyp.BIURO ? biuroOpiekunClean : null,
+          biuroLogoUrl: seller === SprzedajacyTyp.BIURO ? biuroLogoUrlClean : null,
           numerOferty: seller === SprzedajacyTyp.BIURO ? nr : null,
 
           placeId: typeof placeId === 'string' ? placeId : null,
@@ -404,6 +430,22 @@ export async function POST(req: Request) {
           },
         },
         include: { zdjecia: { orderBy: { kolejnosc: 'asc' } } },
+      });
+
+      await tx.user.update({
+        where: { id: ownerId },
+        data: {
+          defaultTelefon: telefonClean,
+          defaultSprzedajacyTyp: seller,
+          defaultSprzedajacyImie:
+            seller === SprzedajacyTyp.PRYWATNIE ? sprzedajacyImieClean : null,
+          defaultBiuroNazwa:
+            seller === SprzedajacyTyp.BIURO ? biuroNazwaClean : null,
+          defaultBiuroOpiekun:
+            seller === SprzedajacyTyp.BIURO ? biuroOpiekunClean : null,
+          defaultBiuroLogoUrl:
+            seller === SprzedajacyTyp.BIURO ? biuroLogoUrlClean : null,
+        },
       });
 
       return item;

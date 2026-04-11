@@ -52,7 +52,7 @@ type Dzialka = {
     | null;
 
   gaz?: 'BRAK' | 'GAZ_NA_DZIALCE' | 'GAZ_W_DRODZE' | 'MOZLIWOSC_PODLACZENIA' | string | null;
-  swiatlowod?: 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE' | string | null;
+  swiatlowod?: 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE' | 'MOZLIWOSC_PODLACZENIA' | string | null;
 
   wzWydane?: boolean | null;
   mpzp?: boolean | null;
@@ -63,6 +63,10 @@ type Dzialka = {
   ksiegaWieczysta?: string | null;
 
   sprzedajacyTyp?: 'PRYWATNIE' | 'BIURO' | string | null;
+  sprzedajacyImie?: string | null;
+  biuroNazwa?: string | null;
+  biuroOpiekun?: string | null;
+  biuroLogoUrl?: string | null;
   numerOferty?: string | null;
 
   zdjecia?: Photo[];
@@ -93,12 +97,16 @@ function formatIntPL(value: number) {
 }
 
 function labelPrzeznaczenie(p: string) {
-  return String(p)
-    .replace('USLUGOWA', 'Usługowa')
-    .replace('LESNA', 'Leśna')
-    .replace('INWESTYCYJNA', 'Inwestycyjna')
-    .replace('ROLNA', 'Rolna')
-    .replace('BUDOWLANA', 'Budowlana');
+  const map: Record<string, string> = {
+    INWESTYCYJNA: 'Inwestycyjna',
+    BUDOWLANA: 'Budowlana',
+    ROLNA: 'Rolna',
+    LESNA: 'Leśna',
+    REKREACYJNA: 'Rekreacyjna',
+    SIEDLISKOWA: 'Siedliskowa',
+  };
+
+  return map[p] ?? p;
 }
 
 function labelPrad(v?: string | null) {
@@ -150,6 +158,7 @@ function labelSwiatlowod(v?: string | null) {
   const map: Record<string, string> = {
     W_DRODZE: 'W drodze',
     NA_DZIALCE: 'Na działce',
+    MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
   };
   return map[v] ?? v;
 }
@@ -310,6 +319,12 @@ export default function DzialkaPage() {
   const klasaZiemi = (d?.klasaZiemi ?? '').trim() || null;
   const wymiary = (d?.wymiary ?? '').trim() || null;
   const ksiega = (d?.ksiegaWieczysta ?? '').trim() || null;
+
+  const sprzedajacyTyp = d?.sprzedajacyTyp ?? null;
+  const sprzedajacyImie = (d?.sprzedajacyImie ?? '').trim() || null;
+  const biuroNazwa = (d?.biuroNazwa ?? '').trim() || null;
+  const biuroOpiekun = (d?.biuroOpiekun ?? '').trim() || null;
+  const biuroLogoUrl = (d?.biuroLogoUrl ?? '').trim() || null;
 
   const hasDocs = Boolean(d?.mpzp || d?.wzWydane || d?.projektDomu);
   const showMap = Boolean(mapSrc);
@@ -576,6 +591,51 @@ export default function DzialkaPage() {
                   <FieldBlock label="Przeznaczenie">
                     <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
                       {przeznText}
+                    </div>
+                  </FieldBlock>
+                  <Hr />
+                </>
+              ) : null}
+
+              {sprzedajacyTyp === 'PRYWATNIE' ? (
+                <>
+                  <FieldBlock label="Sprzedający">
+                    <div className="space-y-2 text-[14px] text-white/85">
+                      <div className="text-white/95 font-medium">Ogłoszenie prywatne</div>
+                      {sprzedajacyImie ? <div className="break-words">{sprzedajacyImie}</div> : null}
+                    </div>
+                  </FieldBlock>
+                  <Hr />
+                </>
+              ) : null}
+
+              {sprzedajacyTyp === 'BIURO' ? (
+                <>
+                  <FieldBlock label="Sprzedający">
+                    <div className="space-y-3 text-[14px] text-white/85">
+                      <div className="text-white/95 font-medium">Ogłoszenie biura nieruchomości</div>
+
+                      {biuroLogoUrl ? (
+                        <div className="inline-flex overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                          <img
+                            src={biuroLogoUrl}
+                            alt={biuroNazwa || 'Logo biura'}
+                            className="h-14 w-auto max-w-[180px] object-contain"
+                          />
+                        </div>
+                      ) : null}
+
+                      {biuroNazwa ? (
+                        <div className="break-words">
+                          Biuro: <span className="text-white/95">{biuroNazwa}</span>
+                        </div>
+                      ) : null}
+
+                      {biuroOpiekun ? (
+                        <div className="break-words">
+                          Opiekun: <span className="text-white/95">{biuroOpiekun}</span>
+                        </div>
+                      ) : null}
                     </div>
                   </FieldBlock>
                   <Hr />

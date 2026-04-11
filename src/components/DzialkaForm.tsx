@@ -6,9 +6,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import LocationPicker from '@/components/LocationPicker';
 import MarkdownOpis from '@/components/MarkdownOpis';
 
-type Przeznaczenie = 'BUDOWLANA' | 'USLUGOWA' | 'ROLNA' | 'LESNA' | 'INWESTYCYJNA';
+type Przeznaczenie =
+  | 'INWESTYCYJNA'
+  | 'BUDOWLANA'
+  | 'ROLNA'
+  | 'LESNA'
+  | 'REKREACYJNA'
+  | 'SIEDLISKOWA';
+
 type LocationMode = 'EXACT' | 'APPROX';
 type SprzedajacyTypUI = 'PRYWATNIE' | 'BIURO_NIERUCHOMOSCI';
+type SwiatlowodStatus = 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE' | 'MOZLIWOSC_PODLACZENIA';
 
 type LocationValue = {
   placeId: string | null;
@@ -27,12 +35,25 @@ type UploadedPhoto = {
   kolejnosc?: number;
 };
 
+type SellerDefaults = {
+  telefon: string;
+  sprzedajacyTyp: SprzedajacyTypUI;
+  sprzedajacyImie: string;
+  biuroNazwa: string;
+  biuroOpiekun: string;
+  biuroLogoUrl: string;
+};
+
 type DzialkaDraft = {
   tytul: string;
   telefon: string;
   cenaPln: string;
   powierzchniaM2: string;
   sprzedajacyTyp: SprzedajacyTypUI;
+  sprzedajacyImie: string;
+  biuroNazwa: string;
+  biuroOpiekun: string;
+  biuroLogoUrl: string;
   numerOferty: string;
   przeznaczenia: Przeznaczenie[];
   location: LocationValue | null;
@@ -57,7 +78,7 @@ type DzialkaDraft = {
     | 'PRZYDOMOWA_OCZYSZCZALNIA'
     | 'MOZLIWOSC_PODLACZENIA';
   gaz: 'BRAK' | 'GAZ_NA_DZIALCE' | 'GAZ_W_DRODZE' | 'MOZLIWOSC_PODLACZENIA';
-  swiatlowod: 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE';
+  swiatlowod: SwiatlowodStatus;
   wzWydane: boolean;
   mpzp: boolean;
   projektDomu: boolean;
@@ -68,7 +89,8 @@ type DzialkaDraft = {
   activeIdx: number;
 };
 
-const CREATE_DRAFT_KEY = 'tylkodzialki:create-dzialka-draft:v1';
+const CREATE_DRAFT_KEY = 'tylkodzialki:create-dzialka-draft:v2';
+const SELLER_DEFAULTS_KEY = 'tylkodzialki:seller-defaults:v1';
 
 export type DzialkaFormInitialData = {
   id?: string;
@@ -78,6 +100,10 @@ export type DzialkaFormInitialData = {
   cenaPln: number;
   powierzchniaM2: number;
   sprzedajacyTyp: 'PRYWATNIE' | 'BIURO';
+  sprzedajacyImie?: string | null;
+  biuroNazwa?: string | null;
+  biuroOpiekun?: string | null;
+  biuroLogoUrl?: string | null;
   numerOferty?: string | null;
   przeznaczenia: Przeznaczenie[];
   opis?: string | null;
@@ -114,7 +140,7 @@ export type DzialkaFormInitialData = {
     | 'MOZLIWOSC_PODLACZENIA';
 
   gaz: 'BRAK' | 'GAZ_NA_DZIALCE' | 'GAZ_W_DRODZE' | 'MOZLIWOSC_PODLACZENIA';
-  swiatlowod: 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE';
+  swiatlowod: SwiatlowodStatus;
 
   wzWydane: boolean;
   mpzp: boolean;
@@ -159,6 +185,23 @@ function loadCreateDraft(): DzialkaDraft | null {
 function clearCreateDraft() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(CREATE_DRAFT_KEY);
+}
+
+function saveSellerDefaults(defaults: SellerDefaults) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SELLER_DEFAULTS_KEY, JSON.stringify(defaults));
+}
+
+function loadSellerDefaults(): SellerDefaults | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = localStorage.getItem(SELLER_DEFAULTS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SellerDefaults;
+  } catch {
+    return null;
+  }
 }
 
 function sleep(ms: number) {
@@ -402,6 +445,11 @@ export default function DzialkaForm({
   const [sprzedajacyTyp, setSprzedajacyTyp] = useState<SprzedajacyTypUI>(
     initialData?.sprzedajacyTyp === 'BIURO' ? 'BIURO_NIERUCHOMOSCI' : 'PRYWATNIE'
   );
+  const [sprzedajacyImie, setSprzedajacyImie] = useState(initialData?.sprzedajacyImie ?? '');
+  const [biuroNazwa, setBiuroNazwa] = useState(initialData?.biuroNazwa ?? '');
+  const [biuroOpiekun, setBiuroOpiekun] = useState(initialData?.biuroOpiekun ?? '');
+  const [biuroLogoUrl, setBiuroLogoUrl] = useState(initialData?.biuroLogoUrl ?? '');
+
   const [numerOferty, setNumerOferty] = useState(initialData?.numerOferty ?? '');
 
   const [przeznaczenia, setPrzeznaczenia] = useState<Przeznaczenie[]>(
@@ -443,7 +491,7 @@ export default function DzialkaForm({
     initialData?.gaz ?? 'BRAK'
   );
 
-  const [swiatlowod, setSwiatlowod] = useState<'BRAK' | 'W_DRODZE' | 'NA_DZIALCE'>(
+  const [swiatlowod, setSwiatlowod] = useState<SwiatlowodStatus>(
     initialData?.swiatlowod ?? 'BRAK'
   );
 
@@ -464,6 +512,7 @@ export default function DzialkaForm({
   );
 
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -482,6 +531,7 @@ export default function DzialkaForm({
   const [draftHydrated, setDraftHydrated] = useState(mode === 'edit');
   const restoredDraftRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (createdListing) {
@@ -505,6 +555,17 @@ export default function DzialkaForm({
 
     restoredDraftRef.current = true;
 
+    const defaults = loadSellerDefaults();
+
+    if (defaults) {
+      setTelefon(defaults.telefon ?? '');
+      setSprzedajacyTyp(defaults.sprzedajacyTyp ?? 'PRYWATNIE');
+      setSprzedajacyImie(defaults.sprzedajacyImie ?? '');
+      setBiuroNazwa(defaults.biuroNazwa ?? '');
+      setBiuroOpiekun(defaults.biuroOpiekun ?? '');
+      setBiuroLogoUrl(defaults.biuroLogoUrl ?? '');
+    }
+
     const draft = loadCreateDraft();
     if (!draft) {
       setDraftHydrated(true);
@@ -512,10 +573,14 @@ export default function DzialkaForm({
     }
 
     setTytul(draft.tytul ?? '');
-    setTelefon(draft.telefon ?? '');
+    setTelefon(draft.telefon ?? defaults?.telefon ?? '');
     setCenaPln(draft.cenaPln ?? '');
     setPowierzchniaM2(draft.powierzchniaM2 ?? '');
-    setSprzedajacyTyp(draft.sprzedajacyTyp ?? 'PRYWATNIE');
+    setSprzedajacyTyp(draft.sprzedajacyTyp ?? defaults?.sprzedajacyTyp ?? 'PRYWATNIE');
+    setSprzedajacyImie(draft.sprzedajacyImie ?? defaults?.sprzedajacyImie ?? '');
+    setBiuroNazwa(draft.biuroNazwa ?? defaults?.biuroNazwa ?? '');
+    setBiuroOpiekun(draft.biuroOpiekun ?? defaults?.biuroOpiekun ?? '');
+    setBiuroLogoUrl(draft.biuroLogoUrl ?? defaults?.biuroLogoUrl ?? '');
     setNumerOferty(draft.numerOferty ?? '');
     setPrzeznaczenia(draft.przeznaczenia?.length ? draft.przeznaczenia : ['BUDOWLANA']);
     setLocation(draft.location ?? null);
@@ -547,6 +612,10 @@ export default function DzialkaForm({
       cenaPln,
       powierzchniaM2,
       sprzedajacyTyp,
+      sprzedajacyImie,
+      biuroNazwa,
+      biuroOpiekun,
+      biuroLogoUrl,
       numerOferty,
       przeznaczenia,
       location,
@@ -573,6 +642,10 @@ export default function DzialkaForm({
     cenaPln,
     powierzchniaM2,
     sprzedajacyTyp,
+    sprzedajacyImie,
+    biuroNazwa,
+    biuroOpiekun,
+    biuroLogoUrl,
     numerOferty,
     przeznaczenia,
     location,
@@ -590,6 +663,29 @@ export default function DzialkaForm({
     ksiegaWieczysta,
     uploaded,
     activeIdx,
+  ]);
+
+  useEffect(() => {
+    if (mode !== 'create') return;
+    if (!draftHydrated) return;
+
+    saveSellerDefaults({
+      telefon,
+      sprzedajacyTyp,
+      sprzedajacyImie,
+      biuroNazwa,
+      biuroOpiekun,
+      biuroLogoUrl,
+    });
+  }, [
+    mode,
+    draftHydrated,
+    telefon,
+    sprzedajacyTyp,
+    sprzedajacyImie,
+    biuroNazwa,
+    biuroOpiekun,
+    biuroLogoUrl,
   ]);
 
   const currentImages = useMemo(() => {
@@ -689,6 +785,28 @@ export default function DzialkaForm({
     }
   }
 
+  async function handleLogoUpload(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+
+    setErr(null);
+    setOk(null);
+    setUploadingLogo(true);
+
+    try {
+      const out = await uploadImageViaApi(file);
+      setBiuroLogoUrl(out.url);
+
+      if (logoInputRef.current) {
+        logoInputRef.current.value = '';
+      }
+    } catch (e: any) {
+      setErr(e?.message || 'Nie udało się wgrać logo biura.');
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
   function buildPayload(uploadedSorted: UploadedPhoto[]) {
     const pm2 = parseFormattedNumber(powierzchniaM2);
     const cena = parseFormattedNumber(cenaPln);
@@ -698,10 +816,14 @@ export default function DzialkaForm({
       powierzchniaM2: pm2,
       cenaPln: cena,
       przeznaczenia,
-      telefon,
+      telefon: telefon.trim(),
       opis: opis.trim() ? opis.trim().slice(0, MAX_OPIS_CHARS) : null,
       sprzedajacyTyp: sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' ? 'BIURO' : 'PRYWATNIE',
-      numerOferty: sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' ? numerOferty.trim() : null,
+      sprzedajacyImie: sprzedajacyTyp === 'PRYWATNIE' ? sprzedajacyImie.trim() : null,
+      biuroNazwa: sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' ? biuroNazwa.trim() : null,
+      biuroOpiekun: sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' ? biuroOpiekun.trim() : null,
+      biuroLogoUrl: sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' ? biuroLogoUrl.trim() || null : null,
+      numerOferty: sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' ? numerOferty.trim() || null : null,
       ...location,
       prad,
       woda,
@@ -736,9 +858,15 @@ export default function DzialkaForm({
     if (uploaded.length < 1) return setErr('Dodaj minimum 1 zdjęcie.');
     if (uploaded.length > MAX_PHOTOS) return setErr(`Możesz dodać maksymalnie ${MAX_PHOTOS} zdjęć.`);
     if (uploadingPhotos) return setErr('Poczekaj aż zdjęcia się wgrają.');
+    if (uploadingLogo) return setErr('Poczekaj aż logo biura się wgra.');
 
-    if (sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' && !numerOferty.trim()) {
-      return setErr('Dla Biura nieruchomości podaj numer oferty.');
+    if (sprzedajacyTyp === 'PRYWATNIE' && !sprzedajacyImie.trim()) {
+      return setErr('Dla ogłoszenia prywatnego podaj imię.');
+    }
+
+    if (sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI') {
+      if (!biuroNazwa.trim()) return setErr('Dla biura nieruchomości podaj nazwę biura.');
+      if (!biuroOpiekun.trim()) return setErr('Dla biura nieruchomości podaj imię opiekuna.');
     }
 
     const uploadedSorted = [...uploaded].sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
@@ -769,6 +897,10 @@ export default function DzialkaForm({
               cenaPln,
               powierzchniaM2,
               sprzedajacyTyp,
+              sprzedajacyImie,
+              biuroNazwa,
+              biuroOpiekun,
+              biuroLogoUrl,
               numerOferty,
               przeznaczenia,
               location,
@@ -1169,9 +1301,84 @@ export default function DzialkaForm({
               ]}
             />
 
-            {sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' && (
+            {sprzedajacyTyp === 'PRYWATNIE' && (
               <div className="max-w-xl pt-4">
-                <UnderlineField label="Numer oferty" value={numerOferty} onChange={setNumerOferty} placeholder="Np. M2-123/2026" />
+                <UnderlineField
+                  label="Imię sprzedającego"
+                  value={sprzedajacyImie}
+                  onChange={setSprzedajacyImie}
+                  placeholder="Np. Daniel"
+                />
+              </div>
+            )}
+
+            {sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' && (
+              <div className="space-y-8 pt-4">
+                <div className="grid gap-10 md:grid-cols-2">
+                  <UnderlineField
+                    label="Nazwa biura"
+                    value={biuroNazwa}
+                    onChange={setBiuroNazwa}
+                    placeholder="Np. TylkoDziałki Nieruchomości"
+                  />
+
+                  <UnderlineField
+                    label="Imię opiekuna"
+                    value={biuroOpiekun}
+                    onChange={setBiuroOpiekun}
+                    placeholder="Np. Daniel"
+                  />
+
+                  <UnderlineField
+                    label="Numer oferty"
+                    value={numerOferty}
+                    onChange={setNumerOferty}
+                    placeholder="Np. M2-123/2026"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Logo biura</div>
+
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label
+                      className={cx(
+                        'inline-flex cursor-pointer items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition',
+                        uploadingLogo
+                          ? 'bg-white/10 text-white/45'
+                          : 'bg-[#7aa333] text-black hover:opacity-90'
+                      )}
+                    >
+                      {uploadingLogo ? 'Wgrywam logo…' : 'Wgraj logo'}
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleLogoUpload(e.target.files)}
+                        disabled={uploadingLogo}
+                      />
+                    </label>
+
+                    {biuroLogoUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => setBiuroLogoUrl('')}
+                        className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.05]"
+                      >
+                        Usuń logo
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {biuroLogoUrl ? (
+                    <div className="inline-flex overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <img src={biuroLogoUrl} alt="Logo biura" className="h-16 w-auto max-w-[180px] object-contain" />
+                    </div>
+                  ) : (
+                    <div className="text-sm text-white/45">Logo jest opcjonalne, ale warto je dodać.</div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1185,11 +1392,12 @@ export default function DzialkaForm({
               values={przeznaczenia}
               toggle={(v) => togglePrzeznaczenie(v as Przeznaczenie)}
               options={[
+                { value: 'INWESTYCYJNA', label: 'Inwestycyjna' },
                 { value: 'BUDOWLANA', label: 'Budowlana' },
-                { value: 'USLUGOWA', label: 'Usługowa' },
                 { value: 'ROLNA', label: 'Rolna' },
                 { value: 'LESNA', label: 'Leśna' },
-                { value: 'INWESTYCYJNA', label: 'Inwestycyjna' },
+                { value: 'REKREACYJNA', label: 'Rekreacyjna' },
+                { value: 'SIEDLISKOWA', label: 'Siedliskowa' },
               ]}
             />
 
@@ -1265,11 +1473,12 @@ export default function DzialkaForm({
               <SectionTitle>Światłowód</SectionTitle>
               <ChoiceRow
                 value={swiatlowod}
-                onChange={(v) => setSwiatlowod(v as any)}
+                onChange={(v) => setSwiatlowod(v as SwiatlowodStatus)}
                 options={[
                   { value: 'BRAK', label: 'Brak' },
                   { value: 'W_DRODZE', label: 'W drodze' },
                   { value: 'NA_DZIALCE', label: 'Na działce' },
+                  { value: 'MOZLIWOSC_PODLACZENIA', label: 'Możliwość podłączenia' },
                 ]}
               />
               <Hr className="mt-8" />
@@ -1347,7 +1556,7 @@ export default function DzialkaForm({
           )}
 
           <button
-            disabled={loading || uploadingPhotos}
+            disabled={loading || uploadingPhotos || uploadingLogo}
             className={cx('w-full py-5 text-[16px] md:text-[17px] font-semibold tracking-tight', 'disabled:opacity-60 transition')}
             style={{
               background: 'transparent',
@@ -1360,6 +1569,8 @@ export default function DzialkaForm({
           >
             {uploadingPhotos
               ? 'Wgrywam zdjęcia…'
+              : uploadingLogo
+              ? 'Wgrywam logo…'
               : loading
               ? shouldAutoPublish
                 ? 'Publikowanie przygotowanego ogłoszenia…'

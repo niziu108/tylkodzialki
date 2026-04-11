@@ -16,6 +16,8 @@ import { deleteFromR2 } from '@/lib/r2';
 
 export const runtime = 'nodejs';
 
+const MAX_PHOTOS = 7;
+
 function badRequest(message: string, details?: any) {
   return NextResponse.json({ ok: false, message, details }, { status: 400 });
 }
@@ -61,7 +63,7 @@ export async function PATCH(req: Request, { params }: Props) {
 
   const dbUser = await prisma.user.findUnique({
     where: { email: sessionEmail },
-    select: { id: true },
+    select: { id: true, email: true },
   });
 
   if (!dbUser?.id) {
@@ -105,9 +107,12 @@ export async function PATCH(req: Request, { params }: Props) {
     cenaPln,
     przeznaczenia,
     telefon,
-    email,
     opis,
     sprzedajacyTyp,
+    sprzedajacyImie,
+    biuroNazwa,
+    biuroOpiekun,
+    biuroLogoUrl,
     numerOferty,
     placeId,
     locationFull,
@@ -132,10 +137,15 @@ export async function PATCH(req: Request, { params }: Props) {
   } = body ?? {};
 
   if (!tytul || typeof tytul !== 'string') return badRequest('Brak tytułu.');
-  if (!Number.isInteger(powierzchniaM2) || powierzchniaM2 <= 0) return badRequest('Podaj poprawną powierzchnię.');
-  if (!Number.isInteger(cenaPln) || cenaPln <= 0) return badRequest('Podaj poprawną cenę.');
-  if (!telefon || typeof telefon !== 'string') return badRequest('Brak telefonu.');
-  if (!email || typeof email !== 'string') return badRequest('Brak email.');
+  if (!Number.isInteger(powierzchniaM2) || powierzchniaM2 <= 0) {
+    return badRequest('Podaj poprawną powierzchnię.');
+  }
+  if (!Number.isInteger(cenaPln) || cenaPln <= 0) {
+    return badRequest('Podaj poprawną cenę.');
+  }
+  if (!telefon || typeof telefon !== 'string') {
+    return badRequest('Brak telefonu.');
+  }
 
   if (!Array.isArray(przeznaczenia) || przeznaczenia.length < 1) {
     return badRequest('Wybierz co najmniej 1 przeznaczenie.');
@@ -143,6 +153,10 @@ export async function PATCH(req: Request, { params }: Props) {
 
   if (!Array.isArray(zdjecia) || zdjecia.length < 1) {
     return badRequest('Wymagane jest minimum 1 zdjęcie.');
+  }
+
+  if (zdjecia.length > MAX_PHOTOS) {
+    return badRequest(`Maksymalnie ${MAX_PHOTOS} zdjęć.`);
   }
 
   for (const z of zdjecia) {
@@ -165,7 +179,8 @@ export async function PATCH(req: Request, { params }: Props) {
       ? locationLabel.trim()
       : fallbackLocationLabel(lat, lng);
 
-  const mode: LocationMode = locationMode === 'APPROX' ? LocationMode.APPROX : LocationMode.EXACT;
+  const mode: LocationMode =
+    locationMode === 'APPROX' ? LocationMode.APPROX : LocationMode.EXACT;
 
   let mappedPrzeznaczenia: Przeznaczenie[];
   try {
@@ -182,9 +197,24 @@ export async function PATCH(req: Request, { params }: Props) {
   const seller: SprzedajacyTyp =
     sprzedajacyTyp === 'BIURO' ? SprzedajacyTyp.BIURO : SprzedajacyTyp.PRYWATNIE;
 
+  const telefonClean = telefon.trim();
   const nr = cleanOptionalString(numerOferty);
-  if (seller === SprzedajacyTyp.BIURO && !nr) {
-    return badRequest('Dla BIURA podaj numer oferty.');
+  const sprzedajacyImieClean = cleanOptionalString(sprzedajacyImie);
+  const biuroNazwaClean = cleanOptionalString(biuroNazwa);
+  const biuroOpiekunClean = cleanOptionalString(biuroOpiekun);
+  const biuroLogoUrlClean = cleanOptionalString(biuroLogoUrl);
+
+  if (seller === SprzedajacyTyp.PRYWATNIE && !sprzedajacyImieClean) {
+    return badRequest('Dla ogłoszenia prywatnego podaj imię.');
+  }
+
+  if (seller === SprzedajacyTyp.BIURO) {
+    if (!biuroNazwaClean) {
+      return badRequest('Dla BIURA podaj nazwę biura.');
+    }
+    if (!biuroOpiekunClean) {
+      return badRequest('Dla BIURA podaj imię opiekuna.');
+    }
   }
 
   const pradParsed = parseEnum(PradStatus, prad) ?? PradStatus.BRAK_PRZYLACZA;
@@ -218,16 +248,20 @@ export async function PATCH(req: Request, { params }: Props) {
       const item = await tx.dzialka.update({
         where: { id },
         data: {
-          tytul,
+          tytul: tytul.trim(),
           powierzchniaM2,
           cenaPln,
           przeznaczenia: mappedPrzeznaczenia,
-          telefon,
-          email,
+          telefon: telefonClean,
+          email: dbUser.email ?? null,
 
           opis: opisClean,
 
           sprzedajacyTyp: seller,
+          sprzedajacyImie: seller === SprzedajacyTyp.PRYWATNIE ? sprzedajacyImieClean : null,
+          biuroNazwa: seller === SprzedajacyTyp.BIURO ? biuroNazwaClean : null,
+          biuroOpiekun: seller === SprzedajacyTyp.BIURO ? biuroOpiekunClean : null,
+          biuroLogoUrl: seller === SprzedajacyTyp.BIURO ? biuroLogoUrlClean : null,
           numerOferty: seller === SprzedajacyTyp.BIURO ? nr : null,
 
           placeId: typeof placeId === 'string' ? placeId : null,
@@ -266,6 +300,22 @@ export async function PATCH(req: Request, { params }: Props) {
           zdjecia: {
             orderBy: { kolejnosc: 'asc' },
           },
+        },
+      });
+
+      await tx.user.update({
+        where: { id: dbUser.id },
+        data: {
+          defaultTelefon: telefonClean,
+          defaultSprzedajacyTyp: seller,
+          defaultSprzedajacyImie:
+            seller === SprzedajacyTyp.PRYWATNIE ? sprzedajacyImieClean : null,
+          defaultBiuroNazwa:
+            seller === SprzedajacyTyp.BIURO ? biuroNazwaClean : null,
+          defaultBiuroOpiekun:
+            seller === SprzedajacyTyp.BIURO ? biuroOpiekunClean : null,
+          defaultBiuroLogoUrl:
+            seller === SprzedajacyTyp.BIURO ? biuroLogoUrlClean : null,
         },
       });
 

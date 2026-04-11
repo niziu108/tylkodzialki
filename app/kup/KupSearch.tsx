@@ -23,11 +23,12 @@ type ApiDzialka = {
 const KM_OPTIONS = [5, 10, 20, 40] as const;
 
 const PRZEZN: { key: Przeznaczenie; label: string }[] = [
+  { key: 'INWESTYCYJNA', label: 'INWESTYCYJNA' },
   { key: 'BUDOWLANA', label: 'BUDOWLANA' },
-  { key: 'USLUGOWA', label: 'USŁUGOWA' },
   { key: 'ROLNA', label: 'ROLNA' },
   { key: 'LESNA', label: 'LEŚNA' },
-  { key: 'INWESTYCYJNA', label: 'INWESTYCYJNA' },
+  { key: 'REKREACYJNA', label: 'REKREACYJNA' },
+  { key: 'SIEDLISKOWA', label: 'SIEDLISKOWA' },
 ];
 
 const PAGE_SIZE = 20;

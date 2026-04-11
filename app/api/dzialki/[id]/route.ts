@@ -16,7 +16,9 @@ export async function GET(
 
     const item = await prisma.dzialka.findUnique({
       where: { id },
-      include: { zdjecia: { orderBy: { kolejnosc: 'asc' } } },
+      include: {
+        zdjecia: { orderBy: { kolejnosc: 'asc' } },
+      },
     });
 
     if (!item) {

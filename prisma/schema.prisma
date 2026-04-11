@@ -21,6 +21,14 @@ model User {
   listingCreditsExpiresAt  DateTime?
   featuredCredits          Int                        @default(0)
   featuredCreditsExpiresAt DateTime?
+
+  defaultTelefon           String?
+  defaultSprzedajacyTyp    SprzedajacyTyp?
+  defaultSprzedajacyImie   String?
+  defaultBiuroNazwa        String?
+  defaultBiuroOpiekun      String?
+  defaultBiuroLogoUrl      String?
+
   accounts                 Account[]
   dzialki                  Dzialka[]
   emailSendLogs            EmailSendLog[]
@@ -87,6 +95,12 @@ model Dzialka {
   placeId          String?
   przeznaczenia    Przeznaczenie[]
   telefon          String
+
+  sprzedajacyImie  String?
+  biuroNazwa       String?
+  biuroOpiekun     String?
+  biuroLogoUrl     String?
+
   klasaZiemi       String?
   ksiegaWieczysta  String?
   mpzp             Boolean           @default(false)
@@ -338,11 +352,12 @@ enum KsefStatus {
 }
 
 enum Przeznaczenie {
+  INWESTYCYJNA
   BUDOWLANA
-  USLUGOWA
   ROLNA
   LESNA
-  INWESTYCYJNA
+  REKREACYJNA
+  SIEDLISKOWA
 }
 
 enum LocationMode {
@@ -391,6 +406,7 @@ enum SwiatlowodStatus {
   BRAK
   W_DRODZE
   NA_DZIALCE
+  MOZLIWOSC_PODLACZENIA
 }
 
 enum SalesInvoiceType {

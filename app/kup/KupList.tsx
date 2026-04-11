@@ -36,12 +36,16 @@ function formatIntPL(value: number) {
 }
 
 function labelPrzeznaczenie(p: Przeznaczenie) {
-  return String(p)
-    .replace('USLUGOWA', 'Usługowa')
-    .replace('LESNA', 'Leśna')
-    .replace('INWESTYCYJNA', 'Inwestycyjna')
-    .replace('ROLNA', 'Rolna')
-    .replace('BUDOWLANA', 'Budowlana');
+  const map: Record<string, string> = {
+    INWESTYCYJNA: 'Inwestycyjna',
+    BUDOWLANA: 'Budowlana',
+    ROLNA: 'Rolna',
+    LESNA: 'Leśna',
+    REKREACYJNA: 'Rekreacyjna',
+    SIEDLISKOWA: 'Siedliskowa',
+  };
+
+  return map[p] ?? String(p);
 }
 
 function isFeaturedActive(d: Dzialka) {
@@ -125,7 +129,7 @@ export default function KupList({
                   <div className="w-px bg-white/5" />
                   <div className="h-14 animate-pulse rounded bg-white/5" />
                 </div>
-                <div className="h-5 w-52 animate-pulse rounded bg-white/5 mx-auto" />
+                <div className="mx-auto h-5 w-52 animate-pulse rounded bg-white/5" />
                 <div className="grid grid-cols-[1fr_auto_1fr] gap-4">
                   <div className="h-14 animate-pulse rounded bg-white/5" />
                   <div className="w-px bg-white/5" />
