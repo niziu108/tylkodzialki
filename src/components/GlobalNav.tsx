@@ -145,7 +145,7 @@ export default function GlobalNav() {
             </button>
 
             <button onClick={() => go('/sprzedaj')} className={`${navBtnBase} ${navBtnWhite}`}>
-              SPRZEDAJ
+              WYSTAW DZIAŁKĘ
             </button>
 
             <button onClick={goToFooter} className={`${navBtnBase} ${navBtnWhite}`}>
