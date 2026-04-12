@@ -270,7 +270,7 @@ export default function GlobalNav() {
                   SZUKAJ DZIAŁKI
                 </button>
                 <button onClick={() => go('/sprzedaj')} className={linkMobile}>
-                  SPRZEDAJ
+                  WYSTAW DZIAŁKĘ
                 </button>
                 <button onClick={goToFooter} className={linkMobile}>
                   KONTAKT

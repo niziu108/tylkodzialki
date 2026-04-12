@@ -105,10 +105,10 @@ export default function Footer() {
 
               <nav className="flex flex-col gap-4 text-[15px] text-white/70">
                 <Link href="/kup" className="transition hover:text-white">
-                  Kup działkę
+                  Szukaj działki
                 </Link>
                 <Link href="/sprzedaj" className="transition hover:text-white">
-                  Sprzedaj działkę
+                  Wystaw działkę
                 </Link>
                 <Link href="/kup?sort=newest" className="transition hover:text-white">
                   Najnowsze
@@ -130,7 +130,7 @@ export default function Footer() {
                   Moje konto
                 </Link>
                 <Link href="/sprzedaj" className="transition hover:text-white">
-                  Dodaj działkę
+                  Wystaw działkę
                 </Link>
                 <Link href="/blog" className="transition hover:text-white">
                   Blog
