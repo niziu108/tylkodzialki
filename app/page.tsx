@@ -359,8 +359,8 @@ export default async function HomePage() {
 
       <section style={{ background: PAGE_BG }}>
         <div className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-          <div className="grid gap-10 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-14">
-            <div className="flex flex-col">
+          <div className="grid items-center gap-10 md:grid-cols-[1.05fr_0.95fr] md:gap-14">
+            <div>
               <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
                 O nas
               </div>
@@ -411,17 +411,7 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="hidden md:flex md:flex-col md:items-center md:justify-center">
-              <div className="mb-6 w-full max-w-[560px] text-right">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-[#9fd14b]">
-                  O nas
-                </div>
-
-                <h3 className="mt-3 text-[28px] font-semibold tracking-tight text-white">
-                  Portal stworzony wyłącznie pod działki
-                </h3>
-              </div>
-
+            <div className="relative hidden md:block">
               <div className="relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.03] shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
                 <img
                   src="/rodzina.webp"
@@ -431,6 +421,9 @@ export default async function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
                 <div className="absolute inset-0 ring-1 ring-inset ring-[#7aa333]/15" />
               </div>
+
+              <div className="pointer-events-none absolute -bottom-5 -left-4 h-24 w-24 rounded-full bg-[#7aa333]/12 blur-2xl" />
+              <div className="pointer-events-none absolute -right-4 -top-5 h-28 w-28 rounded-full bg-[#2F5E46]/18 blur-2xl" />
             </div>
           </div>
         </div>
