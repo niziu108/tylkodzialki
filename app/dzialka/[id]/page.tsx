@@ -614,26 +614,28 @@ export default function DzialkaPage() {
               {sprzedajacyTyp === 'BIURO' ? (
                 <>
                   <FieldBlock label="Ogłoszenie biura nieruchomości">
-                    <div className="space-y-3 text-[14px] text-white/85">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1 space-y-3 text-[14px] text-white/85">
+                        {biuroNazwa ? (
+                          <div className="break-words">
+                            Biuro: <span className="text-white/95">{biuroNazwa}</span>
+                          </div>
+                        ) : null}
+
+                        {biuroOpiekun ? (
+                          <div className="break-words">
+                            Opiekun: <span className="text-white/95">{biuroOpiekun}</span>
+                          </div>
+                        ) : null}
+                      </div>
+
                       {biuroLogoUrl ? (
-                        <div className="inline-flex overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                        <div className="shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                           <img
                             src={biuroLogoUrl}
                             alt={biuroNazwa || 'Logo biura'}
-                            className="h-14 w-auto max-w-[180px] object-contain"
+                            className="h-16 w-auto max-w-[120px] object-contain"
                           />
-                        </div>
-                      ) : null}
-
-                      {biuroNazwa ? (
-                        <div className="break-words">
-                          Biuro: <span className="text-white/95">{biuroNazwa}</span>
-                        </div>
-                      ) : null}
-
-                      {biuroOpiekun ? (
-                        <div className="break-words">
-                          Opiekun: <span className="text-white/95">{biuroOpiekun}</span>
                         </div>
                       ) : null}
                     </div>
