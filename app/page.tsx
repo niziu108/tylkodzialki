@@ -358,8 +358,8 @@ export default async function HomePage() {
       </section>
 
       <section className="w-full" style={{ background: PAGE_BG }}>
-        <div className="w-full px-0 py-16 md:py-20">
-          <div className="mx-auto flex w-full max-w-7xl flex-col px-6 md:px-10">
+        <div className="w-full py-16 md:py-20">
+          <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
             <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
               O nas
             </div>
@@ -367,18 +367,20 @@ export default async function HomePage() {
             <h2 className="mt-4 max-w-4xl text-[28px] font-semibold tracking-tight text-white md:text-[38px]">
               Portal stworzony wyłącznie pod działki
             </h2>
+          </div>
 
-            <div className="mt-8 -mx-6 md:mx-0">
-              <div className="relative w-full overflow-hidden md:rounded-[28px]">
-                <img
-                  src="/rodzina.webp"
-                  alt="Rodzina marząca o swoim miejscu"
-                  className="block h-[33svh] w-full object-cover md:h-[34vw] md:max-h-[420px] md:min-h-[260px]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
-              </div>
+          <div className="mt-8 w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+            <div className="relative w-full overflow-hidden">
+              <img
+                src="/rodzina.webp"
+                alt="Rodzina marząca o swoim miejscu"
+                className="block w-full aspect-[20/9] object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
             </div>
+          </div>
 
+          <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
             <p className="mt-8 max-w-4xl text-base leading-8 text-white/72 md:mt-10 md:text-lg">
               TylkoDziałki to miejsce stworzone dla osób, które chcą szybko i
               wygodnie kupić lub sprzedać działkę. Tworzymy portal, który ma być
