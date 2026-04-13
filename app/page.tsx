@@ -359,8 +359,8 @@ export default async function HomePage() {
 
       <section style={{ background: PAGE_BG }}>
         <div className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-          <div className="grid gap-10 md:grid-cols-2 md:items-stretch md:gap-14">
-            <div className="flex flex-col">
+          <div className="grid items-center gap-10 md:grid-cols-[1.05fr_0.95fr] md:gap-14">
+            <div className="animate-fade-up">
               <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
                 O nas
               </div>
@@ -376,7 +376,7 @@ export default async function HomePage() {
                 konkretnych ofert.
               </p>
 
-              <div className="mt-8 md:hidden">
+              <div className="mt-8 md:hidden animate-fade-up-delay">
                 <div className="relative w-full overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.03]">
                   <img
                     src="/rodzina.webp"
@@ -388,19 +388,8 @@ export default async function HomePage() {
               </div>
 
               <div className="mt-10 flex flex-col gap-5">
-                <div className="rounded-[28px] border border-[#7aa333]/25 bg-gradient-to-br from-[#7aa333]/12 to-[#7aa333]/[0.02] p-7 transition hover:border-[#7aa333]/45">
+                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.045] animate-fade-up-delay">
                   <div className="text-2xl font-semibold text-[#9fd14b]">01</div>
-                  <h3 className="mt-4 text-xl font-semibold text-white">
-                    Tylko działki
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-white/68">
-                    Portal skupiony wyłącznie na działkach, bez przypadkowych ofert z
-                    innych kategorii.
-                  </p>
-                </div>
-
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.045]">
-                  <div className="text-2xl font-semibold text-[#9fd14b]">02</div>
                   <h3 className="mt-4 text-xl font-semibold text-white">
                     Proste dodawanie
                   </h3>
@@ -409,9 +398,11 @@ export default async function HomePage() {
                   </p>
                 </div>
 
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.045]">
-                  <div className="text-2xl font-semibold text-[#9fd14b]">03</div>
-                  <h3 className="mt-4 text-xl font-semibold text-white">Rozwój</h3>
+                <div className="rounded-[28px] border border-[#7aa333]/25 bg-gradient-to-br from-[#7aa333]/12 to-[#7aa333]/[0.02] p-7 transition hover:border-[#7aa333]/45 animate-fade-up-delay-2">
+                  <div className="text-2xl font-semibold text-[#9fd14b]">02</div>
+                  <h3 className="mt-4 text-xl font-semibold text-white">
+                    Rozwój
+                  </h3>
                   <p className="mt-3 text-sm leading-7 text-white/68">
                     Stale rozwijamy portal i docieramy do nowych osób szukających
                     działek.
@@ -420,14 +411,14 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="relative hidden md:block">
-              <div className="relative h-full min-h-[820px] w-full overflow-hidden rounded-[36px] border border-white/10 bg-white/[0.03] shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
+            <div className="relative hidden md:block animate-fade-up-delay">
+              <div className="relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.03] shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
                 <img
                   src="/rodzina.webp"
                   alt="Rodzina marząca o swoim miejscu"
                   className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
                 <div className="absolute inset-0 ring-1 ring-inset ring-[#7aa333]/15" />
               </div>
 
@@ -512,6 +503,31 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <style jsx>{`
+        .animate-fade-up {
+          animation: fadeUp 0.8s ease-out both;
+        }
+
+        .animate-fade-up-delay {
+          animation: fadeUp 1s ease-out both;
+        }
+
+        .animate-fade-up-delay-2 {
+          animation: fadeUp 1.2s ease-out both;
+        }
+
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(22px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </main>
   );
 }
