@@ -352,12 +352,26 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="relative w-full overflow-hidden" style={{ background: PAGE_BG }}>
+      {/* MOBILE: samo zdjęcie */}
+      <section className="relative block w-full overflow-hidden md:hidden" style={{ background: PAGE_BG }}>
+        <div className="relative h-[100svh] w-full">
+          <img
+            src="/rodzina1.webp"
+            alt="Rodzina marząca o swoim miejscu"
+            className="h-full w-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-black/28" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+        </div>
+      </section>
+
+      {/* DESKTOP: obecna wersja z tekstem */}
+      <section className="relative hidden w-full overflow-hidden md:block" style={{ background: PAGE_BG }}>
         <div className="absolute inset-0">
           <img
             src="/rodzina.webp"
             alt="Rodzina marząca o swoim miejscu"
-            className="h-full w-full object-cover object-[28%_center] md:object-center"
+            className="h-full w-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-black/65" />
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 via-black/35 to-transparent" />
