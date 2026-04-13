@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
 import type { Przeznaczenie } from "@prisma/client";
@@ -94,8 +95,8 @@ function MetricBlock({
   subValue,
 }: {
   label: string;
-  value: React.ReactNode;
-  subValue?: React.ReactNode;
+  value: ReactNode;
+  subValue?: ReactNode;
 }) {
   return (
     <div className="min-w-0 flex flex-col items-center text-center">
@@ -193,6 +194,45 @@ function HomeListingCard({ d }: { d: HomeListing }) {
               </div>
             }
           />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function TrustTile({
+  href,
+  title,
+  button,
+  image,
+}: {
+  href: string;
+  title: string;
+  button: string;
+  image: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group relative overflow-hidden rounded-[30px] border border-white/12 min-h-[260px] md:min-h-[320px]"
+    >
+      <div
+        className="absolute inset-0 bg-cover bg-center transition duration-500 group-hover:scale-[1.04]"
+        style={{ backgroundImage: `url(${image})` }}
+      />
+      <div className="absolute inset-0 bg-black/55 transition group-hover:bg-black/48" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/35" />
+
+      <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
+        <h3 className="font-bungee text-[24px] tracking-wide text-[#F3EFF5] md:text-[34px]">
+          {title}
+        </h3>
+
+        <div
+          className="mt-8 inline-flex items-center rounded-2xl border px-7 py-3 text-sm text-[#F3EFF5] transition-all duration-300 group-hover:bg-[#2F5E46]/25 md:text-base"
+          style={{ borderColor: ACCENT }}
+        >
+          {button}
         </div>
       </div>
     </Link>
@@ -352,69 +392,75 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* MOBILE: samo zdjęcie */}
-      <section className="relative block w-full overflow-hidden md:hidden" style={{ background: PAGE_BG }}>
-        <div className="relative h-[100svh] w-full">
-          <img
-            src="/rodzina1.webp"
-            alt="Rodzina marząca o swoim miejscu"
-            className="h-full w-full object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-black/28" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+      <section style={{ background: PAGE_BG }}>
+        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
+          <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
+            O nas
+          </div>
+
+          <h2 className="mt-4 max-w-4xl text-[28px] font-semibold tracking-tight text-white md:text-[38px]">
+            Portal stworzony wyłącznie pod działki
+          </h2>
+
+          <p className="mt-8 max-w-4xl text-base leading-8 text-white/82 md:mt-10 md:text-lg">
+            TylkoDziałki to miejsce stworzone dla osób, które chcą szybko i
+            wygodnie kupić lub sprzedać działkę. Tworzymy portal, który ma być
+            czytelny, nowoczesny i naprawdę pomocny dla osób szukających
+            konkretnych ofert.
+          </p>
+
+          <div className="mt-10 grid grid-cols-1 gap-5 md:mt-12 md:grid-cols-2">
+            <div className="rounded-[28px] border border-white/12 bg-black/20 p-7 transition hover:border-white/20 hover:bg-black/28">
+              <div className="text-2xl font-semibold text-[#9fd14b]">01</div>
+              <h3 className="mt-4 text-xl font-semibold text-white">
+                Proste dodawanie
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-white/72">
+                Intuicyjne wystawianie ofert i wygodne zarządzanie ogłoszeniami.
+              </p>
+            </div>
+
+            <div className="rounded-[28px] border border-[#7aa333]/30 bg-gradient-to-br from-[#7aa333]/12 to-black/20 p-7 transition hover:border-[#7aa333]/45 hover:bg-[#7aa333]/[0.12]">
+              <div className="text-2xl font-semibold text-[#9fd14b]">02</div>
+              <h3 className="mt-4 text-xl font-semibold text-white">
+                Rozwój
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-white/72">
+                Stale rozwijamy portal i docieramy do nowych osób szukających
+                działek.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* DESKTOP: obecna wersja z tekstem */}
-      <section className="relative hidden w-full overflow-hidden md:block" style={{ background: PAGE_BG }}>
-        <div className="absolute inset-0">
-          <img
-            src="/rodzina.webp"
-            alt="Rodzina marząca o swoim miejscu"
-            className="h-full w-full object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-black/65" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 via-black/35 to-transparent" />
-        </div>
+      <section style={{ background: PAGE_BG }}>
+        <div className="mx-auto max-w-7xl px-6 pb-16 md:px-10 md:pb-20">
+          <div className="rounded-[34px] border border-white/10 bg-white/[0.03] p-6 md:p-8">
+            <div className="text-center">
+              <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
+                TylkoDziałki
+              </div>
 
-        <div className="relative z-10 w-full py-16 md:py-20">
-          <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
-            <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-              O nas
+              <h2 className="mt-4 text-[30px] font-semibold tracking-tight text-white md:text-[42px]">
+                Zaufaj nam
+              </h2>
             </div>
 
-            <h2 className="mt-4 max-w-4xl text-[28px] font-semibold tracking-tight text-white md:text-[38px]">
-              Portal stworzony wyłącznie pod działki
-            </h2>
+            <div className="mt-8 grid grid-cols-1 gap-5 md:mt-10 md:grid-cols-2">
+              <TrustTile
+                href="/kup"
+                title="SZUKAJ DZIAŁKI"
+                button="PRZEJDŹ DO WYSZUKIWARKI"
+                image="/kup.webp"
+              />
 
-            <p className="mt-8 max-w-4xl text-base leading-8 text-white/82 md:mt-10 md:text-lg">
-              TylkoDziałki to miejsce stworzone dla osób, które chcą szybko i
-              wygodnie kupić lub sprzedać działkę. Tworzymy portal, który ma być
-              czytelny, nowoczesny i naprawdę pomocny dla osób szukających
-              konkretnych ofert.
-            </p>
-
-            <div className="mt-10 grid grid-cols-1 gap-5 md:mt-12 md:grid-cols-2">
-              <div className="rounded-[28px] border border-white/12 bg-black/30 p-7 backdrop-blur-[2px] transition hover:border-white/20 hover:bg-black/38">
-                <div className="text-2xl font-semibold text-[#9fd14b]">01</div>
-                <h3 className="mt-4 text-xl font-semibold text-white">
-                  Proste dodawanie
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-white/72">
-                  Intuicyjne wystawianie ofert i wygodne zarządzanie ogłoszeniami.
-                </p>
-              </div>
-
-              <div className="rounded-[28px] border border-[#7aa333]/30 bg-gradient-to-br from-[#7aa333]/14 to-black/28 p-7 backdrop-blur-[2px] transition hover:border-[#7aa333]/45 hover:bg-[#7aa333]/[0.12]">
-                <div className="text-2xl font-semibold text-[#9fd14b]">02</div>
-                <h3 className="mt-4 text-xl font-semibold text-white">
-                  Rozwój
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-white/72">
-                  Stale rozwijamy portal i docieramy do nowych osób szukających
-                  działek.
-                </p>
-              </div>
+              <TrustTile
+                href="/login"
+                title="ZALOGUJ LUB ZAREJESTRUJ SIĘ"
+                button="PRZEJDŹ DO LOGOWANIA"
+                image="/sprzedaj.webp"
+              />
             </div>
           </div>
         </div>
