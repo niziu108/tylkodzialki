@@ -418,19 +418,10 @@ export default async function HomePage() {
             </div>
 
             <h2 className="mt-4 text-[32px] font-semibold leading-[1.08] tracking-tight text-white md:text-[58px]">
-              Razem budujmy społeczność ludzi,
-              <br className="hidden md:block" /> którzy naprawdę chcą znaleźć
-              swoje miejsce.
+              Zaufaj nam
             </h2>
 
-            <p className="mt-6 max-w-2xl text-[15px] leading-7 text-white/82 md:mt-8 md:text-lg md:leading-8">
-              TylkoDziałki to nie tylko ogłoszenia. To przestrzeń tworzona dla
-              osób, które szukają działki z myślą o przyszłości, spokoju,
-              inwestycji i własnych planach. Dołącz do miejsca, w którym liczy się
-              prostota, zaufanie i realne oferty.
-            </p>
-
-            <div className="mt-10 flex flex-col gap-4 sm:flex-row md:mt-12">
+            <div className="mt-10 md:mt-12">
               <Link
                 href="/kup"
                 className="inline-flex items-center justify-center rounded-2xl border px-7 py-3.5 text-sm font-medium uppercase tracking-[0.08em] text-[#F3EFF5] transition-all duration-300 hover:bg-[#2F5E46]/25 md:px-8 md:py-4"
@@ -438,15 +429,12 @@ export default async function HomePage() {
               >
                 Szukaj działki
               </Link>
-
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center rounded-2xl border px-7 py-3.5 text-sm font-medium uppercase tracking-[0.08em] text-[#F3EFF5] transition-all duration-300 hover:bg-[#2F5E46]/25 md:px-8 md:py-4"
-                style={{ borderColor: ACCENT }}
-              >
-                Zarejestruj się / zaloguj, aby dodać ogłoszenie
-              </Link>
             </div>
+
+            <p className="mt-8 max-w-2xl text-[15px] leading-7 text-white/82 md:mt-10 md:text-lg md:leading-8">
+              Ekskluzywna przestrzeń dla osób, które szukają działki z myślą o
+              przyszłości, spokoju i realnej wartości.
+            </p>
           </div>
         </div>
       </section>
