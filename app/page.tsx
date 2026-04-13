@@ -369,14 +369,14 @@ export default async function HomePage() {
             </h2>
           </div>
 
-          <div className="mt-8 w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-            <div className="relative w-full overflow-hidden">
+          <div className="mt-8 w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] bg-black">
+            <div className="relative flex h-[120px] w-full items-center justify-center md:h-[180px]">
               <img
                 src="/rodzina.webp"
                 alt="Rodzina marząca o swoim miejscu"
-                className="block w-full aspect-[20/9] object-cover"
+                className="h-full w-full object-contain"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
             </div>
           </div>
 
