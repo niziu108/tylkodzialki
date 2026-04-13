@@ -35,36 +35,6 @@ function GoogleIcon() {
   );
 }
 
-function CameraIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-      <path
-        fill="currentColor"
-        d="M9 4.5 7.8 6H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-1.8L15 4.5H9zm3 5a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"
-      />
-    </svg>
-  );
-}
-
-function BoltIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-      <path fill="currentColor" d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-      <path
-        fill="currentColor"
-        d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3zm0 18.3C8.7 19 6 15.5 6 11.4V6.4l6-2.2 6 2.2v5c0 4.1-2.7 7.6-6 8.9z"
-      />
-    </svg>
-  );
-}
-
 function AuthPageContent() {
   const sp = useSearchParams();
   const { status } = useSession();
@@ -359,12 +329,13 @@ function AuthPageContent() {
             <div
               className="absolute inset-0"
               style={{
-                backgroundImage: `url(/logowanie.webp)`,
+                backgroundImage: `url(/rodzina2.webp)`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}
             />
-            <div className="absolute inset-0 bg-black/75" />
+            <div className="absolute inset-0 bg-black/62" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/15 to-black/55" />
 
             <div className="relative flex h-full w-full items-start px-8 lg:items-center lg:px-12">
               <div className="w-full max-w-xl">
@@ -372,61 +343,12 @@ function AuthPageContent() {
                   Zaufaj Nam
                 </div>
 
-                <div className="mt-5 text-[16px] leading-relaxed text-white/90 md:text-[18px]">
+                <div className="mt-5 max-w-[560px] text-[16px] leading-relaxed text-white/90 md:text-[18px]">
                   Zaloguj się lub zarejestruj i wystaw swoją działkę w 3 minuty.
-                  <span className="text-white/85"> Premium prezentacja.</span>
+                  <span className="text-white"> Dodawanie ogłoszeń jest darmowe.</span>
                 </div>
 
-                <div className="mt-8 space-y-4">
-                  <div className="rounded-2xl border border-[#7aa333]/20 bg-black/25 p-4 backdrop-blur-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 text-white/90">
-                        <BoltIcon />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">
-                          Błyskawiczne dodanie oferty
-                        </div>
-                        <div className="mt-1 text-[13px] text-white/85">
-                          Dodasz ofertę w kilka minut, bez zbędnych formularzy,
-                          tylko to, co naprawdę ważne dla działki.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-[#7aa333]/20 bg-black/25 p-4 backdrop-blur-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 text-white/90">
-                        <ShieldIcon />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">Kontakt</div>
-                        <div className="mt-1 text-[13px] text-white/85">
-                          Twój numer telefonu widoczny na górze ogłoszenia,
-                          kupujący kontaktują się od razu z Tobą.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-[#7aa333]/20 bg-black/25 p-4 backdrop-blur-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 text-white/90">
-                        <CameraIcon />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">
-                          Profesjonalna prezentacja działki
-                        </div>
-                        <div className="mt-1 text-[13px] text-white/85">
-                          Estetyczna, przejrzysta karta działki, Twoja oferta
-                          wygląda profesjonalnie i sprzedaje szybciej.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <div className="mt-8 h-px w-24 bg-[#7aa333]/55" />
 
                 <div className="h-6 lg:hidden" />
               </div>

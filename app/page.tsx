@@ -359,8 +359,8 @@ export default async function HomePage() {
 
       <section style={{ background: PAGE_BG }}>
         <div className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-          <div className="grid items-center gap-10 md:grid-cols-[1.05fr_0.95fr] md:gap-14">
-            <div>
+          <div className="grid gap-10 md:grid-cols-2 md:items-stretch md:gap-14">
+            <div className="flex flex-col">
               <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
                 O nas
               </div>
@@ -376,7 +376,18 @@ export default async function HomePage() {
                 konkretnych ofert.
               </p>
 
-              <div className="mt-10 grid gap-5 md:grid-cols-3">
+              <div className="mt-8 md:hidden">
+                <div className="relative w-full overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.03]">
+                  <img
+                    src="/rodzina.webp"
+                    alt="Rodzina marząca o swoim miejscu"
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+                </div>
+              </div>
+
+              <div className="mt-10 flex flex-col gap-5">
                 <div className="rounded-[28px] border border-[#7aa333]/25 bg-gradient-to-br from-[#7aa333]/12 to-[#7aa333]/[0.02] p-7 transition hover:border-[#7aa333]/45">
                   <div className="text-2xl font-semibold text-[#9fd14b]">01</div>
                   <h3 className="mt-4 text-xl font-semibold text-white">
@@ -409,19 +420,19 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="relative order-first md:order-none">
-              <div className="relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.03] shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
+            <div className="relative hidden md:block">
+              <div className="relative h-full min-h-[820px] w-full overflow-hidden rounded-[36px] border border-white/10 bg-white/[0.03] shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
                 <img
                   src="/rodzina.webp"
                   alt="Rodzina marząca o swoim miejscu"
                   className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
                 <div className="absolute inset-0 ring-1 ring-inset ring-[#7aa333]/15" />
               </div>
 
-              <div className="pointer-events-none absolute -bottom-5 -left-4 hidden h-24 w-24 rounded-full bg-[#7aa333]/12 blur-2xl md:block" />
-              <div className="pointer-events-none absolute -right-4 -top-5 hidden h-28 w-28 rounded-full bg-[#2F5E46]/18 blur-2xl md:block" />
+              <div className="pointer-events-none absolute -bottom-5 -left-4 h-24 w-24 rounded-full bg-[#7aa333]/12 blur-2xl" />
+              <div className="pointer-events-none absolute -right-4 -top-5 h-28 w-28 rounded-full bg-[#2F5E46]/18 blur-2xl" />
             </div>
           </div>
         </div>
