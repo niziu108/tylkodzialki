@@ -277,7 +277,7 @@ export default async function HomePage() {
           >
             <div
               className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: "url(/kup.webp)" }}
+              style={{ backgroundImage: "url(/kup1.webp)" }}
             />
             <div className="absolute inset-0 bg-black/45" />
 
@@ -305,7 +305,7 @@ export default async function HomePage() {
           >
             <div
               className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: "url(/sprzedaj.webp)" }}
+              style={{ backgroundImage: "url(/kup.webp)" }}
             />
             <div className="absolute inset-0 bg-black/40" />
 
