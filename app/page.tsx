@@ -357,67 +357,56 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section style={{ background: PAGE_BG }}>
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-          <div className="grid items-stretch gap-10 md:grid-cols-2 md:gap-14">
-            <div className="flex flex-col justify-center">
-              <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-                O nas
-              </div>
+      <section className="w-full" style={{ background: PAGE_BG }}>
+        <div className="w-full px-0 py-16 md:py-20">
+          <div className="mx-auto flex w-full max-w-7xl flex-col px-6 md:px-10">
+            <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
+              O nas
+            </div>
 
-              <h2 className="mt-4 text-[30px] font-semibold tracking-tight text-white md:text-[40px]">
-                Portal stworzony wyłącznie pod działki
-              </h2>
+            <h2 className="mt-4 max-w-4xl text-[28px] font-semibold tracking-tight text-white md:text-[38px]">
+              Portal stworzony wyłącznie pod działki
+            </h2>
 
-              <p className="mt-6 max-w-3xl text-base leading-8 text-white/72 md:text-lg">
-                TylkoDziałki to miejsce stworzone dla osób, które chcą szybko i
-                wygodnie kupić lub sprzedać działkę. Tworzymy portal, który ma być
-                czytelny, nowoczesny i naprawdę pomocny dla osób szukających
-                konkretnych ofert.
-              </p>
-
-              <div className="mt-8 -mx-6 md:hidden">
-                <div className="relative w-full overflow-hidden">
-                  <img
-                    src="/rodzina.webp"
-                    alt="Rodzina marząca o swoim miejscu"
-                    className="block h-auto w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-                </div>
-              </div>
-
-              <div className="mt-10 flex flex-col gap-5">
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.045]">
-                  <div className="text-2xl font-semibold text-[#9fd14b]">01</div>
-                  <h3 className="mt-4 text-xl font-semibold text-white">
-                    Proste dodawanie
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-white/68">
-                    Intuicyjne wystawianie ofert i wygodne zarządzanie ogłoszeniami.
-                  </p>
-                </div>
-
-                <div className="rounded-[28px] border border-[#7aa333]/25 bg-gradient-to-br from-[#7aa333]/12 to-[#7aa333]/[0.02] p-7 transition hover:border-[#7aa333]/45">
-                  <div className="text-2xl font-semibold text-[#9fd14b]">02</div>
-                  <h3 className="mt-4 text-xl font-semibold text-white">
-                    Rozwój
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-white/68">
-                    Stale rozwijamy portal i docieramy do nowych osób szukających
-                    działek.
-                  </p>
-                </div>
+            <div className="mt-8 -mx-6 md:mx-0">
+              <div className="relative w-full overflow-hidden md:rounded-[28px]">
+                <img
+                  src="/rodzina.webp"
+                  alt="Rodzina marząca o swoim miejscu"
+                  className="block h-[33svh] w-full object-cover md:h-[34vw] md:max-h-[420px] md:min-h-[260px]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
               </div>
             </div>
 
-            <div className="relative hidden min-h-[680px] w-full md:block">
-              <img
-                src="/rodzina.webp"
-                alt="Rodzina marząca o swoim miejscu"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+            <p className="mt-8 max-w-4xl text-base leading-8 text-white/72 md:mt-10 md:text-lg">
+              TylkoDziałki to miejsce stworzone dla osób, które chcą szybko i
+              wygodnie kupić lub sprzedać działkę. Tworzymy portal, który ma być
+              czytelny, nowoczesny i naprawdę pomocny dla osób szukających
+              konkretnych ofert.
+            </p>
+
+            <div className="mt-10 grid grid-cols-1 gap-5 md:mt-12 md:grid-cols-2">
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition hover:border-white/20 hover:bg-white/[0.045]">
+                <div className="text-2xl font-semibold text-[#9fd14b]">01</div>
+                <h3 className="mt-4 text-xl font-semibold text-white">
+                  Proste dodawanie
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-white/68">
+                  Intuicyjne wystawianie ofert i wygodne zarządzanie ogłoszeniami.
+                </p>
+              </div>
+
+              <div className="rounded-[28px] border border-[#7aa333]/25 bg-gradient-to-br from-[#7aa333]/12 to-[#7aa333]/[0.02] p-7 transition hover:border-[#7aa333]/45">
+                <div className="text-2xl font-semibold text-[#9fd14b]">02</div>
+                <h3 className="mt-4 text-xl font-semibold text-white">
+                  Rozwój
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-white/68">
+                  Stale rozwijamy portal i docieramy do nowych osób szukających
+                  działek.
+                </p>
+              </div>
             </div>
           </div>
         </div>
