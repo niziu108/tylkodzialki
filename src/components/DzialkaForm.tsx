@@ -599,16 +599,18 @@ export default function DzialkaForm({
     if (textarea) {
       textarea.style.height = 'auto';
       const computed = window.getComputedStyle(textarea);
+      const minHeight = parseFloat(computed.minHeight || '220');
       const maxHeight = parseFloat(computed.maxHeight || '0');
       const nextHeight = textarea.scrollHeight;
+      const targetHeight = Math.max(nextHeight, minHeight);
 
-      if (maxHeight > 0 && nextHeight > maxHeight) {
-        textarea.style.height = `${maxHeight}px`;
-        textarea.style.overflowY = 'auto';
+      if (maxHeight > 0) {
+        textarea.style.height = `${Math.min(targetHeight, maxHeight)}px`;
       } else {
-        textarea.style.height = `${Math.max(nextHeight, 220)}px`;
-        textarea.style.overflowY = 'hidden';
+        textarea.style.height = `${targetHeight}px`;
       }
+
+      textarea.style.overflowY = 'auto';
       return;
     }
 
@@ -616,16 +618,18 @@ export default function DzialkaForm({
     if (editable) {
       editable.style.height = 'auto';
       const computed = window.getComputedStyle(editable);
+      const minHeight = parseFloat(computed.minHeight || '220');
       const maxHeight = parseFloat(computed.maxHeight || '0');
       const nextHeight = editable.scrollHeight;
+      const targetHeight = Math.max(nextHeight, minHeight);
 
-      if (maxHeight > 0 && nextHeight > maxHeight) {
-        editable.style.height = `${maxHeight}px`;
-        editable.style.overflowY = 'auto';
+      if (maxHeight > 0) {
+        editable.style.height = `${Math.min(targetHeight, maxHeight)}px`;
       } else {
-        editable.style.height = `${Math.max(nextHeight, 220)}px`;
-        editable.style.overflowY = 'hidden';
+        editable.style.height = `${targetHeight}px`;
       }
+
+      editable.style.overflowY = 'auto';
     }
   }
 
@@ -1702,10 +1706,37 @@ export default function DzialkaForm({
               .opis-mobile-fix [contenteditable='true'] {
                 min-height: 220px !important;
                 max-height: 65vh !important;
-                overflow-y: hidden !important;
-                resize: none !important;
+                overflow-y: auto !important;
+                resize: vertical !important;
                 -webkit-overflow-scrolling: touch;
                 line-height: 1.55 !important;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255, 255, 255, 0.45) rgba(255, 255, 255, 0.08);
+              }
+
+              .opis-mobile-fix textarea::-webkit-scrollbar,
+              .opis-mobile-fix [contenteditable='true']::-webkit-scrollbar {
+                width: 10px;
+              }
+
+              .opis-mobile-fix textarea::-webkit-scrollbar-track,
+              .opis-mobile-fix [contenteditable='true']::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 999px;
+              }
+
+              .opis-mobile-fix textarea::-webkit-scrollbar-thumb,
+              .opis-mobile-fix [contenteditable='true']::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.42);
+                border-radius: 999px;
+                border: 2px solid transparent;
+                background-clip: padding-box;
+              }
+
+              .opis-mobile-fix textarea::-webkit-scrollbar-thumb:hover,
+              .opis-mobile-fix [contenteditable='true']::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.62);
+                background-clip: padding-box;
               }
 
               @media (max-width: 768px) {
@@ -1715,6 +1746,11 @@ export default function DzialkaForm({
                   max-height: 55vh !important;
                   font-size: 16px !important;
                   line-height: 1.6 !important;
+                }
+
+                .opis-mobile-fix textarea::-webkit-scrollbar,
+                .opis-mobile-fix [contenteditable='true']::-webkit-scrollbar {
+                  width: 8px;
                 }
               }
             `}</style>
