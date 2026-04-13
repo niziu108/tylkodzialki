@@ -420,6 +420,63 @@ function ChoiceRow({
   );
 }
 
+function handleOpisPasteAsPlainText(e: React.ClipboardEvent<HTMLDivElement>) {
+  const text = e.clipboardData.getData('text/plain');
+  if (!text) return;
+
+  const target = e.target as HTMLElement | null;
+  if (!target) return;
+
+  const textarea = target.closest('textarea') as HTMLTextAreaElement | null;
+  const input = target.closest('input') as HTMLInputElement | null;
+  const editable = target.closest('[contenteditable="true"]') as HTMLElement | null;
+
+  if (!textarea && !input && !editable) return;
+
+  e.preventDefault();
+
+  if (textarea || input) {
+    const el = (textarea ?? input)!;
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const nextValue = el.value.slice(0, start) + text + el.value.slice(end);
+
+    const proto = Object.getPrototypeOf(el);
+    const valueSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+    valueSetter?.call(el, nextValue);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+
+    requestAnimationFrame(() => {
+      const pos = start + text.length;
+      el.setSelectionRange?.(pos, pos);
+    });
+
+    return;
+  }
+
+  if (editable) {
+    editable.focus();
+
+    if (document.queryCommandSupported?.('insertText')) {
+      document.execCommand('insertText', false, text);
+      editable.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    selection.deleteFromDocument();
+    const range = selection.getRangeAt(0);
+    range.insertNode(document.createTextNode(text));
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    editable.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
 export default function DzialkaForm({
   mode,
   initialData,
@@ -431,6 +488,7 @@ export default function DzialkaForm({
   const searchParams = useSearchParams();
   const shouldAutoPublish = mode === 'create' && searchParams.get('autopublish') === '1';
   const autoPublishAttemptedRef = useRef(false);
+  const opisWrapRef = useRef<HTMLDivElement | null>(null);
 
   const [tytul, setTytul] = useState(initialData?.tytul ?? '');
   const [telefon, setTelefon] = useState(initialData?.telefon ?? '');
@@ -533,6 +591,44 @@ export default function DzialkaForm({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
+  function syncOpisEditorHeight() {
+    const wrap = opisWrapRef.current;
+    if (!wrap) return;
+
+    const textarea = wrap.querySelector('textarea') as HTMLTextAreaElement | null;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const computed = window.getComputedStyle(textarea);
+      const maxHeight = parseFloat(computed.maxHeight || '0');
+      const nextHeight = textarea.scrollHeight;
+
+      if (maxHeight > 0 && nextHeight > maxHeight) {
+        textarea.style.height = `${maxHeight}px`;
+        textarea.style.overflowY = 'auto';
+      } else {
+        textarea.style.height = `${Math.max(nextHeight, 220)}px`;
+        textarea.style.overflowY = 'hidden';
+      }
+      return;
+    }
+
+    const editable = wrap.querySelector('[contenteditable="true"]') as HTMLElement | null;
+    if (editable) {
+      editable.style.height = 'auto';
+      const computed = window.getComputedStyle(editable);
+      const maxHeight = parseFloat(computed.maxHeight || '0');
+      const nextHeight = editable.scrollHeight;
+
+      if (maxHeight > 0 && nextHeight > maxHeight) {
+        editable.style.height = `${maxHeight}px`;
+        editable.style.overflowY = 'auto';
+      } else {
+        editable.style.height = `${Math.max(nextHeight, 220)}px`;
+        editable.style.overflowY = 'hidden';
+      }
+    }
+  }
+
   useEffect(() => {
     if (createdListing) {
       window.scrollTo(0, 0);
@@ -544,6 +640,21 @@ export default function DzialkaForm({
       window.scrollTo(0, 0);
     }
   }, [pendingPublicationCheckout]);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      syncOpisEditorHeight();
+    });
+
+    const timeout = window.setTimeout(() => {
+      syncOpisEditorHeight();
+    }, 120);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timeout);
+    };
+  }, [opis]);
 
   function togglePrzeznaczenie(p: Przeznaczenie) {
     setPrzeznaczenia((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
@@ -1522,17 +1633,91 @@ export default function DzialkaForm({
 
             <Hr className="mt-8" />
 
-            <MarkdownOpis
-              value={opis}
-              onChange={(v: string) => {
-                const next = (v ?? '').slice(0, MAX_OPIS_CHARS);
-                setOpis(next);
-              }}
-            />
+            <div
+              ref={opisWrapRef}
+              className="opis-mobile-fix"
+              onPasteCapture={handleOpisPasteAsPlainText}
+              onInputCapture={() => syncOpisEditorHeight()}
+            >
+              <MarkdownOpis
+                value={opis}
+                onChange={(v: string) => {
+                  const next = (v ?? '').slice(0, MAX_OPIS_CHARS);
+                  setOpis(next);
+                }}
+              />
+            </div>
 
             <div className="text-[12px] tracking-[0.12em] text-white/40">
               Opis: {opis.length}/{MAX_OPIS_CHARS}
             </div>
+
+            <style jsx global>{`
+              .opis-mobile-fix textarea,
+              .opis-mobile-fix input,
+              .opis-mobile-fix [contenteditable='true'] {
+                color: rgba(255, 255, 255, 0.92) !important;
+                -webkit-text-fill-color: rgba(255, 255, 255, 0.92) !important;
+                caret-color: #ffffff !important;
+                background: transparent !important;
+              }
+
+              .opis-mobile-fix textarea::placeholder,
+              .opis-mobile-fix input::placeholder,
+              .opis-mobile-fix [contenteditable='true']::placeholder {
+                color: rgba(255, 255, 255, 0.4) !important;
+                -webkit-text-fill-color: rgba(255, 255, 255, 0.4) !important;
+              }
+
+              .opis-mobile-fix textarea *,
+              .opis-mobile-fix input *,
+              .opis-mobile-fix [contenteditable='true'] *,
+              .opis-mobile-fix [contenteditable='true'] p,
+              .opis-mobile-fix [contenteditable='true'] div,
+              .opis-mobile-fix [contenteditable='true'] span,
+              .opis-mobile-fix [contenteditable='true'] strong,
+              .opis-mobile-fix [contenteditable='true'] em,
+              .opis-mobile-fix [contenteditable='true'] b,
+              .opis-mobile-fix [contenteditable='true'] i,
+              .opis-mobile-fix [contenteditable='true'] u,
+              .opis-mobile-fix [contenteditable='true'] li,
+              .opis-mobile-fix [contenteditable='true'] ul,
+              .opis-mobile-fix [contenteditable='true'] ol,
+              .opis-mobile-fix [contenteditable='true'] h1,
+              .opis-mobile-fix [contenteditable='true'] h2,
+              .opis-mobile-fix [contenteditable='true'] h3,
+              .opis-mobile-fix [contenteditable='true'] h4,
+              .opis-mobile-fix [contenteditable='true'] h5,
+              .opis-mobile-fix [contenteditable='true'] h6,
+              .opis-mobile-fix [contenteditable='true'] a,
+              .opis-mobile-fix [contenteditable='true'] code,
+              .opis-mobile-fix [contenteditable='true'] blockquote {
+                color: rgba(255, 255, 255, 0.92) !important;
+                -webkit-text-fill-color: rgba(255, 255, 255, 0.92) !important;
+                background-color: transparent !important;
+                border-color: rgba(255, 255, 255, 0.15) !important;
+              }
+
+              .opis-mobile-fix textarea,
+              .opis-mobile-fix [contenteditable='true'] {
+                min-height: 220px !important;
+                max-height: 65vh !important;
+                overflow-y: hidden !important;
+                resize: none !important;
+                -webkit-overflow-scrolling: touch;
+                line-height: 1.55 !important;
+              }
+
+              @media (max-width: 768px) {
+                .opis-mobile-fix textarea,
+                .opis-mobile-fix [contenteditable='true'] {
+                  min-height: 260px !important;
+                  max-height: 55vh !important;
+                  font-size: 16px !important;
+                  line-height: 1.6 !important;
+                }
+              }
+            `}</style>
           </div>
 
           <div className="space-y-6">
