@@ -367,20 +367,7 @@ export default async function HomePage() {
             <h2 className="mt-4 max-w-4xl text-[28px] font-semibold tracking-tight text-white md:text-[38px]">
               Portal stworzony wyłącznie pod działki
             </h2>
-          </div>
 
-          <div className="mt-8 w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] bg-black">
-            <div className="relative flex h-[120px] w-full items-center justify-center md:h-[180px]">
-              <img
-                src="/rodzina.webp"
-                alt="Rodzina marząca o swoim miejscu"
-                className="h-full w-full object-contain"
-              />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
-            </div>
-          </div>
-
-          <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
             <p className="mt-8 max-w-4xl text-base leading-8 text-white/72 md:mt-10 md:text-lg">
               TylkoDziałki to miejsce stworzone dla osób, które chcą szybko i
               wygodnie kupić lub sprzedać działkę. Tworzymy portal, który ma być
