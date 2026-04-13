@@ -200,45 +200,6 @@ function HomeListingCard({ d }: { d: HomeListing }) {
   );
 }
 
-function TrustTile({
-  href,
-  title,
-  button,
-  image,
-}: {
-  href: string;
-  title: string;
-  button: string;
-  image: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group relative overflow-hidden rounded-[30px] border border-white/12 min-h-[260px] md:min-h-[320px]"
-    >
-      <div
-        className="absolute inset-0 bg-cover bg-center transition duration-500 group-hover:scale-[1.04]"
-        style={{ backgroundImage: `url(${image})` }}
-      />
-      <div className="absolute inset-0 bg-black/55 transition group-hover:bg-black/48" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/35" />
-
-      <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
-        <h3 className="font-bungee text-[24px] tracking-wide text-[#F3EFF5] md:text-[34px]">
-          {title}
-        </h3>
-
-        <div
-          className="mt-8 inline-flex items-center rounded-2xl border px-7 py-3 text-sm text-[#F3EFF5] transition-all duration-300 group-hover:bg-[#2F5E46]/25 md:text-base"
-          style={{ borderColor: ACCENT }}
-        >
-          {button}
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 export default async function HomePage() {
   const now = new Date();
 
@@ -434,33 +395,57 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section style={{ background: PAGE_BG }}>
-        <div className="mx-auto max-w-7xl px-6 pb-16 md:px-10 md:pb-20">
-          <div className="rounded-[34px] border border-white/10 bg-white/[0.03] p-6 md:p-8">
-            <div className="text-center">
-              <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-                TylkoDziałki
-              </div>
+      <section className="relative overflow-hidden" style={{ background: PAGE_BG }}>
+        <div className="absolute inset-0">
+          <img
+            src="/rodzina.webp"
+            alt="Rodzina"
+            className="hidden h-full w-full object-cover md:block"
+          />
+          <img
+            src="/rodzina1.webp"
+            alt="Rodzina"
+            className="block h-full w-full object-cover md:hidden"
+          />
+          <div className="absolute inset-0 bg-black/60 md:bg-black/58" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/70" />
+        </div>
 
-              <h2 className="mt-4 text-[30px] font-semibold tracking-tight text-white md:text-[42px]">
-                Zaufaj nam
-              </h2>
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+          <div className="max-w-4xl">
+            <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
+              Zaufaj nam
             </div>
 
-            <div className="mt-8 grid grid-cols-1 gap-5 md:mt-10 md:grid-cols-2">
-              <TrustTile
-                href="/kup"
-                title="SZUKAJ DZIAŁKI"
-                button="PRZEJDŹ DO WYSZUKIWARKI"
-                image="/kup.webp"
-              />
+            <h2 className="mt-4 text-[32px] font-semibold leading-[1.08] tracking-tight text-white md:text-[58px]">
+              Razem budujmy społeczność ludzi,
+              <br className="hidden md:block" /> którzy naprawdę chcą znaleźć
+              swoje miejsce.
+            </h2>
 
-              <TrustTile
+            <p className="mt-6 max-w-2xl text-[15px] leading-7 text-white/82 md:mt-8 md:text-lg md:leading-8">
+              TylkoDziałki to nie tylko ogłoszenia. To przestrzeń tworzona dla
+              osób, które szukają działki z myślą o przyszłości, spokoju,
+              inwestycji i własnych planach. Dołącz do miejsca, w którym liczy się
+              prostota, zaufanie i realne oferty.
+            </p>
+
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row md:mt-12">
+              <Link
+                href="/kup"
+                className="inline-flex items-center justify-center rounded-2xl border px-7 py-3.5 text-sm font-medium uppercase tracking-[0.08em] text-[#F3EFF5] transition-all duration-300 hover:bg-[#2F5E46]/25 md:px-8 md:py-4"
+                style={{ borderColor: ACCENT }}
+              >
+                Szukaj działki
+              </Link>
+
+              <Link
                 href="/login"
-                title="ZALOGUJ LUB ZAREJESTRUJ SIĘ"
-                button="PRZEJDŹ DO LOGOWANIA"
-                image="/sprzedaj.webp"
-              />
+                className="inline-flex items-center justify-center rounded-2xl border px-7 py-3.5 text-sm font-medium uppercase tracking-[0.08em] text-[#F3EFF5] transition-all duration-300 hover:bg-[#2F5E46]/25 md:px-8 md:py-4"
+                style={{ borderColor: ACCENT }}
+              >
+                Zarejestruj się / zaloguj, aby dodać ogłoszenie
+              </Link>
             </div>
           </div>
         </div>
