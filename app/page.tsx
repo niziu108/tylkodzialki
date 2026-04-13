@@ -327,14 +327,9 @@ export default async function HomePage() {
 
       <section style={{ background: PAGE_BG }}>
         <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">
-          <div className="flex items-end justify-between">
-            <div>
-              <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-                Oferty
-              </div>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                Najnowsze oferty
-              </h2>
+          <div>
+            <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
+              Najnowsze oferty
             </div>
           </div>
 
@@ -362,7 +357,7 @@ export default async function HomePage() {
           <img
             src="/rodzina.webp"
             alt="Rodzina marząca o swoim miejscu"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover object-[28%_center] md:object-center"
           />
           <div className="absolute inset-0 bg-black/65" />
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 via-black/35 to-transparent" />
