@@ -334,25 +334,33 @@ function AuthPageContent() {
                 backgroundPosition: 'center',
               }}
             />
-            <div className="absolute inset-0 bg-black/62" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/15 to-black/55" />
 
-            <div className="relative flex h-full w-full items-start px-8 lg:items-center lg:px-12">
+            <div className="absolute inset-0 bg-black/18" />
+
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.58) 20%, rgba(0,0,0,0.28) 42%, rgba(0,0,0,0.10) 58%, rgba(0,0,0,0.04) 72%, rgba(0,0,0,0.00) 100%)',
+              }}
+            />
+
+            <div className="relative flex h-full w-full items-start px-8 pt-10 lg:px-12 lg:pt-12">
               <div className="w-full max-w-xl">
                 <div className="text-[40px] font-semibold leading-[1.05] tracking-tight text-white md:text-[52px]">
                   Zaufaj Nam
                 </div>
 
-                <div className="mt-5 max-w-[560px] text-[16px] leading-relaxed text-white/90 md:text-[18px]">
+                <div className="mt-5 max-w-[560px] text-[16px] leading-relaxed text-white/92 md:text-[18px]">
                   Zaloguj się lub zarejestruj i wystaw swoją działkę w 3 minuty.
                   <span className="text-white"> Dodawanie ogłoszeń jest darmowe.</span>
                 </div>
 
                 <div className="mt-8 h-px w-24 bg-[#7aa333]/55" />
-
-                <div className="h-6 lg:hidden" />
               </div>
             </div>
+
+            <div className="h-6 lg:hidden" />
           </div>
         </div>
       </div>
