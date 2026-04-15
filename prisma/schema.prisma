@@ -8,34 +8,35 @@ datasource db {
 }
 
 model User {
-  id                       String                     @id @default(cuid())
+  id                       String    @id @default(cuid())
   name                     String?
-  email                    String?                    @unique
+  email                    String?   @unique
   emailVerified            DateTime?
   image                    String?
   passwordHash             String?
-  role                     Role                       @default(USER)
-  createdAt                DateTime                   @default(now())
-  updatedAt                DateTime                   @updatedAt
-  listingCredits           Int                        @default(0)
+  role                     Role      @default(USER)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  listingCredits           Int       @default(0)
   listingCreditsExpiresAt  DateTime?
-  featuredCredits          Int                        @default(0)
+  featuredCredits          Int       @default(0)
   featuredCreditsExpiresAt DateTime?
 
-  defaultTelefon           String?
-  defaultSprzedajacyTyp    SprzedajacyTyp?
-  defaultSprzedajacyImie   String?
-  defaultBiuroNazwa        String?
-  defaultBiuroOpiekun      String?
-  defaultBiuroLogoUrl      String?
+  defaultTelefon         String?
+  defaultSprzedajacyTyp  SprzedajacyTyp?
+  defaultSprzedajacyImie String?
+  defaultBiuroNazwa      String?
+  defaultBiuroOpiekun    String?
+  defaultBiuroLogoUrl    String?
 
-  accounts                 Account[]
-  dzialki                  Dzialka[]
-  emailSendLogs            EmailSendLog[]
-  invoices                 Invoice[]
-  creditTransactions       ListingCreditTransaction[]
-  listingOrders            ListingOrder[]
-  sessions                 Session[]
+  accounts           Account[]
+  crmIntegrations    CrmIntegration[]
+  creditTransactions ListingCreditTransaction[]
+  dzialki            Dzialka[]
+  emailSendLogs      EmailSendLog[]
+  invoices           Invoice[]
+  listingOrders      ListingOrder[]
+  sessions           Session[]
 }
 
 model Account {
@@ -76,30 +77,30 @@ model VerificationToken {
 }
 
 model Dzialka {
-  id               String            @id @default(cuid())
-  tytul            String
-  cenaPln          Int
-  powierzchniaM2   Int
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  editToken        String            @unique
-  email            String?
-  expiresAt        DateTime?
-  lat              Float?
-  lng              Float?
-  locationFull     String?
-  locationLabel    String?
-  locationMode     LocationMode      @default(EXACT)
-  mapsUrl          String?
-  parcelText       String?
-  placeId          String?
-  przeznaczenia    Przeznaczenie[]
-  telefon          String
+  id             String          @id @default(cuid())
+  tytul          String
+  cenaPln        Int
+  powierzchniaM2 Int
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  editToken      String          @unique
+  email          String?
+  expiresAt      DateTime?
+  lat            Float?
+  lng            Float?
+  locationFull   String?
+  locationLabel  String?
+  locationMode   LocationMode    @default(EXACT)
+  mapsUrl        String?
+  parcelText     String?
+  placeId        String?
+  przeznaczenia  Przeznaczenie[]
+  telefon        String
 
-  sprzedajacyImie  String?
-  biuroNazwa       String?
-  biuroOpiekun     String?
-  biuroLogoUrl     String?
+  sprzedajacyImie String?
+  biuroNazwa      String?
+  biuroOpiekun    String?
+  biuroLogoUrl    String?
 
   klasaZiemi       String?
   ksiegaWieczysta  String?
@@ -123,8 +124,15 @@ model Dzialka {
   isFeatured       Boolean           @default(false)
   detailViewsCount Int               @default(0)
   viewsCount       Int               @default(0)
-  owner            User?             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  zdjecia          Zdjecie[]
+
+  sourceType      DzialkaSourceType @default(MANUAL)
+  crmImportedAt   DateTime?
+  crmLastSyncedAt DateTime?
+
+  owner         User?          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  crmOfferLinks CrmOfferLink[]
+  crmSyncLogs   CrmSyncLog[]
+  zdjecia       Zdjecie[]
 
   @@index([lat, lng])
   @@index([ownerId])
@@ -132,6 +140,8 @@ model Dzialka {
   @@index([expiresAt])
   @@index([isFeatured])
   @@index([featuredUntil])
+  @@index([sourceType])
+  @@index([crmLastSyncedAt])
 }
 
 model Zdjecie {
@@ -142,6 +152,8 @@ model Zdjecie {
   dzialkaId String
   createdAt DateTime @default(now())
   dzialka   Dzialka  @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
+
+  @@index([dzialkaId])
 }
 
 model PasswordResetToken {
@@ -155,20 +167,20 @@ model PasswordResetToken {
 }
 
 model AppConfig {
-  id                          String   @id @default(cuid())
-  paymentsEnabled             Boolean  @default(false)
-  freeListingCredits          Int      @default(0)
-  freeListingCreditsDays      Int?
+  id                     String  @id @default(cuid())
+  paymentsEnabled        Boolean @default(false)
+  freeListingCredits     Int     @default(0)
+  freeListingCreditsDays Int?
 
-  listingSinglePriceGrossPln  Int      @default(1900)
-  listingPack10PriceGrossPln  Int      @default(14900)
-  listingPack40PriceGrossPln  Int      @default(39900)
+  listingSinglePriceGrossPln Int @default(1900)
+  listingPack10PriceGrossPln Int @default(14900)
+  listingPack40PriceGrossPln Int @default(39900)
 
-  featuredSinglePriceGrossPln Int      @default(1900)
-  featuredPack3PriceGrossPln  Int      @default(3900)
+  featuredSinglePriceGrossPln Int @default(1900)
+  featuredPack3PriceGrossPln  Int @default(3900)
 
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ListingCreditTransaction {
@@ -300,6 +312,86 @@ model Article {
   @@index([isPublished, createdAt])
 }
 
+model CrmIntegration {
+  id       String      @id @default(cuid())
+  userId   String
+  name     String
+  provider CrmProvider @default(GENERIC)
+  isActive Boolean     @default(true)
+
+  apiKeyHash   String
+  apiKeyPrefix String
+  apiKeyLast4  String
+
+  lastUsedAt       DateTime?
+  lastSyncAt       DateTime?
+  lastSuccessAt    DateTime?
+  lastErrorAt      DateTime?
+  lastErrorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offerLinks CrmOfferLink[]
+  syncLogs   CrmSyncLog[]
+
+  @@unique([userId, name])
+  @@unique([apiKeyHash])
+  @@index([userId])
+  @@index([provider])
+  @@index([isActive])
+}
+
+model CrmOfferLink {
+  id                String    @id @default(cuid())
+  integrationId     String
+  dzialkaId         String
+  externalId        String
+  externalUpdatedAt DateTime?
+  lastImportedAt    DateTime?
+  lastSeenAt        DateTime?
+  lastPublishedAt   DateTime?
+  lastDeactivatedAt DateTime?
+  isActiveInSource  Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  integration CrmIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  dzialka     Dzialka        @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
+  syncLogs    CrmSyncLog[]
+
+  @@unique([integrationId, externalId])
+  @@index([integrationId])
+  @@index([dzialkaId])
+  @@index([externalId])
+  @@index([isActiveInSource])
+  @@index([lastSeenAt])
+}
+
+model CrmSyncLog {
+  id            String        @id @default(cuid())
+  integrationId String
+  dzialkaId     String?
+  offerLinkId   String?
+  externalId    String?
+  action        CrmSyncAction
+  status        CrmSyncStatus
+  message       String?
+  payload       Json?
+  createdAt     DateTime      @default(now())
+
+  integration CrmIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  dzialka     Dzialka?       @relation(fields: [dzialkaId], references: [id], onDelete: SetNull)
+  offerLink   CrmOfferLink?  @relation(fields: [offerLinkId], references: [id], onDelete: SetNull)
+
+  @@index([integrationId, createdAt])
+  @@index([dzialkaId])
+  @@index([offerLinkId])
+  @@index([externalId])
+  @@index([action, status])
+}
+
 enum Role {
   USER
   ADMIN
@@ -310,6 +402,11 @@ enum DzialkaStatus {
   ZAKONCZONE
 }
 
+enum DzialkaSourceType {
+  MANUAL
+  CRM
+}
+
 enum ListingCreditSourceType {
   MANUAL
   FREE
@@ -318,6 +415,7 @@ enum ListingCreditSourceType {
   ADMIN_GRANT
   FEATURED_BONUS
   FEATURED_USAGE
+  CRM_PUBLICATION
 }
 
 enum ListingPaymentStatus {
@@ -428,4 +526,27 @@ enum InvoiceSource {
 
 enum EmailSendType {
   REMINDER
+}
+
+enum CrmProvider {
+  GENERIC
+  ASARI
+  ESTI_CRM
+  IMOX
+  GALACTICA
+}
+
+enum CrmSyncAction {
+  CREATE
+  UPDATE
+  DEACTIVATE
+  REACTIVATE
+  SKIP_NO_CREDITS
+  DELETE
+  ERROR
+}
+
+enum CrmSyncStatus {
+  SUCCESS
+  ERROR
 }
