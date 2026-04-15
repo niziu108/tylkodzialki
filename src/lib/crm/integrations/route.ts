@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       integration,
-      apiKey, // pokazujemy tylko teraz, w momencie tworzenia
+      apiKey,
       message:
         "Integracja CRM została utworzona. Zapisz klucz API, bo później nie będzie już widoczny w całości.",
     });
