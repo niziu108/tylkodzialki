@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateCrmApiKey } from "@/src/lib/crm/generateApiKey";
-import { hashCrmApiKey } from "@/src/lib/crm/hashApiKey";
-import { getCurrentUser } from "@/src/lib/crm/getCurrentUser";
+import { generateCrmApiKey } from "@/lib/crm/generateApiKey";
+import { hashCrmApiKey } from "@/lib/crm/hashApiKey";
+import { getCurrentUser } from "@/lib/crm/getCurrentUser";
 
 type CreateIntegrationBody = {
   name?: string;
