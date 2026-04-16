@@ -15,6 +15,22 @@ type PanelPageProps = {
   }>;
 };
 
+function formatDatePL(value?: string | Date | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("pl-PL");
+}
+
+function getInitials(name?: string | null, email?: string | null) {
+  const source = (name?.trim() || email?.trim() || "TK").toUpperCase();
+
+  if (name?.trim()) {
+    const parts = name.trim().split(/\s+/).slice(0, 2);
+    return parts.map((p) => p[0]).join("");
+  }
+
+  return source.slice(0, 2);
+}
+
 export default async function PanelPage({ searchParams }: PanelPageProps) {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email;
@@ -84,6 +100,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
       typeof (rawUser as any).featuredCredits === "number"
         ? (rawUser as any).featuredCredits
         : 0,
+    createdAt: rawUser.createdAt,
   };
 
   const [rawItems, invoices, crmIntegration] = await Promise.all([
@@ -189,48 +206,129 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
   const endedCount =
     activeTab === "ogloszenia" ? items.length - activeCount : 0;
 
+  const totalViews =
+    activeTab === "ogloszenia"
+      ? items.reduce((sum, item) => sum + (item.viewsCount ?? 0), 0)
+      : 0;
+
+  const totalDetailViews =
+    activeTab === "ogloszenia"
+      ? items.reduce((sum, item) => sum + (item.detailViewsCount ?? 0), 0)
+      : 0;
+
   return (
     <main className="min-h-screen bg-[#131313] text-[#d9d9d9]">
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-8">
-        <div className="mb-8 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.035] p-5 md:p-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div className="min-w-0">
-                <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]">
-                  Panel klienta
+        <div className="mb-8 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-5 md:p-6">
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                <div className="flex min-w-0 items-start gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#7aa333]/25 bg-[#7aa333]/12 text-sm font-semibold uppercase tracking-[0.14em] text-[#9fd14b]">
+                    {getInitials(user.name, user.email)}
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]">
+                      Panel klienta
+                    </div>
+
+                    <h1 className="mt-3 text-[24px] font-semibold leading-tight text-white md:text-[30px]">
+                      Twoje konto
+                    </h1>
+
+                    <div className="mt-2 text-sm text-white/55">
+                      {user.name ? (
+                        <span className="text-white/70">{user.name}</span>
+                      ) : null}
+                      {user.name && user.email ? (
+                        <span className="mx-2 text-white/25">•</span>
+                      ) : null}
+                      {user.email ? (
+                        <span className="truncate text-white/55">{user.email}</span>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
 
-                <h1 className="mt-3 text-[24px] font-semibold leading-tight text-white md:text-[30px]">
-                  Twoje konto
-                </h1>
+                <div className="flex shrink-0 flex-wrap gap-3">
+                  <Link
+                    href="/sprzedaj"
+                    className="inline-flex min-h-[48px] items-center justify-center rounded-full px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-black transition hover:scale-[1.01] hover:opacity-90"
+                    style={{ background: "#7aa333" }}
+                  >
+                    Dodaj działkę
+                  </Link>
 
-                <p className="mt-2 text-sm leading-6 text-white/55">
-                  Zarządzaj ogłoszeniami, fakturami i integracjami CRM.
-                </p>
+                  {paymentsEnabled ? (
+                    <Link
+                      href="/panel/pakiety"
+                      className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-white/14 bg-white/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition hover:border-white/28 hover:bg-white/[0.05]"
+                    >
+                      Kup pakiet
+                    </Link>
+                  ) : null}
+                </div>
               </div>
 
-              <div className="flex shrink-0 flex-wrap gap-3">
-                <Link
-                  href="/sprzedaj"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-full px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-black transition hover:scale-[1.01] hover:opacity-90"
-                  style={{ background: "#7aa333" }}
-                >
-                  Dodaj działkę
-                </Link>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
+                    Ogłoszenia
+                  </div>
+                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
+                    {items.length}
+                  </div>
+                </div>
 
-                {paymentsEnabled ? (
-                  <Link
-                    href="/panel/pakiety"
-                    className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-white/14 bg-white/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition hover:border-white/28 hover:bg-white/[0.05]"
-                  >
-                    Kup pakiet
-                  </Link>
-                ) : null}
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
+                    Aktywne
+                  </div>
+                  <div className="mt-2 text-[28px] font-semibold leading-none text-[#9fd14b]">
+                    {activeCount}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
+                    Wyświetlenia
+                  </div>
+                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
+                    {totalViews}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
+                    Wejścia
+                  </div>
+                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
+                    {totalDetailViews}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-white/8 pt-4 text-[13px] text-white/50">
+                <div>
+                  Konto od:{" "}
+                  <span className="text-white/75">
+                    {formatDatePL(user.createdAt)}
+                  </span>
+                </div>
+                <div>
+                  Zakończone:{" "}
+                  <span className="text-red-300">{endedCount}</span>
+                </div>
+                <div>
+                  Wyróżnienia:{" "}
+                  <span className="text-white/75">{user.featuredCredits}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-[#7aa333]/18 bg-[linear-gradient(180deg,rgba(122,163,51,0.08),rgba(255,255,255,0.03))] p-5 md:p-6">
+          <div className="rounded-[30px] border border-[#7aa333]/18 bg-[linear-gradient(180deg,rgba(122,163,51,0.08),rgba(255,255,255,0.03))] p-5 md:p-6">
             <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
               Dostępne zasoby
             </div>
@@ -266,7 +364,16 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               </div>
             ) : null}
 
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col gap-3">
+              {paymentsEnabled ? (
+                <Link
+                  href="/panel/pakiety"
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-[#7aa333] px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+                >
+                  Kup pakiet
+                </Link>
+              ) : null}
+
               <Link
                 href="/panel/wyroznienia"
                 className="inline-flex w-full items-center justify-center rounded-2xl border border-[#7aa333]/35 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:border-[#7aa333]/60 hover:bg-white/[0.05]"
