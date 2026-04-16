@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { Metadata, ReactNode } from "react";
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
 import type { Przeznaczenie } from "@prisma/client";
