@@ -339,12 +339,12 @@ export default async function HomePage() {
       </section>
 
       <section style={{ background: PAGE_BG }}>
-        <div className="mx-auto max-w-7xl px-6 pt-4 pb-1 md:px-10">
-          <h2 className="text-[20px] font-medium text-white md:text-[24px]">
+        <div className="mx-auto max-w-7xl px-6 pt-8 pb-6 md:px-10">
+          <h2 className="text-[22px] font-semibold text-white md:text-[28px]">
             Działki na sprzedaż w całej Polsce.
           </h2>
 
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/60 md:text-base">
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/60 md:text-[17px]">
             Szukaj działek, przeglądaj oferty i dodawaj ogłoszenia w prosty i
             wygodny sposób.
           </p>
@@ -352,14 +352,14 @@ export default async function HomePage() {
       </section>
 
       <section style={{ background: PAGE_BG }}>
-        <div className="mx-auto max-w-7xl px-6 pt-1 pb-10 md:px-10">
+        <div className="mx-auto max-w-7xl px-6 pt-4 pb-10 md:px-10">
           <div>
             <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
               Najnowsze oferty
             </div>
           </div>
 
-          <div className="mt-2">
+          <div className="mt-4">
             <HomeHorizontalSlider>
               {latestCards.map((item) => (
                 <HomeListingCard key={item.id} d={item} />
