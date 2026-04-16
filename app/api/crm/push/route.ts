@@ -21,6 +21,8 @@ type CrmPushPhoto = {
 
 type CrmPushBody = {
   externalId: string;
+  crmOfferType?: "DZIALKA" | "DOM" | "MIESZKANIE" | "LOKAL" | "INNE";
+
   tytul: string;
   opis?: string | null;
   cenaPln: number;
@@ -73,11 +75,21 @@ function makeEditToken() {
   return crypto.randomBytes(24).toString("hex");
 }
 
+function isValidHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function normalizePhotos(photos: CrmPushPhoto[] | undefined) {
   if (!Array.isArray(photos)) return [];
 
   return photos
-    .filter((photo) => !!photo?.url)
+    .filter((photo) => !!photo?.url && isValidHttpUrl(photo.url))
+    .slice(0, 30)
     .map((photo, index) => ({
       url: photo.url,
       publicId: photo.publicId?.trim() || photo.url,
@@ -93,42 +105,118 @@ function buildDzialkaData(body: CrmPushBody) {
       : ["BUDOWLANA"];
 
   return {
-    tytul: body.tytul,
+    tytul: body.tytul.trim(),
     cenaPln: body.cenaPln,
     powierzchniaM2: body.powierzchniaM2,
-    email: body.email ?? null,
-    lat: body.lat ?? null,
-    lng: body.lng ?? null,
-    locationFull: body.locationFull ?? null,
-    locationLabel: body.locationLabel ?? null,
+    email: body.email?.trim() || null,
+    lat: typeof body.lat === "number" ? body.lat : null,
+    lng: typeof body.lng === "number" ? body.lng : null,
+    locationFull: body.locationFull?.trim() || null,
+    locationLabel: body.locationLabel?.trim() || null,
     locationMode: (body.locationMode ?? "APPROX") as LocationMode,
-    mapsUrl: body.mapsUrl ?? null,
-    parcelText: body.parcelText ?? null,
-    placeId: body.placeId ?? null,
+    mapsUrl: body.mapsUrl?.trim() || null,
+    parcelText: body.parcelText?.trim() || null,
+    placeId: body.placeId?.trim() || null,
     przeznaczenia,
-    telefon: body.telefon,
-    sprzedajacyImie: body.sprzedajacyImie ?? null,
-    biuroNazwa: body.biuroNazwa ?? null,
-    biuroOpiekun: body.biuroOpiekun ?? null,
-    biuroLogoUrl: body.biuroLogoUrl ?? null,
-    klasaZiemi: body.klasaZiemi ?? null,
-    ksiegaWieczysta: body.ksiegaWieczysta ?? null,
+    telefon: body.telefon.trim(),
+    sprzedajacyImie: body.sprzedajacyImie?.trim() || null,
+    biuroNazwa: body.biuroNazwa?.trim() || null,
+    biuroOpiekun: body.biuroOpiekun?.trim() || null,
+    biuroLogoUrl: body.biuroLogoUrl?.trim() || null,
+    klasaZiemi: body.klasaZiemi?.trim() || null,
+    ksiegaWieczysta: body.ksiegaWieczysta?.trim() || null,
     mpzp: body.mpzp ?? false,
     projektDomu: body.projektDomu ?? false,
-    wymiary: body.wymiary ?? null,
+    wymiary: body.wymiary?.trim() || null,
     wzWydane: body.wzWydane ?? false,
-    numerOferty: body.numerOferty ?? null,
+    numerOferty: body.numerOferty?.trim() || null,
     sprzedajacyTyp: (body.sprzedajacyTyp ?? "BIURO") as SprzedajacyTyp,
     kanalizacja: (body.kanalizacja ?? "BRAK") as KanalizacjaStatus,
     gaz: (body.gaz ?? "BRAK") as GazStatus,
     swiatlowod: (body.swiatlowod ?? "BRAK") as SwiatlowodStatus,
     prad: (body.prad ?? "BRAK_PRZYLACZA") as PradStatus,
     woda: (body.woda ?? "BRAK_PRZYLACZA") as WodaStatus,
-    opis: body.opis ?? null,
+    opis: body.opis?.trim() || null,
     sourceType: "CRM" as const,
     crmImportedAt: new Date(),
     crmLastSyncedAt: new Date(),
   };
+}
+
+function validateBody(body: CrmPushBody) {
+  if (!body.externalId?.trim()) {
+    return "Pole externalId jest wymagane.";
+  }
+
+  if (body.externalId.trim().length > 120) {
+    return "Pole externalId jest za długie.";
+  }
+
+  if (body.crmOfferType && body.crmOfferType !== "DZIALKA") {
+    return "Integracja przyjmuje tylko oferty typu DZIALKA.";
+  }
+
+  if (!body.tytul?.trim()) {
+    return "Pole tytul jest wymagane.";
+  }
+
+  if (body.tytul.trim().length < 5) {
+    return "Tytuł oferty jest zbyt krótki.";
+  }
+
+  if (body.tytul.trim().length > 160) {
+    return "Tytuł oferty jest zbyt długi.";
+  }
+
+  if (!body.telefon?.trim()) {
+    return "Pole telefon jest wymagane.";
+  }
+
+  const phoneDigits = body.telefon.replace(/\D/g, "");
+  if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+    return "Pole telefon ma nieprawidłowy format.";
+  }
+
+  if (typeof body.cenaPln !== "number" || Number.isNaN(body.cenaPln)) {
+    return "Pole cenaPln musi być liczbą.";
+  }
+
+  if (body.cenaPln < 0) {
+    return "Pole cenaPln nie może być ujemne.";
+  }
+
+  if (
+    typeof body.powierzchniaM2 !== "number" ||
+    Number.isNaN(body.powierzchniaM2)
+  ) {
+    return "Pole powierzchniaM2 musi być liczbą.";
+  }
+
+  if (body.powierzchniaM2 <= 0) {
+    return "Pole powierzchniaM2 musi być większe od zera.";
+  }
+
+  if (!body.przeznaczenia || body.przeznaczenia.length === 0) {
+    return "Pole przeznaczenia jest wymagane w integracji CRM.";
+  }
+
+  if (body.zdjecia && body.zdjecia.length > 30) {
+    return "Można przesłać maksymalnie 30 zdjęć.";
+  }
+
+  if (body.mapsUrl && !isValidHttpUrl(body.mapsUrl)) {
+    return "mapsUrl musi być poprawnym adresem http lub https.";
+  }
+
+  if (body.biuroLogoUrl && !isValidHttpUrl(body.biuroLogoUrl)) {
+    return "biuroLogoUrl musi być poprawnym adresem http lub https.";
+  }
+
+  if (body.email && !body.email.includes("@")) {
+    return "Pole email ma nieprawidłowy format.";
+  }
+
+  return null;
 }
 
 export async function POST(req: NextRequest) {
@@ -144,36 +232,30 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = (await req.json()) as CrmPushBody;
+    const validationError = validateBody(body);
 
-    if (!body.externalId?.trim()) {
-      return NextResponse.json(
-        { error: "Pole externalId jest wymagane." },
-        { status: 400 }
-      );
-    }
+    if (validationError) {
+      await prisma.crmIntegration.update({
+        where: { id: integration.id },
+        data: {
+          lastUsedAt: new Date(),
+          lastErrorAt: new Date(),
+          lastErrorMessage: validationError,
+        },
+      });
 
-    if (!body.tytul?.trim()) {
-      return NextResponse.json(
-        { error: "Pole tytul jest wymagane." },
-        { status: 400 }
-      );
-    }
+      await prisma.crmSyncLog.create({
+        data: {
+          integrationId: integration.id,
+          externalId: body?.externalId?.trim() || null,
+          action: "ERROR",
+          status: "ERROR",
+          message: validationError,
+          payload: body,
+        },
+      });
 
-    if (!body.telefon?.trim()) {
-      return NextResponse.json(
-        { error: "Pole telefon jest wymagane." },
-        { status: 400 }
-      );
-    }
-
-    if (
-      typeof body.cenaPln !== "number" ||
-      typeof body.powierzchniaM2 !== "number"
-    ) {
-      return NextResponse.json(
-        { error: "Pola cenaPln i powierzchniaM2 muszą być liczbami." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     const now = new Date();
@@ -508,7 +590,7 @@ export async function POST(req: NextRequest) {
       await tx.crmSyncLog.create({
         data: {
           integrationId: integration.id,
-          dzialkaId: dzialka.id,
+          dzialkaId: updated?.id ?? existingLink.dzialkaId,
           offerLinkId: existingLink.id,
           externalId,
           action: "UPDATE",
