@@ -339,34 +339,27 @@ export default async function HomePage() {
       </section>
 
       <section style={{ background: PAGE_BG }}>
-        <div className="mx-auto max-w-7xl px-6 py-10 md:px-10 md:py-14">
-          <div className="max-w-4xl rounded-[28px] border border-white/10 bg-white/[0.03] p-6 md:p-8">
-            <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-              Portal ogłoszeń działek
-            </div>
+        <div className="mx-auto max-w-7xl px-6 pt-4 pb-2 md:px-10">
+          <h2 className="text-[20px] font-medium text-white md:text-[24px]">
+            Działki na sprzedaż w całej Polsce
+          </h2>
 
-            <h2 className="mt-4 text-[26px] font-semibold tracking-tight text-white md:text-[34px]">
-              Działki na sprzedaż w całej Polsce
-            </h2>
-
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/72 md:text-base">
-              TylkoDziałki.pl to portal poświęcony wyłącznie działkom. Szukaj
-              ofert, porównuj ogłoszenia i dodawaj własne działki na sprzedaż w
-              prosty i wygodny sposób.
-            </p>
-          </div>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/60 md:text-base">
+            Szukaj działek, przeglądaj oferty i dodawaj ogłoszenia w prosty i
+            wygodny sposób.
+          </p>
         </div>
       </section>
 
       <section style={{ background: PAGE_BG }}>
-        <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">
+        <div className="mx-auto max-w-7xl px-6 py-10 md:px-10">
           <div>
             <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
               Najnowsze oferty
             </div>
           </div>
 
-          <div className="mt-10">
+          <div className="mt-6">
             <HomeHorizontalSlider>
               {latestCards.map((item) => (
                 <HomeListingCard key={item.id} d={item} />
