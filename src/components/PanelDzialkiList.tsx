@@ -79,20 +79,18 @@ function isFeaturedNow(d: Dzialka) {
 }
 
 function labelPrzeznaczenie(p: Przeznaczenie) {
-  return String(p)
-    .replace('USLUGOWA', 'USŁUGOWA')
-    .replace('LESNA', 'LEŚNA')
-    .replace('INWESTYCYJNA', 'INWESTYCYJNA')
-    .replace('ROLNA', 'ROLNA')
-    .replace('BUDOWLANA', 'BUDOWLANA');
-}
+  const map: Record<string, string> = {
+    INWESTYCYJNA: 'Inwestycyjna',
+    BUDOWLANA: 'Budowlana',
+    ROLNA: 'Rolna',
+    LESNA: 'Leśna',
+    REKREACYJNA: 'Rekreacyjna',
+    SIEDLISKOWA: 'Siedliskowa',
+    USLUGOWA: 'Usługowa',
+  };
 
-const ICONS = {
-  area: '/powierzchnia.webp',
-  price: '/cena.webp',
-  type: '/przeznaczenie.webp',
-  loc: '/lokalizacja.webp',
-};
+  return map[p] ?? String(p);
+}
 
 const GREEN = '#7aa333';
 
@@ -169,21 +167,10 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
         );
       }
 
-      if (sort === 'price_high') {
-        return b.cenaPln - a.cenaPln;
-      }
-
-      if (sort === 'price_low') {
-        return a.cenaPln - b.cenaPln;
-      }
-
-      if (sort === 'area_high') {
-        return b.powierzchniaM2 - a.powierzchniaM2;
-      }
-
-      if (sort === 'area_low') {
-        return a.powierzchniaM2 - b.powierzchniaM2;
-      }
+      if (sort === 'price_high') return b.cenaPln - a.cenaPln;
+      if (sort === 'price_low') return a.cenaPln - b.cenaPln;
+      if (sort === 'area_high') return b.powierzchniaM2 - a.powierzchniaM2;
+      if (sort === 'area_low') return a.powierzchniaM2 - b.powierzchniaM2;
 
       if (sort === 'expiring') {
         const aExpiry =
@@ -218,7 +205,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4 md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="w-full xl:max-w-md">
-            <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.14em] text-white/45">
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
               Szukaj ogłoszenia
             </label>
 
@@ -233,7 +220,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-end">
             <div className="min-w-[190px]">
-              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
                 Status
               </label>
 
@@ -262,7 +249,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
             </div>
 
             <div className="min-w-[250px]">
-              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
                 Sortowanie
               </label>
 
@@ -362,7 +349,6 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
     if (!d.id || !cardRef.current) return;
 
     const key = `TD_PANEL_VIEWED_${d.id}`;
-
     let shouldTrack = true;
 
     try {
@@ -425,9 +411,9 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   return (
     <div
       ref={cardRef}
-      className={`overflow-hidden rounded-3xl border transition ${
+      className={`group overflow-hidden rounded-3xl border transition ${
         effectiveStatus === 'ZAKONCZONE'
-          ? 'border-white/10 bg-[#0f0f0f]/15 opacity-75'
+          ? 'border-white/10 bg-[#0f0f0f]/15 opacity-80'
           : isFeaturedActive
           ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
           : 'border-white/14 bg-[#0f0f0f]/20 hover:border-white/30'
@@ -437,7 +423,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
         href={`/dzialka/${d.id}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="group block"
+        className="block"
       >
         <Carousel
           photos={photos}
@@ -445,161 +431,278 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           title={d.tytul}
           viewsCount={viewsCount}
           detailViewsCount={detailViewsCount}
+          featured={isFeaturedActive}
         />
 
-        <div className="space-y-4 p-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.08em] ${
-                effectiveStatus === 'AKTYWNE'
-                  ? 'border border-green-400/20 bg-green-500/15 text-green-300'
-                  : 'border border-red-400/20 bg-red-500/15 text-red-300'
-              }`}
-            >
-              {effectiveStatus === 'AKTYWNE' ? 'AKTYWNE' : 'ZAKOŃCZONE'}
-            </span>
-
-            {isFeaturedActive ? (
-              <span className="inline-flex items-center rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-3 py-1 text-[11px] font-semibold tracking-[0.08em] text-[#9fd14b]">
-                WYRÓŻNIONE
-              </span>
-            ) : null}
-
-            {effectiveStatus === 'AKTYWNE' ? (
-              isIndefinite ? (
-                <div className="text-[12px] text-white/55">
-                  Bezterminowo
-                  <span className="ml-2 text-white/40">(do czasu włączenia płatności)</span>
-                </div>
-              ) : (
-                <div className="text-[12px] text-white/55">
-                  Widoczne do: {formatDatePL(d.expiresAt)}
-                  {typeof daysLeft === 'number' && daysLeft >= 0 ? (
-                    <span className="ml-2 text-white/40">({daysLeft} dni)</span>
+        <div className="p-5 md:p-6">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <MetricBlock
+              label="Cena"
+              value={
+                <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
+                  <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
+                    {formatPLN(d.cenaPln)}
+                  </span>
+                  {zlZaM2 ? (
+                    <span className="text-[12px] text-white/50">
+                      ({formatIntPL(zlZaM2)} zł/m²)
+                    </span>
                   ) : null}
                 </div>
-              )
-            ) : (
-              <div className="text-[12px] text-white/45">
-                {d.status === 'ZAKONCZONE'
-                  ? 'Ogłoszenie zostało zakończone'
-                  : 'Ogłoszenie wygasło'}
-              </div>
-            )}
+              }
+            />
+
+            <div className="h-14 w-px bg-white/10" />
+
+            <MetricBlock
+              label="Powierzchnia"
+              value={
+                <div className="text-[20px] font-medium leading-none text-white/95 md:text-[22px]">
+                  {formatIntPL(area)} m²
+                </div>
+              }
+            />
           </div>
 
-          <div className="flex items-center gap-3">
-            <img src={ICONS.price} alt="" className="h-5 w-5 opacity-80" />
-            <div className="text-[18px] font-semibold" style={{ color: GREEN }}>
-              {formatPLN(d.cenaPln)}
-              {zlZaM2 ? (
-                <span className="ml-2 text-[12px] font-normal text-white/50">
-                  ({formatIntPL(zlZaM2)} zł/m²)
-                </span>
-              ) : null}
+          <div className="mt-6">
+            <div className="mx-auto max-w-[92%] text-center text-[16px] font-medium leading-[1.35] text-white/92 md:text-[17px]">
+              {d.tytul}
             </div>
           </div>
 
-          <InfoLine icon={ICONS.area} value={`${formatIntPL(area)} m²`} />
-          <InfoLine icon={ICONS.type} value={przezn} />
-          <InfoLine icon={ICONS.loc} value={loc} />
+          <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <MetricBlock
+              label="Lokalizacja"
+              value={
+                <div className="break-words text-[14px] leading-[1.4] text-white/90">
+                  {loc}
+                </div>
+              }
+            />
+
+            <div className="h-14 w-px bg-white/10" />
+
+            <MetricBlock
+              label="Przeznaczenie"
+              value={
+                <div className="break-words text-[14px] leading-[1.4] text-white/90">
+                  {przezn}
+                </div>
+              }
+            />
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/8 pt-4">
+            <StatusPill effectiveStatus={effectiveStatus} />
+            {isFeaturedActive ? <FeaturedPill /> : null}
+
+            {effectiveStatus === 'AKTYWNE' ? (
+              isIndefinite ? (
+                <MetaPill text="Bezterminowo" subtle />
+              ) : (
+                <MetaPill
+                  text={`Widoczne do: ${formatDatePL(d.expiresAt)}${
+                    typeof daysLeft === 'number' && daysLeft >= 0 ? ` (${daysLeft} dni)` : ''
+                  }`}
+                  subtle
+                />
+              )
+            ) : (
+              <MetaPill
+                text={
+                  d.status === 'ZAKONCZONE'
+                    ? 'Ogłoszenie zostało zakończone'
+                    : 'Ogłoszenie wygasło'
+                }
+                danger
+              />
+            )}
+          </div>
         </div>
       </Link>
 
-      <div className="px-6 pb-6 pt-0">
-        <div className="flex flex-wrap gap-x-6 gap-y-3 border-t border-white/10 pt-4 text-[13px] font-semibold">
-          <Link
-            href={`/panel/ogloszenia/${d.id}/edytuj`}
-            className="text-white/75 transition underline decoration-[rgba(243,239,245,0.35)] decoration-[1px] underline-offset-[8px] hover:text-white"
-            onClick={(e) => {
-              if (isPending) e.preventDefault();
-            }}
-          >
-            Edytuj ogłoszenie
-          </Link>
-
-          <Link
-            href={`/dzialka/${d.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white/75 transition underline decoration-[rgba(243,239,245,0.35)] decoration-[1px] underline-offset-[8px] hover:text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            Zobacz ogłoszenie
-          </Link>
-
-          <ActionBtn
-            label={
-              isPending
-                ? 'Trwa...'
-                : effectiveStatus === 'AKTYWNE'
-                ? 'Przedłuż ogłoszenie'
-                : 'Aktywuj ogłoszenie'
-            }
-            disabled={isPending}
-            onClick={() =>
-              runAction(
-                () => przedluzOgloszenieAction(d.id),
-                effectiveStatus === 'AKTYWNE'
-                  ? 'Nie udało się przedłużyć ogłoszenia.'
-                  : 'Nie udało się aktywować ogłoszenia.'
-              )
-            }
-          />
-
-          {effectiveStatus === 'AKTYWNE' ? (
-            <ActionBtn
-              label={isPending ? 'Trwa...' : 'Zakończ ogłoszenie'}
+      <div className="px-5 pb-5 md:px-6 md:pb-6">
+        <div className="rounded-[24px] border border-white/10 bg-black/20 p-4">
+          <div className="flex flex-wrap gap-3">
+            <ActionBtnAsLink
+              href={`/panel/ogloszenia/${d.id}/edytuj`}
+              label="Edytuj"
               disabled={isPending}
-              onClick={() => {
-                const ok = window.confirm('Na pewno zakończyć to ogłoszenie?');
-                if (!ok) return;
-
-                runAction(
-                  () => zakonczOgloszenieAction(d.id),
-                  'Nie udało się zakończyć ogłoszenia.'
-                );
-              }}
             />
-          ) : null}
 
-          {isFeaturedActive ? (
-            <span className="text-[#9fd14b]">
-              Wyróżnione do: {formatDatePL(d.featuredUntil)}
-            </span>
-          ) : (
+            <ActionBtnAsLink
+              href={`/dzialka/${d.id}`}
+              label="Zobacz"
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+
             <ActionBtn
-              label={isPending ? 'Trwa...' : 'Wyróżnij ogłoszenie'}
+              label={
+                isPending
+                  ? 'Trwa...'
+                  : effectiveStatus === 'AKTYWNE'
+                  ? 'Przedłuż'
+                  : 'Aktywuj'
+              }
               disabled={isPending}
-              accent
               onClick={() =>
                 runAction(
-                  () => wyroznijOgloszenieAction(d.id),
-                  'Nie udało się wyróżnić ogłoszenia.'
+                  () => przedluzOgloszenieAction(d.id),
+                  effectiveStatus === 'AKTYWNE'
+                    ? 'Nie udało się przedłużyć ogłoszenia.'
+                    : 'Nie udało się aktywować ogłoszenia.'
                 )
               }
             />
-          )}
 
-          <ActionBtn
-            label={isPending ? 'Trwa...' : 'Usuń ogłoszenie'}
-            danger
-            disabled={isPending}
-            onClick={() => {
-              const ok = window.confirm('Na pewno usunąć to ogłoszenie?');
-              if (!ok) return;
+            {effectiveStatus === 'AKTYWNE' ? (
+              <ActionBtn
+                label={isPending ? 'Trwa...' : 'Zakończ'}
+                disabled={isPending}
+                onClick={() => {
+                  const ok = window.confirm('Na pewno zakończyć to ogłoszenie?');
+                  if (!ok) return;
 
-              runAction(
-                () => usunOgloszenieAction(d.id),
-                'Nie udało się usunąć ogłoszenia.'
-              );
-            }}
-          />
+                  runAction(
+                    () => zakonczOgloszenieAction(d.id),
+                    'Nie udało się zakończyć ogłoszenia.'
+                  );
+                }}
+              />
+            ) : null}
+
+            {isFeaturedActive ? (
+              <div className="inline-flex min-h-[40px] items-center rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-4 text-[12px] font-semibold text-[#9fd14b]">
+                Wyróżnione do: {formatDatePL(d.featuredUntil)}
+              </div>
+            ) : (
+              <ActionBtn
+                label={isPending ? 'Trwa...' : 'Wyróżnij'}
+                disabled={isPending}
+                accent
+                onClick={() =>
+                  runAction(
+                    () => wyroznijOgloszenieAction(d.id),
+                    'Nie udało się wyróżnić ogłoszenia.'
+                  )
+                }
+              />
+            )}
+
+            <ActionBtn
+              label={isPending ? 'Trwa...' : 'Usuń'}
+              danger
+              disabled={isPending}
+              onClick={() => {
+                const ok = window.confirm('Na pewno usunąć to ogłoszenie?');
+                if (!ok) return;
+
+                runAction(
+                  () => usunOgloszenieAction(d.id),
+                  'Nie udało się usunąć ogłoszenia.'
+                );
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function MetricBlock({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0 flex flex-col items-center text-center">
+      <div className="text-[11px] uppercase tracking-[0.16em] text-white/35">
+        {label}
+      </div>
+      <div className="mt-2 min-w-0">{value}</div>
+    </div>
+  );
+}
+
+function StatusPill({ effectiveStatus }: { effectiveStatus: DzialkaStatus }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.08em] ${
+        effectiveStatus === 'AKTYWNE'
+          ? 'border border-green-400/20 bg-green-500/15 text-green-300'
+          : 'border border-red-400/20 bg-red-500/15 text-red-300'
+      }`}
+    >
+      {effectiveStatus === 'AKTYWNE' ? 'AKTYWNE' : 'ZAKOŃCZONE'}
+    </span>
+  );
+}
+
+function FeaturedPill() {
+  return (
+    <span className="inline-flex items-center rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-3 py-1 text-[11px] font-semibold tracking-[0.08em] text-[#9fd14b]">
+      WYRÓŻNIONE
+    </span>
+  );
+}
+
+function MetaPill({
+  text,
+  subtle,
+  danger,
+}: {
+  text: string;
+  subtle?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] ${
+        danger
+          ? 'border border-red-400/15 bg-red-500/10 text-red-200'
+          : subtle
+          ? 'border border-white/10 bg-white/[0.03] text-white/60'
+          : 'border border-white/10 bg-white/[0.03] text-white/70'
+      }`}
+    >
+      {text}
+    </span>
+  );
+}
+
+function ActionBtnAsLink({
+  href,
+  label,
+  disabled,
+  target,
+  rel,
+}: {
+  href: string;
+  label: string;
+  disabled?: boolean;
+  target?: string;
+  rel?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      target={target}
+      rel={rel}
+      onClick={(e) => {
+        if (disabled) e.preventDefault();
+      }}
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-full border px-4 text-[12px] font-semibold transition ${
+        disabled
+          ? 'border-white/10 bg-white/[0.02] text-white/35'
+          : 'border-white/14 bg-white/[0.03] text-white/80 hover:border-white/28 hover:bg-white/[0.05] hover:text-white'
+      }`}
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -626,35 +729,16 @@ function ActionBtn({
         if (disabled) return;
         onClick();
       }}
-      className={`transition disabled:opacity-40 ${
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-full border px-4 text-[12px] font-semibold transition disabled:opacity-40 ${
         danger
-          ? 'text-red-300 hover:text-red-200'
+          ? 'border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-400/35 hover:bg-red-500/15'
           : accent
-          ? 'text-[#9fd14b] hover:text-[#b6e35e]'
-          : 'text-white/75 hover:text-white'
+          ? 'border-[#7aa333]/30 bg-[#7aa333]/12 text-[#9fd14b] hover:border-[#7aa333]/50 hover:bg-[#7aa333]/18'
+          : 'border-white/14 bg-white/[0.03] text-white/80 hover:border-white/28 hover:bg-white/[0.05] hover:text-white'
       }`}
-      style={{
-        textDecoration: 'underline',
-        textUnderlineOffset: '8px',
-        textDecorationThickness: '1px',
-        textDecorationColor: danger
-          ? 'rgba(248,113,113,0.55)'
-          : accent
-          ? 'rgba(122,163,51,0.55)'
-          : 'rgba(243,239,245,0.35)',
-      }}
     >
       {label}
     </button>
-  );
-}
-
-function InfoLine({ icon, value }: { icon: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3">
-      <img src={icon} alt="" className="h-5 w-5 opacity-80" loading="lazy" />
-      <div className="text-[14px] leading-snug text-white/90">{value}</div>
-    </div>
   );
 }
 
@@ -679,12 +763,14 @@ function Carousel({
   title,
   viewsCount,
   detailViewsCount,
+  featured,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
   title: string;
   viewsCount: number;
   detailViewsCount: number;
+  featured: boolean;
 }) {
   const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
   const has = list.length > 0;
@@ -754,7 +840,7 @@ function Carousel({
 
   return (
     <div
-      className="relative aspect-video bg-white/5"
+      className="relative aspect-[16/10] bg-white/5 md:aspect-video"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -763,25 +849,27 @@ function Carousel({
       {has ? (
         <>
           <img src={list[i]} alt={title} className="h-full w-full object-cover" loading="lazy" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
 
           <div className="absolute left-4 top-4 z-10 flex flex-wrap gap-2">
             <StatsBadge label="Wyświetlenia" value={viewsCount} />
             <StatsBadge label="Wejścia" value={detailViewsCount} />
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <div className="text-center text-[18px] font-medium leading-tight text-white drop-shadow">
-              {title}
+          {featured ? (
+            <div className="absolute left-4 bottom-4 z-10">
+              <span className="inline-flex items-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
+                WYRÓŻNIONE
+              </span>
             </div>
-          </div>
+          ) : null}
 
           {list.length > 1 && (
             <>
               <button
                 type="button"
                 onClick={prev}
-                className="absolute left-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ‹
               </button>
@@ -789,7 +877,7 @@ function Carousel({
               <button
                 type="button"
                 onClick={next}
-                className="absolute right-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ›
               </button>
@@ -798,7 +886,7 @@ function Carousel({
                 {list.slice(0, 6).map((_, idx) => (
                   <span
                     key={idx}
-                    className={`h-2 w-2 rounded-full ${idx === i ? 'bg-black' : 'bg-black/40'}`}
+                    className={`h-2 w-2 rounded-full ${idx === i ? 'bg-white' : 'bg-white/40'}`}
                   />
                 ))}
               </div>

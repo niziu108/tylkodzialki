@@ -191,46 +191,56 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
   return (
     <main className="min-h-screen bg-[#131313] text-[#d9d9d9]">
-      <div className="mx-auto max-w-6xl px-6 pb-16 pt-10">
-        <div className="mb-6 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 md:p-7">
-            <div>
-              <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
-                Twoje konto
+      <div className="mx-auto max-w-6xl px-6 pb-16 pt-8">
+        <div className="mb-8 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.035] p-5 md:p-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="min-w-0">
+                <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]">
+                  Panel klienta
+                </div>
+
+                <h1 className="mt-3 text-[24px] font-semibold leading-tight text-white md:text-[30px]">
+                  Twoje konto
+                </h1>
+
+                <p className="mt-2 text-sm leading-6 text-white/55">
+                  Zarządzaj ogłoszeniami, fakturami i integracjami CRM.
+                </p>
               </div>
 
-              <h2 className="mt-4 text-2xl font-semibold text-white">
-                Publikuj i zarządzaj swoimi ofertami
-              </h2>
-
-              <p className="mt-2 max-w-xl text-sm leading-7 text-white/65">
-                W tym miejscu sprawdzisz wszystkie swoje ogłoszenia, aktywne
-                publikacje, dostępne wyróżnienia, faktury oraz integracje CRM.
-              </p>
-
-              <div className="mt-5">
+              <div className="flex shrink-0 flex-wrap gap-3">
                 <Link
                   href="/sprzedaj"
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-full px-7 py-3 text-center text-[13px] font-semibold uppercase tracking-[0.16em] text-black transition hover:scale-[1.01] hover:opacity-90"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-full px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-black transition hover:scale-[1.01] hover:opacity-90"
                   style={{ background: "#7aa333" }}
                 >
                   Dodaj działkę
                 </Link>
+
+                {paymentsEnabled ? (
+                  <Link
+                    href="/panel/pakiety"
+                    className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-white/14 bg-white/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition hover:border-white/28 hover:bg-white/[0.05]"
+                  >
+                    Kup pakiet
+                  </Link>
+                ) : null}
               </div>
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-[#7aa333]/18 bg-[linear-gradient(180deg,rgba(122,163,51,0.10),rgba(255,255,255,0.03))] p-6 md:p-7">
-            <div className="text-sm font-medium text-[#9fd14b]">
+          <div className="rounded-[28px] border border-[#7aa333]/18 bg-[linear-gradient(180deg,rgba(122,163,51,0.08),rgba(255,255,255,0.03))] p-5 md:p-6">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
               Dostępne zasoby
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
                   Publikacje
                 </div>
-                <div className="mt-2 text-3xl font-semibold text-white">
+                <div className="mt-2 text-[30px] font-semibold leading-none text-white">
                   {paymentsEnabled ? user.listingCredits : "∞"}
                 </div>
                 {!paymentsEnabled ? (
@@ -241,31 +251,22 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
                   Wyróżnienia
                 </div>
-                <div className="mt-2 text-3xl font-semibold text-white">
+                <div className="mt-2 text-[30px] font-semibold leading-none text-white">
                   {user.featuredCredits}
                 </div>
               </div>
             </div>
 
             {!paymentsEnabled ? (
-              <div className="mt-5 rounded-2xl border border-[#7aa333]/25 bg-[#7aa333]/10 px-4 py-3 text-sm leading-6 text-[#dce9bf]">
+              <div className="mt-4 rounded-2xl border border-[#7aa333]/25 bg-[#7aa333]/10 px-4 py-3 text-sm leading-6 text-[#dce9bf]">
                 Publikacja ogłoszeń jest obecnie darmowa.
               </div>
             ) : null}
 
-            <div className="mt-5 flex flex-col gap-3">
-              {paymentsEnabled ? (
-                <Link
-                  href="/panel/pakiety"
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-[#7aa333] px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90"
-                >
-                  Kup pakiet
-                </Link>
-              ) : null}
-
+            <div className="mt-4">
               <Link
                 href="/panel/wyroznienia"
                 className="inline-flex w-full items-center justify-center rounded-2xl border border-[#7aa333]/35 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:border-[#7aa333]/60 hover:bg-white/[0.05]"
@@ -280,68 +281,72 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           <AutoFeaturedAfterPurchase dzialkaId={autoFeaturedDzialkaId} />
         ) : null}
 
-        <div className="mb-10 flex flex-col gap-5 border-b border-white/15 pb-4 md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-wrap gap-8 text-[16px] md:text-[17px]">
-            <Link
-              href="/panel"
-              className={`pb-3 transition ${
-                activeTab === "ogloszenia"
-                  ? "border-b-2 border-[#7aa333] text-white"
-                  : "text-white/70 hover:text-white"
-              }`}
-            >
-              Twoje ogłoszenia
-            </Link>
+        <div className="mb-8 border-b border-white/12">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="flex flex-wrap gap-7 text-[15px] md:text-[16px]">
+              <Link
+                href="/panel"
+                className={`pb-4 transition ${
+                  activeTab === "ogloszenia"
+                    ? "border-b-2 border-[#7aa333] text-white"
+                    : "text-white/68 hover:text-white"
+                }`}
+              >
+                Twoje ogłoszenia
+              </Link>
 
-            <Link
-              href="/panel?tab=faktury"
-              className={`pb-3 transition ${
-                activeTab === "faktury"
-                  ? "border-b-2 border-[#7aa333] text-white"
-                  : "text-white/70 hover:text-white"
-              }`}
-            >
-              Faktury
-            </Link>
+              <Link
+                href="/panel?tab=faktury"
+                className={`pb-4 transition ${
+                  activeTab === "faktury"
+                    ? "border-b-2 border-[#7aa333] text-white"
+                    : "text-white/68 hover:text-white"
+                }`}
+              >
+                Faktury
+              </Link>
 
-            <Link
-              href="/panel?tab=crm"
-              className={`pb-3 transition ${
-                activeTab === "crm"
-                  ? "border-b-2 border-[#7aa333] text-white"
-                  : "text-white/70 hover:text-white"
-              }`}
-            >
-              Integracje CRM
-            </Link>
-          </div>
-
-          {activeTab === "ogloszenia" ? (
-            <div className="flex flex-wrap gap-4 text-sm text-white/50">
-              <div>
-                Liczba ogłoszeń: <span className="text-white">{items.length}</span>
-              </div>
-              <div>
-                Aktywne: <span className="text-[#7aa333]">{activeCount}</span>
-              </div>
-              <div>
-                Zakończone: <span className="text-red-300">{endedCount}</span>
-              </div>
+              <Link
+                href="/panel?tab=crm"
+                className={`pb-4 transition ${
+                  activeTab === "crm"
+                    ? "border-b-2 border-[#7aa333] text-white"
+                    : "text-white/68 hover:text-white"
+                }`}
+              >
+                Integracje CRM
+              </Link>
             </div>
-          ) : null}
+
+            {activeTab === "ogloszenia" ? (
+              <div className="flex flex-wrap gap-4 pb-4 text-sm text-white/50">
+                <div>
+                  Ogłoszenia: <span className="text-white">{items.length}</span>
+                </div>
+                <div>
+                  Aktywne: <span className="text-[#7aa333]">{activeCount}</span>
+                </div>
+                <div>
+                  Zakończone: <span className="text-red-300">{endedCount}</span>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {activeTab === "ogloszenia" ? (
           <>
-            <div className="mb-6 text-[18px] font-medium text-white/80">
-              Twoje ogłoszenia
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div className="text-[19px] font-medium text-white">
+                Twoje ogłoszenia
+              </div>
             </div>
 
             <PanelDzialkiList items={items as any} />
           </>
         ) : activeTab === "faktury" ? (
           <>
-            <div className="mb-6 text-[18px] font-medium text-white/80">
+            <div className="mb-5 text-[19px] font-medium text-white">
               Faktury
             </div>
 
@@ -455,7 +460,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           </>
         ) : (
           <>
-            <div className="mb-6 text-[18px] font-medium text-white/80">
+            <div className="mb-5 text-[19px] font-medium text-white">
               Integracje CRM
             </div>
 
