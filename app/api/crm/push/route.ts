@@ -1,5 +1,15 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import type {
+  GazStatus,
+  KanalizacjaStatus,
+  LocationMode,
+  PradStatus,
+  Przeznaczenie,
+  SprzedajacyTyp,
+  SwiatlowodStatus,
+  WodaStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateCrmRequest } from "@/lib/crm/authenticateCrmRequest";
 
@@ -18,7 +28,7 @@ type CrmPushBody = {
   telefon: string;
   email?: string | null;
 
-  sprzedajacyTyp?: "PRYWATNIE" | "BIURO";
+  sprzedajacyTyp?: SprzedajacyTyp;
   sprzedajacyImie?: string | null;
   biuroNazwa?: string | null;
   biuroOpiekun?: string | null;
@@ -26,51 +36,20 @@ type CrmPushBody = {
 
   locationLabel?: string | null;
   locationFull?: string | null;
-  locationMode?: "EXACT" | "APPROX";
+  locationMode?: LocationMode;
   lat?: number | null;
   lng?: number | null;
   mapsUrl?: string | null;
   parcelText?: string | null;
   placeId?: string | null;
 
-  przeznaczenia?: (
-    | "INWESTYCYJNA"
-    | "BUDOWLANA"
-    | "ROLNA"
-    | "LESNA"
-    | "REKREACYJNA"
-    | "SIEDLISKOWA"
-  )[];
+  przeznaczenia?: Przeznaczenie[];
 
-  prad?:
-    | "BRAK_PRZYLACZA"
-    | "PRZYLACZE_NA_DZIALCE"
-    | "PRZYLACZE_W_DRODZE"
-    | "WARUNKI_PRZYLACZENIA_WYDANE"
-    | "MOZLIWOSC_PRZYLACZENIA";
-  woda?:
-    | "BRAK_PRZYLACZA"
-    | "WODOCIAG_NA_DZIALCE"
-    | "WODOCIAG_W_DRODZE"
-    | "STUDNIA_GLEBINOWA"
-    | "MOZLIWOSC_PODLACZENIA";
-  kanalizacja?:
-    | "BRAK"
-    | "MIEJSKA_NA_DZIALCE"
-    | "MIEJSKA_W_DRODZE"
-    | "SZAMBO"
-    | "PRZYDOMOWA_OCZYSZCZALNIA"
-    | "MOZLIWOSC_PODLACZENIA";
-  gaz?:
-    | "BRAK"
-    | "GAZ_NA_DZIALCE"
-    | "GAZ_W_DRODZE"
-    | "MOZLIWOSC_PODLACZENIA";
-  swiatlowod?:
-    | "BRAK"
-    | "W_DRODZE"
-    | "NA_DZIALCE"
-    | "MOZLIWOSC_PODLACZENIA";
+  prad?: PradStatus;
+  woda?: WodaStatus;
+  kanalizacja?: KanalizacjaStatus;
+  gaz?: GazStatus;
+  swiatlowod?: SwiatlowodStatus;
 
   mpzp?: boolean;
   wzWydane?: boolean;
@@ -108,6 +87,11 @@ function normalizePhotos(photos: CrmPushPhoto[] | undefined) {
 }
 
 function buildDzialkaData(body: CrmPushBody) {
+  const przeznaczenia: Przeznaczenie[] =
+    body.przeznaczenia && body.przeznaczenia.length > 0
+      ? body.przeznaczenia
+      : ["BUDOWLANA"];
+
   return {
     tytul: body.tytul,
     cenaPln: body.cenaPln,
@@ -117,14 +101,11 @@ function buildDzialkaData(body: CrmPushBody) {
     lng: body.lng ?? null,
     locationFull: body.locationFull ?? null,
     locationLabel: body.locationLabel ?? null,
-    locationMode: body.locationMode ?? "APPROX",
+    locationMode: (body.locationMode ?? "APPROX") as LocationMode,
     mapsUrl: body.mapsUrl ?? null,
     parcelText: body.parcelText ?? null,
     placeId: body.placeId ?? null,
-    przeznaczenia:
-      body.przeznaczenia && body.przeznaczenia.length > 0
-        ? body.przeznaczenia
-        : ["BUDOWLANA"],
+    przeznaczenia,
     telefon: body.telefon,
     sprzedajacyImie: body.sprzedajacyImie ?? null,
     biuroNazwa: body.biuroNazwa ?? null,
@@ -137,12 +118,12 @@ function buildDzialkaData(body: CrmPushBody) {
     wymiary: body.wymiary ?? null,
     wzWydane: body.wzWydane ?? false,
     numerOferty: body.numerOferty ?? null,
-    sprzedajacyTyp: body.sprzedajacyTyp ?? "BIURO",
-    kanalizacja: body.kanalizacja ?? "BRAK",
-    gaz: body.gaz ?? "BRAK",
-    swiatlowod: body.swiatlowod ?? "BRAK",
-    prad: body.prad ?? "BRAK_PRZYLACZA",
-    woda: body.woda ?? "BRAK_PRZYLACZA",
+    sprzedajacyTyp: (body.sprzedajacyTyp ?? "BIURO") as SprzedajacyTyp,
+    kanalizacja: (body.kanalizacja ?? "BRAK") as KanalizacjaStatus,
+    gaz: (body.gaz ?? "BRAK") as GazStatus,
+    swiatlowod: (body.swiatlowod ?? "BRAK") as SwiatlowodStatus,
+    prad: (body.prad ?? "BRAK_PRZYLACZA") as PradStatus,
+    woda: (body.woda ?? "BRAK_PRZYLACZA") as WodaStatus,
     opis: body.opis ?? null,
     sourceType: "CRM" as const,
     crmImportedAt: new Date(),
