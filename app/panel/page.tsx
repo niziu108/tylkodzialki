@@ -4,7 +4,7 @@ import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
 import PanelDzialkiList from "@/components/PanelDzialkiList";
 import AutoFeaturedAfterPurchase from "@/components/AutoFeaturedAfterPurchase";
-import CrmTestButton from "@/components/CrmTestButton";
+import CrmIntegrationPanel from "@/components/CrmIntegrationPanel";
 
 type PanelPageProps = {
   searchParams?: Promise<{
@@ -20,7 +20,12 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
   const email = session?.user?.email;
 
   const params = await searchParams;
-  const activeTab = params?.tab === "faktury" ? "faktury" : "ogloszenia";
+  const activeTab =
+    params?.tab === "faktury"
+      ? "faktury"
+      : params?.tab === "crm"
+      ? "crm"
+      : "ogloszenia";
 
   const shouldAutoFeature =
     params?.success === "featured" &&
@@ -81,7 +86,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
         : 0,
   };
 
-  const [rawItems, invoices] = await Promise.all([
+  const [rawItems, invoices, crmIntegration] = await Promise.all([
     activeTab === "ogloszenia"
       ? prisma.dzialka.findMany({
           where: { ownerId: user.id },
@@ -114,6 +119,27 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           orderBy: [{ createdAt: "desc" }],
         })
       : Promise.resolve([]),
+    activeTab === "crm"
+      ? prisma.crmIntegration.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            provider: true,
+            isActive: true,
+            apiKeyPrefix: true,
+            apiKeyLast4: true,
+            lastUsedAt: true,
+            lastSyncAt: true,
+            lastSuccessAt: true,
+            lastErrorAt: true,
+            lastErrorMessage: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      : Promise.resolve(null),
   ]);
 
   const now = Date.now();
@@ -179,10 +205,10 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
               <p className="mt-2 max-w-xl text-sm leading-7 text-white/65">
                 W tym miejscu sprawdzisz wszystkie swoje ogłoszenia, aktywne
-                publikacje, dostępne wyróżnienia oraz status ofert.
+                publikacje, dostępne wyróżnienia, faktury oraz integracje CRM.
               </p>
 
-              <div className="mt-5 flex flex-wrap gap-3">
+              <div className="mt-5">
                 <Link
                   href="/sprzedaj"
                   className="inline-flex min-h-[52px] items-center justify-center rounded-full px-7 py-3 text-center text-[13px] font-semibold uppercase tracking-[0.16em] text-black transition hover:scale-[1.01] hover:opacity-90"
@@ -190,8 +216,6 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 >
                   Dodaj działkę
                 </Link>
-
-                <CrmTestButton />
               </div>
             </div>
           </div>
@@ -257,7 +281,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
         ) : null}
 
         <div className="mb-10 flex flex-col gap-5 border-b border-white/15 pb-4 md:flex-row md:items-end md:justify-between">
-          <div className="flex gap-8 text-[16px] md:text-[17px]">
+          <div className="flex flex-wrap gap-8 text-[16px] md:text-[17px]">
             <Link
               href="/panel"
               className={`pb-3 transition ${
@@ -279,19 +303,32 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             >
               Faktury
             </Link>
+
+            <Link
+              href="/panel?tab=crm"
+              className={`pb-3 transition ${
+                activeTab === "crm"
+                  ? "border-b-2 border-[#7aa333] text-white"
+                  : "text-white/70 hover:text-white"
+              }`}
+            >
+              Integracje CRM
+            </Link>
           </div>
 
-          <div className="flex flex-wrap gap-4 text-sm text-white/50">
-            <div>
-              Liczba ogłoszeń: <span className="text-white">{items.length}</span>
+          {activeTab === "ogloszenia" ? (
+            <div className="flex flex-wrap gap-4 text-sm text-white/50">
+              <div>
+                Liczba ogłoszeń: <span className="text-white">{items.length}</span>
+              </div>
+              <div>
+                Aktywne: <span className="text-[#7aa333]">{activeCount}</span>
+              </div>
+              <div>
+                Zakończone: <span className="text-red-300">{endedCount}</span>
+              </div>
             </div>
-            <div>
-              Aktywne: <span className="text-[#7aa333]">{activeCount}</span>
-            </div>
-            <div>
-              Zakończone: <span className="text-red-300">{endedCount}</span>
-            </div>
-          </div>
+          ) : null}
         </div>
 
         {activeTab === "ogloszenia" ? (
@@ -302,7 +339,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
             <PanelDzialkiList items={items as any} />
           </>
-        ) : (
+        ) : activeTab === "faktury" ? (
           <>
             <div className="mb-6 text-[18px] font-medium text-white/80">
               Faktury
@@ -415,6 +452,17 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 </div>
               </div>
             )}
+          </>
+        ) : (
+          <>
+            <div className="mb-6 text-[18px] font-medium text-white/80">
+              Integracje CRM
+            </div>
+
+            <CrmIntegrationPanel
+              integration={crmIntegration}
+              paymentsEnabled={paymentsEnabled}
+            />
           </>
         )}
       </div>
