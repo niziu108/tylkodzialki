@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Integration = {
   id: string;
@@ -37,9 +38,13 @@ export default function CrmIntegrationPanel({
   integration,
   paymentsEnabled,
 }: Props) {
+  const router = useRouter();
+
   const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [resultError, setResultError] = useState<string | null>(null);
+  const [resultSuccess, setResultSuccess] = useState<string | null>(null);
   const [createdIntegration, setCreatedIntegration] =
     useState<Integration>(integration);
   const [copied, setCopied] = useState(false);
@@ -55,6 +60,7 @@ export default function CrmIntegrationPanel({
     try {
       setLoading(true);
       setResultError(null);
+      setResultSuccess(null);
       setCreatedKey(null);
       setCopied(false);
 
@@ -78,11 +84,51 @@ export default function CrmIntegrationPanel({
 
       setCreatedIntegration(data.integration ?? null);
       setCreatedKey(data.apiKey ?? null);
+      setResultSuccess("Integracja CRM została utworzona.");
+      router.refresh();
     } catch (error) {
       console.error(error);
       setResultError("Wystąpił błąd podczas tworzenia integracji CRM.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDeleteIntegration() {
+    if (!currentIntegration?.id) return;
+
+    const confirmed = window.confirm(
+      "Czy na pewno chcesz usunąć integrację CRM? Oferty pozostaną w serwisie, ale integracja, logi i powiązania CRM zostaną usunięte."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeleteLoading(true);
+      setResultError(null);
+      setResultSuccess(null);
+
+      const res = await fetch(`/api/crm/integrations/${currentIntegration.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setResultError(data?.error || "Nie udało się usunąć integracji CRM.");
+        return;
+      }
+
+      setCreatedIntegration(null);
+      setCreatedKey(null);
+      setCopied(false);
+      setResultSuccess("Integracja CRM została usunięta.");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setResultError("Wystąpił błąd podczas usuwania integracji CRM.");
+    } finally {
+      setDeleteLoading(false);
     }
   }
 
@@ -141,6 +187,12 @@ export default function CrmIntegrationPanel({
               Zamknij
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {resultSuccess ? (
+        <div className="rounded-2xl border border-[#7aa333]/20 bg-[#7aa333]/10 px-4 py-3 text-sm leading-6 text-[#dce9bf]">
+          {resultSuccess}
         </div>
       ) : null}
 
@@ -314,6 +366,17 @@ export default function CrmIntegrationPanel({
               podłączenia CRM.
             </div>
           )}
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleDeleteIntegration}
+              disabled={deleteLoading}
+              className="inline-flex rounded-full border border-red-500/35 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {deleteLoading ? "Usuwanie..." : "Usuń integrację"}
+            </button>
+          </div>
         </div>
       )}
     </div>
