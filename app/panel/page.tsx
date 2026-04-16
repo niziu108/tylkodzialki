@@ -20,17 +20,6 @@ function formatDatePL(value?: string | Date | null) {
   return new Date(value).toLocaleDateString("pl-PL");
 }
 
-function getInitials(name?: string | null, email?: string | null) {
-  const source = (name?.trim() || email?.trim() || "TK").toUpperCase();
-
-  if (name?.trim()) {
-    const parts = name.trim().split(/\s+/).slice(0, 2);
-    return parts.map((p) => p[0]).join("");
-  }
-
-  return source.slice(0, 2);
-}
-
 export default async function PanelPage({ searchParams }: PanelPageProps) {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email;
@@ -223,31 +212,19 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-5 md:p-6">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-                <div className="flex min-w-0 items-start gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#7aa333]/25 bg-[#7aa333]/12 text-sm font-semibold uppercase tracking-[0.14em] text-[#9fd14b]">
-                    {getInitials(user.name, user.email)}
+                <div className="min-w-0">
+                  <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]">
+                    Panel klienta
                   </div>
 
-                  <div className="min-w-0">
-                    <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]">
-                      Panel klienta
-                    </div>
+                  <div className="mt-4 text-[28px] font-semibold leading-tight text-white md:text-[34px]">
+                    {user.name || "Panel użytkownika"}
+                  </div>
 
-                    <h1 className="mt-3 text-[24px] font-semibold leading-tight text-white md:text-[30px]">
-                      Twoje konto
-                    </h1>
-
-                    <div className="mt-2 text-sm text-white/55">
-                      {user.name ? (
-                        <span className="text-white/70">{user.name}</span>
-                      ) : null}
-                      {user.name && user.email ? (
-                        <span className="mx-2 text-white/25">•</span>
-                      ) : null}
-                      {user.email ? (
-                        <span className="truncate text-white/55">{user.email}</span>
-                      ) : null}
-                    </div>
+                  <div className="mt-2 text-sm text-white/55">
+                    {user.email ? (
+                      <span className="truncate text-white/60">{user.email}</span>
+                    ) : null}
                   </div>
                 </div>
 
