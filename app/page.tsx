@@ -1,10 +1,19 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { Metadata, ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
 import type { Przeznaczenie } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "TylkoDziałki.pl – szukaj, kupuj i sprzedawaj działki",
+  description:
+    "Portal ogłoszeń poświęcony wyłącznie działkom. Szukaj działek na sprzedaż, przeglądaj oferty i dodawaj własne ogłoszenia w całej Polsce.",
+  alternates: {
+    canonical: "/",
+  },
+};
 
 const ACCENT = "#2F5E46";
 const GREEN = "#7aa333";
@@ -30,7 +39,9 @@ function labelPrzeznaczenie(p: Przeznaczenie) {
     .replace("LESNA", "Leśna")
     .replace("INWESTYCYJNA", "Inwestycyjna")
     .replace("ROLNA", "Rolna")
-    .replace("BUDOWLANA", "Budowlana");
+    .replace("BUDOWLANA", "Budowlana")
+    .replace("REKREACYJNA", "Rekreacyjna")
+    .replace("SIEDLISKOWA", "Siedliskowa");
 }
 
 type HomePhoto = {
@@ -323,6 +334,26 @@ export default async function HomePage() {
               </div>
             </div>
           </Link>
+        </div>
+      </section>
+
+      <section style={{ background: PAGE_BG }}>
+        <div className="mx-auto max-w-7xl px-6 py-10 md:px-10 md:py-14">
+          <div className="max-w-4xl rounded-[28px] border border-white/10 bg-white/[0.03] p-6 md:p-8">
+            <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
+              Portal ogłoszeń działek
+            </div>
+
+            <h2 className="mt-4 text-[26px] font-semibold tracking-tight text-white md:text-[34px]">
+              Działki na sprzedaż w całej Polsce
+            </h2>
+
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/72 md:text-base">
+              TylkoDziałki.pl to portal poświęcony wyłącznie działkom. Szukaj
+              ofert, porównuj ogłoszenia i dodawaj własne działki na sprzedaż w
+              prosty i wygodny sposób.
+            </p>
+          </div>
         </div>
       </section>
 

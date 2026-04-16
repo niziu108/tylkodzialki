@@ -14,13 +14,78 @@ const geist = Geist({
   variable: '--font-geist',
 });
 
+const siteUrl = 'https://tylkodzialki.pl';
+const siteName = 'TylkoDziałki';
+
 export const metadata: Metadata = {
-  title: 'TylkoDziałki',
-  description: 'Kup i sprzedawaj działki bez pośredników.',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'TylkoDziałki.pl – działki na sprzedaż w całej Polsce',
+    template: '%s | TylkoDziałki.pl',
+  },
+  description:
+    'TylkoDziałki.pl to portal ogłoszeń poświęcony wyłącznie działkom. Szukaj działek na sprzedaż, przeglądaj oferty i dodawaj własne ogłoszenia w całej Polsce.',
+  applicationName: siteName,
+  keywords: [
+    'działki',
+    'działki na sprzedaż',
+    'portal działek',
+    'ogłoszenia działek',
+    'kup działkę',
+    'sprzedaj działkę',
+    'działki budowlane',
+    'działki rolne',
+    'działki inwestycyjne',
+    'TylkoDziałki',
+  ],
+  authors: [{ name: 'TylkoDziałki' }],
+  creator: 'TylkoDziałki',
+  publisher: 'TylkoDziałki',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    url: siteUrl,
+    siteName,
+    title: 'TylkoDziałki.pl – działki na sprzedaż w całej Polsce',
+    description:
+      'Portal poświęcony wyłącznie działkom. Szukaj działek, przeglądaj oferty i dodawaj ogłoszenia w całej Polsce.',
+    locale: 'pl_PL',
+    images: [
+      {
+        url: '/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'TylkoDziałki.pl',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TylkoDziałki.pl – działki na sprzedaż w całej Polsce',
+    description:
+      'Portal poświęcony wyłącznie działkom. Szukaj działek i dodawaj ogłoszenia w całej Polsce.',
+    images: ['/logo.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/logo.png',
+    icon: [
+      { url: '/favicon.png', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon.png', type: 'image/png', sizes: '192x192' },
+    ],
+    shortcut: ['/favicon.png'],
+    apple: [{ url: '/logo.png', sizes: '180x180', type: 'image/png' }],
   },
 };
 
@@ -36,6 +101,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           <ConsentScripts />
+
+          <Script id="td-website-schema" type="application/ld+json" strategy="afterInteractive">
+            {JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'TylkoDziałki.pl',
+              url: 'https://tylkodzialki.pl',
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: 'https://tylkodzialki.pl/kup',
+                'query-input': 'required name=search_term_string',
+              },
+            })}
+          </Script>
+
+          <Script id="td-organization-schema" type="application/ld+json" strategy="afterInteractive">
+            {JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'TylkoDziałki.pl',
+              url: 'https://tylkodzialki.pl',
+              logo: 'https://tylkodzialki.pl/logo.png',
+            })}
+          </Script>
 
           <Script id="td-meta-pixel" strategy="afterInteractive">
             {`
