@@ -4,6 +4,7 @@ import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
 import PanelDzialkiList from "@/components/PanelDzialkiList";
 import AutoFeaturedAfterPurchase from "@/components/AutoFeaturedAfterPurchase";
+import CrmTestButton from "@/components/CrmTestButton";
 
 type PanelPageProps = {
   searchParams?: Promise<{
@@ -181,7 +182,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 publikacje, dostępne wyróżnienia oraz status ofert.
               </p>
 
-              <div className="mt-5">
+              <div className="mt-5 flex flex-wrap gap-3">
                 <Link
                   href="/sprzedaj"
                   className="inline-flex min-h-[52px] items-center justify-center rounded-full px-7 py-3 text-center text-[13px] font-semibold uppercase tracking-[0.16em] text-black transition hover:scale-[1.01] hover:opacity-90"
@@ -189,6 +190,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 >
                   Dodaj działkę
                 </Link>
+
+                <CrmTestButton />
               </div>
             </div>
           </div>
