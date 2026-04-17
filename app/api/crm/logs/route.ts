@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const email = session?.user?.email;
@@ -27,11 +27,21 @@ export async function GET() {
       );
     }
 
-    const integration = await prisma.crmIntegration.findFirst({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      select: { id: true },
-    });
+    const integrationId = req.nextUrl.searchParams.get("integrationId")?.trim() || null;
+
+    const integration = integrationId
+      ? await prisma.crmIntegration.findFirst({
+          where: {
+            id: integrationId,
+            userId: user.id,
+          },
+          select: { id: true },
+        })
+      : await prisma.crmIntegration.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+          select: { id: true },
+        });
 
     if (!integration?.id) {
       return NextResponse.json({
@@ -43,7 +53,7 @@ export async function GET() {
     const logs = await prisma.crmSyncLog.findMany({
       where: { integrationId: integration.id },
       orderBy: { createdAt: "desc" },
-      take: 20,
+      take: 50,
       select: {
         id: true,
         externalId: true,

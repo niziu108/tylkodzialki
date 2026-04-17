@@ -8,13 +8,26 @@ type Integration = {
   name: string;
   provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA";
   isActive: boolean;
-  apiKeyPrefix: string;
-  apiKeyLast4: string;
+  transportType: "API" | "FTP";
+  feedFormat: "DOMY_PL";
+  ftpHost: string | null;
+  ftpPort: number | null;
+  ftpUsername: string | null;
+  ftpRemotePath: string | null;
+  ftpPassive: boolean;
+  expectedFilePattern: string | null;
+  fullImportMode: boolean;
   lastUsedAt: string | Date | null;
   lastSyncAt: string | Date | null;
   lastSuccessAt: string | Date | null;
   lastErrorAt: string | Date | null;
   lastErrorMessage: string | null;
+  lastImportedOffers: number;
+  lastCreatedCount: number;
+  lastUpdatedCount: number;
+  lastDeactivatedCount: number;
+  lastSkippedCount: number;
+  lastErrorCount: number;
   createdAt: string | Date;
   updatedAt: string | Date;
 } | null;
@@ -57,23 +70,57 @@ export default function CrmIntegrationPanel({
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [resultError, setResultError] = useState<string | null>(null);
   const [resultSuccess, setResultSuccess] = useState<string | null>(null);
   const [createdIntegration, setCreatedIntegration] =
     useState<Integration>(integration);
-  const [copied, setCopied] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState<string | null>(null);
   const [logs, setLogs] = useState<CrmLog[]>([]);
 
   const currentIntegration = createdIntegration ?? integration;
 
-  const maskedKey = useMemo(() => {
-    if (!currentIntegration) return null;
-    return `${currentIntegration.apiKeyPrefix}••••••••${currentIntegration.apiKeyLast4}`;
+  const [form, setForm] = useState({
+    name: currentIntegration?.name ?? "Galactica / DOMY.PL / FTP",
+    provider: (currentIntegration?.provider ?? "GALACTICA") as
+      | "GENERIC"
+      | "ASARI"
+      | "ESTI_CRM"
+      | "IMOX"
+      | "GALACTICA",
+    isActive: currentIntegration?.isActive ?? true,
+    ftpHost: currentIntegration?.ftpHost ?? "",
+    ftpPort: String(currentIntegration?.ftpPort ?? 21),
+    ftpUsername: currentIntegration?.ftpUsername ?? "",
+    ftpPassword: "",
+    ftpRemotePath: currentIntegration?.ftpRemotePath ?? "/",
+    ftpPassive: currentIntegration?.ftpPassive ?? true,
+    expectedFilePattern: currentIntegration?.expectedFilePattern ?? "oferty_*.zip",
+    fullImportMode: currentIntegration?.fullImportMode ?? true,
+  });
+
+  useEffect(() => {
+    setForm({
+      name: currentIntegration?.name ?? "Galactica / DOMY.PL / FTP",
+      provider: (currentIntegration?.provider ?? "GALACTICA") as
+        | "GENERIC"
+        | "ASARI"
+        | "ESTI_CRM"
+        | "IMOX"
+        | "GALACTICA",
+      isActive: currentIntegration?.isActive ?? true,
+      ftpHost: currentIntegration?.ftpHost ?? "",
+      ftpPort: String(currentIntegration?.ftpPort ?? 21),
+      ftpUsername: currentIntegration?.ftpUsername ?? "",
+      ftpPassword: "",
+      ftpRemotePath: currentIntegration?.ftpRemotePath ?? "/",
+      ftpPassive: currentIntegration?.ftpPassive ?? true,
+      expectedFilePattern: currentIntegration?.expectedFilePattern ?? "oferty_*.zip",
+      fullImportMode: currentIntegration?.fullImportMode ?? true,
+    });
   }, [currentIntegration]);
 
   useEffect(() => {
@@ -87,10 +134,13 @@ export default function CrmIntegrationPanel({
         setLogsLoading(true);
         setLogsError(null);
 
-        const res = await fetch("/api/crm/logs", {
-          method: "GET",
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `/api/crm/logs?integrationId=${encodeURIComponent(currentIntegration.id)}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
 
         const data = await res.json();
 
@@ -111,13 +161,20 @@ export default function CrmIntegrationPanel({
     loadLogs();
   }, [currentIntegration?.id]);
 
+  const canSync = useMemo(() => {
+    return !!(
+      currentIntegration?.id &&
+      form.ftpHost.trim() &&
+      form.ftpUsername.trim() &&
+      form.ftpRemotePath.trim()
+    );
+  }, [currentIntegration?.id, form.ftpHost, form.ftpUsername, form.ftpRemotePath]);
+
   async function handleCreateIntegration() {
     try {
       setLoading(true);
       setResultError(null);
       setResultSuccess(null);
-      setCreatedKey(null);
-      setCopied(false);
 
       const res = await fetch("/api/crm/integrations", {
         method: "POST",
@@ -125,8 +182,8 @@ export default function CrmIntegrationPanel({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: "Moje CRM",
-          provider: "GENERIC",
+          name: "Galactica / DOMY.PL / FTP",
+          provider: "GALACTICA",
         }),
       });
 
@@ -138,14 +195,110 @@ export default function CrmIntegrationPanel({
       }
 
       setCreatedIntegration(data.integration ?? null);
-      setCreatedKey(data.apiKey ?? null);
-      setResultSuccess("Integracja CRM została utworzona.");
+      setResultSuccess("Integracja FTP / XML DOMY.PL została utworzona.");
       router.refresh();
     } catch (error) {
       console.error(error);
       setResultError("Wystąpił błąd podczas tworzenia integracji CRM.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveIntegration() {
+    if (!currentIntegration?.id) return;
+
+    try {
+      setSaving(true);
+      setResultError(null);
+      setResultSuccess(null);
+
+      const res = await fetch(`/api/crm/integrations/${currentIntegration.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name,
+          provider: form.provider,
+          isActive: form.isActive,
+          ftpHost: form.ftpHost,
+          ftpPort: Number(form.ftpPort) || 21,
+          ftpUsername: form.ftpUsername,
+          ftpPassword: form.ftpPassword,
+          ftpRemotePath: form.ftpRemotePath,
+          ftpPassive: form.ftpPassive,
+          expectedFilePattern: form.expectedFilePattern,
+          fullImportMode: form.fullImportMode,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setResultError(data?.error || "Nie udało się zapisać integracji.");
+        return;
+      }
+
+      setCreatedIntegration(data.integration ?? null);
+      setForm((prev) => ({
+        ...prev,
+        ftpPassword: "",
+      }));
+      setResultSuccess("Konfiguracja integracji została zapisana.");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setResultError("Wystąpił błąd podczas zapisywania integracji.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSyncNow() {
+    if (!currentIntegration?.id) return;
+
+    try {
+      setSyncing(true);
+      setResultError(null);
+      setResultSuccess(null);
+
+      const res = await fetch(
+        `/api/crm/integrations/${currentIntegration.id}/sync-now`,
+        {
+          method: "POST",
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setResultError(data?.error || "Nie udało się uruchomić synchronizacji.");
+        return;
+      }
+
+      const summary = data?.summary;
+      setResultSuccess(
+        summary
+          ? `Synchronizacja zakończona. Import: ${summary.importedOffers}, utworzone: ${summary.createdCount}, zaktualizowane: ${summary.updatedCount}, zakończone: ${summary.deactivatedCount}, pominięte: ${summary.skippedCount}, błędy: ${summary.errorCount}.`
+          : "Synchronizacja została uruchomiona."
+      );
+
+      router.refresh();
+
+      const refreshRes = await fetch(
+        `/api/crm/logs?integrationId=${encodeURIComponent(currentIntegration.id)}`,
+        { cache: "no-store" }
+      );
+      const refreshData = await refreshRes.json();
+      if (refreshRes.ok) {
+        setLogs(Array.isArray(refreshData?.logs) ? refreshData.logs : []);
+      }
+    } catch (error) {
+      console.error(error);
+      setResultError("Wystąpił błąd podczas synchronizacji.");
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -175,8 +328,6 @@ export default function CrmIntegrationPanel({
       }
 
       setCreatedIntegration(null);
-      setCreatedKey(null);
-      setCopied(false);
       setLogs([]);
       setResultSuccess("Integracja CRM została usunięta.");
       router.refresh();
@@ -188,159 +339,8 @@ export default function CrmIntegrationPanel({
     }
   }
 
-  async function handleRegenerateKey() {
-    if (!currentIntegration?.id) return;
-
-    const confirmed = window.confirm(
-      "Czy na pewno chcesz wygenerować nowy klucz? Stary przestanie działać."
-    );
-
-    if (!confirmed) return;
-
-    try {
-      setRegenerating(true);
-      setResultError(null);
-      setResultSuccess(null);
-      setCopied(false);
-
-      const res = await fetch(
-        `/api/crm/integrations/${currentIntegration.id}/regenerate`,
-        {
-          method: "POST",
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setResultError(data?.error || "Błąd regeneracji klucza");
-        return;
-      }
-
-      setCreatedKey(data.apiKey ?? null);
-      setResultSuccess("Nowy klucz API został wygenerowany.");
-      router.refresh();
-    } catch (error) {
-      console.error(error);
-      setResultError("Błąd regeneracji klucza");
-    } finally {
-      setRegenerating(false);
-    }
-  }
-
-  async function handleCopyKey() {
-    if (!createdKey) return;
-
-    try {
-      await navigator.clipboard.writeText(createdKey);
-      setCopied(true);
-
-      setTimeout(() => {
-        setCopied(false);
-      }, 1800);
-    } catch (error) {
-      console.error(error);
-      setCopied(false);
-    }
-  }
-
-  const pushExample = `fetch("https://tylkodzialki.pl/api/crm/push", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer TWOJ_KLUCZ_API"
-  },
-  body: JSON.stringify({
-    externalId: "crm-001",
-    crmOfferType: "DZIALKA",
-    tytul: "Działka budowlana",
-    opis: "Opis oferty",
-    cenaPln: 199000,
-    powierzchniaM2: 1200,
-    telefon: "600700800",
-    email: "biuro@twojafirma.pl",
-    sprzedajacyTyp: "BIURO",
-    biuroNazwa: "Twoje Biuro",
-    biuroOpiekun: "Jan Kowalski",
-    locationLabel: "Bełchatów",
-    locationFull: "Bełchatów, łódzkie",
-    locationMode: "APPROX",
-    lat: 51.3689,
-    lng: 19.3564,
-    mapsUrl: "https://maps.google.com/?q=51.3689,19.3564",
-    przeznaczenia: ["BUDOWLANA"],
-    prad: "PRZYLACZE_W_DRODZE",
-    woda: "WODOCIAG_W_DRODZE",
-    kanalizacja: "BRAK",
-    gaz: "BRAK",
-    swiatlowod: "MOZLIWOSC_PODLACZENIA",
-    mpzp: true,
-    wzWydane: false,
-    projektDomu: false,
-    numerOferty: "CRM/001",
-    zdjecia: [
-      {
-        url: "https://example.com/photo-1.jpg",
-        publicId: "crm/photo-1",
-        kolejnosc: 0
-      }
-    ]
-  })
-});`;
-
-  const deactivateExample = `fetch("https://tylkodzialki.pl/api/crm/deactivate", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer TWOJ_KLUCZ_API"
-  },
-  body: JSON.stringify({
-    externalId: "crm-001"
-  })
-});`;
-
   return (
     <div className="space-y-6">
-      {createdKey ? (
-        <div className="rounded-[28px] border border-[#7aa333]/30 bg-[linear-gradient(180deg,rgba(122,163,51,0.12),rgba(255,255,255,0.03))] p-6 md:p-7">
-          <div className="inline-flex rounded-full border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
-            Klucz API gotowy
-          </div>
-
-          <h2 className="mt-4 text-2xl font-semibold text-white">
-            Zapisz ten klucz API
-          </h2>
-
-          <p className="mt-2 max-w-3xl text-sm leading-7 text-white/65">
-            Ten klucz pokazujemy tylko raz w całości. Skopiuj go teraz i zapisz
-            w bezpiecznym miejscu. Później w panelu zobaczysz już tylko jego
-            skróconą wersję.
-          </p>
-
-          <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-black/30 p-4 font-mono text-sm text-[#dce9bf]">
-            {createdKey}
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handleCopyKey}
-              className="inline-flex rounded-full bg-[#7aa333] px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90"
-            >
-              {copied ? "Skopiowano" : "Kopiuj klucz"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setCreatedKey(null)}
-              className="inline-flex rounded-full border border-white/15 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.05]"
-            >
-              Zamknij
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {resultSuccess ? (
         <div className="rounded-2xl border border-[#7aa333]/20 bg-[#7aa333]/10 px-4 py-3 text-sm leading-6 text-[#dce9bf]">
           {resultSuccess}
@@ -361,22 +361,31 @@ export default function CrmIntegrationPanel({
             </div>
 
             <h2 className="mt-4 text-2xl font-semibold text-white">
-              Podłącz integrację CRM
+              Podłącz FTP / XML DOMY.PL
             </h2>
 
             <p className="mt-3 leading-7 text-white/65">
-              Po utworzeniu integracji otrzymasz własny klucz API. Dzięki temu
-              biuro nieruchomości będzie mogło automatycznie przesyłać oferty
-              działek do TylkoDziałki.
+              To jest główny model integracji dla biur korzystających z Galactica
+              lub podobnych systemów. CRM wysyła pełny eksport XML + zdjęcia na
+              FTP, a TylkoDziałki pobiera i synchronizuje oferty działek.
             </p>
 
             <div className="mt-6 grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Integracja
+                  Transport
                 </div>
                 <div className="mt-2 text-base font-semibold text-white">
-                  Bezpłatna
+                  FTP
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+                  Format
+                </div>
+                <div className="mt-2 text-base font-semibold text-white">
+                  DOMY.PL XML
                 </div>
               </div>
 
@@ -388,15 +397,6 @@ export default function CrmIntegrationPanel({
                   {paymentsEnabled ? "Zużywają kredyty" : "Obecnie darmowe"}
                 </div>
               </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Aktualizacje
-                </div>
-                <div className="mt-2 text-base font-semibold text-white">
-                  Bezpłatne
-                </div>
-              </div>
             </div>
 
             <div className="mt-6">
@@ -406,7 +406,7 @@ export default function CrmIntegrationPanel({
                 disabled={loading}
                 className="inline-flex rounded-full bg-[#7aa333] px-6 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Tworzenie..." : "Podłącz CRM"}
+                {loading ? "Tworzenie..." : "Utwórz integrację FTP"}
               </button>
             </div>
           </div>
@@ -417,7 +417,7 @@ export default function CrmIntegrationPanel({
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="max-w-3xl">
                 <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
-                  Integracja aktywna
+                  Integracja FTP aktywna
                 </div>
 
                 <h2 className="mt-4 text-2xl font-semibold text-white">
@@ -425,9 +425,9 @@ export default function CrmIntegrationPanel({
                 </h2>
 
                 <p className="mt-3 leading-7 text-white/65">
-                  Tutaj masz wszystko, czego potrzebuje biuro albo programista:
-                  status integracji, skrócony klucz API, endpointy, przykłady
-                  requestów i logi synchronizacji.
+                  To miejsce służy do konfiguracji połączenia FTP, ręcznego
+                  uruchamiania synchronizacji, przeglądania logów oraz kontroli
+                  ostatnich importów.
                 </p>
               </div>
 
@@ -440,54 +440,27 @@ export default function CrmIntegrationPanel({
                       : "text-red-300"
                   }`}
                 >
-                  {currentIntegration.isActive ? "Aktywna" : "Nieaktywna"}
+                  {currentIntegration.isActive ? "Aktywna" : "Wyłączona"}
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Nazwa integracji
+                  Transport
                 </div>
                 <div className="mt-2 text-base font-semibold text-white">
-                  {currentIntegration.name}
+                  {currentIntegration.transportType}
                 </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Provider
+                  Format
                 </div>
                 <div className="mt-2 text-base font-semibold text-white">
-                  {currentIntegration.provider}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Klucz API
-                </div>
-                <div className="mt-2 break-all font-mono text-sm text-[#dce9bf]">
-                  {maskedKey}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Utworzono
-                </div>
-                <div className="mt-2 text-base font-semibold text-white">
-                  {formatDate(currentIntegration.createdAt)}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Ostatnie użycie
-                </div>
-                <div className="mt-2 text-base font-semibold text-white">
-                  {formatDate(currentIntegration.lastUsedAt)}
+                  {currentIntegration.feedFormat}
                 </div>
               </div>
 
@@ -497,6 +470,47 @@ export default function CrmIntegrationPanel({
                 </div>
                 <div className="mt-2 text-base font-semibold text-white">
                   {formatDate(currentIntegration.lastSyncAt)}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+                  Ostatni sukces
+                </div>
+                <div className="mt-2 text-base font-semibold text-white">
+                  {formatDate(currentIntegration.lastSuccessAt)}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+                  Ostatnio zaimportowano
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-white">
+                  {currentIntegration.lastImportedOffers}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+                  Utworzone / zaktualizowane
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-white">
+                  {currentIntegration.lastCreatedCount} /{" "}
+                  {currentIntegration.lastUpdatedCount}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+                  Zakończone / pominięte / błędy
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-white">
+                  {currentIntegration.lastDeactivatedCount} /{" "}
+                  {currentIntegration.lastSkippedCount} /{" "}
+                  {currentIntegration.lastErrorCount}
                 </div>
               </div>
             </div>
@@ -515,8 +529,9 @@ export default function CrmIntegrationPanel({
               </div>
             ) : (
               <div className="mt-6 rounded-2xl border border-[#7aa333]/20 bg-[#7aa333]/10 p-4 text-sm leading-6 text-[#dce9bf]">
-                Integracja jest aktywna i gotowa do pracy. Programista po
-                stronie biura może korzystać z instrukcji poniżej.
+                Integracja jest gotowa do pracy. Po poprawnym uzupełnieniu danych
+                FTP możesz zapisywać konfigurację i uruchomić synchronizację
+                ręcznie.
               </div>
             )}
 
@@ -529,8 +544,9 @@ export default function CrmIntegrationPanel({
                 </div>
 
                 <div className="mt-2 text-sm text-yellow-100/80">
-                  Niektóre oferty z CRM nie zostały opublikowane, ponieważ konto
-                  nie ma dostępnych publikacji.
+                  Część ofert z CRM nie została opublikowana, ponieważ konto nie
+                  miało wolnych publikacji. Po zakupie pakietu kliknij
+                  „Synchronizuj teraz”.
                 </div>
 
                 <div className="mt-4">
@@ -544,16 +560,209 @@ export default function CrmIntegrationPanel({
               </div>
             ) : null}
 
+            <div className="mt-8 grid gap-4 xl:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                <div className="text-sm font-semibold text-white">
+                  Ustawienia ogólne
+                </div>
+
+                <div className="mt-4 space-y-4">
+                  <label className="block">
+                    <div className="mb-2 text-sm text-white/70">Nazwa integracji</div>
+                    <input
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, name: e.target.value }))
+                      }
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <div className="mb-2 text-sm text-white/70">Provider</div>
+                    <select
+                      value={form.provider}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          provider: e.target.value as
+                            | "GENERIC"
+                            | "ASARI"
+                            | "ESTI_CRM"
+                            | "IMOX"
+                            | "GALACTICA",
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-white/10 bg-[#1a1a1a] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                    >
+                      <option value="GALACTICA">GALACTICA</option>
+                      <option value="GENERIC">GENERIC</option>
+                      <option value="ASARI">ASARI</option>
+                      <option value="ESTI_CRM">ESTI_CRM</option>
+                      <option value="IMOX">IMOX</option>
+                    </select>
+                  </label>
+
+                  <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={form.isActive}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          isActive: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="text-sm text-white">Integracja aktywna</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={form.fullImportMode}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          fullImportMode: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="text-sm text-white">
+                      Pełny import (oferty, których nie ma w eksporcie, są kończone)
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                <div className="text-sm font-semibold text-white">
+                  Połączenie FTP
+                </div>
+
+                <div className="mt-4 space-y-4">
+                  <label className="block">
+                    <div className="mb-2 text-sm text-white/70">Host FTP</div>
+                    <input
+                      value={form.ftpHost}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, ftpHost: e.target.value }))
+                      }
+                      placeholder="ftp.twojadomena.pl"
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                    />
+                  </label>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="block">
+                      <div className="mb-2 text-sm text-white/70">Port FTP</div>
+                      <input
+                        value={form.ftpPort}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, ftpPort: e.target.value }))
+                        }
+                        placeholder="21"
+                        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                      />
+                    </label>
+
+                    <label className="flex items-end gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={form.ftpPassive}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            ftpPassive: e.target.checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm text-white">Tryb pasywny FTP</span>
+                    </label>
+                  </div>
+
+                  <label className="block">
+                    <div className="mb-2 text-sm text-white/70">Login FTP</div>
+                    <input
+                      value={form.ftpUsername}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          ftpUsername: e.target.value,
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <div className="mb-2 text-sm text-white/70">
+                      Hasło FTP
+                    </div>
+                    <input
+                      type="password"
+                      value={form.ftpPassword}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          ftpPassword: e.target.value,
+                        }))
+                      }
+                      placeholder="Zostaw puste, jeśli nie chcesz zmieniać hasła"
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <div className="mb-2 text-sm text-white/70">Katalog FTP</div>
+                    <input
+                      value={form.ftpRemotePath}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          ftpRemotePath: e.target.value,
+                        }))
+                      }
+                      placeholder="/"
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <div className="mb-2 text-sm text-white/70">Wzorzec pliku</div>
+                    <input
+                      value={form.expectedFilePattern}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          expectedFilePattern: e.target.value,
+                        }))
+                      }
+                      placeholder="oferty_*.zip"
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={handleRegenerateKey}
-                disabled={regenerating}
-                className="inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-200 transition hover:bg-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleSaveIntegration}
+                disabled={saving}
+                className="inline-flex rounded-full bg-[#7aa333] px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {regenerating
-                  ? "Generowanie..."
-                  : "Wygeneruj nowy klucz API"}
+                {saving ? "Zapisywanie..." : "Zapisz konfigurację"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSyncNow}
+                disabled={syncing || !canSync}
+                className="inline-flex rounded-full border border-[#7aa333]/35 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:border-[#7aa333]/60 hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {syncing ? "Synchronizacja..." : "Synchronizuj teraz"}
               </button>
 
               <button
@@ -569,80 +778,55 @@ export default function CrmIntegrationPanel({
 
           <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 md:p-10">
             <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
-              Instrukcja API
+              Instrukcja FTP / XML
             </div>
 
             <h3 className="mt-4 text-2xl font-semibold text-white">
-              Jak podłączyć CRM
+              Jak działa import
             </h3>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Auth
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/75">
+                <div className="font-semibold text-white">1. CRM wysyła paczkę</div>
+                <div className="mt-2">
+                  System biura wysyła plik ZIP na FTP, zwykle w formacie
+                  <span className="text-white"> oferty_YYYYmmDDHHiiSS.zip</span>.
                 </div>
-                <div className="mt-2 font-mono text-sm text-[#dce9bf]">
-                  Authorization: Bearer TWOJ_KLUCZ_API
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/75">
+                <div className="font-semibold text-white">2. XML + zdjęcia</div>
+                <div className="mt-2">
+                  W środku powinien być <span className="text-white">oferty.xml</span> oraz zdjęcia ofert.
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Zasada
-                </div>
-                <div className="mt-2 text-sm leading-6 text-white/80">
-                  `push` tworzy lub aktualizuje ofertę, a `deactivate` kończy
-                  ofertę po externalId.
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/75">
+                <div className="font-semibold text-white">3. Import działek</div>
+                <div className="mt-2">
+                  Importujemy tylko działki na sprzedaż z formatu DOMY.PL.
                 </div>
               </div>
-            </div>
 
-            <div className="mt-6 grid gap-4 xl:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-sm font-semibold text-white">
-                  Endpoint publikacji / aktualizacji
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/75">
+                <div className="font-semibold text-white">4. Synchronizacja</div>
+                <div className="mt-2">
+                  Nowe oferty tworzą się, istniejące aktualizują, brakujące w
+                  pełnym eksporcie są kończone.
                 </div>
-                <div className="mt-2 font-mono text-sm text-[#dce9bf]">
-                  POST /api/crm/push
-                </div>
-
-                <pre className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-black/30 p-4 text-xs leading-6 text-[#d9d9d9]">
-{pushExample}
-                </pre>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-sm font-semibold text-white">
-                  Endpoint zakończenia oferty
-                </div>
-                <div className="mt-2 font-mono text-sm text-[#dce9bf]">
-                  POST /api/crm/deactivate
-                </div>
-
-                <pre className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-black/30 p-4 text-xs leading-6 text-[#d9d9d9]">
-{deactivateExample}
-                </pre>
               </div>
             </div>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-7 text-white/75">
               <div className="font-semibold text-white">Ważne zasady:</div>
               <ul className="mt-3 list-disc space-y-2 pl-5">
-                <li>Integracja przyjmuje tylko oferty typu działka.</li>
-                <li>
-                  Nowa publikacja zużywa publikację tylko wtedy, gdy płatności są
-                  aktywne.
-                </li>
-                <li>Aktualizacje oferty nie zużywają publikacji.</li>
-                <li>Zakończenie oferty nie zwraca publikacji.</li>
-                <li>
-                  Reactivate wcześniej zakończonej oferty zużywa nową publikację,
-                  jeśli płatności są aktywne.
-                </li>
-                <li>
-                  Aby wyświetlić mapę Google, warto przesyłać `lat`, `lng` i
-                  `mapsUrl`.
-                </li>
+                <li>Obsługujemy obecnie tylko FTP / DOMY.PL / działki / sprzedaż.</li>
+                <li>Nowa publikacja zużywa kredyt tylko wtedy, gdy płatności są aktywne.</li>
+                <li>Aktualizacje nie zużywają kredytów.</li>
+                <li>Zakończenie oferty nie zwraca kredytu.</li>
+                <li>Reaktywacja wcześniej zakończonej oferty zużywa nowy kredyt.</li>
+                <li>Po zakupie pakietu możesz od razu kliknąć „Synchronizuj teraz”.</li>
+                <li>Na start importujemy prąd, gaz, typ działki, lokalizację, zdjęcia i dane kontaktowe.</li>
               </ul>
             </div>
           </div>
@@ -657,17 +841,15 @@ export default function CrmIntegrationPanel({
             </h3>
 
             {logsLoading ? (
-              <div className="mt-5 text-sm text-white/60">
-                Ładowanie logów...
-              </div>
+              <div className="mt-5 text-sm text-white/60">Ładowanie logów...</div>
             ) : logsError ? (
               <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
                 {logsError}
               </div>
             ) : logs.length === 0 ? (
               <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/65">
-                Brak logów. Gdy CRM zacznie wysyłać oferty, zobaczysz tutaj
-                historię publikacji, aktualizacji i błędów.
+                Brak logów. Gdy uruchomisz synchronizację, zobaczysz tutaj historię
+                tworzenia, aktualizacji, pominięć i błędów.
               </div>
             ) : (
               <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
@@ -691,9 +873,7 @@ export default function CrmIntegrationPanel({
                           <td className="px-4 py-3 text-white/70">
                             {formatDate(log.createdAt)}
                           </td>
-                          <td className="px-4 py-3 text-white">
-                            {log.action}
-                          </td>
+                          <td className="px-4 py-3 text-white">{log.action}</td>
                           <td className="px-4 py-3">
                             <span
                               className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${

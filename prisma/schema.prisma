@@ -316,18 +316,37 @@ model CrmIntegration {
   id       String      @id @default(cuid())
   userId   String
   name     String
-  provider CrmProvider @default(GENERIC)
+  provider CrmProvider @default(GALACTICA)
   isActive Boolean     @default(true)
 
-  apiKeyHash   String
-  apiKeyPrefix String
-  apiKeyLast4  String
+  transportType CrmTransportType @default(FTP)
+  feedFormat    CrmFeedFormat    @default(DOMY_PL)
+
+  ftpHost             String?
+  ftpPort             Int?    @default(21)
+  ftpUsername         String?
+  ftpPassword         String?
+  ftpRemotePath       String?
+  ftpPassive          Boolean @default(true)
+  expectedFilePattern String? @default("oferty_*.zip")
+  fullImportMode      Boolean @default(true)
+
+  apiKeyHash   String?
+  apiKeyPrefix String?
+  apiKeyLast4  String?
 
   lastUsedAt       DateTime?
   lastSyncAt       DateTime?
   lastSuccessAt    DateTime?
   lastErrorAt      DateTime?
   lastErrorMessage String?
+
+  lastImportedOffers   Int @default(0)
+  lastCreatedCount     Int @default(0)
+  lastUpdatedCount     Int @default(0)
+  lastDeactivatedCount Int @default(0)
+  lastSkippedCount     Int @default(0)
+  lastErrorCount       Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -337,10 +356,11 @@ model CrmIntegration {
   syncLogs   CrmSyncLog[]
 
   @@unique([userId, name])
-  @@unique([apiKeyHash])
   @@index([userId])
   @@index([provider])
   @@index([isActive])
+  @@index([transportType])
+  @@index([feedFormat])
 }
 
 model CrmOfferLink {
@@ -534,6 +554,15 @@ enum CrmProvider {
   ESTI_CRM
   IMOX
   GALACTICA
+}
+
+enum CrmTransportType {
+  API
+  FTP
+}
+
+enum CrmFeedFormat {
+  DOMY_PL
 }
 
 enum CrmSyncAction {
