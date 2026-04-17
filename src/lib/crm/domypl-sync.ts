@@ -343,7 +343,6 @@ async function downloadLatestFeedFromFtp(integration: IntegrationForSync) {
       user: integration.ftpUsername,
       password: integration.ftpPassword,
       secure: false,
-      passive: integration.ftpPassive,
     });
 
     const remoteDir = integration.ftpRemotePath?.trim() || "/";
