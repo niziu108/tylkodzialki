@@ -10,8 +10,8 @@ import {
   GazStatus,
   LocationMode,
   PradStatus,
-  Przeznaczenie,
   Prisma,
+  Przeznaczenie,
 } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
@@ -93,30 +93,38 @@ function wildcardToRegExp(pattern: string) {
 function isTruthy(value: unknown) {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value === 1;
+
   const text = String(value ?? "")
     .trim()
     .toLowerCase();
+
   return ["1", "t", "tak", "true", "yes"].includes(text);
 }
 
 function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value !== "string") return null;
+
   const normalized = value.trim().replace(",", ".");
   if (!normalized) return null;
+
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
 function toTextValue(value: unknown): string {
   if (value == null) return "";
+
   if (typeof value === "string") return value.trim();
+
   if (typeof value === "number" || typeof value === "boolean") {
     return String(value).trim();
   }
+
   if (Array.isArray(value)) {
     return value.map(toTextValue).filter(Boolean).join("\n").trim();
   }
+
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
 
@@ -132,10 +140,11 @@ function toTextValue(value: unknown): string {
       return obj["#text"].trim();
     }
 
-    if (typeof obj["text"] === "string") {
-      return obj["text"].trim();
+    if (typeof obj.text === "string") {
+      return obj.text.trim();
     }
   }
+
   return "";
 }
 
@@ -155,7 +164,6 @@ function buildMapsUrl(lat: number | null, lng: number | null) {
 
 function mapPlotTypeToPrzeznaczenia(plotTypeRaw: string | null): Przeznaczenie[] {
   const text = (plotTypeRaw ?? "").toLowerCase();
-
   const result = new Set<Przeznaczenie>();
 
   if (
@@ -240,8 +248,13 @@ function mapGaz(params: Record<string, unknown>): GazStatus {
   return "BRAK";
 }
 
-function sanitizeTitle(raw: string | null, miasto: string | null, plotType: string | null) {
+function sanitizeTitle(
+  raw: string | null,
+  miasto: string | null,
+  plotType: string | null
+) {
   const value = (raw ?? "").trim();
+
   if (value.length >= 5) return value.slice(0, 160);
 
   const cityPart = miasto?.trim() ? ` – ${miasto.trim()}` : "";
@@ -263,6 +276,10 @@ function getMimeTypeFromFileName(fileName: string) {
 
 function safeBasename(value: string) {
   return path.basename(value).toLowerCase();
+}
+
+function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 async function removeExistingR2Photos(dzialkaId: string) {
@@ -288,7 +305,8 @@ async function uploadOfferPhotosToR2(
   photoFileNames: string[],
   filesByName: Map<string, Buffer>
 ) {
-  const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> = [];
+  const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> =
+    [];
 
   for (let index = 0; index < photoFileNames.length; index += 1) {
     const originalName = photoFileNames[index];
@@ -398,8 +416,14 @@ function extractFeed(buffer: Buffer, remoteFileName: string) {
   const entries = zip.getEntries();
 
   const xmlEntry =
-    entries.find((entry) => !entry.isDirectory && safeBasename(entry.entryName) === "oferty.xml") ||
-    entries.find((entry) => !entry.isDirectory && entry.entryName.toLowerCase().endsWith(".xml"));
+    entries.find(
+      (entry) =>
+        !entry.isDirectory && safeBasename(entry.entryName) === "oferty.xml"
+    ) ||
+    entries.find(
+      (entry) =>
+        !entry.isDirectory && entry.entryName.toLowerCase().endsWith(".xml")
+    );
 
   if (!xmlEntry) {
     throw new Error("W paczce ZIP nie znaleziono pliku XML z ofertami.");
@@ -423,6 +447,7 @@ function extractFeed(buffer: Buffer, remoteFileName: string) {
 function parseHeaderDate(value: unknown): Date | null {
   const text = toTextValue(value);
   if (!text) return null;
+
   const date = new Date(text.replace(" ", "T"));
   return Number.isNaN(date.getTime()) ? null : date;
 }
@@ -433,8 +458,10 @@ function parseParams(offerNode: Record<string, unknown>) {
 
   for (const param of paramsList) {
     if (!param || typeof param !== "object") continue;
+
     const item = param as Record<string, unknown>;
     const name = String(item.nazwa ?? item["@_nazwa"] ?? "").trim();
+
     if (!name) continue;
 
     if (item.linia != null) {
@@ -458,32 +485,33 @@ function parseParams(offerNode: Record<string, unknown>) {
   return params;
 }
 
-function parseLocation(offerNode: Record<string, unknown>, params: Record<string, unknown>) {
+function parseLocation(
+  offerNode: Record<string, unknown>,
+  params: Record<string, unknown>
+) {
   const locationNode =
     typeof offerNode.location === "object" && offerNode.location
       ? (offerNode.location as Record<string, unknown>)
       : null;
 
-  const areas = arrify(locationNode?.area).reduce<Record<string, string>>((acc, area) => {
-    if (!area || typeof area !== "object") return acc;
-    const item = area as Record<string, unknown>;
-    const level = String(item.level ?? item["@_level"] ?? "").trim();
-    const value = toTextValue(item);
-    if (level && value) acc[level] = value;
-    return acc;
-  }, {});
+  const areas = arrify(locationNode?.area).reduce<Record<string, string>>(
+    (acc, area) => {
+      if (!area || typeof area !== "object") return acc;
 
-  const wojewodztwo =
-    toTextValue(params.wojewodztwo) || areas["2"] || null;
+      const item = area as Record<string, unknown>;
+      const level = String(item.level ?? item["@_level"] ?? "").trim();
+      const value = toTextValue(item);
 
-  const miasto =
-    toTextValue(params.miasto) || areas["4"] || null;
+      if (level && value) acc[level] = value;
+      return acc;
+    },
+    {}
+  );
 
-  const dzielnica =
-    toTextValue(params.dzielnica) || areas["5"] || null;
-
-  const okolica =
-    toTextValue(params.okolica) || areas["6"] || null;
+  const wojewodztwo = toTextValue(params.wojewodztwo) || areas["2"] || null;
+  const miasto = toTextValue(params.miasto) || areas["4"] || null;
+  const dzielnica = toTextValue(params.dzielnica) || areas["5"] || null;
+  const okolica = toTextValue(params.okolica) || areas["6"] || null;
 
   const parts = [miasto, dzielnica, okolica].filter(Boolean);
   const locationLabel = parts.length > 0 ? parts.join(", ") : miasto;
@@ -550,9 +578,10 @@ function parseDomyPlOffers(xml: string) {
 
     for (const oferta of oferty) {
       if (!oferta || typeof oferta !== "object") continue;
-      const ofertaNode = oferta as Record<string, unknown>;
 
+      const ofertaNode = oferta as Record<string, unknown>;
       const externalId = toTextValue(ofertaNode.id);
+
       if (!externalId) continue;
 
       const params = parseParams(ofertaNode);
@@ -618,7 +647,8 @@ function parseDomyPlOffers(xml: string) {
           externalId,
           plotTypeRaw,
           params,
-      }),
+        }),
+      });
     }
   }
 
@@ -982,7 +1012,8 @@ async function deactivateMissingOffers(
           externalId: link.externalId,
           action: "DEACTIVATE",
           status: "SUCCESS",
-          message: "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie.",
+          message:
+            "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie.",
         },
       });
     });
@@ -993,7 +1024,9 @@ async function deactivateMissingOffers(
   return count;
 }
 
-export async function syncCrmIntegrationNow(integrationId: string): Promise<SyncSummary> {
+export async function syncCrmIntegrationNow(
+  integrationId: string
+): Promise<SyncSummary> {
   const integration = await prisma.crmIntegration.findUnique({
     where: { id: integrationId },
     select: {
@@ -1023,14 +1056,19 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
     throw new Error("Integracja jest wyłączona.");
   }
 
-  if (integration.transportType !== "FTP" || integration.feedFormat !== "DOMY_PL") {
+  if (
+    integration.transportType !== "FTP" ||
+    integration.feedFormat !== "DOMY_PL"
+  ) {
     throw new Error("Ta integracja nie jest skonfigurowana jako FTP / DOMY.PL.");
   }
 
   const now = new Date();
 
   try {
-    const { remoteFileName, buffer } = await downloadLatestFeedFromFtp(integration);
+    const { remoteFileName, buffer } = await downloadLatestFeedFromFtp(
+      integration
+    );
     const extracted = extractFeed(buffer, remoteFileName);
     const offers = parseDomyPlOffers(extracted.xml);
     const appConfig = await prisma.appConfig.findFirst();
@@ -1081,7 +1119,10 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
     }
 
     if (integration.fullImportMode) {
-      deactivatedCount = await deactivateMissingOffers(integration.id, seenExternalIds);
+      deactivatedCount = await deactivateMissingOffers(
+        integration.id,
+        seenExternalIds
+      );
     }
 
     await prisma.crmIntegration.update({
@@ -1122,7 +1163,9 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
     };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Nie udało się zsynchronizować integracji.";
+      error instanceof Error
+        ? error.message
+        : "Nie udało się zsynchronizować integracji.";
 
     await prisma.crmIntegration.update({
       where: { id: integration.id },
