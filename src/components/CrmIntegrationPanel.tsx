@@ -58,6 +58,7 @@ export default function CrmIntegrationPanel({
 
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [resultError, setResultError] = useState<string | null>(null);
   const [resultSuccess, setResultSuccess] = useState<string | null>(null);
@@ -184,6 +185,46 @@ export default function CrmIntegrationPanel({
       setResultError("Wystąpił błąd podczas usuwania integracji CRM.");
     } finally {
       setDeleteLoading(false);
+    }
+  }
+
+  async function handleRegenerateKey() {
+    if (!currentIntegration?.id) return;
+
+    const confirmed = window.confirm(
+      "Czy na pewno chcesz wygenerować nowy klucz? Stary przestanie działać."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setRegenerating(true);
+      setResultError(null);
+      setResultSuccess(null);
+      setCopied(false);
+
+      const res = await fetch(
+        `/api/crm/integrations/${currentIntegration.id}/regenerate`,
+        {
+          method: "POST",
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setResultError(data?.error || "Błąd regeneracji klucza");
+        return;
+      }
+
+      setCreatedKey(data.apiKey ?? null);
+      setResultSuccess("Nowy klucz API został wygenerowany.");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setResultError("Błąd regeneracji klucza");
+    } finally {
+      setRegenerating(false);
     }
   }
 
@@ -394,7 +435,9 @@ export default function CrmIntegrationPanel({
                 <div className="text-white/45">Status</div>
                 <div
                   className={`mt-1 font-semibold ${
-                    currentIntegration.isActive ? "text-[#9fd14b]" : "text-red-300"
+                    currentIntegration.isActive
+                      ? "text-[#9fd14b]"
+                      : "text-red-300"
                   }`}
                 >
                   {currentIntegration.isActive ? "Aktywna" : "Nieaktywna"}
@@ -477,7 +520,42 @@ export default function CrmIntegrationPanel({
               </div>
             )}
 
+            {currentIntegration?.lastErrorMessage?.includes(
+              "Brak dostępnych publikacji"
+            ) ? (
+              <div className="mt-6 rounded-2xl border border-yellow-500/25 bg-yellow-500/10 p-4">
+                <div className="text-sm font-semibold text-yellow-200">
+                  Brak dostępnych publikacji
+                </div>
+
+                <div className="mt-2 text-sm text-yellow-100/80">
+                  Niektóre oferty z CRM nie zostały opublikowane, ponieważ konto
+                  nie ma dostępnych publikacji.
+                </div>
+
+                <div className="mt-4">
+                  <a
+                    href="/panel/pakiety"
+                    className="inline-flex rounded-full bg-[#7aa333] px-5 py-3 text-sm font-semibold text-black hover:opacity-90"
+                  >
+                    Kup ogłoszenia
+                  </a>
+                </div>
+              </div>
+            ) : null}
+
             <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleRegenerateKey}
+                disabled={regenerating}
+                className="inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-200 transition hover:bg-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {regenerating
+                  ? "Generowanie..."
+                  : "Wygeneruj nowy klucz API"}
+              </button>
+
               <button
                 type="button"
                 onClick={handleDeleteIntegration}
@@ -579,15 +657,17 @@ export default function CrmIntegrationPanel({
             </h3>
 
             {logsLoading ? (
-              <div className="mt-5 text-sm text-white/60">Ładowanie logów...</div>
+              <div className="mt-5 text-sm text-white/60">
+                Ładowanie logów...
+              </div>
             ) : logsError ? (
               <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
                 {logsError}
               </div>
             ) : logs.length === 0 ? (
               <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/65">
-                Brak logów. Gdy CRM zacznie wysyłać oferty, zobaczysz tutaj historię
-                publikacji, aktualizacji i błędów.
+                Brak logów. Gdy CRM zacznie wysyłać oferty, zobaczysz tutaj
+                historię publikacji, aktualizacji i błędów.
               </div>
             ) : (
               <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
