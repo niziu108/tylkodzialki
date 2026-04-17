@@ -1,31 +1,34 @@
 import { prisma } from "@/lib/prisma";
 import { hashCrmApiKey } from "@/lib/crm/hashApiKey";
 
-export async function authenticateCrmRequest(authHeader: string | null) {
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+export async function authenticateCrmRequest(
+  authHeader: string | null | undefined
+) {
+  if (!authHeader) return null;
+
+  const [scheme, token] = authHeader.split(" ");
+
+  if (scheme !== "Bearer" || !token?.trim()) {
     return null;
   }
 
-  const apiKey = authHeader.slice(7).trim();
+  const apiKeyHash = hashCrmApiKey(token.trim());
 
-  if (!apiKey) {
-    return null;
-  }
-
-  const apiKeyHash = hashCrmApiKey(apiKey);
-
-  const integration = await prisma.crmIntegration.findUnique({
+  const integration = await prisma.crmIntegration.findFirst({
     where: {
       apiKeyHash,
+      isActive: true,
     },
     include: {
-      user: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          listingCredits: true,
+        },
+      },
     },
   });
-
-  if (!integration || !integration.isActive) {
-    return null;
-  }
 
   return integration;
 }
