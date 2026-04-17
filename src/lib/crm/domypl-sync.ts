@@ -614,12 +614,11 @@ function parseDomyPlOffers(xml: string) {
         prad: mapPrad(params),
         gaz: mapGaz(params),
         photoFileNames,
-        payload: {
+        payload: toInputJsonValue({
           externalId,
           plotTypeRaw,
           params,
-        } satisfies Prisma.InputJsonValue,
-      });
+      }),
     }
   }
 
