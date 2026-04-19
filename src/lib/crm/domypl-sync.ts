@@ -7,9 +7,7 @@ import {
   CrmFeedFormat,
   CrmProvider,
   CrmTransportType,
-  GazStatus,
   LocationMode,
-  PradStatus,
   Prisma,
   Przeznaczenie,
 } from "@prisma/client";
@@ -51,9 +49,9 @@ type ParsedDomyOffer = {
   mapsUrl: string | null;
   plotTypeRaw: string | null;
   przeznaczenia: Przeznaczenie[];
-  prad: PradStatus;
-  gaz: GazStatus;
   photoFileNames: string[];
+  biuroNazwa: string | null;
+  biuroOpiekun: string | null;
   payload: Prisma.InputJsonValue;
 };
 
@@ -88,17 +86,6 @@ function arrify<T>(value: T | T[] | null | undefined): T[] {
 function wildcardToRegExp(pattern: string) {
   const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`^${escaped.replace(/\*/g, ".*")}$`, "i");
-}
-
-function isTruthy(value: unknown) {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value === 1;
-
-  const text = String(value ?? "")
-    .trim()
-    .toLowerCase();
-
-  return ["1", "t", "tak", "true", "yes"].includes(text);
 }
 
 function toNumber(value: unknown): number | null {
@@ -204,48 +191,6 @@ function mapPlotTypeToPrzeznaczenia(plotTypeRaw: string | null): Przeznaczenie[]
   }
 
   return [...result];
-}
-
-function mapPrad(params: Record<string, unknown>): PradStatus {
-  const pradRaw = params.prad;
-  const uzbrojenieRaw = toTextValue(params.uzbrojenie).toLowerCase();
-
-  if (isTruthy(pradRaw)) {
-    return "PRZYLACZE_NA_DZIALCE";
-  }
-
-  if (uzbrojenieRaw.includes("prąd") || uzbrojenieRaw.includes("prad")) {
-    return "MOZLIWOSC_PRZYLACZENIA";
-  }
-
-  return "BRAK_PRZYLACZA";
-}
-
-function mapGaz(params: Record<string, unknown>): GazStatus {
-  const maGazRaw = params.ma_gaz;
-  const gazRaw = toTextValue(params.gaz).toLowerCase();
-
-  if (isTruthy(maGazRaw)) {
-    return "GAZ_NA_DZIALCE";
-  }
-
-  if (gazRaw.includes("dro")) {
-    return "GAZ_W_DRODZE";
-  }
-
-  if (
-    gazRaw.includes("tak") ||
-    gazRaw.includes("jest") ||
-    gazRaw.includes("miejski")
-  ) {
-    return "GAZ_NA_DZIALCE";
-  }
-
-  if (gazRaw.includes("możliw") || gazRaw.includes("mozliw")) {
-    return "MOZLIWOSC_PODLACZENIA";
-  }
-
-  return "BRAK";
 }
 
 function sanitizeTitle(
@@ -547,6 +492,7 @@ function parseDomyPlOffers(xml: string) {
 
   const header = (plik.header ?? {}) as Record<string, unknown>;
   const zawartoscPliku = toTextValue(header.zawartosc_pliku).toLowerCase();
+  const agencyName = toTextValue(header.agencja) || null;
 
   if (zawartoscPliku && zawartoscPliku !== "calosc") {
     throw new Error(
@@ -616,6 +562,7 @@ function parseDomyPlOffers(xml: string) {
       const lat = toNumber(params.n_geo_y);
       const lng = toNumber(params.n_geo_x);
       const mapsUrl = buildMapsUrl(lat, lng);
+      const biuroOpiekun = toTextValue(params.agent_nazwisko) || null;
 
       const photoFileNames = Array.from({ length: 15 }, (_, index) =>
         toTextValue(params[`zdjecie${index + 1}`])
@@ -640,13 +587,14 @@ function parseDomyPlOffers(xml: string) {
         mapsUrl,
         plotTypeRaw,
         przeznaczenia: mapPlotTypeToPrzeznaczenia(plotTypeRaw),
-        prad: mapPrad(params),
-        gaz: mapGaz(params),
         photoFileNames,
+        biuroNazwa: agencyName,
+        biuroOpiekun,
         payload: toInputJsonValue({
           externalId,
           plotTypeRaw,
           params,
+          agencyName,
         }),
       });
     }
@@ -663,6 +611,8 @@ function buildDzialkaDataFromOffer(offer: ParsedDomyOffer) {
     email: offer.email,
     telefon: offer.phone,
     sprzedajacyTyp: "BIURO" as const,
+    biuroNazwa: offer.biuroNazwa,
+    biuroOpiekun: offer.biuroOpiekun,
     locationLabel: offer.locationLabel,
     locationFull: offer.locationFull,
     locationMode: "APPROX" as LocationMode,
@@ -670,8 +620,6 @@ function buildDzialkaDataFromOffer(offer: ParsedDomyOffer) {
     lng: offer.lng,
     mapsUrl: offer.mapsUrl,
     przeznaczenia: offer.przeznaczenia,
-    prad: offer.prad,
-    gaz: offer.gaz,
     numerOferty: offer.externalId,
     opis: offer.description,
     sourceType: "CRM" as const,
