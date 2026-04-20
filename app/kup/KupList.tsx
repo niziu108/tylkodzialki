@@ -127,14 +127,15 @@ export default function KupList({
       return;
     }
 
-    if (itemsKey && itemsKey !== prevItemsKeyRef.current) {
+    if (itemsKey !== prevItemsKeyRef.current) {
       prevItemsKeyRef.current = itemsKey;
 
       const el = rootRef.current;
       if (!el) return;
 
       requestAnimationFrame(() => {
-        const top = window.scrollY + el.getBoundingClientRect().top - 24;
+        const MENU_OFFSET = 110;
+        const top = window.scrollY + el.getBoundingClientRect().top - MENU_OFFSET;
 
         window.scrollTo({
           top: Math.max(0, top),
