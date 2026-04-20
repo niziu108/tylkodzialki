@@ -7,9 +7,13 @@ import {
   CrmFeedFormat,
   CrmProvider,
   CrmTransportType,
+  GazStatus,
+  KanalizacjaStatus,
   LocationMode,
+  PradStatus,
   Prisma,
   Przeznaczenie,
+  WodaStatus,
 } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
@@ -52,6 +56,11 @@ type ParsedDomyOffer = {
   photoFileNames: string[];
   biuroNazwa: string | null;
   biuroOpiekun: string | null;
+  prad: PradStatus;
+  woda: WodaStatus;
+  kanalizacja: KanalizacjaStatus;
+  gaz: GazStatus;
+  wymiary: string | null;
   payload: Prisma.InputJsonValue;
 };
 
@@ -227,6 +236,275 @@ function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
+function normalizeText(value?: string | null) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasAny(text: string, phrases: string[]) {
+  return phrases.some((phrase) => text.includes(phrase));
+}
+
+function isTruthyText(value?: string | null) {
+  const v = normalizeText(value);
+  return ["1", "t", "tak", "true", "yes", "jest"].includes(v);
+}
+
+function mapPradFromParams(params: Record<string, unknown>): PradStatus {
+  const pradText = normalizeText(toTextValue(params.prad));
+  const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
+
+  if (isTruthyText(toTextValue(params.prad))) {
+    return "PRZYLACZE_NA_DZIALCE";
+  }
+
+  if (
+    hasAny(pradText, [
+      "na działce",
+      "na dzialce",
+      "w działce",
+      "w dzialce",
+      "przyłącze na działce",
+      "przylacze na dzialce",
+      "jest",
+      "tak",
+    ])
+  ) {
+    return "PRZYLACZE_NA_DZIALCE";
+  }
+
+  if (
+    hasAny(pradText, [
+      "w drodze",
+      "w ulicy",
+      "w granicy",
+      "przy działce",
+      "przy dzialce",
+    ])
+  ) {
+    return "PRZYLACZE_W_DRODZE";
+  }
+
+  if (
+    hasAny(pradText, [
+      "warunki",
+      "warunki przyłączenia",
+      "warunki przylaczenia",
+    ])
+  ) {
+    return "WARUNKI_PRZYLACZENIA_WYDANE";
+  }
+
+  if (
+    hasAny(pradText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])
+  ) {
+    return "MOZLIWOSC_PRZYLACZENIA";
+  }
+
+  if (hasAny(pradText, ["brak", "nie ma"])) {
+    return "BRAK_PRZYLACZA";
+  }
+
+  if (hasAny(uzbrojenieText, ["prąd", "prad"])) {
+    return "MOZLIWOSC_PRZYLACZENIA";
+  }
+
+  return "BRAK_PRZYLACZA";
+}
+
+function mapWodaFromParams(params: Record<string, unknown>): WodaStatus {
+  const wodaText = normalizeText(toTextValue(params.typpodlaczeniawody));
+  const maWodeText = normalizeText(toTextValue(params.ma_wode));
+  const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
+
+  if (isTruthyText(maWodeText)) {
+    return "WODOCIAG_NA_DZIALCE";
+  }
+
+  if (hasAny(wodaText, ["studnia", "studnia głębinowa", "studnia glebinowa"])) {
+    return "STUDNIA_GLEBINOWA";
+  }
+
+  if (
+    hasAny(wodaText, [
+      "na działce",
+      "na dzialce",
+      "miejska",
+      "wodociąg na działce",
+      "wodociag na dzialce",
+      "tak - miejska",
+      "jest",
+      "tak",
+    ])
+  ) {
+    return "WODOCIAG_NA_DZIALCE";
+  }
+
+  if (
+    hasAny(wodaText, [
+      "w drodze",
+      "w ulicy",
+      "w granicy",
+      "przy działce",
+      "przy dzialce",
+    ])
+  ) {
+    return "WODOCIAG_W_DRODZE";
+  }
+
+  if (
+    hasAny(wodaText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])
+  ) {
+    return "MOZLIWOSC_PODLACZENIA";
+  }
+
+  if (hasAny(wodaText, ["brak", "nie ma"])) {
+    return "BRAK_PRZYLACZA";
+  }
+
+  if (hasAny(uzbrojenieText, ["woda", "wodociąg", "wodociag"])) {
+    return "MOZLIWOSC_PODLACZENIA";
+  }
+
+  return "BRAK_PRZYLACZA";
+}
+
+function mapGazFromParams(params: Record<string, unknown>): GazStatus {
+  const gazText = normalizeText(toTextValue(params.gaz));
+  const maGazText = normalizeText(toTextValue(params.ma_gaz));
+  const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
+
+  if (isTruthyText(maGazText)) {
+    return "GAZ_NA_DZIALCE";
+  }
+
+  if (
+    hasAny(gazText, [
+      "na działce",
+      "na dzialce",
+      "miejski",
+      "tak - miejski",
+      "jest",
+      "tak",
+    ])
+  ) {
+    return "GAZ_NA_DZIALCE";
+  }
+
+  if (
+    hasAny(gazText, [
+      "w drodze",
+      "w ulicy",
+      "w granicy",
+      "przy działce",
+      "przy dzialce",
+    ])
+  ) {
+    return "GAZ_W_DRODZE";
+  }
+
+  if (
+    hasAny(gazText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])
+  ) {
+    return "MOZLIWOSC_PODLACZENIA";
+  }
+
+  if (hasAny(gazText, ["brak", "nie ma"])) {
+    return "BRAK";
+  }
+
+  if (hasAny(uzbrojenieText, ["gaz"])) {
+    return "MOZLIWOSC_PODLACZENIA";
+  }
+
+  return "BRAK";
+}
+
+function mapKanalizacjaFromParams(params: Record<string, unknown>): KanalizacjaStatus {
+  const kanalText = normalizeText(toTextValue(params.kanalizacja));
+  const maKanalText = normalizeText(toTextValue(params.ma_kanalizacje));
+
+  if (isTruthyText(maKanalText)) {
+    return "MIEJSKA_NA_DZIALCE";
+  }
+
+  if (
+    hasAny(kanalText, [
+      "szambo",
+    ])
+  ) {
+    return "SZAMBO";
+  }
+
+  if (
+    hasAny(kanalText, [
+      "oczyszczalnia",
+      "przydomowa",
+    ])
+  ) {
+    return "PRZYDOMOWA_OCZYSZCZALNIA";
+  }
+
+  if (
+    hasAny(kanalText, [
+      "na działce",
+      "na dzialce",
+      "miejska",
+      "jest",
+      "tak",
+    ])
+  ) {
+    return "MIEJSKA_NA_DZIALCE";
+  }
+
+  if (
+    hasAny(kanalText, [
+      "w drodze",
+      "w ulicy",
+      "w granicy",
+      "przy działce",
+      "przy dzialce",
+    ])
+  ) {
+    return "MIEJSKA_W_DRODZE";
+  }
+
+  if (
+    hasAny(kanalText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])
+  ) {
+    return "MOZLIWOSC_PODLACZENIA";
+  }
+
+  if (hasAny(kanalText, ["brak", "nie ma"])) {
+    return "BRAK";
+  }
+
+  return "BRAK";
+}
+
+function buildWymiary(params: Record<string, unknown>): string | null {
+  const width = toNumber(params.szerokoscdzialki);
+  const length = toNumber(params.dlugoscdzialki);
+
+  if (width && length) {
+    const widthText = Number.isInteger(width) ? String(width) : String(width).replace(".", ",");
+    const lengthText = Number.isInteger(length) ? String(length) : String(length).replace(".", ",");
+    return `${widthText} x ${lengthText} m`;
+  }
+
+  if (width) {
+    return `${Number.isInteger(width) ? String(width) : String(width).replace(".", ",")} m szerokości`;
+  }
+
+  if (length) {
+    return `${Number.isInteger(length) ? String(length) : String(length).replace(".", ",")} m długości`;
+  }
+
+  return null;
+}
+
 async function removeExistingR2Photos(dzialkaId: string) {
   const currentPhotos = await prisma.zdjecie.findMany({
     where: { dzialkaId },
@@ -250,8 +528,7 @@ async function uploadOfferPhotosToR2(
   photoFileNames: string[],
   filesByName: Map<string, Buffer>
 ) {
-  const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> =
-    [];
+  const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> = [];
 
   for (let index = 0; index < photoFileNames.length; index += 1) {
     const originalName = photoFileNames[index];
@@ -568,6 +845,12 @@ function parseDomyPlOffers(xml: string) {
         toTextValue(params[`zdjecie${index + 1}`])
       ).filter(Boolean);
 
+      const prad = mapPradFromParams(params);
+      const woda = mapWodaFromParams(params);
+      const kanalizacja = mapKanalizacjaFromParams(params);
+      const gaz = mapGazFromParams(params);
+      const wymiary = buildWymiary(params);
+
       result.push({
         externalId,
         externalUpdatedAt:
@@ -590,11 +873,23 @@ function parseDomyPlOffers(xml: string) {
         photoFileNames,
         biuroNazwa: agencyName,
         biuroOpiekun,
+        prad,
+        woda,
+        kanalizacja,
+        gaz,
+        wymiary,
         payload: toInputJsonValue({
           externalId,
           plotTypeRaw,
           params,
           agencyName,
+          mappedMedia: {
+            prad,
+            woda,
+            kanalizacja,
+            gaz,
+            wymiary,
+          },
         }),
       });
     }
@@ -622,6 +917,11 @@ function buildDzialkaDataFromOffer(offer: ParsedDomyOffer) {
     przeznaczenia: offer.przeznaczenia,
     numerOferty: offer.externalId,
     opis: offer.description,
+    prad: offer.prad,
+    woda: offer.woda,
+    kanalizacja: offer.kanalizacja,
+    gaz: offer.gaz,
+    wymiary: offer.wymiary,
     sourceType: "CRM" as const,
     crmImportedAt: new Date(),
     crmLastSyncedAt: new Date(),
