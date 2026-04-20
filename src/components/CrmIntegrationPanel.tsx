@@ -708,7 +708,7 @@ export default function CrmIntegrationPanel({
                           ftpPassword: e.target.value,
                         }))
                       }
-                      placeholder="Zostaw puste, jeśli nie chcesz zmieniać hasła"
+                      placeholder="Wpisz hasło FTP przy pierwszej konfiguracji. Przy edycji możesz zostawić puste."
                       className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
                     />
                   </label>
