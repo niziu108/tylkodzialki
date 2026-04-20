@@ -134,7 +134,7 @@ export default function KupList({
       if (!el) return;
 
       requestAnimationFrame(() => {
-        const MENU_OFFSET = 110;
+        const MENU_OFFSET = 140;
         const top = window.scrollY + el.getBoundingClientRect().top - MENU_OFFSET;
 
         window.scrollTo({
