@@ -85,10 +85,6 @@ export default function KupList({
   loading: boolean;
   error: string | null;
 }) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const prevItemsKeyRef = useRef<string>('');
-  const isFirstRenderRef = useRef(true);
-
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | null = null;
 
@@ -115,40 +111,6 @@ export default function KupList({
       if (t) clearTimeout(t);
     };
   }, []);
-
-  useEffect(() => {
-    if (loading) return;
-
-    const itemsKey = items.map((item) => item.id).join('|');
-
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      prevItemsKeyRef.current = itemsKey;
-      return;
-    }
-
-    if (itemsKey !== prevItemsKeyRef.current) {
-      prevItemsKeyRef.current = itemsKey;
-
-      const el = rootRef.current;
-      if (!el) return;
-
-      requestAnimationFrame(() => {
-        const MENU_OFFSET = 140;
-        const top = window.scrollY + el.getBoundingClientRect().top - MENU_OFFSET;
-
-        window.scrollTo({
-          top: Math.max(0, top),
-          behavior: 'smooth',
-        });
-
-        try {
-          sessionStorage.setItem('TD_KUP_SCROLL_Y', String(Math.max(0, top)));
-          sessionStorage.setItem('TD_KUP_URL', window.location.pathname + window.location.search);
-        } catch {}
-      });
-    }
-  }, [items, loading]);
 
   const content = useMemo(() => {
     if (loading) {
@@ -211,7 +173,7 @@ export default function KupList({
     );
   }, [items, loading, error]);
 
-  return <div ref={rootRef}>{content}</div>;
+  return <div>{content}</div>;
 }
 
 function DzialkaCard({ d, eagerImage = false }: { d: Dzialka; eagerImage?: boolean }) {

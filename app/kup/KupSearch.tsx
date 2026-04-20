@@ -32,6 +32,7 @@ const PRZEZN: { key: Przeznaczenie; label: string }[] = [
 ];
 
 const PAGE_SIZE = 20;
+const SCROLL_OFFSET = -450; // zmień np. na 110 jeśli global menu dalej zasłania
 
 function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   const R = 6371;
@@ -329,6 +330,7 @@ export default function KupSearch() {
   });
 
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const searchTopRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -355,6 +357,39 @@ export default function KupSearch() {
       })
       .catch(() => {});
   }, []);
+
+  function scrollToSearchTop() {
+    const el = searchTopRef.current;
+    if (!el) return;
+
+    const top = window.scrollY + el.getBoundingClientRect().top - SCROLL_OFFSET;
+
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: 'smooth',
+    });
+  }
+
+  function changePage(nextPage: number) {
+    const totalPagesNow = Math.max(1, Math.ceil(count / PAGE_SIZE));
+    const clamped = Math.max(1, Math.min(totalPagesNow, nextPage));
+
+    if (clamped === page) return;
+
+    setPage(clamped);
+
+    requestAnimationFrame(() => {
+      scrollToSearchTop();
+
+      try {
+        sessionStorage.setItem(
+          'TD_KUP_SCROLL_Y',
+          String(Math.max(0, window.scrollY + (searchTopRef.current?.getBoundingClientRect().top ?? 0) - SCROLL_OFFSET))
+        );
+        sessionStorage.setItem('TD_KUP_URL', window.location.pathname + window.location.search);
+      } catch {}
+    });
+  }
 
   function togglePrzezn(k: Przeznaczenie) {
     setPrzezn((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
@@ -475,13 +510,13 @@ export default function KupSearch() {
     return allItems.slice(start, start + PAGE_SIZE);
   }, [allItems, safePage]);
 
-  const goPrev = () => setPage((p) => Math.max(1, p - 1));
-  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
-  const goTo = (p: number) => setPage(Math.max(1, Math.min(totalPages, p)));
+  const goPrev = () => changePage(safePage - 1);
+  const goNext = () => changePage(safePage + 1);
+  const goTo = (p: number) => changePage(p);
 
   return (
     <div className="w-full">
-      <section className="relative w-full">
+      <section ref={searchTopRef} className="relative w-full">
         <div
           className="absolute inset-0"
           style={{
