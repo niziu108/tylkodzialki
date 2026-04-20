@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { Przeznaczenie } from '@prisma/client';
 
@@ -84,6 +85,10 @@ export default function KupList({
   loading: boolean;
   error: string | null;
 }) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const prevItemsKeyRef = useRef<string>('');
+  const isFirstRenderRef = useRef(true);
+
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | null = null;
 
@@ -110,6 +115,39 @@ export default function KupList({
       if (t) clearTimeout(t);
     };
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const itemsKey = items.map((item) => item.id).join('|');
+
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      prevItemsKeyRef.current = itemsKey;
+      return;
+    }
+
+    if (itemsKey && itemsKey !== prevItemsKeyRef.current) {
+      prevItemsKeyRef.current = itemsKey;
+
+      const el = rootRef.current;
+      if (!el) return;
+
+      requestAnimationFrame(() => {
+        const top = window.scrollY + el.getBoundingClientRect().top - 24;
+
+        window.scrollTo({
+          top: Math.max(0, top),
+          behavior: 'smooth',
+        });
+
+        try {
+          sessionStorage.setItem('TD_KUP_SCROLL_Y', String(Math.max(0, top)));
+          sessionStorage.setItem('TD_KUP_URL', window.location.pathname + window.location.search);
+        } catch {}
+      });
+    }
+  }, [items, loading]);
 
   const content = useMemo(() => {
     if (loading) {
@@ -172,7 +210,7 @@ export default function KupList({
     );
   }, [items, loading, error]);
 
-  return content;
+  return <div ref={rootRef}>{content}</div>;
 }
 
 function DzialkaCard({ d, eagerImage = false }: { d: Dzialka; eagerImage?: boolean }) {
@@ -287,8 +325,8 @@ function MetricBlock({
   align = 'center',
 }: {
   label: string;
-  value: React.ReactNode;
-  subValue?: React.ReactNode;
+  value: ReactNode;
+  subValue?: ReactNode;
   align?: 'left' | 'center' | 'right';
 }) {
   const alignClass =
