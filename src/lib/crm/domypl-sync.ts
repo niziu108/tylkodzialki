@@ -3,7 +3,6 @@ import path from "path";
 import os from "os";
 import fs from "fs";
 import { promises as fsp } from "fs";
-import * as ftp from "basic-ftp";
 import unzipper from "unzipper";
 import sax from "sax";
 import {
@@ -631,65 +630,6 @@ async function downloadLatestFeedFromFtp(
   } catch (error) {
     await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
     throw error;
-  }
-}
-  if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
-    throw new Error("Integracja FTP nie ma uzupełnionych danych logowania.");
-  }
-
-  const client = new ftp.Client(30000);
-  client.ftp.verbose = false;
-
-  const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-crm-"));
-  let localFilePath = "";
-
-  try {
-    await client.access({
-      host: integration.ftpHost,
-      port: integration.ftpPort ?? 21,
-      user: integration.ftpUsername,
-      password: integration.ftpPassword,
-      secure: false,
-    });
-
-    const remoteDir = integration.ftpRemotePath?.trim() || "/";
-    await client.cd(remoteDir);
-
-    const list = await client.list();
-    const pattern = integration.expectedFilePattern?.trim() || "oferty_*.zip";
-    const regex = wildcardToRegExp(pattern);
-
-    const matched = list
-      .filter((item) => item.isFile && regex.test(item.name))
-      .sort((a, b) => {
-        const aTime = a.modifiedAt?.getTime?.() ?? 0;
-        const bTime = b.modifiedAt?.getTime?.() ?? 0;
-        return bTime - aTime || a.name.localeCompare(b.name);
-      });
-
-    if (matched.length === 0) {
-      throw new Error(
-        `Nie znaleziono pliku pasującego do wzorca ${pattern} w katalogu ${remoteDir}.`
-      );
-    }
-
-    const remoteFileName = matched[0].name;
-    localFilePath = path.join(tempDir, remoteFileName);
-
-    await client.downloadTo(localFilePath, remoteFileName);
-
-    return {
-      remoteFileName,
-      localFilePath,
-      cleanup: async () => {
-        await fsp.rm(tempDir, { recursive: true, force: true });
-      },
-    };
-  } catch (error) {
-    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    throw error;
-  } finally {
-    client.close();
   }
 }
 
@@ -1660,8 +1600,8 @@ export async function syncCrmIntegrationNow(
           errorCount > 0
             ? `Synchronizacja zakończona z błędami (${errorCount}).`
             : skippedCount > 0
-            ? `Synchronizacja zakończona. Pominięto ${skippedCount} ofert z powodu braku kredytów.`
-            : null,
+              ? `Synchronizacja zakończona. Pominięto ${skippedCount} ofert z powodu braku kredytów.`
+              : null,
         lastImportedOffers: importedOffers,
         lastCreatedCount: createdCount,
         lastUpdatedCount: updatedCount,
