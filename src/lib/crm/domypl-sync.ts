@@ -601,7 +601,7 @@ async function uploadOfferPhotosToR2(
 async function downloadLatestFeedFromFtp(
   integration: IntegrationForSync
 ): Promise<DownloadedFeed> {
-  const testUrl = "https://tylkodzialki.pl/galatica/oferty.zip";
+   const testUrl = "https://tylkodzialki.pl/oferty.zip";
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-crm-"));
   const localFilePath = path.join(tempDir, "oferty.zip");
