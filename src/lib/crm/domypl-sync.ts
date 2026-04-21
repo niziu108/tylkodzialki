@@ -3,7 +3,6 @@ import path from "path";
 import os from "os";
 import fs from "fs";
 import { promises as fsp } from "fs";
-import { pipeline } from "stream/promises";
 import * as ftp from "basic-ftp";
 import unzipper from "unzipper";
 import sax from "sax";
@@ -96,6 +95,24 @@ type FeedReader = {
   createXmlReadStream: () => Promise<NodeJS.ReadableStream>;
   getPhotoBuffer: (fileName: string) => Promise<Buffer | null>;
   close: () => Promise<void>;
+};
+
+type ZipEntryLike = {
+  type: string;
+  path: string;
+  stream: () => NodeJS.ReadableStream;
+  buffer: () => Promise<Buffer>;
+};
+
+type SaxAttrLike =
+  | string
+  | {
+      value: string;
+    };
+
+type SaxTagLike = {
+  name: string;
+  attributes?: Record<string, SaxAttrLike>;
 };
 
 function makeEditToken() {
@@ -664,27 +681,26 @@ async function openFeedReader(
   }
 
   const directory = await unzipper.Open.file(localFilePath);
+  const files = directory.files as ZipEntryLike[];
 
   const xmlEntry =
-    directory.files.find(
-      (entry) =>
-        entry.type === "File" &&
-        safeBasename(entry.path) === "oferty.xml"
+    files.find(
+      (entry: ZipEntryLike) =>
+        entry.type === "File" && safeBasename(entry.path) === "oferty.xml"
     ) ||
-    directory.files.find(
-      (entry) =>
-        entry.type === "File" &&
-        entry.path.toLowerCase().endsWith(".xml")
+    files.find(
+      (entry: ZipEntryLike) =>
+        entry.type === "File" && entry.path.toLowerCase().endsWith(".xml")
     );
 
   if (!xmlEntry) {
     throw new Error("W paczce ZIP nie znaleziono pliku XML z ofertami.");
   }
 
-  const entryMap = new Map(
-    directory.files
-      .filter((entry) => entry.type === "File")
-      .map((entry) => [safeBasename(entry.path), entry] as const)
+  const entryMap = new Map<string, ZipEntryLike>(
+    files
+      .filter((entry: ZipEntryLike) => entry.type === "File")
+      .map((entry: ZipEntryLike) => [safeBasename(entry.path), entry])
   );
 
   return {
@@ -799,12 +815,12 @@ function escapeXmlText(value: string) {
     .replace(/>/g, "&gt;");
 }
 
-function startTagToXml(node: sax.QualifiedTag) {
+function startTagToXml(node: SaxTagLike) {
   const attrs = Object.entries(node.attributes ?? {})
     .map(([key, attr]) => {
       const attrValue =
         typeof attr === "object" && attr && "value" in attr
-          ? String((attr as { value: string }).value)
+          ? String(attr.value)
           : String(attr);
       return ` ${key}="${escapeXml(attrValue)}"`;
     })
@@ -977,7 +993,7 @@ async function streamParseDomyPlOffers(
 
   const waitForChain = () => chain;
 
-  saxStream.on("opentag", (node: sax.QualifiedTag) => {
+  saxStream.on("opentag", (node: SaxTagLike) => {
     if (node.name === "header" && !collectingHeader) {
       collectingHeader = true;
       headerDepth = 1;
@@ -998,12 +1014,12 @@ async function streamParseDomyPlOffers(
 
       currentDzialTab =
         typeof tabAttr === "object" && tabAttr && "value" in tabAttr
-          ? String((tabAttr as { value: string }).value).trim().toLowerCase()
+          ? String(tabAttr.value).trim().toLowerCase()
           : String(tabAttr ?? "").trim().toLowerCase();
 
       currentDzialTyp =
         typeof typAttr === "object" && typAttr && "value" in typAttr
-          ? String((typAttr as { value: string }).value).trim().toLowerCase()
+          ? String(typAttr.value).trim().toLowerCase()
           : String(typAttr ?? "").trim().toLowerCase();
 
       return;
@@ -1073,7 +1089,9 @@ async function streamParseDomyPlOffers(
         const completedOfferXml = offerXml;
         offerXml = "";
 
-        xmlStream.pause?.();
+        if (typeof (xmlStream as { pause?: () => void }).pause === "function") {
+          (xmlStream as { pause: () => void }).pause();
+        }
 
         chain = chain
           .then(async () => {
@@ -1084,7 +1102,9 @@ async function streamParseDomyPlOffers(
           })
           .then(() => {
             if (!streamEnded) {
-              xmlStream.resume?.();
+              if (typeof (xmlStream as { resume?: () => void }).resume === "function") {
+                (xmlStream as { resume: () => void }).resume();
+              }
             }
           });
       }
@@ -1099,11 +1119,11 @@ async function streamParseDomyPlOffers(
   });
 
   const finishedPromise = new Promise<number>((resolve, reject) => {
-    saxStream.on("error", (error) => {
+    saxStream.on("error", (error: unknown) => {
       reject(error);
     });
 
-    xmlStream.on("error", (error) => {
+    xmlStream.on("error", (error: unknown) => {
       reject(error);
     });
 
@@ -1113,7 +1133,7 @@ async function streamParseDomyPlOffers(
     });
   });
 
-  (xmlStream as fs.ReadStream).pipe(saxStream);
+  (xmlStream as NodeJS.ReadableStream).pipe(saxStream);
   return finishedPromise;
 }
 
