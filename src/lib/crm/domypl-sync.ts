@@ -611,7 +611,9 @@ async function downloadLatestFeedFromFtp(
     const response = await fetch(testUrl);
 
     if (!response.ok) {
-      throw new Error(`Nie udało się pobrać pliku testowego z URL (${response.status}).`);
+      throw new Error(
+        `Nie udało się pobrać pliku testowego z URL (${response.status}).`
+      );
     }
 
     const arrayBuffer = await response.arrayBuffer();
