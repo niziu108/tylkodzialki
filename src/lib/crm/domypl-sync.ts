@@ -602,6 +602,35 @@ async function uploadOfferPhotosToR2(
 async function downloadLatestFeedFromFtp(
   integration: IntegrationForSync
 ): Promise<DownloadedFeed> {
+  const testUrl = "https://tylkodzialki.pl/galatica/oferty.zip";
+
+  const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-crm-"));
+  const localFilePath = path.join(tempDir, "oferty.zip");
+
+  try {
+    const response = await fetch(testUrl);
+
+    if (!response.ok) {
+      throw new Error(`Nie udało się pobrać pliku testowego z URL (${response.status}).`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    await fsp.writeFile(localFilePath, buffer);
+
+    return {
+      remoteFileName: "oferty.zip",
+      localFilePath,
+      cleanup: async () => {
+        await fsp.rm(tempDir, { recursive: true, force: true });
+      },
+    };
+  } catch (error) {
+    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    throw error;
+  }
+}
   if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
     throw new Error("Integracja FTP nie ma uzupełnionych danych logowania.");
   }
