@@ -1,8 +1,11 @@
 import crypto from "crypto";
 import path from "path";
-import { PassThrough } from "stream";
-import AdmZip from "adm-zip";
+import os from "os";
+import fs from "fs";
+import { promises as fsp } from "fs";
 import * as ftp from "basic-ftp";
+import unzipper from "unzipper";
+import sax from "sax";
 import {
   CrmFeedFormat,
   CrmProvider,
@@ -76,9 +79,40 @@ type SyncSummary = {
   message: string;
 };
 
-type ExtractedFeed = {
-  xml: string;
-  filesByName: Map<string, Buffer>;
+type HeaderMeta = {
+  headerDate: Date | null;
+  agencyName: string | null;
+  zawartoscPliku: string;
+};
+
+type DownloadedFeed = {
+  remoteFileName: string;
+  localFilePath: string;
+  cleanup: () => Promise<void>;
+};
+
+type FeedReader = {
+  createXmlReadStream: () => Promise<NodeJS.ReadableStream>;
+  getPhotoBuffer: (fileName: string) => Promise<Buffer | null>;
+  close: () => Promise<void>;
+};
+
+type ZipEntryLike = {
+  type: string;
+  path: string;
+  stream: () => NodeJS.ReadableStream;
+  buffer: () => Promise<Buffer>;
+};
+
+type SaxAttrLike =
+  | string
+  | {
+      value: string;
+    };
+
+type SaxTagLike = {
+  name: string;
+  attributes?: Record<string, SaxAttrLike>;
 };
 
 function makeEditToken() {
@@ -130,7 +164,7 @@ function toTextValue(value: unknown): string {
     const obj = value as Record<string, unknown>;
 
     const lineValues = arrify(obj.linia)
-      .map((line) => toTextValue(line))
+      .map((line: unknown) => toTextValue(line))
       .filter(Boolean);
 
     if (lineValues.length > 0) {
@@ -234,7 +268,7 @@ function getMimeTypeFromFileName(fileName: string) {
 }
 
 function safeBasename(value: string) {
-  return path.basename(value).toLowerCase();
+  return path.basename(value.replace(/\\/g, "/")).toLowerCase();
 }
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -500,17 +534,25 @@ function buildWymiary(params: Record<string, unknown>): string | null {
   const length = toNumber(params.dlugoscdzialki);
 
   if (width && length) {
-    const widthText = Number.isInteger(width) ? String(width) : String(width).replace(".", ",");
-    const lengthText = Number.isInteger(length) ? String(length) : String(length).replace(".", ",");
+    const widthText = Number.isInteger(width)
+      ? String(width)
+      : String(width).replace(".", ",");
+    const lengthText = Number.isInteger(length)
+      ? String(length)
+      : String(length).replace(".", ",");
     return `${widthText} x ${lengthText} m`;
   }
 
   if (width) {
-    return `${Number.isInteger(width) ? String(width) : String(width).replace(".", ",")} m szerokości`;
+    return `${
+      Number.isInteger(width) ? String(width) : String(width).replace(".", ",")
+    } m szerokości`;
   }
 
   if (length) {
-    return `${Number.isInteger(length) ? String(length) : String(length).replace(".", ",")} m długości`;
+    return `${
+      Number.isInteger(length) ? String(length) : String(length).replace(".", ",")
+    } m długości`;
   }
 
   return null;
@@ -537,13 +579,13 @@ async function uploadOfferPhotosToR2(
   integrationId: string,
   externalId: string,
   photoFileNames: string[],
-  filesByName: Map<string, Buffer>
+  feedReader: FeedReader
 ) {
   const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> = [];
 
   for (let index = 0; index < photoFileNames.length; index += 1) {
     const originalName = photoFileNames[index];
-    const fileBuffer = filesByName.get(safeBasename(originalName));
+    const fileBuffer = await feedReader.getPhotoBuffer(originalName);
 
     if (!fileBuffer) {
       continue;
@@ -565,27 +607,18 @@ async function uploadOfferPhotosToR2(
   return uploaded;
 }
 
-async function downloadFtpFileToBuffer(client: ftp.Client, remoteFilePath: string) {
-  const stream = new PassThrough();
-  const chunks: Buffer[] = [];
-
-  stream.on("data", (chunk) => {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  });
-
-  await client.downloadTo(stream, remoteFilePath);
-  stream.end();
-
-  return Buffer.concat(chunks);
-}
-
-async function downloadLatestFeedFromFtp(integration: IntegrationForSync) {
+async function downloadLatestFeedFromFtp(
+  integration: IntegrationForSync
+): Promise<DownloadedFeed> {
   if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
     throw new Error("Integracja FTP nie ma uzupełnionych danych logowania.");
   }
 
   const client = new ftp.Client(30000);
   client.ftp.verbose = false;
+
+  const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-crm-"));
+  let localFilePath = "";
 
   try {
     await client.access({
@@ -600,7 +633,7 @@ async function downloadLatestFeedFromFtp(integration: IntegrationForSync) {
     await client.cd(remoteDir);
 
     const list = await client.list();
-    const pattern = integration.expectedFilePattern?.trim() || "oferty*.zip";
+    const pattern = integration.expectedFilePattern?.trim() || "oferty_*.zip";
     const regex = wildcardToRegExp(pattern);
 
     const matched = list
@@ -618,24 +651,36 @@ async function downloadLatestFeedFromFtp(integration: IntegrationForSync) {
     }
 
     const remoteFileName = matched[0].name;
-    const buffer = await downloadFtpFileToBuffer(client, remoteFileName);
+    localFilePath = path.join(tempDir, remoteFileName);
+
+    await client.downloadTo(localFilePath, remoteFileName);
 
     return {
       remoteFileName,
-      buffer,
+      localFilePath,
+      cleanup: async () => {
+        await fsp.rm(tempDir, { recursive: true, force: true });
+      },
     };
+  } catch (error) {
+    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    throw error;
   } finally {
     client.close();
   }
 }
 
-function extractFeed(buffer: Buffer, remoteFileName: string): ExtractedFeed {
+async function openFeedReader(
+  localFilePath: string,
+  remoteFileName: string
+): Promise<FeedReader> {
   const lowerName = remoteFileName.toLowerCase();
 
   if (lowerName.endsWith(".xml")) {
     return {
-      xml: buffer.toString("utf-8"),
-      filesByName: new Map<string, Buffer>(),
+      createXmlReadStream: async () => fs.createReadStream(localFilePath),
+      getPhotoBuffer: async () => null,
+      close: async () => {},
     };
   }
 
@@ -643,41 +688,37 @@ function extractFeed(buffer: Buffer, remoteFileName: string): ExtractedFeed {
     throw new Error("Obsługiwane są tylko pliki ZIP lub XML.");
   }
 
-  const zip = new AdmZip(buffer);
-  const entries = zip.getEntries();
+  const directory = await unzipper.Open.file(localFilePath);
+  const files = directory.files as ZipEntryLike[];
 
   const xmlEntry =
-    entries.find(
-      (entry) =>
-        !entry.isDirectory &&
-        entry.entryName.toLowerCase().includes("oferty") &&
-        entry.entryName.toLowerCase().endsWith(".xml")
+    files.find(
+      (entry: ZipEntryLike) =>
+        entry.type === "File" && safeBasename(entry.path) === "oferty.xml"
     ) ||
-    entries.find(
-      (entry) =>
-        !entry.isDirectory &&
-        safeBasename(entry.entryName) === "oferty.xml"
-    ) ||
-    entries.find(
-      (entry) =>
-        !entry.isDirectory &&
-        entry.entryName.toLowerCase().endsWith(".xml")
+    files.find(
+      (entry: ZipEntryLike) =>
+        entry.type === "File" && entry.path.toLowerCase().endsWith(".xml")
     );
 
   if (!xmlEntry) {
     throw new Error("W paczce ZIP nie znaleziono pliku XML z ofertami.");
   }
 
-  const filesByName = new Map<string, Buffer>();
-
-  for (const entry of entries) {
-    if (entry.isDirectory) continue;
-    filesByName.set(safeBasename(entry.entryName), entry.getData());
-  }
+  const entryMap = new Map<string, ZipEntryLike>(
+    files
+      .filter((entry: ZipEntryLike) => entry.type === "File")
+      .map((entry: ZipEntryLike) => [safeBasename(entry.path), entry])
+  );
 
   return {
-    xml: xmlEntry.getData().toString("utf-8"),
-    filesByName,
+    createXmlReadStream: async () => xmlEntry.stream(),
+    getPhotoBuffer: async (fileName: string) => {
+      const entry = entryMap.get(safeBasename(fileName));
+      if (!entry) return null;
+      return entry.buffer();
+    },
+    close: async () => {},
   };
 }
 
@@ -766,7 +807,37 @@ function parseLocation(
   };
 }
 
-function parseDomyPlOffers(xml: string): ParsedDomyOffer[] {
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeXmlText(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function startTagToXml(node: SaxTagLike) {
+  const attrs = Object.entries(node.attributes ?? {})
+    .map(([key, attr]) => {
+      const attrValue =
+        typeof attr === "object" && attr && "value" in attr
+          ? String(attr.value)
+          : String(attr);
+      return ` ${key}="${escapeXml(attrValue)}"`;
+    })
+    .join("");
+
+  return `<${node.name}${attrs}>`;
+}
+
+function parseHeaderMeta(headerXml: string): HeaderMeta {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "",
@@ -775,14 +846,8 @@ function parseDomyPlOffers(xml: string): ParsedDomyOffer[] {
     parseAttributeValue: false,
   });
 
-  const doc = parser.parse(xml) as Record<string, unknown>;
-  const plik = doc.plik as Record<string, unknown> | undefined;
-
-  if (!plik) {
-    throw new Error("Nieprawidłowa struktura XML: brak znacznika <plik>.");
-  }
-
-  const header = (plik.header ?? {}) as Record<string, unknown>;
+  const doc = parser.parse(headerXml) as Record<string, unknown>;
+  const header = (doc.header ?? {}) as Record<string, unknown>;
   const zawartoscPliku = toTextValue(header.zawartosc_pliku).toLowerCase();
   const agencyName = toTextValue(header.agencja) || null;
   const headerDate = parseHeaderDate(header.data);
@@ -793,122 +858,291 @@ function parseDomyPlOffers(xml: string): ParsedDomyOffer[] {
     );
   }
 
-  const listaOfert = plik.lista_ofert as Record<string, unknown> | undefined;
+  return {
+    headerDate,
+    agencyName,
+    zawartoscPliku,
+  };
+}
 
-  if (!listaOfert) {
-    throw new Error("Nie znaleziono znacznika <lista_ofert>.");
-  }
+function parseOfferFragment(
+  offerXml: string,
+  headerMeta: HeaderMeta
+): ParsedDomyOffer | null {
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: "",
+    trimValues: false,
+    parseTagValue: false,
+    parseAttributeValue: false,
+  });
 
-  const dzialy = arrify(listaOfert.dzial);
-  const result: ParsedDomyOffer[] = [];
+  const doc = parser.parse(offerXml) as Record<string, unknown>;
+  const ofertaNode = (doc.oferta ?? {}) as Record<string, unknown>;
+  const externalId = toTextValue(ofertaNode.id);
 
-  for (const dzial of dzialy) {
-    if (!dzial || typeof dzial !== "object") continue;
+  if (!externalId) return null;
 
-    const dzialNode = dzial as Record<string, unknown>;
-    const tab = String(dzialNode.tab ?? "").trim().toLowerCase();
-    const typ = String(dzialNode.typ ?? "").trim().toLowerCase();
+  const params = parseParams(ofertaNode);
+  const location = parseLocation(ofertaNode, params);
 
-    if (tab !== "dzialki") continue;
-    if (typ && typ !== "sprzedaz") continue;
+  const price = toNumber(
+    typeof ofertaNode.cena === "object" && ofertaNode.cena
+      ? (ofertaNode.cena as Record<string, unknown>)["#text"] ?? ofertaNode.cena
+      : ofertaNode.cena
+  );
 
-    const oferty = arrify(dzialNode.oferta);
+  const area = toNumber(params.powierzchnia);
+  const email = normalizeEmail(toTextValue(params.agent_email));
+  const phone = normalizePhone(
+    toTextValue(params.agent_tel_kom) || toTextValue(params.agent_tel_biuro)
+  );
 
-    for (const oferta of oferty) {
-      if (!oferta || typeof oferta !== "object") continue;
+  if (!price || price <= 0) return null;
+  if (!area || area < 1) return null;
+  if (!email) return null;
+  if (!phone) return null;
+  if (!location.wojewodztwo || !location.miasto) return null;
 
-      const ofertaNode = oferta as Record<string, unknown>;
-      const externalId = toTextValue(ofertaNode.id);
+  const plotTypeRaw = toTextValue(params.typdzialki) || null;
+  const title = sanitizeTitle(
+    toTextValue(params.advertisement_text) || null,
+    location.miasto,
+    plotTypeRaw
+  );
 
-      if (!externalId) continue;
+  const description = toTextValue(params.opis) || null;
+  const lat = toNumber(params.n_geo_y);
+  const lng = toNumber(params.n_geo_x);
+  const mapsUrl = buildMapsUrl(lat, lng);
+  const biuroOpiekun = toTextValue(params.agent_nazwisko) || null;
 
-      const params = parseParams(ofertaNode);
-      const location = parseLocation(ofertaNode, params);
+  const photoFileNames = Array.from({ length: 15 }, (_, index) =>
+    toTextValue(params[`zdjecie${index + 1}`])
+  ).filter(Boolean);
 
-      const price = toNumber(
-        typeof ofertaNode.cena === "object" && ofertaNode.cena
-          ? (ofertaNode.cena as Record<string, unknown>)["#text"] ?? ofertaNode.cena
-          : ofertaNode.cena
-      );
+  const prad = mapPradFromParams(params);
+  const woda = mapWodaFromParams(params);
+  const kanalizacja = mapKanalizacjaFromParams(params);
+  const gaz = mapGazFromParams(params);
+  const wymiary = buildWymiary(params);
 
-      const area = toNumber(params.powierzchnia);
-      const email = normalizeEmail(toTextValue(params.agent_email));
-      const phone = normalizePhone(
-        toTextValue(params.agent_tel_kom) || toTextValue(params.agent_tel_biuro)
-      );
-
-      if (!price || price <= 0) continue;
-      if (!area || area < 1) continue;
-      if (!email) continue;
-      if (!phone) continue;
-      if (!location.wojewodztwo || !location.miasto) continue;
-
-      const plotTypeRaw = toTextValue(params.typdzialki) || null;
-      const title = sanitizeTitle(
-        toTextValue(params.advertisement_text) || null,
-        location.miasto,
-        plotTypeRaw
-      );
-
-      const description = toTextValue(params.opis) || null;
-      const lat = toNumber(params.n_geo_y);
-      const lng = toNumber(params.n_geo_x);
-      const mapsUrl = buildMapsUrl(lat, lng);
-      const biuroOpiekun = toTextValue(params.agent_nazwisko) || null;
-
-      const photoFileNames = Array.from({ length: 15 }, (_, index) =>
-        toTextValue(params[`zdjecie${index + 1}`])
-      ).filter(Boolean);
-
-      const prad = mapPradFromParams(params);
-      const woda = mapWodaFromParams(params);
-      const kanalizacja = mapKanalizacjaFromParams(params);
-      const gaz = mapGazFromParams(params);
-      const wymiary = buildWymiary(params);
-
-      result.push({
-        externalId,
-        externalUpdatedAt:
-          parseHeaderDate(params.dataaktualizacji) ?? headerDate,
-        title,
-        description,
-        pricePln: Math.round(price),
-        areaM2: Math.round(area),
-        email,
-        phone,
-        locationLabel: location.locationLabel,
-        locationFull: location.locationFull,
-        lat,
-        lng,
-        mapsUrl,
-        plotTypeRaw,
-        przeznaczenia: mapPlotTypeToPrzeznaczenia(plotTypeRaw),
-        photoFileNames,
-        biuroNazwa: agencyName,
-        biuroOpiekun,
+  return {
+    externalId,
+    externalUpdatedAt:
+      parseHeaderDate(params.dataaktualizacji) ?? headerMeta.headerDate,
+    title,
+    description,
+    pricePln: Math.round(price),
+    areaM2: Math.round(area),
+    email,
+    phone,
+    locationLabel: location.locationLabel,
+    locationFull: location.locationFull,
+    lat,
+    lng,
+    mapsUrl,
+    plotTypeRaw,
+    przeznaczenia: mapPlotTypeToPrzeznaczenia(plotTypeRaw),
+    photoFileNames,
+    biuroNazwa: headerMeta.agencyName,
+    biuroOpiekun,
+    prad,
+    woda,
+    kanalizacja,
+    gaz,
+    wymiary,
+    payload: toInputJsonValue({
+      externalId,
+      plotTypeRaw,
+      params,
+      agencyName: headerMeta.agencyName,
+      mappedMedia: {
         prad,
         woda,
         kanalizacja,
         gaz,
         wymiary,
-        payload: toInputJsonValue({
-          externalId,
-          plotTypeRaw,
-          params,
-          agencyName,
-          mappedMedia: {
-            prad,
-            woda,
-            kanalizacja,
-            gaz,
-            wymiary,
-          },
-        }),
-      });
-    }
-  }
+      },
+    }),
+  };
+}
 
-  return result;
+async function streamParseDomyPlOffers(
+  xmlStream: NodeJS.ReadableStream,
+  onOffer: (offer: ParsedDomyOffer) => Promise<void>
+) {
+  const saxStream = sax.createStream(true, {
+    lowercase: true,
+    trim: false,
+    normalize: false,
+  });
+
+  let headerMeta: HeaderMeta = {
+    headerDate: null,
+    agencyName: null,
+    zawartoscPliku: "",
+  };
+
+  let currentDzialTab = "";
+  let currentDzialTyp = "";
+
+  let collectingHeader = false;
+  let headerDepth = 0;
+  let headerXml = "";
+
+  let collectingOffer = false;
+  let offerDepth = 0;
+  let offerXml = "";
+
+  let importedOffers = 0;
+  let chain = Promise.resolve<void>(undefined);
+  let streamEnded = false;
+
+  const waitForChain = () => chain;
+
+  saxStream.on("opentag", (node: SaxTagLike) => {
+    if (node.name === "header" && !collectingHeader) {
+      collectingHeader = true;
+      headerDepth = 1;
+      headerXml = startTagToXml(node);
+      return;
+    }
+
+    if (collectingHeader) {
+      headerDepth += 1;
+      headerXml += startTagToXml(node);
+      return;
+    }
+
+    if (node.name === "dzial") {
+      const attrs = node.attributes ?? {};
+      const tabAttr = attrs.tab;
+      const typAttr = attrs.typ;
+
+      currentDzialTab =
+        typeof tabAttr === "object" && tabAttr && "value" in tabAttr
+          ? String(tabAttr.value).trim().toLowerCase()
+          : String(tabAttr ?? "").trim().toLowerCase();
+
+      currentDzialTyp =
+        typeof typAttr === "object" && typAttr && "value" in typAttr
+          ? String(typAttr.value).trim().toLowerCase()
+          : String(typAttr ?? "").trim().toLowerCase();
+
+      return;
+    }
+
+    if (
+      node.name === "oferta" &&
+      !collectingOffer &&
+      currentDzialTab === "dzialki" &&
+      (!currentDzialTyp || currentDzialTyp === "sprzedaz")
+    ) {
+      collectingOffer = true;
+      offerDepth = 1;
+      offerXml = startTagToXml(node);
+      return;
+    }
+
+    if (collectingOffer) {
+      offerDepth += 1;
+      offerXml += startTagToXml(node);
+    }
+  });
+
+  saxStream.on("text", (text: string) => {
+    if (collectingHeader) {
+      headerXml += escapeXmlText(text);
+      return;
+    }
+
+    if (collectingOffer) {
+      offerXml += escapeXmlText(text);
+    }
+  });
+
+  saxStream.on("cdata", (text: string) => {
+    if (collectingHeader) {
+      headerXml += `<![CDATA[${text}]]>`;
+      return;
+    }
+
+    if (collectingOffer) {
+      offerXml += `<![CDATA[${text}]]>`;
+    }
+  });
+
+  saxStream.on("closetag", (tagName: string) => {
+    if (collectingHeader) {
+      headerXml += `</${tagName}>`;
+      headerDepth -= 1;
+
+      if (headerDepth === 0) {
+        collectingHeader = false;
+        headerMeta = parseHeaderMeta(headerXml);
+        headerXml = "";
+      }
+
+      return;
+    }
+
+    if (collectingOffer) {
+      offerXml += `</${tagName}>`;
+      offerDepth -= 1;
+
+      if (offerDepth === 0) {
+        collectingOffer = false;
+
+        const completedOfferXml = offerXml;
+        offerXml = "";
+
+        if (typeof (xmlStream as { pause?: () => void }).pause === "function") {
+          (xmlStream as { pause: () => void }).pause();
+        }
+
+        chain = chain
+          .then(async () => {
+            const parsed = parseOfferFragment(completedOfferXml, headerMeta);
+            if (!parsed) return;
+            importedOffers += 1;
+            await onOffer(parsed);
+          })
+          .then(() => {
+            if (!streamEnded) {
+              if (typeof (xmlStream as { resume?: () => void }).resume === "function") {
+                (xmlStream as { resume: () => void }).resume();
+              }
+            }
+          });
+      }
+
+      return;
+    }
+
+    if (tagName === "dzial") {
+      currentDzialTab = "";
+      currentDzialTyp = "";
+    }
+  });
+
+  const finishedPromise = new Promise<number>((resolve, reject) => {
+    saxStream.on("error", (error: unknown) => {
+      reject(error);
+    });
+
+    xmlStream.on("error", (error: unknown) => {
+      reject(error);
+    });
+
+    saxStream.on("end", () => {
+      streamEnded = true;
+      waitForChain().then(() => resolve(importedOffers)).catch(reject);
+    });
+  });
+
+  (xmlStream as NodeJS.ReadableStream).pipe(saxStream);
+  return finishedPromise;
 }
 
 function buildDzialkaDataFromOffer(offer: ParsedDomyOffer) {
@@ -977,7 +1211,7 @@ async function logSync(
 async function processOffer(
   integration: IntegrationForSync,
   offer: ParsedDomyOffer,
-  filesByName: Map<string, Buffer>,
+  feedReader: FeedReader,
   paymentsEnabled: boolean
 ): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS"> {
   const now = new Date();
@@ -1029,7 +1263,7 @@ async function processOffer(
       integration.id,
       offer.externalId,
       offer.photoFileNames,
-      filesByName
+      feedReader
     );
 
     await prisma.$transaction(async (tx) => {
@@ -1143,7 +1377,7 @@ async function processOffer(
     integration.id,
     offer.externalId,
     offer.photoFileNames,
-    filesByName
+    feedReader
   );
 
   await prisma.$transaction(async (tx) => {
@@ -1325,14 +1559,21 @@ export async function syncCrmIntegrationNow(
   }
 
   const now = new Date();
+  let downloaded: DownloadedFeed | null = null;
+  let feedReader: FeedReader | null = null;
 
   try {
-    const { remoteFileName, buffer } = await downloadLatestFeedFromFtp(integration);
-    const extracted = extractFeed(buffer, remoteFileName);
-    const offers = parseDomyPlOffers(extracted.xml);
+    downloaded = await downloadLatestFeedFromFtp(integration);
+    feedReader = await openFeedReader(
+      downloaded.localFilePath,
+      downloaded.remoteFileName
+    );
+
+    const xmlStream = await feedReader.createXmlReadStream();
     const appConfig = await prisma.appConfig.findFirst();
     const paymentsEnabled = appConfig?.paymentsEnabled ?? false;
 
+    let importedOffers = 0;
     let createdCount = 0;
     let updatedCount = 0;
     let deactivatedCount = 0;
@@ -1341,14 +1582,15 @@ export async function syncCrmIntegrationNow(
 
     const seenExternalIds = new Set<string>();
 
-    for (const offer of offers) {
+    await streamParseDomyPlOffers(xmlStream, async (offer) => {
+      importedOffers += 1;
       seenExternalIds.add(offer.externalId);
 
       try {
         const action = await processOffer(
           integration,
           offer,
-          extracted.filesByName,
+          feedReader as FeedReader,
           paymentsEnabled
         );
 
@@ -1375,7 +1617,7 @@ export async function syncCrmIntegrationNow(
           payload: offer.payload,
         });
       }
-    }
+    });
 
     if (integration.fullImportMode) {
       deactivatedCount = await deactivateMissingOffers(
@@ -1397,7 +1639,7 @@ export async function syncCrmIntegrationNow(
             : skippedCount > 0
             ? `Synchronizacja zakończona. Pominięto ${skippedCount} ofert z powodu braku kredytów.`
             : null,
-        lastImportedOffers: offers.length,
+        lastImportedOffers: importedOffers,
         lastCreatedCount: createdCount,
         lastUpdatedCount: updatedCount,
         lastDeactivatedCount: deactivatedCount,
@@ -1408,8 +1650,8 @@ export async function syncCrmIntegrationNow(
 
     return {
       success: true,
-      remoteFileName,
-      importedOffers: offers.length,
+      remoteFileName: downloaded.remoteFileName,
+      importedOffers,
       createdCount,
       updatedCount,
       deactivatedCount,
@@ -1443,5 +1685,13 @@ export async function syncCrmIntegrationNow(
     });
 
     throw error;
+  } finally {
+    if (feedReader) {
+      await feedReader.close().catch(() => {});
+    }
+
+    if (downloaded) {
+      await downloaded.cleanup().catch(() => {});
+    }
   }
 }
