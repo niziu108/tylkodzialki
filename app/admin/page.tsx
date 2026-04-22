@@ -156,6 +156,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         role: true,
         listingCredits: true,
         createdAt: true,
+        crmIntegrations: {
+          select: {
+            id: true,
+            isActive: true,
+          },
+          take: 1,
+          orderBy: { createdAt: "desc" },
+        },
         _count: {
           select: {
             dzialki: true,
@@ -214,6 +222,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ...user,
         activeListings,
         phoneFromListings,
+        crmIntegration: user.crmIntegrations[0] ?? null,
       };
     })
     .sort((a, b) => {
@@ -544,13 +553,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
 
         <div className="mb-8 overflow-x-auto rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
-          <table className="w-full min-w-[1220px] text-sm">
+          <table className="w-full min-w-[1380px] text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
                 <th className="px-4 py-4 font-medium">Email</th>
                 <th className="px-4 py-4 font-medium">Imię</th>
                 <th className="px-4 py-4 font-medium">Telefon</th>
                 <th className="px-4 py-4 font-medium">Rola</th>
+                <th className="px-4 py-4 font-medium">CRM</th>
                 <th className="px-4 py-4 font-medium">Wszystkie oferty</th>
                 <th className="px-4 py-4 font-medium">Aktywne</th>
                 <th className="px-4 py-4 font-medium">Kredyty</th>
@@ -563,7 +573,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               {usersWithStats.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-10 text-center text-sm text-[#9f9f9f]"
                   >
                     Brak użytkowników pasujących do wyszukiwania.
@@ -611,6 +621,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </td>
 
                     <td className="px-4 py-4 align-middle">
+                      {user.crmIntegration ? (
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                            user.crmIntegration.isActive
+                              ? "bg-[#7aa333]/20 text-[#9fd14b]"
+                              : "bg-red-500/15 text-red-300"
+                          }`}
+                        >
+                          {user.crmIntegration.isActive ? "Aktywna" : "Wyłączona"}
+                        </span>
+                      ) : (
+                        <span className="text-[#8f8f8f]">Brak</span>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-4 align-middle">
                       <span className="font-semibold text-white">
                         {user._count.dzialki}
                       </span>
@@ -638,6 +664,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                     <td className="px-4 py-4 align-middle">
                       <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/admin/crm/${user.id}`}
+                          className="rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 py-2 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                        >
+                          Konfiguruj CRM
+                        </Link>
+
                         <form action={toggleUserRoleAction}>
                           <input type="hidden" name="userId" value={user.id} />
                           <button

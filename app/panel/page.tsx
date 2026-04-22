@@ -136,13 +136,6 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             isActive: true,
             transportType: true,
             feedFormat: true,
-            ftpHost: true,
-            ftpPort: true,
-            ftpUsername: true,
-            ftpRemotePath: true,
-            ftpPassive: true,
-            expectedFilePattern: true,
-            fullImportMode: true,
             lastUsedAt: true,
             lastSyncAt: true,
             lastSuccessAt: true,
@@ -307,8 +300,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                   </span>
                 </div>
                 <div>
-                  Zakończone:{" "}
-                  <span className="text-red-300">{endedCount}</span>
+                  Zakończone: <span className="text-red-300">{endedCount}</span>
                 </div>
                 <div>
                   Wyróżnienia:{" "}
@@ -332,9 +324,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                   {paymentsEnabled ? user.listingCredits : "∞"}
                 </div>
                 {!paymentsEnabled ? (
-                  <div className="mt-2 text-xs text-[#9fd14b]">
-                    Nieograniczone
-                  </div>
+                  <div className="mt-2 text-xs text-[#9fd14b]">Nieograniczone</div>
                 ) : null}
               </div>
 
