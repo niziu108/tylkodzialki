@@ -589,7 +589,7 @@ async function downloadLatestFeedFromFtp(integration: IntegrationForSync) {
     await client.cd(remoteDir);
 
     const list = await client.list();
-    const pattern = integration.expectedFilePattern?.trim() || "oferty_*.zip";
+    const pattern = integration.expectedFilePattern?.trim() || "*";
     const regex = wildcardToRegExp(pattern);
 
     const matched = list
