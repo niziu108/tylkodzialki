@@ -1162,7 +1162,12 @@ async function streamParseDomyPlOffers(
       ["dzialki", "działki"].includes(currentDzialTab) &&
       (!currentDzialTyp || currentDzialTyp === "sprzedaz")
     ) {
-      collectingOffer = true; 
+      if (node.name === "oferta" && !collectingOffer) {
+  collectingOffer = true;
+  offerDepth = 1;
+  offerXml = startTagToXml(node);
+  return;
+} 
       offerDepth = 1;
       offerXml = startTagToXml(node);
       return;
