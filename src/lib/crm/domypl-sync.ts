@@ -140,7 +140,7 @@ function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value !== "string") return null;
 
-  const normalized = value.trim().replace(",", ".");
+  const normalized = value.trim().replace(/\s+/g, "").replace(",", ".");
   if (!normalized) return null;
 
   const parsed = Number(normalized);
@@ -209,43 +209,28 @@ function mapPlotTypeToPrzeznaczenia(plotTypeRaw: string | null): Przeznaczenie[]
     result.add("BUDOWLANA");
   }
 
-  if (text.includes("rol")) {
-    result.add("ROLNA");
-  }
-
-  if (text.includes("les")) {
-    result.add("LESNA");
-  }
-
-  if (text.includes("rekre")) {
-    result.add("REKREACYJNA");
-  }
-
-  if (text.includes("siedl")) {
-    result.add("SIEDLISKOWA");
-  }
+  if (text.includes("rol")) result.add("ROLNA");
+  if (text.includes("les") || text.includes("leś")) result.add("LESNA");
+  if (text.includes("rekre")) result.add("REKREACYJNA");
+  if (text.includes("siedl")) result.add("SIEDLISKOWA");
 
   if (
     text.includes("inwest") ||
     text.includes("komerc") ||
     text.includes("uslug") ||
-    text.includes("przemys")
+    text.includes("usług") ||
+    text.includes("przemys") ||
+    text.includes("przemysł")
   ) {
     result.add("INWESTYCYJNA");
   }
 
-  if (result.size === 0) {
-    result.add("BUDOWLANA");
-  }
+  if (result.size === 0) result.add("BUDOWLANA");
 
   return [...result];
 }
 
-function sanitizeTitle(
-  raw: string | null,
-  miasto: string | null,
-  plotType: string | null
-) {
+function sanitizeTitle(raw: string | null, miasto: string | null, plotType: string | null) {
   const value = (raw ?? "").trim();
 
   if (value.length >= 5) return value.slice(0, 160);
@@ -295,9 +280,7 @@ function mapPradFromParams(params: Record<string, unknown>): PradStatus {
   const pradText = normalizeText(toTextValue(params.prad));
   const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
 
-  if (isTruthyText(toTextValue(params.prad))) {
-    return "PRZYLACZE_NA_DZIALCE";
-  }
+  if (isTruthyText(toTextValue(params.prad))) return "PRZYLACZE_NA_DZIALCE";
 
   if (
     hasAny(pradText, [
@@ -326,24 +309,22 @@ function mapPradFromParams(params: Record<string, unknown>): PradStatus {
     return "PRZYLACZE_W_DRODZE";
   }
 
-  if (
-    hasAny(pradText, [
-      "warunki",
-      "warunki przyłączenia",
-      "warunki przylaczenia",
-    ])
-  ) {
+  if (hasAny(pradText, ["warunki", "warunki przyłączenia", "warunki przylaczenia"])) {
     return "WARUNKI_PRZYLACZENIA_WYDANE";
   }
 
-  if (
-    hasAny(pradText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])
-  ) {
+  if (hasAny(pradText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) {
     return "MOZLIWOSC_PRZYLACZENIA";
   }
 
-  if (hasAny(pradText, ["brak", "nie ma"])) {
-    return "BRAK_PRZYLACZA";
+  if (hasAny(pradText, ["brak", "nie ma"])) return "BRAK_PRZYLACZA";
+
+  if (hasAny(uzbrojenieText, ["prąd-na działce", "prad-na dzialce"])) {
+    return "PRZYLACZE_NA_DZIALCE";
+  }
+
+  if (hasAny(uzbrojenieText, ["prąd-w ulicy", "prad-w ulicy", "prąd-w drodze", "prad-w drodze"])) {
+    return "PRZYLACZE_W_DRODZE";
   }
 
   if (hasAny(uzbrojenieText, ["prąd", "prad"])) {
@@ -358,9 +339,7 @@ function mapWodaFromParams(params: Record<string, unknown>): WodaStatus {
   const maWodeText = normalizeText(toTextValue(params.ma_wode));
   const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
 
-  if (isTruthyText(maWodeText)) {
-    return "WODOCIAG_NA_DZIALCE";
-  }
+  if (isTruthyText(maWodeText)) return "WODOCIAG_NA_DZIALCE";
 
   if (hasAny(wodaText, ["studnia", "studnia głębinowa", "studnia glebinowa"])) {
     return "STUDNIA_GLEBINOWA";
@@ -393,19 +372,18 @@ function mapWodaFromParams(params: Record<string, unknown>): WodaStatus {
     return "WODOCIAG_W_DRODZE";
   }
 
-  if (
-    hasAny(wodaText, [
-      "możliwość",
-      "mozliwosc",
-      "do podłączenia",
-      "do podlaczenia",
-    ])
-  ) {
+  if (hasAny(wodaText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) {
     return "MOZLIWOSC_PODLACZENIA";
   }
 
-  if (hasAny(wodaText, ["brak", "nie ma"])) {
-    return "BRAK_PRZYLACZA";
+  if (hasAny(wodaText, ["brak", "nie ma"])) return "BRAK_PRZYLACZA";
+
+  if (hasAny(uzbrojenieText, ["woda-na działce", "woda-na dzialce", "wodociąg-na działce", "wodociag-na dzialce"])) {
+    return "WODOCIAG_NA_DZIALCE";
+  }
+
+  if (hasAny(uzbrojenieText, ["woda-w ulicy", "wodociąg-w ulicy", "wodociag-w ulicy", "woda-w drodze"])) {
+    return "WODOCIAG_W_DRODZE";
   }
 
   if (hasAny(uzbrojenieText, ["woda", "wodociąg", "wodociag"])) {
@@ -420,53 +398,31 @@ function mapGazFromParams(params: Record<string, unknown>): GazStatus {
   const maGazText = normalizeText(toTextValue(params.ma_gaz));
   const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
 
-  if (isTruthyText(maGazText)) {
+  if (isTruthyText(maGazText)) return "GAZ_NA_DZIALCE";
+
+  if (hasAny(gazText, ["na działce", "na dzialce", "miejski", "tak - miejski", "jest", "tak"])) {
     return "GAZ_NA_DZIALCE";
   }
 
-  if (
-    hasAny(gazText, [
-      "na działce",
-      "na dzialce",
-      "miejski",
-      "tak - miejski",
-      "jest",
-      "tak",
-    ])
-  ) {
-    return "GAZ_NA_DZIALCE";
-  }
-
-  if (
-    hasAny(gazText, [
-      "w drodze",
-      "w ulicy",
-      "w granicy",
-      "przy działce",
-      "przy dzialce",
-    ])
-  ) {
+  if (hasAny(gazText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) {
     return "GAZ_W_DRODZE";
   }
 
-  if (
-    hasAny(gazText, [
-      "możliwość",
-      "mozliwosc",
-      "do podłączenia",
-      "do podlaczenia",
-    ])
-  ) {
+  if (hasAny(gazText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) {
     return "MOZLIWOSC_PODLACZENIA";
   }
 
-  if (hasAny(gazText, ["brak", "nie ma"])) {
-    return "BRAK";
+  if (hasAny(gazText, ["brak", "nie ma"])) return "BRAK";
+
+  if (hasAny(uzbrojenieText, ["gaz-na działce", "gaz-na dzialce"])) {
+    return "GAZ_NA_DZIALCE";
   }
 
-  if (hasAny(uzbrojenieText, ["gaz"])) {
-    return "MOZLIWOSC_PODLACZENIA";
+  if (hasAny(uzbrojenieText, ["gaz-w ulicy", "gaz-w drodze"])) {
+    return "GAZ_W_DRODZE";
   }
+
+  if (hasAny(uzbrojenieText, ["gaz"])) return "MOZLIWOSC_PODLACZENIA";
 
   return "BRAK";
 }
@@ -474,56 +430,46 @@ function mapGazFromParams(params: Record<string, unknown>): GazStatus {
 function mapKanalizacjaFromParams(params: Record<string, unknown>): KanalizacjaStatus {
   const kanalText = normalizeText(toTextValue(params.kanalizacja));
   const maKanalText = normalizeText(toTextValue(params.ma_kanalizacje));
+  const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
 
-  if (isTruthyText(maKanalText)) {
-    return "MIEJSKA_NA_DZIALCE";
-  }
+  if (isTruthyText(maKanalText)) return "MIEJSKA_NA_DZIALCE";
 
-  if (hasAny(kanalText, ["szambo"])) {
-    return "SZAMBO";
-  }
+  if (hasAny(kanalText, ["szambo"])) return "SZAMBO";
 
   if (hasAny(kanalText, ["oczyszczalnia", "przydomowa"])) {
     return "PRZYDOMOWA_OCZYSZCZALNIA";
   }
 
+  if (hasAny(kanalText, ["na działce", "na dzialce", "miejska", "jest", "tak"])) {
+    return "MIEJSKA_NA_DZIALCE";
+  }
+
+  if (hasAny(kanalText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) {
+    return "MIEJSKA_W_DRODZE";
+  }
+
+  if (hasAny(kanalText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) {
+    return "MOZLIWOSC_PODLACZENIA";
+  }
+
+  if (hasAny(kanalText, ["brak", "nie ma"])) return "BRAK";
+
   if (
-    hasAny(kanalText, [
-      "na działce",
-      "na dzialce",
-      "miejska",
-      "jest",
-      "tak",
+    hasAny(uzbrojenieText, [
+      "kanalizacja-na działce",
+      "kanalizacja-na dzialce",
+      "kanalizacja-tak",
     ])
   ) {
     return "MIEJSKA_NA_DZIALCE";
   }
 
-  if (
-    hasAny(kanalText, [
-      "w drodze",
-      "w ulicy",
-      "w granicy",
-      "przy działce",
-      "przy dzialce",
-    ])
-  ) {
+  if (hasAny(uzbrojenieText, ["kanalizacja-w ulicy", "kanalizacja-w drodze"])) {
     return "MIEJSKA_W_DRODZE";
   }
 
-  if (
-    hasAny(kanalText, [
-      "możliwość",
-      "mozliwosc",
-      "do podłączenia",
-      "do podlaczenia",
-    ])
-  ) {
+  if (hasAny(uzbrojenieText, ["kanalizacja"])) {
     return "MOZLIWOSC_PODLACZENIA";
-  }
-
-  if (hasAny(kanalText, ["brak", "nie ma"])) {
-    return "BRAK";
   }
 
   return "BRAK";
@@ -534,25 +480,17 @@ function buildWymiary(params: Record<string, unknown>): string | null {
   const length = toNumber(params.dlugoscdzialki);
 
   if (width && length) {
-    const widthText = Number.isInteger(width)
-      ? String(width)
-      : String(width).replace(".", ",");
-    const lengthText = Number.isInteger(length)
-      ? String(length)
-      : String(length).replace(".", ",");
+    const widthText = Number.isInteger(width) ? String(width) : String(width).replace(".", ",");
+    const lengthText = Number.isInteger(length) ? String(length) : String(length).replace(".", ",");
     return `${widthText} x ${lengthText} m`;
   }
 
   if (width) {
-    return `${
-      Number.isInteger(width) ? String(width) : String(width).replace(".", ",")
-    } m szerokości`;
+    return `${Number.isInteger(width) ? String(width) : String(width).replace(".", ",")} m szerokości`;
   }
 
   if (length) {
-    return `${
-      Number.isInteger(length) ? String(length) : String(length).replace(".", ",")
-    } m długości`;
+    return `${Number.isInteger(length) ? String(length) : String(length).replace(".", ",")} m długości`;
   }
 
   return null;
@@ -587,9 +525,7 @@ async function uploadOfferPhotosToR2(
     const originalName = photoFileNames[index];
     const fileBuffer = await feedReader.getPhotoBuffer(originalName);
 
-    if (!fileBuffer) {
-      continue;
-    }
+    if (!fileBuffer) continue;
 
     const upload = await uploadBufferToR2({
       buffer: fileBuffer,
@@ -726,7 +662,9 @@ function parseHeaderDate(value: unknown): Date | null {
   const text = toTextValue(value);
   if (!text) return null;
 
-  const date = new Date(text.replace(" ", "T"));
+  const normalized = text.includes(" ") ? text.replace(" ", "T") : text;
+  const date = new Date(normalized);
+
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -787,21 +725,25 @@ function parseLocation(
   );
 
   const wojewodztwo = toTextValue(params.wojewodztwo) || areas["2"] || null;
-  const miasto = toTextValue(params.miasto) || areas["4"] || null;
-  const dzielnica = toTextValue(params.dzielnica) || areas["5"] || null;
-  const okolica = toTextValue(params.okolica) || areas["6"] || null;
+  const powiat = toTextValue(params.powiat) || areas["3"] || null;
+  const gmina = toTextValue(params.gmina) || areas["4"] || null;
+  const miasto = toTextValue(params.miasto) || areas["5"] || areas["4"] || null;
+  const dzielnica = toTextValue(params.dzielnica) || areas["6"] || null;
+  const ulica = toTextValue(params.ulica) || null;
 
-  const parts = [miasto, dzielnica, okolica].filter(Boolean);
-  const locationLabel = parts.length > 0 ? parts.join(", ") : miasto;
+  const labelParts = [miasto, dzielnica].filter(Boolean);
+  const locationLabel = labelParts.length > 0 ? labelParts.join(", ") : miasto;
 
-  const fullParts = [miasto, dzielnica, okolica, wojewodztwo].filter(Boolean);
+  const fullParts = [ulica, miasto, dzielnica, gmina, powiat, wojewodztwo].filter(Boolean);
   const locationFull = fullParts.length > 0 ? fullParts.join(", ") : null;
 
   return {
     wojewodztwo,
+    powiat,
+    gmina,
     miasto,
     dzielnica,
-    okolica,
+    ulica,
     locationLabel,
     locationFull,
   };
@@ -817,10 +759,7 @@ function escapeXml(value: string) {
 }
 
 function escapeXmlText(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function startTagToXml(node: SaxTagLike) {
@@ -830,6 +769,7 @@ function startTagToXml(node: SaxTagLike) {
         typeof attr === "object" && attr && "value" in attr
           ? String(attr.value)
           : String(attr);
+
       return ` ${key}="${escapeXml(attrValue)}"`;
     })
     .join("");
@@ -848,14 +788,11 @@ function parseHeaderMeta(headerXml: string): HeaderMeta {
 
   const doc = parser.parse(headerXml) as Record<string, unknown>;
   const header = (doc.header ?? {}) as Record<string, unknown>;
-  const zawartoscPliku = toTextValue(header.zawartosc_pliku).toLowerCase();
-  const agencyName = toTextValue(header.agencja) || null;
-  const headerDate = parseHeaderDate(header.data);
 
   return {
-    headerDate,
-    agencyName,
-    zawartoscPliku,
+    headerDate: parseHeaderDate(header.data),
+    agencyName: toTextValue(header.agencja) || null,
+    zawartoscPliku: toTextValue(header.zawartosc_pliku).toLowerCase(),
   };
 }
 
@@ -881,12 +818,11 @@ function parseOfferFragment(
     const params = parseParams(ofertaNode);
     const plotTypeRaw = toTextValue(params.typdzialki) || null;
 
-    // NAJWAŻNIEJSZE:
-    // Importujemy tylko działki/grunty.
-    // Galactica dla działek najczęściej daje ID typu GS-xxxxx.
     const isLandOffer =
       externalId.toUpperCase().startsWith("GS") ||
-      Boolean(plotTypeRaw);
+      Boolean(plotTypeRaw) ||
+      normalizeText(toTextValue(params.przeznaczenie)).includes("dział") ||
+      normalizeText(toTextValue(params.przeznaczenie)).includes("dzial");
 
     if (!isLandOffer) return null;
 
@@ -904,10 +840,15 @@ function parseOfferFragment(
       toNumber(params.available_area);
 
     const email =
-      normalizeEmail(toTextValue(params.agent_email)) || "kontakt@tylkodzialki.pl";
+      normalizeEmail(toTextValue(params.agent_email)) ||
+      normalizeEmail(toTextValue(params.email)) ||
+      "kontakt@tylkodzialki.pl";
 
     const phone = normalizePhone(
-      toTextValue(params.agent_tel_kom) || toTextValue(params.agent_tel_biuro)
+      toTextValue(params.agent_tel_kom) ||
+        toTextValue(params.agent_tel_biuro) ||
+        toTextValue(params.telefon) ||
+        toTextValue(params.tel)
     );
 
     if (!price || price <= 0) return null;
@@ -947,8 +888,7 @@ function parseOfferFragment(
 
     return {
       externalId,
-      externalUpdatedAt:
-        parseHeaderDate(params.dataaktualizacji) ?? headerMeta.headerDate,
+      externalUpdatedAt: parseHeaderDate(params.dataaktualizacji) ?? headerMeta.headerDate,
       title,
       description,
       pricePln: Math.round(price),
@@ -963,7 +903,7 @@ function parseOfferFragment(
       plotTypeRaw,
       przeznaczenia: mapPlotTypeToPrzeznaczenia(plotTypeRaw),
       photoFileNames,
-      biuroNazwa: null,
+      biuroNazwa: headerMeta.agencyName,
       biuroOpiekun,
       prad,
       woda,
@@ -989,107 +929,6 @@ function parseOfferFragment(
     return null;
   }
 }
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: "",
-    trimValues: false,
-    parseTagValue: false,
-    parseAttributeValue: false,
-  });
-
-  const doc = parser.parse(offerXml) as Record<string, unknown>;
-  const ofertaNode = (doc.oferta ?? {}) as Record<string, unknown>;
-  const externalId = toTextValue(ofertaNode.id);
-
-  if (!externalId) return null;
-
-  const params = parseParams(ofertaNode);
-  const location = parseLocation(ofertaNode, params);
-
-  const price = toNumber(
-    typeof ofertaNode.cena === "object" && ofertaNode.cena
-      ? (ofertaNode.cena as Record<string, unknown>)["#text"] ?? ofertaNode.cena
-      : ofertaNode.cena
-  );
-
-  const area =
-  toNumber(params.powierzchnia) ??
-  toNumber(params.powierzchniadzialki) ??
-  toNumber(params.available_area);
-  const email = normalizeEmail(toTextValue(params.agent_email));
-  const phone = normalizePhone(
-    toTextValue(params.agent_tel_kom) || toTextValue(params.agent_tel_biuro)
-  );
-
-  if (!price || price <= 0) return null;
-  if (!area || area < 1) return null;
-  if (!email) return null;
-  if (!phone) return null;
-  if (!location.wojewodztwo || !location.miasto) return null;
-
-  const plotTypeRaw = toTextValue(params.typdzialki) || null;
-  const title = sanitizeTitle(
-    toTextValue(params.advertisement_text) || null,
-    location.miasto,
-    plotTypeRaw
-  );
-
-  const description = toTextValue(params.opis) || null;
-  const lat = toNumber(params.n_geo_y);
-  const lng = toNumber(params.n_geo_x);
-  const mapsUrl = buildMapsUrl(lat, lng);
-  const biuroOpiekun = toTextValue(params.agent_nazwisko) || null;
-
-  const photoFileNames = Array.from({ length: 60 }, (_, index) =>
-    toTextValue(params[`zdjecie${index + 1}`])
-  ).filter(Boolean);
-
-  const prad = mapPradFromParams(params);
-  const woda = mapWodaFromParams(params);
-  const kanalizacja = mapKanalizacjaFromParams(params);
-  const gaz = mapGazFromParams(params);
-  const wymiary = buildWymiary(params);
-
-  return {
-    externalId,
-    externalUpdatedAt:
-      parseHeaderDate(params.dataaktualizacji) ?? headerMeta.headerDate,
-    title,
-    description,
-    pricePln: Math.round(price),
-    areaM2: Math.round(area),
-    email,
-    phone,
-    locationLabel: location.locationLabel,
-    locationFull: location.locationFull,
-    lat,
-    lng,
-    mapsUrl,
-    plotTypeRaw,
-    przeznaczenia: mapPlotTypeToPrzeznaczenia(plotTypeRaw),
-    photoFileNames,
-    biuroNazwa: null,
-    biuroOpiekun,
-    prad,
-    woda,
-    kanalizacja,
-    gaz,
-    wymiary,
-    payload: toInputJsonValue({
-      externalId,
-      plotTypeRaw,
-      params,
-      agencyName: headerMeta.agencyName,
-      mappedMedia: {
-        prad,
-        woda,
-        kanalizacja,
-        gaz,
-        wymiary,
-      },
-    }),
-  };
-}
 
 async function streamParseDomyPlOffers(
   xmlStream: NodeJS.ReadableStream,
@@ -1107,9 +946,6 @@ async function streamParseDomyPlOffers(
     zawartoscPliku: "",
   };
 
-  let currentDzialTab = "";
-  let currentDzialTyp = "";
-
   let collectingHeader = false;
   let headerDepth = 0;
   let headerXml = "";
@@ -1125,7 +961,7 @@ async function streamParseDomyPlOffers(
   const waitForChain = () => chain;
 
   saxStream.on("opentag", (node: SaxTagLike) => {
-    if (node.name === "header" && !collectingHeader) {
+    if (node.name === "header" && !collectingHeader && !collectingOffer) {
       collectingHeader = true;
       headerDepth = 1;
       headerXml = startTagToXml(node);
@@ -1138,36 +974,8 @@ async function streamParseDomyPlOffers(
       return;
     }
 
-    if (node.name === "dzial") {
-      const attrs = node.attributes ?? {};
-      const tabAttr = attrs.tab;
-      const typAttr = attrs.typ;
-
-      currentDzialTab =
-        typeof tabAttr === "object" && tabAttr && "value" in tabAttr
-          ? String(tabAttr.value).trim().toLowerCase()
-          : String(tabAttr ?? "").trim().toLowerCase();
-
-      currentDzialTyp =
-        typeof typAttr === "object" && typAttr && "value" in typAttr
-          ? String(typAttr.value).trim().toLowerCase()
-          : String(typAttr ?? "").trim().toLowerCase();
-
-      return;
-    }
-
-    if (
-      node.name === "oferta" &&
-      !collectingOffer &&
-      ["dzialki", "działki"].includes(currentDzialTab) &&
-      (!currentDzialTyp || currentDzialTyp === "sprzedaz")
-    ) {
-      if (node.name === "oferta" && !collectingOffer) {
-  collectingOffer = true;
-  offerDepth = 1;
-  offerXml = startTagToXml(node);
-  return;
-} 
+    if (node.name === "oferta" && !collectingOffer) {
+      collectingOffer = true;
       offerDepth = 1;
       offerXml = startTagToXml(node);
       return;
@@ -1233,6 +1041,7 @@ async function streamParseDomyPlOffers(
           .then(async () => {
             const parsed = parseOfferFragment(completedOfferXml, headerMeta);
             if (!parsed) return;
+
             importedOffers += 1;
             await onOffer(parsed);
           })
@@ -1242,15 +1051,17 @@ async function streamParseDomyPlOffers(
                 (xmlStream as { resume: () => void }).resume();
               }
             }
+          })
+          .catch((error) => {
+            console.error("Błąd przetwarzania oferty DOMY.PL:", error);
+
+            if (!streamEnded) {
+              if (typeof (xmlStream as { resume?: () => void }).resume === "function") {
+                (xmlStream as { resume: () => void }).resume();
+              }
+            }
           });
       }
-
-      return;
-    }
-
-    if (tagName === "dzial") {
-      currentDzialTab = "";
-      currentDzialTyp = "";
     }
   });
 
@@ -1269,7 +1080,7 @@ async function streamParseDomyPlOffers(
     });
   });
 
-  (xmlStream as NodeJS.ReadableStream).pipe(saxStream);
+  xmlStream.pipe(saxStream);
   return finishedPromise;
 }
 
@@ -1635,8 +1446,7 @@ async function deactivateMissingOffers(
           externalId: link.externalId,
           action: "DEACTIVATE",
           status: "SUCCESS",
-          message:
-            "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie.",
+          message: "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie.",
         },
       });
     });
@@ -1679,10 +1489,7 @@ export async function syncCrmIntegrationNow(
     throw new Error("Integracja jest wyłączona.");
   }
 
-  if (
-    integration.transportType !== "FTP" ||
-    integration.feedFormat !== "DOMY_PL"
-  ) {
+  if (integration.transportType !== "FTP" || integration.feedFormat !== "DOMY_PL") {
     throw new Error("Ta integracja nie jest skonfigurowana jako FTP / DOMY.PL.");
   }
 
@@ -1692,10 +1499,7 @@ export async function syncCrmIntegrationNow(
 
   try {
     downloaded = await downloadLatestFeedFromFtp(integration);
-    feedReader = await openFeedReader(
-      downloaded.localFilePath,
-      downloaded.remoteFileName
-    );
+    feedReader = await openFeedReader(downloaded.localFilePath, downloaded.remoteFileName);
 
     const xmlStream = await feedReader.createXmlReadStream();
     const appConfig = await prisma.appConfig.findFirst();
@@ -1747,13 +1551,12 @@ export async function syncCrmIntegrationNow(
       }
     });
 
-    // Galactica potrafi wysyłać eksport różnicowy:
-    // <zawartosc_pliku>roznica</zawartosc_pliku>
-    // Przy takim pliku NIE dezaktywujemy ofert, których nie ma w XML,
-    // bo XML może zawierać tylko część ofert.
-    if (integration.fullImportMode && seenExternalIds.size > 0) {
-      deactivatedCount = 0;
-    }
+    // Bezpiecznie: nie dezaktywujemy automatycznie przy niepewnym eksporcie.
+    // Jak już potwierdzimy, że Galactica wysyła zawsze pełny eksport działek,
+    // można odkomentować linię niżej.
+    // if (integration.fullImportMode && seenExternalIds.size > 0) {
+    //   deactivatedCount = await deactivateMissingOffers(integration.id, seenExternalIds);
+    // }
 
     await prisma.crmIntegration.update({
       where: { id: integration.id },
@@ -1766,8 +1569,8 @@ export async function syncCrmIntegrationNow(
           errorCount > 0
             ? `Synchronizacja zakończona z błędami (${errorCount}).`
             : skippedCount > 0
-            ? `Synchronizacja zakończona. Pominięto ${skippedCount} ofert z powodu braku kredytów.`
-            : null,
+              ? `Synchronizacja zakończona. Pominięto ${skippedCount} ofert z powodu braku kredytów.`
+              : null,
         lastImportedOffers: importedOffers,
         lastCreatedCount: createdCount,
         lastUpdatedCount: updatedCount,
