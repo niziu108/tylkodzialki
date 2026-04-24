@@ -104,11 +104,7 @@ type ZipEntryLike = {
   buffer: () => Promise<Buffer>;
 };
 
-type SaxAttrLike =
-  | string
-  | {
-      value: string;
-    };
+type SaxAttrLike = string | { value: string };
 
 type SaxTagLike = {
   name: string;
@@ -167,17 +163,9 @@ function toTextValue(value: unknown): string {
       .map((line: unknown) => toTextValue(line))
       .filter(Boolean);
 
-    if (lineValues.length > 0) {
-      return lineValues.join("\n").trim();
-    }
-
-    if (typeof obj["#text"] === "string") {
-      return obj["#text"].trim();
-    }
-
-    if (typeof obj.text === "string") {
-      return obj.text.trim();
-    }
+    if (lineValues.length > 0) return lineValues.join("\n").trim();
+    if (typeof obj["#text"] === "string") return obj["#text"].trim();
+    if (typeof obj.text === "string") return obj.text.trim();
   }
 
   return "";
@@ -201,19 +189,13 @@ function mapPlotTypeToPrzeznaczenia(plotTypeRaw: string | null): Przeznaczenie[]
   const text = (plotTypeRaw ?? "").toLowerCase();
   const result = new Set<Przeznaczenie>();
 
-  if (
-    text.includes("budowl") ||
-    text.includes("jednorodzin") ||
-    text.includes("wielorodzin")
-  ) {
+  if (text.includes("budowl") || text.includes("jednorodzin") || text.includes("wielorodzin")) {
     result.add("BUDOWLANA");
   }
-
   if (text.includes("rol")) result.add("ROLNA");
   if (text.includes("les") || text.includes("leś")) result.add("LESNA");
   if (text.includes("rekre")) result.add("REKREACYJNA");
   if (text.includes("siedl")) result.add("SIEDLISKOWA");
-
   if (
     text.includes("inwest") ||
     text.includes("komerc") ||
@@ -226,29 +208,24 @@ function mapPlotTypeToPrzeznaczenia(plotTypeRaw: string | null): Przeznaczenie[]
   }
 
   if (result.size === 0) result.add("BUDOWLANA");
-
   return [...result];
 }
 
 function sanitizeTitle(raw: string | null, miasto: string | null, plotType: string | null) {
   const value = (raw ?? "").trim();
-
   if (value.length >= 5) return value.slice(0, 160);
 
   const cityPart = miasto?.trim() ? ` – ${miasto.trim()}` : "";
   const typePart = plotType?.trim() ? plotType.trim() : "działka";
-
   return `Działka ${typePart}${cityPart}`.slice(0, 160);
 }
 
 function getMimeTypeFromFileName(fileName: string) {
   const ext = path.extname(fileName).toLowerCase();
-
   if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
   if (ext === ".png") return "image/png";
   if (ext === ".webp") return "image/webp";
   if (ext === ".avif") return "image/avif";
-
   return "image/jpeg";
 }
 
@@ -281,55 +258,14 @@ function mapPradFromParams(params: Record<string, unknown>): PradStatus {
   const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
 
   if (isTruthyText(toTextValue(params.prad))) return "PRZYLACZE_NA_DZIALCE";
-
-  if (
-    hasAny(pradText, [
-      "na działce",
-      "na dzialce",
-      "w działce",
-      "w dzialce",
-      "przyłącze na działce",
-      "przylacze na dzialce",
-      "jest",
-      "tak",
-    ])
-  ) {
-    return "PRZYLACZE_NA_DZIALCE";
-  }
-
-  if (
-    hasAny(pradText, [
-      "w drodze",
-      "w ulicy",
-      "w granicy",
-      "przy działce",
-      "przy dzialce",
-    ])
-  ) {
-    return "PRZYLACZE_W_DRODZE";
-  }
-
-  if (hasAny(pradText, ["warunki", "warunki przyłączenia", "warunki przylaczenia"])) {
-    return "WARUNKI_PRZYLACZENIA_WYDANE";
-  }
-
-  if (hasAny(pradText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) {
-    return "MOZLIWOSC_PRZYLACZENIA";
-  }
-
+  if (hasAny(pradText, ["na działce", "na dzialce", "w działce", "w dzialce", "jest", "tak"])) return "PRZYLACZE_NA_DZIALCE";
+  if (hasAny(pradText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) return "PRZYLACZE_W_DRODZE";
+  if (hasAny(pradText, ["warunki"])) return "WARUNKI_PRZYLACZENIA_WYDANE";
+  if (hasAny(pradText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) return "MOZLIWOSC_PRZYLACZENIA";
   if (hasAny(pradText, ["brak", "nie ma"])) return "BRAK_PRZYLACZA";
-
-  if (hasAny(uzbrojenieText, ["prąd-na działce", "prad-na dzialce"])) {
-    return "PRZYLACZE_NA_DZIALCE";
-  }
-
-  if (hasAny(uzbrojenieText, ["prąd-w ulicy", "prad-w ulicy", "prąd-w drodze", "prad-w drodze"])) {
-    return "PRZYLACZE_W_DRODZE";
-  }
-
-  if (hasAny(uzbrojenieText, ["prąd", "prad"])) {
-    return "MOZLIWOSC_PRZYLACZENIA";
-  }
+  if (hasAny(uzbrojenieText, ["prąd-na działce", "prad-na dzialce"])) return "PRZYLACZE_NA_DZIALCE";
+  if (hasAny(uzbrojenieText, ["prąd-w ulicy", "prad-w ulicy", "prąd-w drodze", "prad-w drodze"])) return "PRZYLACZE_W_DRODZE";
+  if (hasAny(uzbrojenieText, ["prąd", "prad"])) return "MOZLIWOSC_PRZYLACZENIA";
 
   return "BRAK_PRZYLACZA";
 }
@@ -340,55 +276,14 @@ function mapWodaFromParams(params: Record<string, unknown>): WodaStatus {
   const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
 
   if (isTruthyText(maWodeText)) return "WODOCIAG_NA_DZIALCE";
-
-  if (hasAny(wodaText, ["studnia", "studnia głębinowa", "studnia glebinowa"])) {
-    return "STUDNIA_GLEBINOWA";
-  }
-
-  if (
-    hasAny(wodaText, [
-      "na działce",
-      "na dzialce",
-      "miejska",
-      "wodociąg na działce",
-      "wodociag na dzialce",
-      "tak - miejska",
-      "jest",
-      "tak",
-    ])
-  ) {
-    return "WODOCIAG_NA_DZIALCE";
-  }
-
-  if (
-    hasAny(wodaText, [
-      "w drodze",
-      "w ulicy",
-      "w granicy",
-      "przy działce",
-      "przy dzialce",
-    ])
-  ) {
-    return "WODOCIAG_W_DRODZE";
-  }
-
-  if (hasAny(wodaText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) {
-    return "MOZLIWOSC_PODLACZENIA";
-  }
-
+  if (hasAny(wodaText, ["studnia", "studnia głębinowa", "studnia glebinowa"])) return "STUDNIA_GLEBINOWA";
+  if (hasAny(wodaText, ["na działce", "na dzialce", "miejska", "tak - miejska", "jest", "tak"])) return "WODOCIAG_NA_DZIALCE";
+  if (hasAny(wodaText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) return "WODOCIAG_W_DRODZE";
+  if (hasAny(wodaText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) return "MOZLIWOSC_PODLACZENIA";
   if (hasAny(wodaText, ["brak", "nie ma"])) return "BRAK_PRZYLACZA";
-
-  if (hasAny(uzbrojenieText, ["woda-na działce", "woda-na dzialce", "wodociąg-na działce", "wodociag-na dzialce"])) {
-    return "WODOCIAG_NA_DZIALCE";
-  }
-
-  if (hasAny(uzbrojenieText, ["woda-w ulicy", "wodociąg-w ulicy", "wodociag-w ulicy", "woda-w drodze"])) {
-    return "WODOCIAG_W_DRODZE";
-  }
-
-  if (hasAny(uzbrojenieText, ["woda", "wodociąg", "wodociag"])) {
-    return "MOZLIWOSC_PODLACZENIA";
-  }
+  if (hasAny(uzbrojenieText, ["woda-na działce", "woda-na dzialce", "wodociąg-na działce", "wodociag-na dzialce"])) return "WODOCIAG_NA_DZIALCE";
+  if (hasAny(uzbrojenieText, ["woda-w ulicy", "wodociąg-w ulicy", "wodociag-w ulicy", "woda-w drodze"])) return "WODOCIAG_W_DRODZE";
+  if (hasAny(uzbrojenieText, ["woda", "wodociąg", "wodociag"])) return "MOZLIWOSC_PODLACZENIA";
 
   return "BRAK_PRZYLACZA";
 }
@@ -399,29 +294,12 @@ function mapGazFromParams(params: Record<string, unknown>): GazStatus {
   const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
 
   if (isTruthyText(maGazText)) return "GAZ_NA_DZIALCE";
-
-  if (hasAny(gazText, ["na działce", "na dzialce", "miejski", "tak - miejski", "jest", "tak"])) {
-    return "GAZ_NA_DZIALCE";
-  }
-
-  if (hasAny(gazText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) {
-    return "GAZ_W_DRODZE";
-  }
-
-  if (hasAny(gazText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) {
-    return "MOZLIWOSC_PODLACZENIA";
-  }
-
+  if (hasAny(gazText, ["na działce", "na dzialce", "miejski", "tak - miejski", "jest", "tak"])) return "GAZ_NA_DZIALCE";
+  if (hasAny(gazText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) return "GAZ_W_DRODZE";
+  if (hasAny(gazText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) return "MOZLIWOSC_PODLACZENIA";
   if (hasAny(gazText, ["brak", "nie ma"])) return "BRAK";
-
-  if (hasAny(uzbrojenieText, ["gaz-na działce", "gaz-na dzialce"])) {
-    return "GAZ_NA_DZIALCE";
-  }
-
-  if (hasAny(uzbrojenieText, ["gaz-w ulicy", "gaz-w drodze"])) {
-    return "GAZ_W_DRODZE";
-  }
-
+  if (hasAny(uzbrojenieText, ["gaz-na działce", "gaz-na dzialce"])) return "GAZ_NA_DZIALCE";
+  if (hasAny(uzbrojenieText, ["gaz-w ulicy", "gaz-w drodze"])) return "GAZ_W_DRODZE";
   if (hasAny(uzbrojenieText, ["gaz"])) return "MOZLIWOSC_PODLACZENIA";
 
   return "BRAK";
@@ -433,44 +311,15 @@ function mapKanalizacjaFromParams(params: Record<string, unknown>): KanalizacjaS
   const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
 
   if (isTruthyText(maKanalText)) return "MIEJSKA_NA_DZIALCE";
-
   if (hasAny(kanalText, ["szambo"])) return "SZAMBO";
-
-  if (hasAny(kanalText, ["oczyszczalnia", "przydomowa"])) {
-    return "PRZYDOMOWA_OCZYSZCZALNIA";
-  }
-
-  if (hasAny(kanalText, ["na działce", "na dzialce", "miejska", "jest", "tak"])) {
-    return "MIEJSKA_NA_DZIALCE";
-  }
-
-  if (hasAny(kanalText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) {
-    return "MIEJSKA_W_DRODZE";
-  }
-
-  if (hasAny(kanalText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) {
-    return "MOZLIWOSC_PODLACZENIA";
-  }
-
+  if (hasAny(kanalText, ["oczyszczalnia", "przydomowa"])) return "PRZYDOMOWA_OCZYSZCZALNIA";
+  if (hasAny(kanalText, ["na działce", "na dzialce", "miejska", "jest", "tak"])) return "MIEJSKA_NA_DZIALCE";
+  if (hasAny(kanalText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) return "MIEJSKA_W_DRODZE";
+  if (hasAny(kanalText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) return "MOZLIWOSC_PODLACZENIA";
   if (hasAny(kanalText, ["brak", "nie ma"])) return "BRAK";
-
-  if (
-    hasAny(uzbrojenieText, [
-      "kanalizacja-na działce",
-      "kanalizacja-na dzialce",
-      "kanalizacja-tak",
-    ])
-  ) {
-    return "MIEJSKA_NA_DZIALCE";
-  }
-
-  if (hasAny(uzbrojenieText, ["kanalizacja-w ulicy", "kanalizacja-w drodze"])) {
-    return "MIEJSKA_W_DRODZE";
-  }
-
-  if (hasAny(uzbrojenieText, ["kanalizacja"])) {
-    return "MOZLIWOSC_PODLACZENIA";
-  }
+  if (hasAny(uzbrojenieText, ["kanalizacja-na działce", "kanalizacja-na dzialce", "kanalizacja-tak"])) return "MIEJSKA_NA_DZIALCE";
+  if (hasAny(uzbrojenieText, ["kanalizacja-w ulicy", "kanalizacja-w drodze"])) return "MIEJSKA_W_DRODZE";
+  if (hasAny(uzbrojenieText, ["kanalizacja"])) return "MOZLIWOSC_PODLACZENIA";
 
   return "BRAK";
 }
@@ -485,13 +334,8 @@ function buildWymiary(params: Record<string, unknown>): string | null {
     return `${widthText} x ${lengthText} m`;
   }
 
-  if (width) {
-    return `${Number.isInteger(width) ? String(width) : String(width).replace(".", ",")} m szerokości`;
-  }
-
-  if (length) {
-    return `${Number.isInteger(length) ? String(length) : String(length).replace(".", ",")} m długości`;
-  }
+  if (width) return `${Number.isInteger(width) ? String(width) : String(width).replace(".", ",")} m szerokości`;
+  if (length) return `${Number.isInteger(length) ? String(length) : String(length).replace(".", ",")} m długości`;
 
   return null;
 }
@@ -543,9 +387,7 @@ async function uploadOfferPhotosToR2(
   return uploaded;
 }
 
-async function downloadLatestFeedFromFtp(
-  integration: IntegrationForSync
-): Promise<DownloadedFeed> {
+async function downloadLatestFeedFromFtp(integration: IntegrationForSync): Promise<DownloadedFeed> {
   if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
     throw new Error("Integracja FTP nie ma uzupełnionych danych logowania.");
   }
@@ -569,7 +411,13 @@ async function downloadLatestFeedFromFtp(
     await client.cd(remoteDir);
 
     const list = await client.list();
-    const pattern = integration.expectedFilePattern?.trim() || "*";
+    console.log("[CRM DEBUG] FTP katalog:", remoteDir);
+    console.log(
+      "[CRM DEBUG] Pliki na FTP:",
+      list.map((item) => ({ name: item.name, isFile: item.isFile, size: item.size, modifiedAt: item.modifiedAt }))
+    );
+
+    const pattern = integration.expectedFilePattern?.trim() || "oferty_*.zip";
     const regex = wildcardToRegExp(pattern);
 
     const matched = list
@@ -580,16 +428,18 @@ async function downloadLatestFeedFromFtp(
         return bTime - aTime || a.name.localeCompare(b.name);
       });
 
+    console.log("[CRM DEBUG] Wzorzec pliku:", pattern);
+    console.log("[CRM DEBUG] Dopasowane pliki:", matched.map((item) => item.name));
+
     if (matched.length === 0) {
-      throw new Error(
-        `Nie znaleziono pliku pasującego do wzorca ${pattern} w katalogu ${remoteDir}.`
-      );
+      throw new Error(`Nie znaleziono pliku pasującego do wzorca ${pattern} w katalogu ${remoteDir}.`);
     }
 
     const remoteFileName = matched[0].name;
     localFilePath = path.join(tempDir, remoteFileName);
 
     await client.downloadTo(localFilePath, remoteFileName);
+    console.log("[CRM DEBUG] Pobrano plik:", remoteFileName, "do", localFilePath);
 
     return {
       remoteFileName,
@@ -606,13 +456,11 @@ async function downloadLatestFeedFromFtp(
   }
 }
 
-async function openFeedReader(
-  localFilePath: string,
-  remoteFileName: string
-): Promise<FeedReader> {
+async function openFeedReader(localFilePath: string, remoteFileName: string): Promise<FeedReader> {
   const lowerName = remoteFileName.toLowerCase();
 
   if (lowerName.endsWith(".xml")) {
+    console.log("[CRM DEBUG] Otwieram XML bez ZIP:", remoteFileName);
     return {
       createXmlReadStream: async () => fs.createReadStream(localFilePath),
       getPhotoBuffer: async () => null,
@@ -627,24 +475,23 @@ async function openFeedReader(
   const directory = await unzipper.Open.file(localFilePath);
   const files = directory.files as ZipEntryLike[];
 
+  console.log(
+    "[CRM DEBUG] Pliki w ZIP:",
+    files.map((entry) => ({ path: entry.path, type: entry.type }))
+  );
+
   const xmlEntry =
-    files.find(
-      (entry: ZipEntryLike) =>
-        entry.type === "File" && safeBasename(entry.path) === "oferty.xml"
-    ) ||
-    files.find(
-      (entry: ZipEntryLike) =>
-        entry.type === "File" && entry.path.toLowerCase().endsWith(".xml")
-    );
+    files.find((entry) => entry.type === "File" && safeBasename(entry.path) === "oferty.xml") ||
+    files.find((entry) => entry.type === "File" && entry.path.toLowerCase().endsWith(".xml"));
 
   if (!xmlEntry) {
     throw new Error("W paczce ZIP nie znaleziono pliku XML z ofertami.");
   }
 
+  console.log("[CRM DEBUG] Wybrany XML z ZIP:", xmlEntry.path);
+
   const entryMap = new Map<string, ZipEntryLike>(
-    files
-      .filter((entry: ZipEntryLike) => entry.type === "File")
-      .map((entry: ZipEntryLike) => [safeBasename(entry.path), entry])
+    files.filter((entry) => entry.type === "File").map((entry) => [safeBasename(entry.path), entry])
   );
 
   return {
@@ -664,7 +511,6 @@ function parseHeaderDate(value: unknown): Date | null {
 
   const normalized = text.includes(" ") ? text.replace(" ", "T") : text;
   const date = new Date(normalized);
-
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -677,7 +523,6 @@ function parseParams(offerNode: Record<string, unknown>) {
 
     const item = param as Record<string, unknown>;
     const name = String(item.nazwa ?? item["@_nazwa"] ?? "").trim();
-
     if (!name) continue;
 
     if (item.linia != null) {
@@ -701,28 +546,22 @@ function parseParams(offerNode: Record<string, unknown>) {
   return params;
 }
 
-function parseLocation(
-  offerNode: Record<string, unknown>,
-  params: Record<string, unknown>
-) {
+function parseLocation(offerNode: Record<string, unknown>, params: Record<string, unknown>) {
   const locationNode =
     typeof offerNode.location === "object" && offerNode.location
       ? (offerNode.location as Record<string, unknown>)
       : null;
 
-  const areas = arrify(locationNode?.area).reduce<Record<string, string>>(
-    (acc, area) => {
-      if (!area || typeof area !== "object") return acc;
+  const areas = arrify(locationNode?.area).reduce<Record<string, string>>((acc, area) => {
+    if (!area || typeof area !== "object") return acc;
 
-      const item = area as Record<string, unknown>;
-      const level = String(item.level ?? item["@_level"] ?? "").trim();
-      const value = toTextValue(item);
+    const item = area as Record<string, unknown>;
+    const level = String(item.level ?? item["@_level"] ?? "").trim();
+    const value = toTextValue(item);
 
-      if (level && value) acc[level] = value;
-      return acc;
-    },
-    {}
-  );
+    if (level && value) acc[level] = value;
+    return acc;
+  }, {});
 
   const wojewodztwo = toTextValue(params.wojewodztwo) || areas["2"] || null;
   const powiat = toTextValue(params.powiat) || areas["3"] || null;
@@ -737,16 +576,7 @@ function parseLocation(
   const fullParts = [ulica, miasto, dzielnica, gmina, powiat, wojewodztwo].filter(Boolean);
   const locationFull = fullParts.length > 0 ? fullParts.join(", ") : null;
 
-  return {
-    wojewodztwo,
-    powiat,
-    gmina,
-    miasto,
-    dzielnica,
-    ulica,
-    locationLabel,
-    locationFull,
-  };
+  return { wojewodztwo, powiat, gmina, miasto, dzielnica, ulica, locationLabel, locationFull };
 }
 
 function escapeXml(value: string) {
@@ -765,11 +595,7 @@ function escapeXmlText(value: string) {
 function startTagToXml(node: SaxTagLike) {
   const attrs = Object.entries(node.attributes ?? {})
     .map(([key, attr]) => {
-      const attrValue =
-        typeof attr === "object" && attr && "value" in attr
-          ? String(attr.value)
-          : String(attr);
-
+      const attrValue = typeof attr === "object" && attr && "value" in attr ? String(attr.value) : String(attr);
       return ` ${key}="${escapeXml(attrValue)}"`;
     })
     .join("");
@@ -796,10 +622,7 @@ function parseHeaderMeta(headerXml: string): HeaderMeta {
   };
 }
 
-function parseOfferFragment(
-  offerXml: string,
-  headerMeta: HeaderMeta
-): ParsedDomyOffer | null {
+function parseOfferFragment(offerXml: string, headerMeta: HeaderMeta): ParsedDomyOffer | null {
   try {
     const parser = new XMLParser({
       ignoreAttributes: false,
@@ -813,15 +636,19 @@ function parseOfferFragment(
     const ofertaNode = (doc.oferta ?? {}) as Record<string, unknown>;
     const externalId = toTextValue(ofertaNode.id);
 
-    if (!externalId) return null;
+    if (!externalId) {
+      console.log("[CRM DEBUG] Odrzucono ofertę: brak externalId");
+      return null;
+    }
 
     const params = parseParams(ofertaNode);
     const plotTypeRaw = toTextValue(params.typdzialki) || null;
 
-    const isLandOffer =
-      externalId.toUpperCase().startsWith("GS") || Boolean(plotTypeRaw);
-
-    if (!isLandOffer) return null;
+    const isLandOffer = externalId.toUpperCase().startsWith("GS") || Boolean(plotTypeRaw);
+    if (!isLandOffer) {
+      console.log("[CRM DEBUG] Odrzucono:", externalId, "to nie jest działka", { plotTypeRaw });
+      return null;
+    }
 
     const location = parseLocation(ofertaNode, params);
 
@@ -836,41 +663,42 @@ function parseOfferFragment(
       toNumber(params.powierzchniadzialki) ??
       toNumber(params.available_area);
 
-    const email =
-      normalizeEmail(toTextValue(params.agent_email)) ||
-      "kontakt@tylkodzialki.pl";
-
+    const email = normalizeEmail(toTextValue(params.agent_email)) || "kontakt@tylkodzialki.pl";
     const phone = normalizePhone(
-      toTextValue(params.agent_tel_kom) ||
-        toTextValue(params.agent_tel_biuro) ||
-        "000000000"
+      toTextValue(params.agent_tel_kom) || toTextValue(params.agent_tel_biuro) || "000000000"
     );
 
-    if (!price || price <= 0) return null;
-    if (!area || area < 1) return null;
-    if (!location.wojewodztwo || !location.miasto) return null;
+    if (!price || price <= 0) {
+      console.log("[CRM DEBUG] Odrzucono:", externalId, "brak ceny", { rawCena: ofertaNode.cena, price });
+      return null;
+    }
 
-    const title = sanitizeTitle(
-      toTextValue(params.advertisement_text) || null,
-      location.miasto,
-      plotTypeRaw
-    );
+    if (!area || area < 1) {
+      console.log("[CRM DEBUG] Odrzucono:", externalId, "brak powierzchni", {
+        powierzchnia: params.powierzchnia,
+        powierzchniadzialki: params.powierzchniadzialki,
+        available_area: params.available_area,
+        area,
+      });
+      return null;
+    }
 
+    if (!location.wojewodztwo || !location.miasto) {
+      console.log("[CRM DEBUG] Odrzucono:", externalId, "brak lokalizacji", location);
+      return null;
+    }
+
+    const title = sanitizeTitle(toTextValue(params.advertisement_text) || null, location.miasto, plotTypeRaw);
     const description = toTextValue(params.opis) || null;
 
     const lat = toNumber(params.n_geo_y) ?? toNumber(params.wsp_x);
     const lng = toNumber(params.n_geo_x) ?? toNumber(params.wsp_y);
     const mapsUrl = buildMapsUrl(lat, lng);
-
     const biuroOpiekun = toTextValue(params.agent_nazwisko) || null;
 
     const photoFileNames = Object.keys(params)
       .filter((key) => /^zdjecie\d+$/i.test(key.trim()))
-      .sort((a, b) => {
-        const an = Number(a.replace(/\D/g, ""));
-        const bn = Number(b.replace(/\D/g, ""));
-        return an - bn;
-      })
+      .sort((a, b) => Number(a.replace(/\D/g, "")) - Number(b.replace(/\D/g, "")))
       .map((key) => toTextValue(params[key]))
       .filter(Boolean);
 
@@ -880,10 +708,17 @@ function parseOfferFragment(
     const gaz = mapGazFromParams(params);
     const wymiary = buildWymiary(params);
 
+    console.log("[CRM DEBUG] Zaakceptowano ofertę:", externalId, {
+      title,
+      price,
+      area,
+      locationLabel: location.locationLabel,
+      photos: photoFileNames.length,
+    });
+
     return {
       externalId,
-      externalUpdatedAt:
-        parseHeaderDate(params.dataaktualizacji) ?? headerMeta.headerDate,
+      externalUpdatedAt: parseHeaderDate(params.dataaktualizacji) ?? headerMeta.headerDate,
       title,
       description,
       pricePln: Math.round(price),
@@ -910,17 +745,11 @@ function parseOfferFragment(
         plotTypeRaw,
         params,
         agencyName: headerMeta.agencyName,
-        mappedMedia: {
-          prad,
-          woda,
-          kanalizacja,
-          gaz,
-          wymiary,
-        },
+        mappedMedia: { prad, woda, kanalizacja, gaz, wymiary },
       }),
     };
   } catch (error) {
-    console.error("Błąd parsowania oferty DOMY.PL:", error);
+    console.error("[CRM DEBUG] Błąd parsowania oferty DOMY.PL:", error);
     return null;
   }
 }
@@ -935,11 +764,7 @@ async function streamParseDomyPlOffers(
     normalize: false,
   });
 
-  let headerMeta: HeaderMeta = {
-    headerDate: null,
-    agencyName: null,
-    zawartoscPliku: "",
-  };
+  let headerMeta: HeaderMeta = { headerDate: null, agencyName: null, zawartoscPliku: "" };
 
   let collectingHeader = false;
   let headerDepth = 0;
@@ -949,6 +774,7 @@ async function streamParseDomyPlOffers(
   let offerDepth = 0;
   let offerXml = "";
 
+  let rawOffersFound = 0;
   let importedOffers = 0;
   let chain = Promise.resolve<void>(undefined);
   let streamEnded = false;
@@ -970,6 +796,11 @@ async function streamParseDomyPlOffers(
     }
 
     if (node.name === "oferta" && !collectingOffer) {
+      rawOffersFound += 1;
+      if (rawOffersFound <= 10 || rawOffersFound % 50 === 0) {
+        console.log("[CRM DEBUG] Znaleziono tag <oferta>, numer:", rawOffersFound);
+      }
+
       collectingOffer = true;
       offerDepth = 1;
       offerXml = startTagToXml(node);
@@ -987,10 +818,7 @@ async function streamParseDomyPlOffers(
       headerXml += escapeXmlText(text);
       return;
     }
-
-    if (collectingOffer) {
-      offerXml += escapeXmlText(text);
-    }
+    if (collectingOffer) offerXml += escapeXmlText(text);
   });
 
   saxStream.on("cdata", (text: string) => {
@@ -998,10 +826,7 @@ async function streamParseDomyPlOffers(
       headerXml += `<![CDATA[${text}]]>`;
       return;
     }
-
-    if (collectingOffer) {
-      offerXml += `<![CDATA[${text}]]>`;
-    }
+    if (collectingOffer) offerXml += `<![CDATA[${text}]]>`;
   });
 
   saxStream.on("closetag", (tagName: string) => {
@@ -1012,9 +837,9 @@ async function streamParseDomyPlOffers(
       if (headerDepth === 0) {
         collectingHeader = false;
         headerMeta = parseHeaderMeta(headerXml);
+        console.log("[CRM DEBUG] Header:", headerMeta);
         headerXml = "";
       }
-
       return;
     }
 
@@ -1024,7 +849,6 @@ async function streamParseDomyPlOffers(
 
       if (offerDepth === 0) {
         collectingOffer = false;
-
         const completedOfferXml = offerXml;
         offerXml = "";
 
@@ -1036,15 +860,12 @@ async function streamParseDomyPlOffers(
           .then(async () => {
             const parsed = parseOfferFragment(completedOfferXml, headerMeta);
             if (!parsed) return;
-
             importedOffers += 1;
             await onOffer(parsed);
           })
           .then(() => {
-            if (!streamEnded) {
-              if (typeof (xmlStream as { resume?: () => void }).resume === "function") {
-                (xmlStream as { resume: () => void }).resume();
-              }
+            if (!streamEnded && typeof (xmlStream as { resume?: () => void }).resume === "function") {
+              (xmlStream as { resume: () => void }).resume();
             }
           });
       }
@@ -1052,17 +873,17 @@ async function streamParseDomyPlOffers(
   });
 
   const finishedPromise = new Promise<number>((resolve, reject) => {
-    saxStream.on("error", (error: unknown) => {
-      reject(error);
-    });
-
-    xmlStream.on("error", (error: unknown) => {
-      reject(error);
-    });
+    saxStream.on("error", (error: unknown) => reject(error));
+    xmlStream.on("error", (error: unknown) => reject(error));
 
     saxStream.on("end", () => {
       streamEnded = true;
-      waitForChain().then(() => resolve(importedOffers)).catch(reject);
+      waitForChain()
+        .then(() => {
+          console.log("[CRM DEBUG] Koniec parsowania. Znalezione <oferta>:", rawOffersFound, "Zaimportowane:", importedOffers);
+          resolve(importedOffers);
+        })
+        .catch(reject);
     });
   });
 
@@ -1106,14 +927,7 @@ async function logSync(
     dzialkaId?: string | null;
     offerLinkId?: string | null;
     externalId?: string | null;
-    action:
-      | "CREATE"
-      | "UPDATE"
-      | "DEACTIVATE"
-      | "REACTIVATE"
-      | "SKIP_NO_CREDITS"
-      | "DELETE"
-      | "ERROR";
+    action: "CREATE" | "UPDATE" | "DEACTIVATE" | "REACTIVATE" | "SKIP_NO_CREDITS" | "DELETE" | "ERROR";
     status: "SUCCESS" | "ERROR";
     message?: string | null;
     payload?: Prisma.InputJsonValue;
@@ -1149,9 +963,7 @@ async function processOffer(
         externalId: offer.externalId,
       },
     },
-    include: {
-      dzialka: true,
-    },
+    include: { dzialka: true },
   });
 
   if (!existingLink) {
@@ -1160,9 +972,7 @@ async function processOffer(
       select: { id: true, listingCredits: true },
     });
 
-    if (!user) {
-      throw new Error("Nie znaleziono użytkownika integracji.");
-    }
+    if (!user) throw new Error("Nie znaleziono użytkownika integracji.");
 
     if (paymentsEnabled && user.listingCredits <= 0) {
       await prisma.crmIntegration.update({
@@ -1201,9 +1011,7 @@ async function processOffer(
           expiresAt,
           endedAt: null,
           status: "AKTYWNE",
-          zdjecia: {
-            create: uploadedPhotos,
-          },
+          zdjecia: { create: uploadedPhotos },
         },
       });
 
@@ -1223,14 +1031,8 @@ async function processOffer(
       if (paymentsEnabled) {
         const updatedUser = await tx.user.update({
           where: { id: integration.userId },
-          data: {
-            listingCredits: {
-              decrement: 1,
-            },
-          },
-          select: {
-            listingCredits: true,
-          },
+          data: { listingCredits: { decrement: 1 } },
+          select: { listingCredits: true },
         });
 
         await tx.listingCreditTransaction.create({
@@ -1269,9 +1071,7 @@ async function processOffer(
       select: { id: true, listingCredits: true },
     });
 
-    if (!user) {
-      throw new Error("Nie znaleziono użytkownika integracji.");
-    }
+    if (!user) throw new Error("Nie znaleziono użytkownika integracji.");
 
     if (paymentsEnabled && user.listingCredits <= 0) {
       await prisma.crmIntegration.update({
@@ -1306,9 +1106,7 @@ async function processOffer(
   );
 
   await prisma.$transaction(async (tx) => {
-    await tx.zdjecie.deleteMany({
-      where: { dzialkaId: existingLink.dzialkaId },
-    });
+    await tx.zdjecie.deleteMany({ where: { dzialkaId: existingLink.dzialkaId } });
 
     const dzialka = await tx.dzialka.update({
       where: { id: existingLink.dzialkaId },
@@ -1322,9 +1120,7 @@ async function processOffer(
               status: "AKTYWNE" as const,
             }
           : {}),
-        zdjecia: {
-          create: uploadedPhotos,
-        },
+        zdjecia: { create: uploadedPhotos },
       },
     });
 
@@ -1342,11 +1138,7 @@ async function processOffer(
     if (wasEnded && paymentsEnabled) {
       const updatedUser = await tx.user.update({
         where: { id: integration.userId },
-        data: {
-          listingCredits: {
-            decrement: 1,
-          },
-        },
+        data: { listingCredits: { decrement: 1 } },
         select: { listingCredits: true },
       });
 
@@ -1380,23 +1172,16 @@ async function processOffer(
   return wasEnded ? "REACTIVATE" : "UPDATE";
 }
 
-async function deactivateMissingOffers(
-  integrationId: string,
-  seenExternalIds: Set<string>
-) {
+async function deactivateMissingOffers(integrationId: string, seenExternalIds: Set<string>) {
   const now = new Date();
 
   const linksToDeactivate = await prisma.crmOfferLink.findMany({
     where: {
       integrationId,
       isActiveInSource: true,
-      externalId: {
-        notIn: [...seenExternalIds],
-      },
+      externalId: { notIn: [...seenExternalIds] },
     },
-    include: {
-      dzialka: true,
-    },
+    include: { dzialka: true },
   });
 
   let count = 0;
@@ -1443,9 +1228,7 @@ async function deactivateMissingOffers(
   return count;
 }
 
-export async function syncCrmIntegrationNow(
-  integrationId: string
-): Promise<SyncSummary> {
+export async function syncCrmIntegrationNow(integrationId: string): Promise<SyncSummary> {
   const integration = await prisma.crmIntegration.findUnique({
     where: { id: integrationId },
     select: {
@@ -1467,14 +1250,8 @@ export async function syncCrmIntegrationNow(
     },
   });
 
-  if (!integration) {
-    throw new Error("Nie znaleziono integracji CRM.");
-  }
-
-  if (!integration.isActive) {
-    throw new Error("Integracja jest wyłączona.");
-  }
-
+  if (!integration) throw new Error("Nie znaleziono integracji CRM.");
+  if (!integration.isActive) throw new Error("Integracja jest wyłączona.");
   if (integration.transportType !== "FTP" || integration.feedFormat !== "DOMY_PL") {
     throw new Error("Ta integracja nie jest skonfigurowana jako FTP / DOMY.PL.");
   }
@@ -1505,27 +1282,16 @@ export async function syncCrmIntegrationNow(
       seenExternalIds.add(offer.externalId);
 
       try {
-        const action = await processOffer(
-          integration,
-          offer,
-          feedReader as FeedReader,
-          paymentsEnabled
-        );
+        const action = await processOffer(integration, offer, feedReader as FeedReader, paymentsEnabled);
 
-        if (action === "CREATE" || action === "REACTIVATE") {
-          createdCount += 1;
-        } else if (action === "UPDATE") {
-          updatedCount += 1;
-        } else if (action === "SKIP_NO_CREDITS") {
-          skippedCount += 1;
-        }
+        if (action === "CREATE" || action === "REACTIVATE") createdCount += 1;
+        else if (action === "UPDATE") updatedCount += 1;
+        else if (action === "SKIP_NO_CREDITS") skippedCount += 1;
       } catch (error) {
         errorCount += 1;
+        const message = error instanceof Error ? error.message : "Nieznany błąd podczas importu oferty.";
 
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Nieznany błąd podczas importu oferty.";
+        console.error("[CRM DEBUG] Błąd zapisu oferty:", offer.externalId, message, error);
 
         await logSync(integration.id, {
           externalId: offer.externalId,
@@ -1537,12 +1303,9 @@ export async function syncCrmIntegrationNow(
       }
     });
 
-    // Bezpiecznie: nie dezaktywujemy automatycznie przy niepewnym eksporcie.
-    // Jak już potwierdzimy, że Galactica wysyła zawsze pełny eksport działek,
-    // można odkomentować linię niżej.
-    // if (integration.fullImportMode && seenExternalIds.size > 0) {
-    //   deactivatedCount = await deactivateMissingOffers(integration.id, seenExternalIds);
-    // }
+    if (integration.fullImportMode && seenExternalIds.size > 0) {
+      deactivatedCount = await deactivateMissingOffers(integration.id, seenExternalIds);
+    }
 
     await prisma.crmIntegration.update({
       where: { id: integration.id },
@@ -1556,7 +1319,9 @@ export async function syncCrmIntegrationNow(
             ? `Synchronizacja zakończona z błędami (${errorCount}).`
             : skippedCount > 0
               ? `Synchronizacja zakończona. Pominięto ${skippedCount} ofert z powodu braku kredytów.`
-              : null,
+              : importedOffers === 0
+                ? "Synchronizacja zakończona, ale parser nie zaimportował żadnej oferty. Sprawdź logi [CRM DEBUG] w Vercel."
+                : null,
         lastImportedOffers: importedOffers,
         lastCreatedCount: createdCount,
         lastUpdatedCount: updatedCount,
@@ -1578,13 +1343,12 @@ export async function syncCrmIntegrationNow(
       message:
         errorCount > 0
           ? "Synchronizacja zakończona z częściowymi błędami."
-          : "Synchronizacja zakończona poprawnie.",
+          : importedOffers === 0
+            ? "Synchronizacja zakończona, ale nie znaleziono poprawnych ofert działek. Sprawdź logi [CRM DEBUG] w Vercel."
+            : "Synchronizacja zakończona poprawnie.",
     };
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Nie udało się zsynchronizować integracji.";
+    const message = error instanceof Error ? error.message : "Nie udało się zsynchronizować integracji.";
 
     await prisma.crmIntegration.update({
       where: { id: integration.id },
@@ -1604,12 +1368,7 @@ export async function syncCrmIntegrationNow(
 
     throw error;
   } finally {
-    if (feedReader) {
-      await feedReader.close().catch(() => {});
-    }
-
-    if (downloaded) {
-      await downloaded.cleanup().catch(() => {});
-    }
+    if (feedReader) await feedReader.close().catch(() => {});
+    if (downloaded) await downloaded.cleanup().catch(() => {});
   }
 }
