@@ -816,7 +816,10 @@ function parseDomyPlOffers(xml: string) {
           : ofertaNode.cena
       );
 
-      const area = toNumber(params.powierzchnia);
+      const area =
+  toNumber(params.powierzchnia) ??
+  toNumber(params.powierzchniadzialki) ??
+  toNumber(params.available_area);
       const email = normalizeEmail(toTextValue(params.agent_email));
       const phone = normalizePhone(
         toTextValue(params.agent_tel_kom) || toTextValue(params.agent_tel_biuro)

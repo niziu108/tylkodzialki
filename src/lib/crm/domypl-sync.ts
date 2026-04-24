@@ -886,7 +886,10 @@ function parseOfferFragment(
       : ofertaNode.cena
   );
 
-  const area = toNumber(params.powierzchnia);
+  const area =
+  toNumber(params.powierzchnia) ??
+  toNumber(params.powierzchniadzialki) ??
+  toNumber(params.available_area);
   const email = normalizeEmail(toTextValue(params.agent_email));
   const phone = normalizePhone(
     toTextValue(params.agent_tel_kom) || toTextValue(params.agent_tel_biuro)
@@ -939,7 +942,7 @@ function parseOfferFragment(
     plotTypeRaw,
     przeznaczenia: mapPlotTypeToPrzeznaczenia(plotTypeRaw),
     photoFileNames,
-    biuroNazwa: headerMeta.agencyName,
+    biuroNazwa: null,
     biuroOpiekun,
     prad,
     woda,
