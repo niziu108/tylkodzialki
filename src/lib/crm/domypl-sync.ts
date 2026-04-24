@@ -851,10 +851,19 @@ function parseOfferFragment(
         toTextValue(params.tel)
     );
 
-    if (!price || price <= 0) return null;
-    if (!area || area < 1) return null;
-    if (!phone) return null;
-    if (!location.wojewodztwo || !location.miasto) return null;
+    if (!price || price <= 0) {
+      console.log("CRM SKIP - brak ceny", externalId);
+      return null;
+    }
+
+    if (!area || area < 1) {
+      console.log("CRM SKIP - brak powierzchni", externalId);
+      return null;
+    }
+
+    const safePhone = phone || "000000000";
+    const safeWojewodztwo = location.wojewodztwo || "łódzkie";
+    const safeMiasto = location.miasto || toTextValue(params.gmina) || "Nieznana lokalizacja";
 
     const title = sanitizeTitle(
       toTextValue(params.advertisement_text) || null,
@@ -894,9 +903,9 @@ function parseOfferFragment(
       pricePln: Math.round(price),
       areaM2: Math.round(area),
       email,
-      phone,
-      locationLabel: location.locationLabel,
-      locationFull: location.locationFull,
+      phone: safePhone,
+      locationLabel: location.locationLabel || safeMiasto,
+      locationFull: location.locationFull || `${safeMiasto}, ${safeWojewodztwo}`,
       lat,
       lng,
       mapsUrl,
