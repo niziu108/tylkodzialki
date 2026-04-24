@@ -852,12 +852,6 @@ function parseHeaderMeta(headerXml: string): HeaderMeta {
   const agencyName = toTextValue(header.agencja) || null;
   const headerDate = parseHeaderDate(header.data);
 
-  if (zawartoscPliku && zawartoscPliku !== "calosc") {
-    throw new Error(
-      `Obsługujemy obecnie tylko eksport pełny (calosc). Otrzymano: ${zawartoscPliku}.`
-    );
-  }
-
   return {
     headerDate,
     agencyName,
@@ -917,7 +911,7 @@ function parseOfferFragment(
   const mapsUrl = buildMapsUrl(lat, lng);
   const biuroOpiekun = toTextValue(params.agent_nazwisko) || null;
 
-  const photoFileNames = Array.from({ length: 15 }, (_, index) =>
+  const photoFileNames = Array.from({ length: 60 }, (_, index) =>
     toTextValue(params[`zdjecie${index + 1}`])
   ).filter(Boolean);
 
@@ -1619,11 +1613,12 @@ export async function syncCrmIntegrationNow(
       }
     });
 
-    if (integration.fullImportMode) {
-      deactivatedCount = await deactivateMissingOffers(
-        integration.id,
-        seenExternalIds
-      );
+    // Galactica potrafi wysyłać eksport różnicowy:
+    // <zawartosc_pliku>roznica</zawartosc_pliku>
+    // Przy takim pliku NIE dezaktywujemy ofert, których nie ma w XML,
+    // bo XML może zawierać tylko część ofert.
+    if (integration.fullImportMode && seenExternalIds.size > 0) {
+      deactivatedCount = 0;
     }
 
     await prisma.crmIntegration.update({

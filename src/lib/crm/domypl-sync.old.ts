@@ -1366,11 +1366,12 @@ export async function syncCrmIntegrationNow(
       }
     }
 
-    if (integration.fullImportMode) {
-      deactivatedCount = await deactivateMissingOffers(
-        integration.id,
-        seenExternalIds
-      );
+    // Galactica potrafi wysyłać eksport różnicowy:
+    // <zawartosc_pliku>roznica</zawartosc_pliku>
+    // Przy takim pliku NIE dezaktywujemy ofert, których nie ma w XML,
+    // bo XML może zawierać tylko część ofert.
+    if (integration.fullImportMode && seenExternalIds.size > 0) {
+      deactivatedCount = 0;
     }
 
     await prisma.crmIntegration.update({
