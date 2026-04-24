@@ -1374,7 +1374,10 @@ export async function syncCrmIntegrationNow(
     // Przy takim pliku NIE dezaktywujemy ofert, których nie ma w XML,
     // bo XML może zawierać tylko część ofert.
     if (integration.fullImportMode && seenExternalIds.size > 0) {
-      deactivatedCount = 0;
+      deactivatedCount = await deactivateMissingOffers(
+        integration.id,
+        seenExternalIds
+      );
     }
 
     await prisma.crmIntegration.update({

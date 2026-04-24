@@ -819,10 +819,7 @@ function parseOfferFragment(
     const plotTypeRaw = toTextValue(params.typdzialki) || null;
 
     const isLandOffer =
-      externalId.toUpperCase().startsWith("GS") ||
-      Boolean(plotTypeRaw) ||
-      normalizeText(toTextValue(params.przeznaczenie)).includes("dział") ||
-      normalizeText(toTextValue(params.przeznaczenie)).includes("dzial");
+      externalId.toUpperCase().startsWith("GS") || Boolean(plotTypeRaw);
 
     if (!isLandOffer) return null;
 
@@ -841,29 +838,17 @@ function parseOfferFragment(
 
     const email =
       normalizeEmail(toTextValue(params.agent_email)) ||
-      normalizeEmail(toTextValue(params.email)) ||
       "kontakt@tylkodzialki.pl";
 
     const phone = normalizePhone(
       toTextValue(params.agent_tel_kom) ||
         toTextValue(params.agent_tel_biuro) ||
-        toTextValue(params.telefon) ||
-        toTextValue(params.tel)
+        "000000000"
     );
 
-    if (!price || price <= 0) {
-      console.log("CRM SKIP - brak ceny", externalId);
-      return null;
-    }
-
-    if (!area || area < 1) {
-      console.log("CRM SKIP - brak powierzchni", externalId);
-      return null;
-    }
-
-    const safePhone = phone || "000000000";
-    const safeWojewodztwo = location.wojewodztwo || "łódzkie";
-    const safeMiasto = location.miasto || toTextValue(params.gmina) || "Nieznana lokalizacja";
+    if (!price || price <= 0) return null;
+    if (!area || area < 1) return null;
+    if (!location.wojewodztwo || !location.miasto) return null;
 
     const title = sanitizeTitle(
       toTextValue(params.advertisement_text) || null,
@@ -897,15 +882,16 @@ function parseOfferFragment(
 
     return {
       externalId,
-      externalUpdatedAt: parseHeaderDate(params.dataaktualizacji) ?? headerMeta.headerDate,
+      externalUpdatedAt:
+        parseHeaderDate(params.dataaktualizacji) ?? headerMeta.headerDate,
       title,
       description,
       pricePln: Math.round(price),
       areaM2: Math.round(area),
       email,
-      phone: safePhone,
-      locationLabel: location.locationLabel || safeMiasto,
-      locationFull: location.locationFull || `${safeMiasto}, ${safeWojewodztwo}`,
+      phone,
+      locationLabel: location.locationLabel,
+      locationFull: location.locationFull,
       lat,
       lng,
       mapsUrl,
@@ -1055,15 +1041,6 @@ async function streamParseDomyPlOffers(
             await onOffer(parsed);
           })
           .then(() => {
-            if (!streamEnded) {
-              if (typeof (xmlStream as { resume?: () => void }).resume === "function") {
-                (xmlStream as { resume: () => void }).resume();
-              }
-            }
-          })
-          .catch((error) => {
-            console.error("Błąd przetwarzania oferty DOMY.PL:", error);
-
             if (!streamEnded) {
               if (typeof (xmlStream as { resume?: () => void }).resume === "function") {
                 (xmlStream as { resume: () => void }).resume();
