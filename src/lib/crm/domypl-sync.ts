@@ -429,12 +429,12 @@ async function downloadLatestFeedFromFtp(integration: IntegrationForSync): Promi
     }
 
     matched = matched.sort((a, b) => {
-      const aSize = a.size ?? 0;
-      const bSize = b.size ?? 0;
-      const aTime = a.modifiedAt?.getTime?.() ?? 0;
-      const bTime = b.modifiedAt?.getTime?.() ?? 0;
-      return bSize - aSize || bTime - aTime || a.name.localeCompare(b.name);
-    });
+  const aTime = a.modifiedAt?.getTime?.() ?? 0;
+  const bTime = b.modifiedAt?.getTime?.() ?? 0;
+  const aSize = a.size ?? 0;
+  const bSize = b.size ?? 0;
+  return bTime - aTime || bSize - aSize || b.name.localeCompare(a.name);
+});
 
     console.log("[CRM DEBUG] Wzorzec pliku:", pattern);
     console.log(
@@ -455,7 +455,7 @@ async function downloadLatestFeedFromFtp(integration: IntegrationForSync): Promi
 
     await client.downloadTo(localFilePath, remoteFileName);
 
-    console.log("[CRM DEBUG] Pobrano NAJWIĘKSZY plik:", remoteFileName, "do", localFilePath);
+    console.log("[CRM DEBUG] Pobrano NAJNOWSZY plik:", remoteFileName, "do", localFilePath);
 
     return {
       remoteFileName,
