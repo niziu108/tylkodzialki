@@ -123,8 +123,28 @@ function normalizeText(value: string) {
     .trim();
 }
 
+function cleanSearchQuery(value: string) {
+  const ignored = new Set([
+    'polska',
+    'poland',
+    'wojewodztwo',
+    'woj',
+    'powiat',
+    'gmina',
+    'miasto',
+    'okolice',
+  ]);
+
+  return normalizeText(value)
+    .split(' ')
+    .map((x) => x.trim())
+    .filter((x) => x.length >= 2)
+    .filter((x) => !ignored.has(x))
+    .join(' ');
+}
+
 function matchesTextSearch(d: ApiDzialka, query: string) {
-  const q = normalizeText(query);
+  const q = cleanSearchQuery(query);
   if (!q) return false;
 
   const haystack = normalizeText(
@@ -621,21 +641,22 @@ export default function KupSearch() {
 
       const useRadiusSearch = !!nextApplied.center && nextApplied.radiusKm > 0;
       const hasLocText = !!nextApplied.locText.trim();
+      const cleanedTextQuery = cleanSearchQuery(nextApplied.locText);
 
       const baseParams = makeBaseParams(nextApplied);
 
       const broadParams = new URLSearchParams(baseParams);
       broadParams.set('take', useRadiusSearch ? '1000' : '300');
 
-      if (!useRadiusSearch && hasLocText) {
-        broadParams.set('q', nextApplied.locText.trim());
+      if (!useRadiusSearch && cleanedTextQuery) {
+        broadParams.set('q', cleanedTextQuery);
       }
 
       const fetches: Promise<ApiDzialka[]>[] = [fetchDzialki(broadParams)];
 
-      if (useRadiusSearch && hasLocText) {
+      if (useRadiusSearch && cleanedTextQuery) {
         const textParams = new URLSearchParams(baseParams);
-        textParams.set('q', nextApplied.locText.trim());
+        textParams.set('q', cleanedTextQuery);
         textParams.set('take', '300');
         fetches.push(fetchDzialki(textParams));
       }
@@ -655,7 +676,7 @@ export default function KupSearch() {
               nextApplied.radiusKm
             : false;
 
-          const textMatch = hasLocText ? matchesTextSearch(d, nextApplied.locText) : false;
+          const textMatch = cleanedTextQuery ? matchesTextSearch(d, cleanedTextQuery) : false;
 
           if (inRadius) {
             rankMap.set(d.id, 1);
@@ -669,9 +690,9 @@ export default function KupSearch() {
 
           return false;
         });
-      } else if (hasLocText) {
+      } else if (cleanedTextQuery) {
         filtered = list.filter((d) => {
-          const textMatch = matchesTextSearch(d, nextApplied.locText);
+          const textMatch = matchesTextSearch(d, cleanedTextQuery);
           if (textMatch) rankMap.set(d.id, 1);
           return textMatch;
         });
