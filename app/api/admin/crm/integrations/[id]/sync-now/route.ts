@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
-import { syncCrmIntegrationNow } from "@/lib/crm/domypl-sync";
 
 type RouteContext = {
   params: Promise<{
@@ -11,7 +10,6 @@ type RouteContext = {
 };
 
 export const runtime = "nodejs";
-export const maxDuration = 300;
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -34,29 +32,85 @@ export async function POST(_req: Request, context: RouteContext) {
     const admin = await requireAdmin();
 
     if (!admin) {
-      return NextResponse.json({ error: "Brak uprawnień administratora." }, { status: 403 });
+      return NextResponse.json(
+        { error: "Brak uprawnień administratora." },
+        { status: 403 }
+      );
     }
 
     const { id } = await context.params;
+    const integrationId = id?.trim();
 
-    if (!id?.trim()) {
-      return NextResponse.json({ error: "Brak id integracji." }, { status: 400 });
+    if (!integrationId) {
+      return NextResponse.json(
+        { error: "Brak id integracji." },
+        { status: 400 }
+      );
     }
 
     const integration = await prisma.crmIntegration.findUnique({
-      where: { id: id.trim() },
-      select: { id: true },
+      where: { id: integrationId },
+      select: {
+        id: true,
+        isActive: true,
+      },
     });
 
     if (!integration) {
-      return NextResponse.json({ error: "Nie znaleziono integracji." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Nie znaleziono integracji." },
+        { status: 404 }
+      );
     }
 
-    const summary = await syncCrmIntegrationNow(integration.id);
+    if (!integration.isActive) {
+      return NextResponse.json(
+        { error: "Integracja jest nieaktywna." },
+        { status: 400 }
+      );
+    }
+
+    const existingRunningJob = await prisma.crmImportJob.findFirst({
+      where: {
+        integrationId,
+        status: {
+          in: ["PENDING", "RUNNING"],
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    if (existingRunningJob) {
+      return NextResponse.json({
+        success: true,
+        jobId: existingRunningJob.id,
+        message:
+          "Synchronizacja jest już w kolejce albo właśnie trwa. Nie utworzono drugiego zadania.",
+      });
+    }
+
+    const job = await prisma.crmImportJob.create({
+      data: {
+        integrationId,
+        status: "PENDING",
+        message: "Zadanie importu CRM zostało utworzone.",
+      },
+    });
+
+    await prisma.crmIntegration.update({
+      where: { id: integrationId },
+      data: {
+        lastUsedAt: new Date(),
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      summary,
+      jobId: job.id,
+      message:
+        "Import CRM został dodany do kolejki. Teraz uruchom worker poza Vercel.",
     });
   } catch (error) {
     console.error("POST /api/admin/crm/integrations/[id]/sync-now error:", error);
@@ -66,7 +120,7 @@ export async function POST(_req: Request, context: RouteContext) {
         error:
           error instanceof Error
             ? error.message
-            : "Nie udało się uruchomić synchronizacji.",
+            : "Nie udało się utworzyć zadania synchronizacji.",
       },
       { status: 500 }
     );

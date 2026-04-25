@@ -354,6 +354,7 @@ model CrmIntegration {
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   offerLinks CrmOfferLink[]
   syncLogs   CrmSyncLog[]
+  importJobs CrmImportJob[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -410,6 +411,35 @@ model CrmSyncLog {
   @@index([offerLinkId])
   @@index([externalId])
   @@index([action, status])
+}
+
+model CrmImportJob {
+  id            String             @id @default(cuid())
+  integrationId String
+  integration   CrmIntegration     @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  status        CrmImportJobStatus @default(PENDING)
+
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  message      String?
+  errorMessage String?
+
+  remoteFileName String?
+
+  importedOffers   Int @default(0)
+  createdCount     Int @default(0)
+  updatedCount     Int @default(0)
+  deactivatedCount Int @default(0)
+  skippedCount     Int @default(0)
+  errorCount       Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([integrationId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 enum Role {
@@ -576,6 +606,13 @@ enum CrmSyncAction {
 }
 
 enum CrmSyncStatus {
+  SUCCESS
+  ERROR
+}
+
+enum CrmImportJobStatus {
+  PENDING
+  RUNNING
   SUCCESS
   ERROR
 }
