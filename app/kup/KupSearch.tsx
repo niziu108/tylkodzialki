@@ -34,6 +34,7 @@ const PRZEZN: { key: Przeznaczenie; label: string }[] = [
 
 const PAGE_SIZE = 20;
 const SCROLL_OFFSET = -450;
+const STORAGE_KEY = 'TD_KUP_STATE_V2';
 
 type AppliedFilters = {
   locText: string;
@@ -44,6 +45,11 @@ type AppliedFilters = {
   areaMin: string;
   areaMax: string;
   przezn: Przeznaczenie[];
+};
+
+type StoredState = {
+  filters: AppliedFilters;
+  page: number;
 };
 
 const EMPTY_APPLIED: AppliedFilters = {
@@ -66,6 +72,7 @@ function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
     Math.cos((aLat * Math.PI) / 180) *
     Math.cos((bLat * Math.PI) / 180) *
     Math.sin(dLng / 2) ** 2;
+
   return 2 * R * Math.asin(Math.sqrt(s1 + s2));
 }
 
@@ -136,6 +143,7 @@ function buildMobilePages(page: number, total: number): Array<number | '…'> {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
   if (page <= 4) return [1, 2, 3, 4, '…', total];
   if (page >= total - 3) return [1, '…', total - 3, total - 2, total - 1, total];
+
   return [1, '…', page - 1, page, page + 1, '…', total];
 }
 
@@ -191,12 +199,46 @@ function buildUrlFromState(filters: AppliedFilters, page: number) {
   return qs ? `/kup?${qs}` : '/kup';
 }
 
-function readStateFromUrl(): { filters: AppliedFilters; page: number } {
+function saveState(filters: AppliedFilters, page: number) {
+  if (typeof window === 'undefined') return;
+
+  const url = buildUrlFromState(filters, page);
+
+  try {
+    const data: StoredState = { filters, page };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    sessionStorage.setItem('TD_KUP_URL', url);
+  } catch {}
+}
+
+function loadStoredState(): StoredState | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as StoredState;
+    if (!parsed?.filters) return null;
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function readStateFromUrl(): StoredState {
   if (typeof window === 'undefined') {
     return { filters: EMPTY_APPLIED, page: 1 };
   }
 
   const sp = new URLSearchParams(window.location.search);
+  const hasQuery = Array.from(sp.keys()).length > 0;
+
+  if (!hasQuery) {
+    const stored = loadStoredState();
+    if (stored) return stored;
+  }
 
   const locText = sp.get('loc') ?? '';
 
@@ -241,6 +283,43 @@ function readStateFromUrl(): { filters: AppliedFilters; page: number } {
     },
     page: Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1,
   };
+}
+
+async function fetchDzialki(params: URLSearchParams) {
+  const res = await fetch(`/api/dzialki?${params.toString()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`GET /api/dzialki -> ${res.status}`);
+
+  const data = await res.json();
+  return (data?.items ?? []) as ApiDzialka[];
+}
+
+function makeBaseParams(filters: AppliedFilters) {
+  const sp = new URLSearchParams();
+
+  if (filters.priceMin) sp.set('priceMin', filters.priceMin);
+  if (filters.priceMax) sp.set('priceMax', filters.priceMax);
+  if (filters.areaMin) sp.set('areaMin', filters.areaMin);
+  if (filters.areaMax) sp.set('areaMax', filters.areaMax);
+  if (filters.przezn.length) sp.set('przeznaczenia', filters.przezn.join(','));
+
+  sp.set('skip', '0');
+  sp.set('sort', 'newest');
+
+  return sp;
+}
+
+function mergeById(lists: ApiDzialka[][]) {
+  const map = new Map<string, ApiDzialka>();
+
+  for (const list of lists) {
+    for (const item of list) {
+      if (!map.has(item.id)) {
+        map.set(item.id, item);
+      }
+    }
+  }
+
+  return Array.from(map.values());
 }
 
 function PagerResponsive({
@@ -484,7 +563,7 @@ export default function KupSearch() {
       if (replace) window.history.replaceState(null, '', url);
       else window.history.pushState(null, '', url);
 
-      sessionStorage.setItem('TD_KUP_URL', url);
+      saveState(filters, nextPage);
     } catch {}
   }
 
@@ -540,33 +619,32 @@ export default function KupSearch() {
     try {
       updateBrowserUrl(nextApplied, nextPage, replaceUrl);
 
-      const sp = new URLSearchParams();
-
       const useRadiusSearch = !!nextApplied.center && nextApplied.radiusKm > 0;
+      const hasLocText = !!nextApplied.locText.trim();
 
-      if (!useRadiusSearch && nextApplied.locText.trim()) {
-        sp.set('q', nextApplied.locText.trim());
+      const baseParams = makeBaseParams(nextApplied);
+
+      const broadParams = new URLSearchParams(baseParams);
+      broadParams.set('take', useRadiusSearch ? '1000' : '300');
+
+      if (!useRadiusSearch && hasLocText) {
+        broadParams.set('q', nextApplied.locText.trim());
       }
 
-      if (nextApplied.priceMin) sp.set('priceMin', nextApplied.priceMin);
-      if (nextApplied.priceMax) sp.set('priceMax', nextApplied.priceMax);
-      if (nextApplied.areaMin) sp.set('areaMin', nextApplied.areaMin);
-      if (nextApplied.areaMax) sp.set('areaMax', nextApplied.areaMax);
-      if (nextApplied.przezn.length) sp.set('przeznaczenia', nextApplied.przezn.join(','));
+      const fetches: Promise<ApiDzialka[]>[] = [fetchDzialki(broadParams)];
 
-      sp.set('take', useRadiusSearch ? '1000' : '300');
-      sp.set('skip', '0');
-      sp.set('sort', 'newest');
+      if (useRadiusSearch && hasLocText) {
+        const textParams = new URLSearchParams(baseParams);
+        textParams.set('q', nextApplied.locText.trim());
+        textParams.set('take', '300');
+        fetches.push(fetchDzialki(textParams));
+      }
 
-      const res = await fetch(`/api/dzialki?${sp.toString()}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`GET /api/dzialki -> ${res.status}`);
-
-      const data = await res.json();
-      const list: ApiDzialka[] = data?.items ?? [];
+      const lists = await Promise.all(fetches);
+      const list = mergeById(lists);
 
       let filtered = list;
       const rankMap = new Map<string, number>();
-      const hasLocText = !!nextApplied.locText.trim();
 
       if (useRadiusSearch) {
         filtered = list.filter((d) => {
@@ -608,6 +686,8 @@ export default function KupSearch() {
       setAllItems(sorted);
       setCount(total);
       setPage(safeNextPage);
+
+      saveState(nextApplied, safeNextPage);
 
       if (safeNextPage !== nextPage) {
         updateBrowserUrl(nextApplied, safeNextPage, true);
@@ -678,6 +758,13 @@ export default function KupSearch() {
     setPrzezn([]);
 
     const next = { ...EMPTY_APPLIED };
+
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem('TD_KUP_URL');
+      sessionStorage.removeItem('TD_KUP_SCROLL_Y');
+      sessionStorage.removeItem('TD_KUP_RESTORE_Y');
+    } catch {}
 
     setApplied(next);
     fetchDataWith(next, 1);
