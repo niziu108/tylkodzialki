@@ -228,6 +228,25 @@ export async function savePricingAction(formData: FormData) {
   revalidatePath("/panel/wyroznienia");
 }
 
+export async function saveUserAgencyLogoAction(formData: FormData) {
+  await requireAdmin();
+
+  const userId = String(formData.get("userId") || "").trim();
+  const logoUrl = String(formData.get("logoUrl") || "").trim();
+
+  if (!userId) return;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      defaultBiuroLogoUrl: logoUrl || null,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/kup");
+}
+
 export async function deleteUserAction(formData: FormData) {
   const admin = await requireAdmin();
   const userId = String(formData.get("userId") || "");

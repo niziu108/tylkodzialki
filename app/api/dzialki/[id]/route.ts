@@ -18,6 +18,13 @@ export async function GET(
       where: { id },
       include: {
         zdjecia: { orderBy: { kolejnosc: 'asc' } },
+        owner: {
+          select: {
+            defaultBiuroLogoUrl: true,
+            defaultBiuroNazwa: true,
+            defaultBiuroOpiekun: true,
+          },
+        },
       },
     });
 
@@ -25,7 +32,12 @@ export async function GET(
       return NextResponse.json({ error: 'Nie znaleziono ogłoszenia.' }, { status: 404 });
     }
 
-    return NextResponse.json(item);
+    return NextResponse.json({
+      ...item,
+      biuroLogoUrl: item.biuroLogoUrl || item.owner?.defaultBiuroLogoUrl || null,
+      biuroNazwa: item.biuroNazwa || item.owner?.defaultBiuroNazwa || null,
+      biuroOpiekun: item.biuroOpiekun || item.owner?.defaultBiuroOpiekun || null,
+    });
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || 'Błąd serwera.' },

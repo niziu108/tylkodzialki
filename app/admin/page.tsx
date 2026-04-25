@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import {
   deleteUserAction,
   savePricingAction,
+  saveUserAgencyLogoAction,
   togglePaymentsAction,
   toggleUserRoleAction,
 } from "./actions";
@@ -156,6 +157,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         role: true,
         listingCredits: true,
         createdAt: true,
+        defaultBiuroLogoUrl: true,
         crmIntegrations: {
           select: {
             id: true,
@@ -553,7 +555,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
 
         <div className="mb-8 overflow-x-auto rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
-          <table className="w-full min-w-[1380px] text-sm">
+          <table className="w-full min-w-[1640px] text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
                 <th className="px-4 py-4 font-medium">Email</th>
@@ -565,6 +567,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <th className="px-4 py-4 font-medium">Aktywne</th>
                 <th className="px-4 py-4 font-medium">Kredyty</th>
                 <th className="px-4 py-4 font-medium">Data rejestracji</th>
+                <th className="px-4 py-4 font-medium">Logo</th>
                 <th className="px-4 py-4 font-medium text-right">Akcje</th>
               </tr>
             </thead>
@@ -573,7 +576,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               {usersWithStats.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={11}
                     className="px-4 py-10 text-center text-sm text-[#9f9f9f]"
                   >
                     Brak użytkowników pasujących do wyszukiwania.
@@ -660,6 +663,38 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                     <td className="px-4 py-4 align-middle">
                       {new Date(user.createdAt).toLocaleDateString("pl-PL")}
+                    </td>
+
+                    <td className="px-4 py-4 align-middle">
+                      <form
+                        action={saveUserAgencyLogoAction}
+                        className="flex min-w-[280px] items-center gap-2"
+                      >
+                        <input type="hidden" name="userId" value={user.id} />
+
+                        <input
+                          type="url"
+                          name="logoUrl"
+                          defaultValue={user.defaultBiuroLogoUrl || ""}
+                          placeholder="URL logo biura"
+                          className="h-10 w-full rounded-xl border border-white/10 bg-[#1b1b1b] px-3 text-xs text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+                        />
+
+                        <button
+                          type="submit"
+                          className="h-10 rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                        >
+                          Zapisz
+                        </button>
+                      </form>
+
+                      {user.defaultBiuroLogoUrl ? (
+                        <img
+                          src={user.defaultBiuroLogoUrl}
+                          alt="Logo biura"
+                          className="mt-2 h-8 w-auto max-w-[140px] object-contain"
+                        />
+                      ) : null}
                     </td>
 
                     <td className="px-4 py-4 align-middle">
