@@ -5,6 +5,7 @@ import KupList from './KupList';
 import type { Przeznaczenie } from '@prisma/client';
 
 type ApiPhoto = { id?: string; url: string; publicId?: string; kolejnosc?: number };
+
 type ApiDzialka = {
   id: string;
   tytul: string;
@@ -100,8 +101,7 @@ function formatPLThousands(digits: string) {
 
 function makeAutoPLHandler(setter: (v: string) => void) {
   return (e: React.ChangeEvent<HTMLInputElement>) => {
-    const d = digitsOnly(e.target.value);
-    setter(formatPLThousands(d));
+    setter(formatPLThousands(digitsOnly(e.target.value)));
   };
 }
 
@@ -127,7 +127,6 @@ function matchesTextSearch(d: ApiDzialka, query: string) {
   if (!haystack) return false;
 
   const tokens = q.split(' ').filter((x) => x.length >= 2);
-
   if (!tokens.length) return haystack.includes(q);
 
   return tokens.every((token) => haystack.includes(token));
@@ -157,7 +156,6 @@ function sortPublicItems(list: ApiDzialka[], rankMap?: Map<string, number>) {
 
     const aRank = rankMap?.get(a.id) ?? 99;
     const bRank = rankMap?.get(b.id) ?? 99;
-
     if (aRank !== bRank) return aRank - bRank;
 
     const aFeaturedUntil = a.featuredUntil ? new Date(a.featuredUntil).getTime() : 0;
@@ -175,6 +173,7 @@ function buildUrlFromState(filters: AppliedFilters, page: number) {
   const sp = new URLSearchParams();
 
   if (filters.locText.trim()) sp.set('loc', filters.locText.trim());
+
   if (filters.center) {
     sp.set('lat', String(filters.center.lat));
     sp.set('lng', String(filters.center.lng));
@@ -204,12 +203,14 @@ function readStateFromUrl(): { filters: AppliedFilters; page: number } {
   const latRaw = sp.get('lat');
   const lngRaw = sp.get('lng');
 
-  const lat = latRaw !== null ? Number(latRaw) : NaN;
-  const lng = lngRaw !== null ? Number(lngRaw) : NaN;
+  const lat = latRaw ? Number(latRaw) : NaN;
+  const lng = lngRaw ? Number(lngRaw) : NaN;
 
   const hasRealCenter =
     latRaw !== null &&
     lngRaw !== null &&
+    latRaw !== '' &&
+    lngRaw !== '' &&
     Number.isFinite(lat) &&
     Number.isFinite(lng) &&
     !(lat === 0 && lng === 0);
@@ -232,40 +233,6 @@ function readStateFromUrl(): { filters: AppliedFilters; page: number } {
       locText,
       radiusKm,
       center: hasRealCenter ? { lat, lng } : null,
-      priceMin: digitsOnly(sp.get('priceMin') ?? ''),
-      priceMax: digitsOnly(sp.get('priceMax') ?? ''),
-      areaMin: digitsOnly(sp.get('areaMin') ?? ''),
-      areaMax: digitsOnly(sp.get('areaMax') ?? ''),
-      przezn,
-    },
-    page: Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1,
-  };
-}
-
-  const sp = new URLSearchParams(window.location.search);
-
-  const locText = sp.get('loc') ?? '';
-  const lat = Number(sp.get('lat'));
-  const lng = Number(sp.get('lng'));
-
-  const radiusRaw = Number(sp.get('radius') ?? '5');
-  const radiusKm = KM_OPTIONS.includes(radiusRaw as any)
-    ? (radiusRaw as (typeof KM_OPTIONS)[number])
-    : 5;
-
-  const przeznRaw = sp.get('przezn') ?? '';
-  const przezn = przeznRaw
-    .split(',')
-    .filter(Boolean)
-    .filter((x): x is Przeznaczenie => PRZEZN.some((p) => p.key === x));
-
-  const pageRaw = Number(sp.get('page') ?? '1');
-
-  return {
-    filters: {
-      locText,
-      radiusKm,
-      center: Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null,
       priceMin: digitsOnly(sp.get('priceMin') ?? ''),
       priceMax: digitsOnly(sp.get('priceMax') ?? ''),
       areaMin: digitsOnly(sp.get('areaMin') ?? ''),
@@ -300,8 +267,7 @@ function PagerResponsive({
   const go = () => {
     const n = Number(String(val).replace(/[^\d]/g, ''));
     if (!Number.isFinite(n)) return;
-    const clamped = Math.max(1, Math.min(totalPages, n));
-    onGo(clamped);
+    onGo(Math.max(1, Math.min(totalPages, n)));
   };
 
   const mobilePages = useMemo(() => buildMobilePages(page, totalPages), [page, totalPages]);
@@ -477,7 +443,6 @@ export default function KupSearch() {
   const [areaMax, setAreaMax] = useState(formatPLThousands(initial.filters.areaMax));
 
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>(initial.filters.przezn);
-
   const [applied, setApplied] = useState<AppliedFilters>(initial.filters);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -516,11 +481,8 @@ export default function KupSearch() {
     const url = buildUrlFromState(filters, nextPage);
 
     try {
-      if (replace) {
-        window.history.replaceState(null, '', url);
-      } else {
-        window.history.pushState(null, '', url);
-      }
+      if (replace) window.history.replaceState(null, '', url);
+      else window.history.pushState(null, '', url);
 
       sessionStorage.setItem('TD_KUP_URL', url);
     } catch {}
@@ -553,7 +515,14 @@ export default function KupSearch() {
       try {
         sessionStorage.setItem(
           'TD_KUP_SCROLL_Y',
-          String(Math.max(0, window.scrollY + (searchTopRef.current?.getBoundingClientRect().top ?? 0) - SCROLL_OFFSET))
+          String(
+            Math.max(
+              0,
+              window.scrollY +
+                (searchTopRef.current?.getBoundingClientRect().top ?? 0) -
+                SCROLL_OFFSET
+            )
+          )
         );
         sessionStorage.setItem('TD_KUP_URL', buildUrlFromState(applied, clamped));
       } catch {}
@@ -597,7 +566,6 @@ export default function KupSearch() {
 
       let filtered = list;
       const rankMap = new Map<string, number>();
-
       const hasLocText = !!nextApplied.locText.trim();
 
       if (useRadiusSearch) {
@@ -674,7 +642,11 @@ export default function KupSearch() {
       if (!Number.isFinite(y)) return;
 
       setTimeout(() => {
-        window.scrollTo({ top: Math.max(0, y), left: 0, behavior: 'instant' as ScrollBehavior });
+        window.scrollTo({
+          top: Math.max(0, y),
+          left: 0,
+          behavior: 'instant' as ScrollBehavior,
+        });
       }, 80);
     } catch {}
   }, [loading, page, allItems.length]);
@@ -857,6 +829,7 @@ export default function KupSearch() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {PRZEZN.map((p) => {
                     const active = przezn.includes(p.key);
+
                     return (
                       <button
                         key={p.key}
