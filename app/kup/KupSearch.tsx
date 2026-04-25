@@ -32,7 +32,29 @@ const PRZEZN: { key: Przeznaczenie; label: string }[] = [
 ];
 
 const PAGE_SIZE = 20;
-const SCROLL_OFFSET = -450; // zmień np. na 110 jeśli global menu dalej zasłania
+const SCROLL_OFFSET = -450;
+
+type AppliedFilters = {
+  locText: string;
+  radiusKm: (typeof KM_OPTIONS)[number];
+  center: { lat: number; lng: number } | null;
+  priceMin: string;
+  priceMax: string;
+  areaMin: string;
+  areaMax: string;
+  przezn: Przeznaczenie[];
+};
+
+const EMPTY_APPLIED: AppliedFilters = {
+  locText: '',
+  radiusKm: 5,
+  center: null,
+  priceMin: '',
+  priceMax: '',
+  areaMin: '',
+  areaMax: '',
+  przezn: [],
+};
 
 function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   const R = 6371;
@@ -50,6 +72,7 @@ function loadPlaces(apiKey: string) {
   return new Promise<void>((resolve, reject) => {
     // @ts-ignore
     if (window.google?.maps?.places) return resolve();
+
     const id = 'google-places-js';
     if (document.getElementById(id)) return resolve();
 
@@ -82,12 +105,38 @@ function makeAutoPLHandler(setter: (v: string) => void) {
   };
 }
 
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function matchesTextSearch(d: ApiDzialka, query: string) {
+  const q = normalizeText(query);
+  if (!q) return false;
+
+  const haystack = normalizeText(
+    [d.locationLabel, d.locationFull, d.tytul].filter(Boolean).join(' ')
+  );
+
+  if (!haystack) return false;
+
+  const tokens = q.split(' ').filter((x) => x.length >= 2);
+
+  if (!tokens.length) return haystack.includes(q);
+
+  return tokens.every((token) => haystack.includes(token));
+}
+
 function buildMobilePages(page: number, total: number): Array<number | '…'> {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-
   if (page <= 4) return [1, 2, 3, 4, '…', total];
   if (page >= total - 3) return [1, '…', total - 3, total - 2, total - 1, total];
-
   return [1, '…', page - 1, page, page + 1, '…', total];
 }
 
@@ -99,14 +148,17 @@ function isFeaturedActive(item: ApiDzialka) {
   );
 }
 
-function sortPublicItems(list: ApiDzialka[]) {
+function sortPublicItems(list: ApiDzialka[], rankMap?: Map<string, number>) {
   return [...list].sort((a, b) => {
     const aFeatured = isFeaturedActive(a);
     const bFeatured = isFeaturedActive(b);
 
-    if (aFeatured !== bFeatured) {
-      return aFeatured ? -1 : 1;
-    }
+    if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
+
+    const aRank = rankMap?.get(a.id) ?? 99;
+    const bRank = rankMap?.get(b.id) ?? 99;
+
+    if (aRank !== bRank) return aRank - bRank;
 
     const aFeaturedUntil = a.featuredUntil ? new Date(a.featuredUntil).getTime() : 0;
     const bFeaturedUntil = b.featuredUntil ? new Date(b.featuredUntil).getTime() : 0;
@@ -117,6 +169,66 @@ function sortPublicItems(list: ApiDzialka[]) {
 
     return 0;
   });
+}
+
+function buildUrlFromState(filters: AppliedFilters, page: number) {
+  const sp = new URLSearchParams();
+
+  if (filters.locText.trim()) sp.set('loc', filters.locText.trim());
+  if (filters.center) {
+    sp.set('lat', String(filters.center.lat));
+    sp.set('lng', String(filters.center.lng));
+  }
+
+  if (filters.radiusKm !== 5) sp.set('radius', String(filters.radiusKm));
+  if (filters.priceMin) sp.set('priceMin', filters.priceMin);
+  if (filters.priceMax) sp.set('priceMax', filters.priceMax);
+  if (filters.areaMin) sp.set('areaMin', filters.areaMin);
+  if (filters.areaMax) sp.set('areaMax', filters.areaMax);
+  if (filters.przezn.length) sp.set('przezn', filters.przezn.join(','));
+  if (page > 1) sp.set('page', String(page));
+
+  const qs = sp.toString();
+  return qs ? `/kup?${qs}` : '/kup';
+}
+
+function readStateFromUrl(): { filters: AppliedFilters; page: number } {
+  if (typeof window === 'undefined') {
+    return { filters: EMPTY_APPLIED, page: 1 };
+  }
+
+  const sp = new URLSearchParams(window.location.search);
+
+  const locText = sp.get('loc') ?? '';
+  const lat = Number(sp.get('lat'));
+  const lng = Number(sp.get('lng'));
+
+  const radiusRaw = Number(sp.get('radius') ?? '5');
+  const radiusKm = KM_OPTIONS.includes(radiusRaw as any)
+    ? (radiusRaw as (typeof KM_OPTIONS)[number])
+    : 5;
+
+  const przeznRaw = sp.get('przezn') ?? '';
+  const przezn = przeznRaw
+    .split(',')
+    .filter(Boolean)
+    .filter((x): x is Przeznaczenie => PRZEZN.some((p) => p.key === x));
+
+  const pageRaw = Number(sp.get('page') ?? '1');
+
+  return {
+    filters: {
+      locText,
+      radiusKm,
+      center: Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null,
+      priceMin: digitsOnly(sp.get('priceMin') ?? ''),
+      priceMax: digitsOnly(sp.get('priceMax') ?? ''),
+      areaMin: digitsOnly(sp.get('areaMin') ?? ''),
+      areaMax: digitsOnly(sp.get('areaMax') ?? ''),
+      przezn,
+    },
+    page: Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1,
+  };
 }
 
 function PagerResponsive({
@@ -183,6 +295,7 @@ function PagerResponsive({
               }
 
               const active = x === page;
+
               return (
                 <button
                   key={x}
@@ -299,38 +412,32 @@ function PagerResponsive({
 }
 
 export default function KupSearch() {
+  const initial = useMemo(() => readStateFromUrl(), []);
+
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const [allItems, setAllItems] = useState<ApiDzialka[]>([]);
   const [count, setCount] = useState(0);
 
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initial.page);
 
-  const [locText, setLocText] = useState('');
-  const [radiusKm, setRadiusKm] = useState<(typeof KM_OPTIONS)[number]>(5);
-  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [locText, setLocText] = useState(initial.filters.locText);
+  const [radiusKm, setRadiusKm] = useState<(typeof KM_OPTIONS)[number]>(initial.filters.radiusKm);
+  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(initial.filters.center);
 
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
-  const [areaMin, setAreaMin] = useState('');
-  const [areaMax, setAreaMax] = useState('');
+  const [priceMin, setPriceMin] = useState(formatPLThousands(initial.filters.priceMin));
+  const [priceMax, setPriceMax] = useState(formatPLThousands(initial.filters.priceMax));
+  const [areaMin, setAreaMin] = useState(formatPLThousands(initial.filters.areaMin));
+  const [areaMax, setAreaMax] = useState(formatPLThousands(initial.filters.areaMax));
 
-  const [przezn, setPrzezn] = useState<Przeznaczenie[]>([]);
+  const [przezn, setPrzezn] = useState<Przeznaczenie[]>(initial.filters.przezn);
 
-  const [applied, setApplied] = useState({
-    locText: '',
-    radiusKm: 5 as (typeof KM_OPTIONS)[number],
-    center: null as { lat: number; lng: number } | null,
-    priceMin: '',
-    priceMax: '',
-    areaMin: '',
-    areaMax: '',
-    przezn: [] as Przeznaczenie[],
-  });
+  const [applied, setApplied] = useState<AppliedFilters>(initial.filters);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchTopRef = useRef<HTMLDivElement | null>(null);
+  const restoredScrollRef = useRef(false);
 
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -339,6 +446,7 @@ export default function KupSearch() {
     loadPlaces(key)
       .then(() => {
         if (!inputRef.current) return;
+
         // @ts-ignore
         const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
           fields: ['geometry', 'formatted_address', 'name'],
@@ -350,6 +458,7 @@ export default function KupSearch() {
           const loc = p?.geometry?.location;
 
           setLocText(label);
+
           if (loc?.lat && loc?.lng) {
             setCenter({ lat: loc.lat(), lng: loc.lng() });
           }
@@ -357,6 +466,20 @@ export default function KupSearch() {
       })
       .catch(() => {});
   }, []);
+
+  function updateBrowserUrl(filters: AppliedFilters, nextPage: number, replace = false) {
+    const url = buildUrlFromState(filters, nextPage);
+
+    try {
+      if (replace) {
+        window.history.replaceState(null, '', url);
+      } else {
+        window.history.pushState(null, '', url);
+      }
+
+      sessionStorage.setItem('TD_KUP_URL', url);
+    } catch {}
+  }
 
   function scrollToSearchTop() {
     const el = searchTopRef.current;
@@ -377,6 +500,7 @@ export default function KupSearch() {
     if (clamped === page) return;
 
     setPage(clamped);
+    updateBrowserUrl(applied, clamped);
 
     requestAnimationFrame(() => {
       scrollToSearchTop();
@@ -386,7 +510,7 @@ export default function KupSearch() {
           'TD_KUP_SCROLL_Y',
           String(Math.max(0, window.scrollY + (searchTopRef.current?.getBoundingClientRect().top ?? 0) - SCROLL_OFFSET))
         );
-        sessionStorage.setItem('TD_KUP_URL', window.location.pathname + window.location.search);
+        sessionStorage.setItem('TD_KUP_URL', buildUrlFromState(applied, clamped));
       } catch {}
     });
   }
@@ -395,11 +519,13 @@ export default function KupSearch() {
     setPrzezn((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
   }
 
-  async function fetchDataWith(nextApplied: typeof applied) {
+  async function fetchDataWith(nextApplied: AppliedFilters, nextPage = 1, replaceUrl = false) {
     setLoading(true);
     setErr(null);
 
     try {
+      updateBrowserUrl(nextApplied, nextPage, replaceUrl);
+
       const sp = new URLSearchParams();
 
       const useRadiusSearch = !!nextApplied.center && nextApplied.radiusKm > 0;
@@ -414,7 +540,7 @@ export default function KupSearch() {
       if (nextApplied.areaMax) sp.set('areaMax', nextApplied.areaMax);
       if (nextApplied.przezn.length) sp.set('przeznaczenia', nextApplied.przezn.join(','));
 
-      sp.set('take', useRadiusSearch ? '500' : '200');
+      sp.set('take', useRadiusSearch ? '1000' : '300');
       sp.set('skip', '0');
       sp.set('sort', 'newest');
 
@@ -425,27 +551,54 @@ export default function KupSearch() {
       const list: ApiDzialka[] = data?.items ?? [];
 
       let filtered = list;
+      const rankMap = new Map<string, number>();
 
-      if (nextApplied.center && nextApplied.radiusKm > 0) {
+      const hasLocText = !!nextApplied.locText.trim();
+
+      if (useRadiusSearch) {
         filtered = list.filter((d) => {
-          if (typeof d.lat !== 'number' || typeof d.lng !== 'number') return false;
+          const hasCoords = typeof d.lat === 'number' && typeof d.lng === 'number';
 
-          return (
-            haversineKm(
-              nextApplied.center!.lat,
-              nextApplied.center!.lng,
-              d.lat,
-              d.lng
-            ) <= nextApplied.radiusKm
-          );
+          const inRadius = hasCoords
+            ? haversineKm(nextApplied.center!.lat, nextApplied.center!.lng, d.lat!, d.lng!) <=
+              nextApplied.radiusKm
+            : false;
+
+          const textMatch = hasLocText ? matchesTextSearch(d, nextApplied.locText) : false;
+
+          if (inRadius) {
+            rankMap.set(d.id, 1);
+            return true;
+          }
+
+          if (textMatch) {
+            rankMap.set(d.id, 2);
+            return true;
+          }
+
+          return false;
+        });
+      } else if (hasLocText) {
+        filtered = list.filter((d) => {
+          const textMatch = matchesTextSearch(d, nextApplied.locText);
+          if (textMatch) rankMap.set(d.id, 1);
+          return textMatch;
         });
       }
 
-      const sorted = sortPublicItems(filtered);
+      const sorted = sortPublicItems(filtered, rankMap);
+
+      const total = sorted.length;
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      const safeNextPage = Math.max(1, Math.min(totalPages, nextPage));
 
       setAllItems(sorted);
-      setCount(sorted.length);
-      setPage(1);
+      setCount(total);
+      setPage(safeNextPage);
+
+      if (safeNextPage !== nextPage) {
+        updateBrowserUrl(nextApplied, safeNextPage, true);
+      }
     } catch (e: any) {
       setErr(e?.message ?? 'Błąd pobierania');
       setAllItems([]);
@@ -457,12 +610,32 @@ export default function KupSearch() {
   }
 
   useEffect(() => {
-    fetchDataWith(applied);
+    fetchDataWith(initial.filters, initial.page, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (loading) return;
+    if (restoredScrollRef.current) return;
+
+    try {
+      const restoreY = sessionStorage.getItem('TD_KUP_RESTORE_Y');
+      if (!restoreY) return;
+
+      restoredScrollRef.current = true;
+      sessionStorage.removeItem('TD_KUP_RESTORE_Y');
+
+      const y = Number(restoreY);
+      if (!Number.isFinite(y)) return;
+
+      setTimeout(() => {
+        window.scrollTo({ top: Math.max(0, y), left: 0, behavior: 'instant' as ScrollBehavior });
+      }, 80);
+    } catch {}
+  }, [loading, page, allItems.length]);
+
   function applyAndSearch() {
-    const next = {
+    const next: AppliedFilters = {
       locText,
       radiusKm,
       center,
@@ -474,7 +647,7 @@ export default function KupSearch() {
     };
 
     setApplied(next);
-    fetchDataWith(next);
+    fetchDataWith(next, 1);
   }
 
   function reset() {
@@ -487,19 +660,10 @@ export default function KupSearch() {
     setAreaMax('');
     setPrzezn([]);
 
-    const next = {
-      locText: '',
-      radiusKm: 5 as (typeof KM_OPTIONS)[number],
-      center: null as { lat: number; lng: number } | null,
-      priceMin: '',
-      priceMax: '',
-      areaMin: '',
-      areaMax: '',
-      przezn: [] as Przeznaczenie[],
-    };
+    const next = { ...EMPTY_APPLIED };
 
     setApplied(next);
-    fetchDataWith(next);
+    fetchDataWith(next, 1);
   }
 
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
@@ -681,11 +845,6 @@ export default function KupSearch() {
                   onClick={applyAndSearch}
                   className="flex-1 rounded-xl bg-white px-4 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:opacity-60"
                   disabled={loading}
-                  title={
-                    radiusKm > 0 && !center
-                      ? 'Żeby radius działał po kilometrach, wybierz lokalizację z podpowiedzi Google.'
-                      : ''
-                  }
                 >
                   {loading ? 'Szukam…' : 'Wyszukaj'}
                 </button>

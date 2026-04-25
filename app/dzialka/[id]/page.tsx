@@ -23,36 +23,11 @@ type Dzialka = {
 
   przeznaczenia?: string[];
 
-  prad?:
-    | 'BRAK_PRZYLACZA'
-    | 'PRZYLACZE_NA_DZIALCE'
-    | 'PRZYLACZE_W_DRODZE'
-    | 'WARUNKI_PRZYLACZENIA_WYDANE'
-    | 'MOZLIWOSC_PRZYLACZENIA'
-    | string
-    | null;
-
-  woda?:
-    | 'BRAK_PRZYLACZA'
-    | 'WODOCIAG_NA_DZIALCE'
-    | 'WODOCIAG_W_DRODZE'
-    | 'STUDNIA_GLEBINOWA'
-    | 'MOZLIWOSC_PODLACZENIA'
-    | string
-    | null;
-
-  kanalizacja?:
-    | 'BRAK'
-    | 'MIEJSKA_NA_DZIALCE'
-    | 'MIEJSKA_W_DRODZE'
-    | 'SZAMBO'
-    | 'PRZYDOMOWA_OCZYSZCZALNIA'
-    | 'MOZLIWOSC_PODLACZENIA'
-    | string
-    | null;
-
-  gaz?: 'BRAK' | 'GAZ_NA_DZIALCE' | 'GAZ_W_DRODZE' | 'MOZLIWOSC_PODLACZENIA' | string | null;
-  swiatlowod?: 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE' | 'MOZLIWOSC_PODLACZENIA' | string | null;
+  prad?: string | null;
+  woda?: string | null;
+  kanalizacja?: string | null;
+  gaz?: string | null;
+  swiatlowod?: string | null;
 
   wzWydane?: boolean | null;
   mpzp?: boolean | null;
@@ -160,6 +135,31 @@ function labelSwiatlowod(v?: string | null) {
     MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
   };
   return map[v] ?? v;
+}
+
+function formatOpis(raw?: string | null) {
+  const text = (raw ?? '').trim();
+  if (!text) return null;
+
+  const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(text);
+
+  if (looksLikeHtml) {
+    return text
+      .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '</p><p>')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\n{2,}/g, '</p><p>')
+      .replace(/\n/g, '<br />');
+  }
+
+  return text
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${p.replace(/\n/g, '<br />')}</p>`)
+    .join('');
 }
 
 function SmartImg({
@@ -298,6 +298,7 @@ export default function DzialkaPage() {
   const przeznText = przezn.length ? przezn.map(labelPrzeznaczenie).join(', ') : null;
 
   const loc = d?.locationLabel?.trim() || null;
+
   const mapSrc = useMemo(() => {
     if (!d) return null;
     if (d.lat && d.lng) return `https://www.google.com/maps?q=${d.lat},${d.lng}&z=15&output=embed`;
@@ -311,7 +312,7 @@ export default function DzialkaPage() {
   const sw = labelSwiatlowod(d?.swiatlowod ?? null);
   const hasUzbrojenie = Boolean(prad || woda || kan || gaz || sw);
 
-  const opis = (d?.opis ?? '').trim() || null;
+  const opis = formatOpis(d?.opis);
 
   const telefon = (d?.telefon ?? '').trim() || null;
   const numerOferty = (d?.numerOferty ?? '').trim() || null;
@@ -321,7 +322,6 @@ export default function DzialkaPage() {
 
   const sprzedajacyTyp = d?.sprzedajacyTyp ?? null;
   const sprzedajacyImie = (d?.sprzedajacyImie ?? '').trim() || null;
-  const biuroNazwa = (d?.biuroNazwa ?? '').trim() || null;
   const biuroOpiekun = (d?.biuroOpiekun ?? '').trim() || null;
   const biuroLogoUrl = (d?.biuroLogoUrl ?? '').trim() || null;
 
@@ -616,12 +616,6 @@ export default function DzialkaPage() {
                   <FieldBlock label="Ogłoszenie biura nieruchomości">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1 space-y-3 text-[14px] text-white/85">
-                        {biuroNazwa ? (
-                          <div className="break-words">
-                            Biuro: <span className="text-white/95">{biuroNazwa}</span>
-                          </div>
-                        ) : null}
-
                         {biuroOpiekun ? (
                           <div className="break-words">
                             Opiekun: <span className="text-white/95">{biuroOpiekun}</span>
@@ -633,7 +627,7 @@ export default function DzialkaPage() {
                         <div className="shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                           <img
                             src={biuroLogoUrl}
-                            alt={biuroNazwa || 'Logo biura'}
+                            alt="Logo biura"
                             className="h-16 w-auto max-w-[120px] object-contain"
                           />
                         </div>
@@ -671,31 +665,11 @@ export default function DzialkaPage() {
                 <>
                   <FieldBlock label="Uzbrojenie">
                     <div className="space-y-2 text-[14px] text-white/85">
-                      {prad ? (
-                        <div className="break-words">
-                          Prąd: <span className="text-white/95">{prad}</span>
-                        </div>
-                      ) : null}
-                      {woda ? (
-                        <div className="break-words">
-                          Woda: <span className="text-white/95">{woda}</span>
-                        </div>
-                      ) : null}
-                      {kan ? (
-                        <div className="break-words">
-                          Kanalizacja: <span className="text-white/95">{kan}</span>
-                        </div>
-                      ) : null}
-                      {gaz ? (
-                        <div className="break-words">
-                          Gaz: <span className="text-white/95">{gaz}</span>
-                        </div>
-                      ) : null}
-                      {sw ? (
-                        <div className="break-words">
-                          Światłowód: <span className="text-white/95">{sw}</span>
-                        </div>
-                      ) : null}
+                      {prad ? <div>Prąd: <span className="text-white/95">{prad}</span></div> : null}
+                      {woda ? <div>Woda: <span className="text-white/95">{woda}</span></div> : null}
+                      {kan ? <div>Kanalizacja: <span className="text-white/95">{kan}</span></div> : null}
+                      {gaz ? <div>Gaz: <span className="text-white/95">{gaz}</span></div> : null}
+                      {sw ? <div>Światłowód: <span className="text-white/95">{sw}</span></div> : null}
                     </div>
                   </FieldBlock>
                   <Hr />
@@ -719,21 +693,9 @@ export default function DzialkaPage() {
                 <>
                   <FieldBlock label="Dodatkowe informacje">
                     <div className="space-y-2 text-[14px] text-white/85">
-                      {klasaZiemi ? (
-                        <div className="break-words">
-                          Klasa ziemi: <span className="text-white/95">{klasaZiemi}</span>
-                        </div>
-                      ) : null}
-                      {wymiary ? (
-                        <div className="break-words">
-                          Wymiary: <span className="text-white/95">{wymiary}</span>
-                        </div>
-                      ) : null}
-                      {ksiega ? (
-                        <div className="break-words">
-                          Księga wieczysta: <span className="text-white/95">{ksiega}</span>
-                        </div>
-                      ) : null}
+                      {klasaZiemi ? <div>Klasa ziemi: <span className="text-white/95">{klasaZiemi}</span></div> : null}
+                      {wymiary ? <div>Wymiary: <span className="text-white/95">{wymiary}</span></div> : null}
+                      {ksiega ? <div>Księga wieczysta: <span className="text-white/95">{ksiega}</span></div> : null}
                     </div>
                   </FieldBlock>
                   <Hr />
@@ -858,11 +820,7 @@ export default function DzialkaPage() {
                       )}
                       title={`Zdjęcie ${i + 1}`}
                     >
-                      <SmartImg
-                        src={u}
-                        alt={`Zdjęcie ${i + 1}`}
-                        className="h-full w-full object-cover"
-                      />
+                      <SmartImg src={u} alt={`Zdjęcie ${i + 1}`} className="h-full w-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -876,6 +834,7 @@ export default function DzialkaPage() {
         .td-opis {
           overflow-wrap: anywhere;
           word-break: break-word;
+          white-space: normal;
         }
         .td-opis b,
         .td-opis strong {
@@ -883,7 +842,7 @@ export default function DzialkaPage() {
           font-weight: 700;
         }
         .td-opis p {
-          margin: 0 0 10px 0;
+          margin: 0 0 12px 0;
         }
         .td-opis ul {
           margin: 10px 0 10px 18px;
