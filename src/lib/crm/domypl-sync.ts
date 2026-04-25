@@ -674,7 +674,14 @@ function parseOfferFragment(offerXml: string, headerMeta: HeaderMeta): ParsedDom
     const params = parseParams(ofertaNode);
     const plotTypeRaw = toTextValue(params.typdzialki) || null;
 
-    const isLandOffer = externalId.toUpperCase().startsWith("GS") || Boolean(plotTypeRaw);
+    const externalIdUpper = externalId.toUpperCase();
+
+const isLandOffer =
+  externalIdUpper.startsWith("GS") ||
+  externalIdUpper.includes("-GS-") ||
+  externalIdUpper.startsWith("GW") ||
+  externalIdUpper.includes("-GW-") ||
+  Boolean(plotTypeRaw);
 
     if (!isLandOffer) {
       console.log("[CRM DEBUG] Odrzucono:", externalId, "to nie jest działka", { plotTypeRaw });
@@ -806,7 +813,7 @@ function parseOfferFragment(offerXml: string, headerMeta: HeaderMeta): ParsedDom
 async function streamParseDomyPlOffers(
   xmlStream: NodeJS.ReadableStream,
   onOffer: (offer: ParsedDomyOffer) => Promise<void>
-) {
+): Promise<{ importedOffers: number; headerMeta: HeaderMeta }> {
   const saxStream = sax.createStream(true, {
     lowercase: true,
     trim: false,
@@ -935,7 +942,7 @@ async function streamParseDomyPlOffers(
     }
   });
 
-  const finishedPromise = new Promise<number>((resolve, reject) => {
+  const finishedPromise = new Promise<{ importedOffers: number; headerMeta: HeaderMeta }>((resolve, reject) => {
     saxStream.on("error", (error: unknown) => reject(error));
     xmlStream.on("error", (error: unknown) => reject(error));
 
@@ -950,7 +957,10 @@ async function streamParseDomyPlOffers(
             "Zaimportowane:",
             importedOffers
           );
-          resolve(importedOffers);
+          resolve({
+  importedOffers,
+  headerMeta,
+});
         })
         .catch(reject);
     });
@@ -1371,7 +1381,7 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
 
     const seenExternalIds = new Set<string>();
 
-    await streamParseDomyPlOffers(xmlStream, async (offer) => {
+    const parseResult = await streamParseDomyPlOffers(xmlStream, async (offer) => {
       importedOffers += 1;
       seenExternalIds.add(offer.externalId);
 
@@ -1410,9 +1420,27 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
       }
     });
 
-    if (integration.fullImportMode && seenExternalIds.size > 0) {
-      deactivatedCount = await deactivateMissingOffers(integration.id, seenExternalIds);
-    }
+    const zawartoscPliku = normalizeText(parseResult.headerMeta.zawartoscPliku);
+
+const isFullExport =
+  zawartoscPliku.includes("pelny") ||
+  zawartoscPliku.includes("pełny") ||
+  zawartoscPliku.includes("calosc") ||
+  zawartoscPliku.includes("całość");
+
+console.log("[CRM DEBUG] Tryb pliku:", {
+  remoteFileName: downloaded.remoteFileName,
+  zawartoscPliku,
+  isFullExport,
+  fullImportMode: integration.fullImportMode,
+  seenExternalIds: seenExternalIds.size,
+});
+
+if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
+  deactivatedCount = await deactivateMissingOffers(integration.id, seenExternalIds);
+} else {
+  console.log("[CRM DEBUG] Nie kończę brakujących ofert, bo plik nie jest pełnym eksportem.");
+}
 
     await prisma.crmIntegration.update({
       where: { id: integration.id },
