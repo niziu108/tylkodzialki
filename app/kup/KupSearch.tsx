@@ -200,6 +200,51 @@ function readStateFromUrl(): { filters: AppliedFilters; page: number } {
   const sp = new URLSearchParams(window.location.search);
 
   const locText = sp.get('loc') ?? '';
+
+  const latRaw = sp.get('lat');
+  const lngRaw = sp.get('lng');
+
+  const lat = latRaw !== null ? Number(latRaw) : NaN;
+  const lng = lngRaw !== null ? Number(lngRaw) : NaN;
+
+  const hasRealCenter =
+    latRaw !== null &&
+    lngRaw !== null &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    !(lat === 0 && lng === 0);
+
+  const radiusRaw = Number(sp.get('radius') ?? '5');
+  const radiusKm = KM_OPTIONS.includes(radiusRaw as any)
+    ? (radiusRaw as (typeof KM_OPTIONS)[number])
+    : 5;
+
+  const przeznRaw = sp.get('przezn') ?? '';
+  const przezn = przeznRaw
+    .split(',')
+    .filter(Boolean)
+    .filter((x): x is Przeznaczenie => PRZEZN.some((p) => p.key === x));
+
+  const pageRaw = Number(sp.get('page') ?? '1');
+
+  return {
+    filters: {
+      locText,
+      radiusKm,
+      center: hasRealCenter ? { lat, lng } : null,
+      priceMin: digitsOnly(sp.get('priceMin') ?? ''),
+      priceMax: digitsOnly(sp.get('priceMax') ?? ''),
+      areaMin: digitsOnly(sp.get('areaMin') ?? ''),
+      areaMax: digitsOnly(sp.get('areaMax') ?? ''),
+      przezn,
+    },
+    page: Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1,
+  };
+}
+
+  const sp = new URLSearchParams(window.location.search);
+
+  const locText = sp.get('loc') ?? '';
   const lat = Number(sp.get('lat'));
   const lng = Number(sp.get('lng'));
 
