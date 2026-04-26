@@ -160,11 +160,13 @@ function matchesTextSearch(d: ApiDzialka, query: string) {
 }
 
 function buildMobilePages(page: number, total: number): Array<number | '…'> {
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-  if (page <= 4) return [1, 2, 3, 4, '…', total];
-  if (page >= total - 3) return [1, '…', total - 3, total - 2, total - 1, total];
+  if (total <= 4) return Array.from({ length: total }, (_, i) => i + 1);
 
-  return [1, '…', page - 1, page, page + 1, '…', total];
+  if (page <= 2) return [1, 2, 3, '…', total];
+
+  if (page >= total - 1) return [1, '…', total - 2, total - 1, total];
+
+  return [1, '…', page, '…', total];
 }
 
 function isFeaturedActive(item: ApiDzialka) {
@@ -374,31 +376,28 @@ function PagerResponsive({
   return (
     <div className={className || ''}>
       <div className="md:hidden">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex w-full max-w-full items-center justify-center gap-2 overflow-hidden px-1">
           <button
             type="button"
             onClick={onPrev}
             disabled={page <= 1}
+            aria-label="Poprzednia strona"
             className={[
-              'text-[12px] tracking-[0.22em] uppercase transition',
-              page <= 1 ? 'text-white/30' : 'text-white/70 hover:text-white',
+              'shrink-0 px-2 text-[18px] leading-none transition',
+              page <= 1 ? 'text-white/25' : 'text-white/75 hover:text-white',
             ].join(' ')}
-            style={{
-              textDecoration: 'underline',
-              textUnderlineOffset: '10px',
-              textDecorationThickness: '1px',
-              textDecorationColor:
-                page <= 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
-            }}
           >
-            Poprzednia
+            ‹
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center justify-center gap-1.5">
             {mobilePages.map((x, idx) => {
               if (x === '…') {
                 return (
-                  <span key={`dots-${idx}`} className="text-white/35 text-[12px] tracking-[0.18em]">
+                  <span
+                    key={`dots-${idx}`}
+                    className="shrink-0 px-0.5 text-[12px] tracking-[0.08em] text-white/35"
+                  >
                     …
                   </span>
                 );
@@ -412,12 +411,12 @@ function PagerResponsive({
                   type="button"
                   onClick={() => onGo(x)}
                   className={[
-                    'min-w-[26px] text-center text-[12px] tracking-[0.14em] uppercase transition',
+                    'shrink-0 min-w-[24px] px-1 text-center text-[12px] tracking-[0.08em] transition',
                     active ? 'text-white' : 'text-white/60 hover:text-white',
                   ].join(' ')}
                   style={{
                     textDecoration: active ? 'underline' : 'none',
-                    textUnderlineOffset: '10px',
+                    textUnderlineOffset: '8px',
                     textDecorationThickness: '1px',
                     textDecorationColor: active ? 'rgba(255,255,255,0.65)' : 'transparent',
                   }}
@@ -432,19 +431,13 @@ function PagerResponsive({
             type="button"
             onClick={onNext}
             disabled={page >= totalPages}
+            aria-label="Następna strona"
             className={[
-              'text-[12px] tracking-[0.22em] uppercase transition',
-              page >= totalPages ? 'text-white/30' : 'text-white/70 hover:text-white',
+              'shrink-0 px-2 text-[18px] leading-none transition',
+              page >= totalPages ? 'text-white/25' : 'text-white/75 hover:text-white',
             ].join(' ')}
-            style={{
-              textDecoration: 'underline',
-              textUnderlineOffset: '10px',
-              textDecorationThickness: '1px',
-              textDecorationColor:
-                page >= totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
-            }}
           >
-            Następna
+            ›
           </button>
         </div>
       </div>
@@ -640,7 +633,6 @@ export default function KupSearch() {
       updateBrowserUrl(nextApplied, nextPage, replaceUrl);
 
       const useRadiusSearch = !!nextApplied.center && nextApplied.radiusKm > 0;
-      const hasLocText = !!nextApplied.locText.trim();
       const cleanedTextQuery = cleanSearchQuery(nextApplied.locText);
 
       const baseParams = makeBaseParams(nextApplied);
@@ -804,7 +796,7 @@ export default function KupSearch() {
   const goTo = (p: number) => changePage(p);
 
   return (
-    <div className="w-full">
+    <div className="w-full overflow-x-hidden">
       <section ref={searchTopRef} className="relative w-full">
         <div
           className="absolute inset-0"
