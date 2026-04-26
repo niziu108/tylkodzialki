@@ -160,13 +160,13 @@ function matchesTextSearch(d: ApiDzialka, query: string) {
 }
 
 function buildMobilePages(page: number, total: number): Array<number | '…'> {
-  if (total <= 4) return Array.from({ length: total }, (_, i) => i + 1);
+  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
 
-  if (page <= 2) return [1, 2, 3, '…', total];
+  if (page <= 3) return [1, 2, 3, 4, '…', total];
 
-  if (page >= total - 1) return [1, '…', total - 2, total - 1, total];
+  if (page >= total - 2) return [1, '…', total - 3, total - 2, total - 1, total];
 
-  return [1, '…', page, '…', total];
+  return [1, '…', page - 1, page, page + 1, '…', total];
 }
 
 function isFeaturedActive(item: ApiDzialka) {
@@ -376,27 +376,27 @@ function PagerResponsive({
   return (
     <div className={className || ''}>
       <div className="md:hidden">
-        <div className="flex w-full max-w-full items-center justify-center gap-2 overflow-hidden px-1">
+        <div className="flex w-full max-w-full items-center justify-center gap-1 overflow-hidden px-0">
           <button
             type="button"
             onClick={onPrev}
             disabled={page <= 1}
             aria-label="Poprzednia strona"
             className={[
-              'shrink-0 px-2 text-[18px] leading-none transition',
-              page <= 1 ? 'text-white/25' : 'text-white/75 hover:text-white',
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[30px] leading-none transition',
+              page <= 1 ? 'text-white/25' : 'text-white/80 hover:bg-white/10 hover:text-white',
             ].join(' ')}
           >
             ‹
           </button>
 
-          <div className="flex min-w-0 items-center justify-center gap-1.5">
+          <div className="flex min-w-0 items-center justify-center gap-1">
             {mobilePages.map((x, idx) => {
               if (x === '…') {
                 return (
                   <span
                     key={`dots-${idx}`}
-                    className="shrink-0 px-0.5 text-[12px] tracking-[0.08em] text-white/35"
+                    className="shrink-0 px-0.5 text-[13px] tracking-[0.04em] text-white/35"
                   >
                     …
                   </span>
@@ -411,7 +411,7 @@ function PagerResponsive({
                   type="button"
                   onClick={() => onGo(x)}
                   className={[
-                    'shrink-0 min-w-[24px] px-1 text-center text-[12px] tracking-[0.08em] transition',
+                    'shrink-0 min-w-[25px] px-1 text-center text-[13px] tracking-[0.04em] transition',
                     active ? 'text-white' : 'text-white/60 hover:text-white',
                   ].join(' ')}
                   style={{
@@ -433,8 +433,8 @@ function PagerResponsive({
             disabled={page >= totalPages}
             aria-label="Następna strona"
             className={[
-              'shrink-0 px-2 text-[18px] leading-none transition',
-              page >= totalPages ? 'text-white/25' : 'text-white/75 hover:text-white',
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[30px] leading-none transition',
+              page >= totalPages ? 'text-white/25' : 'text-white/80 hover:bg-white/10 hover:text-white',
             ].join(' ')}
           >
             ›
