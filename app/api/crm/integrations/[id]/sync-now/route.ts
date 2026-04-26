@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
 import { syncCrmIntegrationNow } from "@/lib/crm/domypl-sync";
+import { syncAsariIntegrationNow } from "@/lib/crm/asari-sync";
 
 type RouteContext = {
   params: Promise<{
@@ -49,6 +50,7 @@ export async function POST(_req: Request, context: RouteContext) {
       },
       select: {
         id: true,
+        provider: true,
       },
     });
 
@@ -59,7 +61,10 @@ export async function POST(_req: Request, context: RouteContext) {
       );
     }
 
-    const summary = await syncCrmIntegrationNow(integration.id);
+    const summary =
+      integration.provider === "ASARI"
+        ? await syncAsariIntegrationNow(integration.id)
+        : await syncCrmIntegrationNow(integration.id);
 
     return NextResponse.json({
       success: true,
