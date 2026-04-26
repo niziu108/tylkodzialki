@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { syncCrmIntegrationNow } from "@/lib/crm/domypl-sync";
+import { syncAsariIntegrationNow } from "@/lib/crm/asari-sync";
 
 export async function runCrmImportJob(jobId: string) {
   const job = await prisma.crmImportJob.findUnique({
@@ -22,14 +23,20 @@ export async function runCrmImportJob(jobId: string) {
   });
 
   try {
-    const result = await syncCrmIntegrationNow(job.integrationId);
+    const result =
+      job.integration.provider === "ASARI"
+        ? await syncAsariIntegrationNow(job.integrationId)
+        : await syncCrmIntegrationNow(job.integrationId);
 
     await prisma.crmImportJob.update({
       where: { id: jobId },
       data: {
         status: "SUCCESS",
         finishedAt: new Date(),
-        message: "Import CRM zakończony poprawnie.",
+        message:
+          job.integration.provider === "ASARI"
+            ? "Import ASARI zakończony poprawnie."
+            : "Import CRM zakończony poprawnie.",
         remoteFileName: result.remoteFileName ?? null,
         importedOffers: result.importedOffers ?? 0,
         createdCount: result.createdCount ?? 0,
@@ -47,7 +54,10 @@ export async function runCrmImportJob(jobId: string) {
       data: {
         status: "ERROR",
         finishedAt: new Date(),
-        message: "Import CRM zakończony błędem.",
+        message:
+          job.integration.provider === "ASARI"
+            ? "Import ASARI zakończony błędem."
+            : "Import CRM zakończony błędem.",
         errorMessage: error instanceof Error ? error.message : String(error),
       },
     });
