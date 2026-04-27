@@ -135,18 +135,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       where: q
         ? {
             OR: [
-              {
-                email: {
-                  contains: q,
-                  mode: "insensitive",
-                },
-              },
-              {
-                name: {
-                  contains: q,
-                  mode: "insensitive",
-                },
-              },
+              { email: { contains: q, mode: "insensitive" } },
+              { name: { contains: q, mode: "insensitive" } },
             ],
           }
         : undefined,
@@ -332,7 +322,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 defaultValue={formatPlnFromGrosze(config.listingSinglePriceGrossPln)}
                 className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
               />
-              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN, np. 22.00</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -347,7 +336,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 defaultValue={formatPlnFromGrosze(config.listingPack10PriceGrossPln)}
                 className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
               />
-              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -362,7 +350,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 defaultValue={formatPlnFromGrosze(config.listingPack40PriceGrossPln)}
                 className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
               />
-              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -377,7 +364,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 defaultValue={formatPlnFromGrosze(config.featuredSinglePriceGrossPln)}
                 className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
               />
-              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -392,7 +378,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 defaultValue={formatPlnFromGrosze(config.featuredPack3PriceGrossPln)}
                 className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
               />
-              <p className="mt-2 text-xs text-[#8f8f8f]">Cena brutto w PLN</p>
             </div>
 
             <div className="flex items-end">
@@ -459,8 +444,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
           {articles.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-5 py-8 text-sm text-[#9f9f9f]">
-              Nie masz jeszcze żadnych artykułów. Dodaj pierwszy wpis i zacznij
-              budować SEO portalu.
+              Nie masz jeszcze żadnych artykułów. Dodaj pierwszy wpis i zacznij budować SEO portalu.
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -555,7 +539,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
 
         <div className="mb-8 overflow-x-auto rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
-          <table className="w-full min-w-[1640px] text-sm">
+          <table className="w-full min-w-[1740px] text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
                 <th className="px-4 py-4 font-medium">Email</th>
@@ -668,7 +652,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <td className="px-4 py-4 align-middle">
                       <form
                         action={saveUserAgencyLogoAction}
-                        className="flex min-w-[280px] items-center gap-2"
+                        className="flex min-w-[390px] flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-3"
                       >
                         <input type="hidden" name="userId" value={user.id} />
 
@@ -676,24 +660,45 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           type="url"
                           name="logoUrl"
                           defaultValue={user.defaultBiuroLogoUrl || ""}
-                          placeholder="URL logo biura"
+                          placeholder="URL logo albo wgraj plik poniżej"
                           className="h-10 w-full rounded-xl border border-white/10 bg-[#1b1b1b] px-3 text-xs text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
                         />
 
-                        <button
-                          type="submit"
-                          className="h-10 rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
-                        >
-                          Zapisz
-                        </button>
+                        <input
+                          type="file"
+                          name="logoFile"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          className="block w-full text-xs text-[#bdbdbd] file:mr-3 file:h-10 file:rounded-xl file:border-0 file:bg-white/10 file:px-3 file:text-xs file:font-semibold file:text-white hover:file:bg-white/15"
+                        />
+
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="flex items-center gap-2 text-xs text-red-300">
+                            <input
+                              type="checkbox"
+                              name="removeLogo"
+                              value="1"
+                              className="h-4 w-4 accent-[#7aa333]"
+                            />
+                            Usuń logo
+                          </label>
+
+                          <button
+                            type="submit"
+                            className="h-10 shrink-0 rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                          >
+                            Zapisz
+                          </button>
+                        </div>
                       </form>
 
                       {user.defaultBiuroLogoUrl ? (
-                        <img
-                          src={user.defaultBiuroLogoUrl}
-                          alt="Logo biura"
-                          className="mt-2 h-8 w-auto max-w-[140px] object-contain"
-                        />
+                        <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-2">
+                          <img
+                            src={user.defaultBiuroLogoUrl}
+                            alt="Logo biura"
+                            className="h-9 w-auto max-w-[160px] object-contain"
+                          />
+                        </div>
                       ) : null}
                     </td>
 
@@ -770,15 +775,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <th className="px-4 py-4 font-medium">Status</th>
                     <th className="px-4 py-4 font-medium">Nabywca</th>
                     <th className="px-4 py-4 font-medium">Email klienta</th>
-                    <th className="px-4 py-4 font-medium">
-                      Konto użytkownika
-                    </th>
+                    <th className="px-4 py-4 font-medium">Konto użytkownika</th>
                     <th className="px-4 py-4 font-medium">Data</th>
                     <th className="px-4 py-4 font-medium">Źródło</th>
                     <th className="px-4 py-4 font-medium">PDF</th>
-                    <th className="px-4 py-4 font-medium text-right">
-                      Szczegóły
-                    </th>
+                    <th className="px-4 py-4 font-medium text-right">Szczegóły</th>
                   </tr>
                 </thead>
 
@@ -797,8 +798,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       </td>
 
                       <td className="px-4 py-4 text-white/80">
-                        {(invoice.amountGross / 100).toFixed(2)}{" "}
-                        {invoice.currency}
+                        {(invoice.amountGross / 100).toFixed(2)} {invoice.currency}
                       </td>
 
                       <td className="px-4 py-4">
@@ -828,9 +828,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       </td>
 
                       <td className="px-4 py-4 text-white/70">
-                        {new Date(
-                          invoice.issuedAt || invoice.createdAt
-                        ).toLocaleDateString("pl-PL")}
+                        {new Date(invoice.issuedAt || invoice.createdAt).toLocaleDateString("pl-PL")}
                       </td>
 
                       <td className="px-4 py-4 text-white/70">

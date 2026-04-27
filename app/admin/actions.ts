@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { sendMail } from "@/lib/mailer";
 import { deleteUserCompletely } from "@/lib/delete-user-completely";
+import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 
 const APP_URL = "https://tylkodzialki.pl";
 const LOGIN_URL = `${APP_URL}/auth`;
@@ -17,21 +18,14 @@ type MailAudience = "ALL" | "LISTER" | "EXPIRED";
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) {
-    redirect("/");
-  }
+  if (!session?.user?.email) redirect("/");
 
   const currentUser = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: {
-      id: true,
-      role: true,
-    },
+    select: { id: true, role: true },
   });
 
-  if (!currentUser || currentUser.role !== "ADMIN") {
-    redirect("/");
-  }
+  if (!currentUser || currentUser.role !== "ADMIN") redirect("/");
 
   return currentUser;
 }
@@ -90,16 +84,11 @@ function buildMailHtml(subject: string, body: string) {
 
         <div style="padding:28px;color:#111111;font-family:Arial,sans-serif;font-size:15px;line-height:1.7;">
           ${bodyToHtml(body)}
-
           <div style="margin-top:28px;">
-            <a
-              href="${LOGIN_URL}"
-              style="display:inline-block;background:#7aa333;color:#111111;text-decoration:none;padding:12px 20px;border-radius:12px;font-weight:700;"
-            >
+            <a href="${LOGIN_URL}" style="display:inline-block;background:#7aa333;color:#111111;text-decoration:none;padding:12px 20px;border-radius:12px;font-weight:700;">
               Zaloguj się do konta
             </a>
           </div>
-
           <p style="margin:24px 0 0;font-size:12px;color:#666666;">
             Jeśli nie planujesz teraz żadnych działań, możesz po prostu zignorować tę wiadomość.
           </p>
@@ -119,40 +108,17 @@ ${LOGIN_URL}`;
 async function getRecipients(audience: MailAudience) {
   if (audience === "ALL") {
     return prisma.user.findMany({
-      where: {
-        email: {
-          not: null,
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { email: { not: null } },
+      select: { id: true, email: true, name: true },
+      orderBy: { createdAt: "desc" },
     });
   }
 
   if (audience === "LISTER") {
     return prisma.user.findMany({
-      where: {
-        email: {
-          not: null,
-        },
-        dzialki: {
-          some: {},
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { email: { not: null }, dzialki: { some: {} } },
+      select: { id: true, email: true, name: true },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -160,32 +126,15 @@ async function getRecipients(audience: MailAudience) {
 
   return prisma.user.findMany({
     where: {
-      email: {
-        not: null,
-      },
+      email: { not: null },
       dzialki: {
         some: {
-          OR: [
-            {
-              status: "ZAKONCZONE",
-            },
-            {
-              expiresAt: {
-                lt: now,
-              },
-            },
-          ],
+          OR: [{ status: "ZAKONCZONE" }, { expiresAt: { lt: now } }],
         },
       },
     },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
+    select: { id: true, email: true, name: true },
+    orderBy: { createdAt: "desc" },
   });
 }
 
@@ -198,6 +147,44 @@ function toGross(value: FormDataEntryValue | null) {
   }
 
   return Math.round(num * 100);
+}
+
+function getLogoExtension(file: File) {
+  const type = file.type;
+
+  if (type === "image/png") return "png";
+  if (type === "image/jpeg") return "jpg";
+  if (type === "image/webp") return "webp";
+  if (type === "image/svg+xml") return "svg";
+
+  return null;
+}
+
+function extractR2KeyFromUrl(url: string | null | undefined) {
+  if (!url) return null;
+
+  try {
+    const parsed = new URL(url);
+    const publicHost = new URL(process.env.R2_PUBLIC_URL || "https://img.tylkodzialki.pl")
+      .hostname;
+
+    if (parsed.hostname !== publicHost) return null;
+
+    return parsed.pathname.replace(/^\/+/, "");
+  } catch {
+    return null;
+  }
+}
+
+async function deleteOldLogoIfR2(url: string | null | undefined) {
+  const key = extractR2KeyFromUrl(url);
+  if (!key) return;
+
+  try {
+    await deleteFromR2(key);
+  } catch (error) {
+    console.error("DELETE_OLD_LOGO_R2_ERROR", key, error);
+  }
 }
 
 export async function savePricingAction(formData: FormData) {
@@ -233,14 +220,70 @@ export async function saveUserAgencyLogoAction(formData: FormData) {
 
   const userId = String(formData.get("userId") || "").trim();
   const logoUrl = String(formData.get("logoUrl") || "").trim();
+  const removeLogo = String(formData.get("removeLogo") || "") === "1";
+  const logoFile = formData.get("logoFile");
 
   if (!userId) return;
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, defaultBiuroLogoUrl: true },
+  });
+
+  if (!user) return;
+
+  if (removeLogo) {
+    await deleteOldLogoIfR2(user.defaultBiuroLogoUrl);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { defaultBiuroLogoUrl: null },
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/kup");
+    return;
+  }
+
+  if (logoFile instanceof File && logoFile.size > 0) {
+    const ext = getLogoExtension(logoFile);
+
+    if (!ext) {
+      throw new Error("Nieobsługiwany format logo. Użyj PNG, JPG, WEBP albo SVG.");
+    }
+
+    if (logoFile.size > 2 * 1024 * 1024) {
+      throw new Error("Logo jest za duże. Maksymalny rozmiar to 2 MB.");
+    }
+
+    const buffer = Buffer.from(await logoFile.arrayBuffer());
+
+    const upload = await uploadBufferToR2({
+      buffer,
+      originalFileName: logoFile.name || `logo-biura.${ext}`,
+      mimeType: logoFile.type,
+      folder: "loga-biur",
+    });
+
+    await deleteOldLogoIfR2(user.defaultBiuroLogoUrl);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { defaultBiuroLogoUrl: upload.url },
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/kup");
+    return;
+  }
+
+  if (logoUrl !== user.defaultBiuroLogoUrl) {
+    await deleteOldLogoIfR2(user.defaultBiuroLogoUrl);
+  }
+
   await prisma.user.update({
     where: { id: userId },
-    data: {
-      defaultBiuroLogoUrl: logoUrl || null,
-    },
+    data: { defaultBiuroLogoUrl: logoUrl || null },
   });
 
   revalidatePath("/admin");
@@ -272,10 +315,7 @@ export async function toggleUserRoleAction(formData: FormData) {
 
   const targetUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      id: true,
-      role: true,
-    },
+    select: { id: true, role: true },
   });
 
   if (!targetUser) return;
@@ -305,9 +345,7 @@ export async function togglePaymentsAction() {
   await prisma.$transaction(async (tx) => {
     await tx.appConfig.update({
       where: { id: config.id },
-      data: {
-        paymentsEnabled: nextPaymentsEnabled,
-      },
+      data: { paymentsEnabled: nextPaymentsEnabled },
     });
 
     if (nextPaymentsEnabled) {
@@ -318,9 +356,7 @@ export async function togglePaymentsAction() {
           endedAt: null,
           expiresAt: null,
         },
-        data: {
-          expiresAt: transitionExpiresAt,
-        },
+        data: { expiresAt: transitionExpiresAt },
       });
     } else {
       await tx.dzialka.updateMany({
@@ -329,9 +365,7 @@ export async function togglePaymentsAction() {
           status: "AKTYWNE",
           endedAt: null,
         },
-        data: {
-          expiresAt: null,
-        },
+        data: { expiresAt: null },
       });
     }
   });
@@ -347,23 +381,15 @@ export async function sendAdminMailTestAction(formData: FormData) {
 
   const adminUser = await prisma.user.findUnique({
     where: { id: admin.id },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-    },
+    select: { id: true, email: true, name: true },
   });
 
-  if (!adminUser?.email) {
-    redirect("/admin?mailError=Brak-maila-admina");
-  }
+  if (!adminUser?.email) redirect("/admin?mailError=Brak-maila-admina");
 
   const subject = String(formData.get("subject") || "").trim();
   const body = String(formData.get("body") || "").trim();
 
-  if (!subject || !body) {
-    redirect("/admin?mailError=Uzupelnij-temat-i-tresc");
-  }
+  if (!subject || !body) redirect("/admin?mailError=Uzupelnij-temat-i-tresc");
 
   await sendMail({
     to: adminUser.email,
@@ -383,9 +409,7 @@ export async function sendAdminMailAction(formData: FormData) {
   const body = String(formData.get("body") || "").trim();
   const audience = String(formData.get("audience") || "LISTER") as MailAudience;
 
-  if (!subject || !body) {
-    redirect("/admin?mailError=Uzupelnij-temat-i-tresc");
-  }
+  if (!subject || !body) redirect("/admin?mailError=Uzupelnij-temat-i-tresc");
 
   if (!["ALL", "LISTER", "EXPIRED"].includes(audience)) {
     redirect("/admin?mailError=Nieprawidlowa-grupa");
@@ -393,9 +417,7 @@ export async function sendAdminMailAction(formData: FormData) {
 
   const recipients = await getRecipients(audience);
 
-  if (!recipients.length) {
-    redirect("/admin?mailError=Brak-odbiorcow");
-  }
+  if (!recipients.length) redirect("/admin?mailError=Brak-odbiorcow");
 
   const uniqueRecipients = Array.from(
     new Map(

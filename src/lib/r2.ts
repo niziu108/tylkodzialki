@@ -40,6 +40,7 @@ function getExtension(fileName: string, mimeType: string) {
   if (mimeType === 'image/png') return 'png';
   if (mimeType === 'image/webp') return 'webp';
   if (mimeType === 'image/avif') return 'avif';
+  if (mimeType === 'image/svg+xml') return 'svg';
 
   return 'jpg';
 }
@@ -48,12 +49,17 @@ export async function uploadBufferToR2(params: {
   buffer: Buffer;
   originalFileName: string;
   mimeType: string;
+  folder?: string;
 }) {
-  const { buffer, originalFileName, mimeType } = params;
+  const { buffer, originalFileName, mimeType, folder = 'dzialki' } = params;
 
+  const safeFolder = folder.replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9/_-]/g, '');
   const ext = getExtension(originalFileName, mimeType);
   const baseName = sanitizeFileName(originalFileName.replace(/\.[^.]+$/, '')) || 'image';
-  const key = `dzialki/${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${baseName}.${ext}`;
+
+  const key = `${safeFolder}/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}-${baseName}.${ext}`;
 
   await r2.send(
     new PutObjectCommand({
