@@ -112,11 +112,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const currentUser = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-    },
+    select: { id: true, email: true, role: true },
   });
 
   if (!currentUser || currentUser.role !== "ADMIN") {
@@ -149,18 +145,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         createdAt: true,
         defaultBiuroLogoUrl: true,
         crmIntegrations: {
-          select: {
-            id: true,
-            isActive: true,
-          },
+          select: { id: true, isActive: true },
           take: 1,
           orderBy: { createdAt: "desc" },
         },
-        _count: {
-          select: {
-            dzialki: true,
-          },
-        },
+        _count: { select: { dzialki: true } },
         dzialki: {
           select: {
             id: true,
@@ -169,27 +158,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             telefon: true,
             createdAt: true,
           },
-          orderBy: {
-            createdAt: "desc",
-          },
+          orderBy: { createdAt: "desc" },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     }),
     getAppConfig(),
     prisma.invoice.findMany({
       orderBy: [{ createdAt: "desc" }],
       take: 100,
-      include: {
-        user: {
-          select: {
-            email: true,
-            name: true,
-          },
-        },
-      },
+      include: { user: { select: { email: true, name: true } } },
     }),
     prisma.article.findMany({
       orderBy: [{ createdAt: "desc" }],
@@ -310,75 +288,27 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
 
           <form action={savePricingAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <label className="mb-2 block text-sm font-medium text-white">
-                Pakiet 1
-              </label>
-              <input
-                type="number"
-                name="listingSinglePrice"
-                min="1"
-                step="0.01"
-                defaultValue={formatPlnFromGrosze(config.listingSinglePriceGrossPln)}
-                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
-              />
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <label className="mb-2 block text-sm font-medium text-white">
-                Pakiet 10
-              </label>
-              <input
-                type="number"
-                name="listingPack10Price"
-                min="1"
-                step="0.01"
-                defaultValue={formatPlnFromGrosze(config.listingPack10PriceGrossPln)}
-                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
-              />
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <label className="mb-2 block text-sm font-medium text-white">
-                Pakiet 40
-              </label>
-              <input
-                type="number"
-                name="listingPack40Price"
-                min="1"
-                step="0.01"
-                defaultValue={formatPlnFromGrosze(config.listingPack40PriceGrossPln)}
-                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
-              />
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <label className="mb-2 block text-sm font-medium text-white">
-                Wyróżnienie 1
-              </label>
-              <input
-                type="number"
-                name="featuredSinglePrice"
-                min="1"
-                step="0.01"
-                defaultValue={formatPlnFromGrosze(config.featuredSinglePriceGrossPln)}
-                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
-              />
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <label className="mb-2 block text-sm font-medium text-white">
-                Pakiet 3 wyróżnień
-              </label>
-              <input
-                type="number"
-                name="featuredPack3Price"
-                min="1"
-                step="0.01"
-                defaultValue={formatPlnFromGrosze(config.featuredPack3PriceGrossPln)}
-                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
-              />
-            </div>
+            {[
+              ["Pakiet 1", "listingSinglePrice", config.listingSinglePriceGrossPln],
+              ["Pakiet 10", "listingPack10Price", config.listingPack10PriceGrossPln],
+              ["Pakiet 40", "listingPack40Price", config.listingPack40PriceGrossPln],
+              ["Wyróżnienie 1", "featuredSinglePrice", config.featuredSinglePriceGrossPln],
+              ["Pakiet 3 wyróżnień", "featuredPack3Price", config.featuredPack3PriceGrossPln],
+            ].map(([label, name, value]) => (
+              <div key={String(name)} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <label className="mb-2 block text-sm font-medium text-white">
+                  {label}
+                </label>
+                <input
+                  type="number"
+                  name={String(name)}
+                  min="1"
+                  step="0.01"
+                  defaultValue={formatPlnFromGrosze(Number(value))}
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
+                />
+              </div>
+            ))}
 
             <div className="flex items-end">
               <button
@@ -449,10 +379,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {articles.map((article) => (
-                <div
-                  key={article.id}
-                  className="rounded-2xl border border-white/10 bg-black/20 p-4"
-                >
+                <div key={article.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
                       <h3 className="line-clamp-2 text-base font-semibold text-white">
@@ -479,9 +406,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   </p>
 
                   <div className="mt-4 flex items-center justify-between text-xs text-[#8f8f8f]">
-                    <span>
-                      {new Date(article.createdAt).toLocaleDateString("pl-PL")}
-                    </span>
+                    <span>{new Date(article.createdAt).toLocaleDateString("pl-PL")}</span>
 
                     <Link
                       href="/admin/artykuly"
@@ -538,207 +463,195 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
         </div>
 
-        <div className="mb-8 overflow-x-auto rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
-          <table className="w-full min-w-[1740px] text-sm">
-            <thead>
-              <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
-                <th className="px-4 py-4 font-medium">Email</th>
-                <th className="px-4 py-4 font-medium">Imię</th>
-                <th className="px-4 py-4 font-medium">Telefon</th>
-                <th className="px-4 py-4 font-medium">Rola</th>
-                <th className="px-4 py-4 font-medium">CRM</th>
-                <th className="px-4 py-4 font-medium">Wszystkie oferty</th>
-                <th className="px-4 py-4 font-medium">Aktywne</th>
-                <th className="px-4 py-4 font-medium">Kredyty</th>
-                <th className="px-4 py-4 font-medium">Data rejestracji</th>
-                <th className="px-4 py-4 font-medium">Logo</th>
-                <th className="px-4 py-4 font-medium text-right">Akcje</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {usersWithStats.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={11}
-                    className="px-4 py-10 text-center text-sm text-[#9f9f9f]"
-                  >
-                    Brak użytkowników pasujących do wyszukiwania.
-                  </td>
+        <div className="mb-8 rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
+          <div className="max-h-[72vh] overflow-auto overscroll-contain rounded-3xl">
+            <table className="w-full min-w-[1740px] text-sm">
+              <thead className="sticky top-0 z-20 bg-[#1b1b1b] shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+                <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
+                  <th className="px-4 py-4 font-medium">Email</th>
+                  <th className="px-4 py-4 font-medium">Imię</th>
+                  <th className="px-4 py-4 font-medium">Telefon</th>
+                  <th className="px-4 py-4 font-medium">Rola</th>
+                  <th className="px-4 py-4 font-medium">CRM</th>
+                  <th className="px-4 py-4 font-medium">Wszystkie oferty</th>
+                  <th className="px-4 py-4 font-medium">Aktywne</th>
+                  <th className="px-4 py-4 font-medium">Kredyty</th>
+                  <th className="px-4 py-4 font-medium">Data rejestracji</th>
+                  <th className="px-4 py-4 font-medium">Logo</th>
+                  <th className="px-4 py-4 font-medium text-right">Akcje</th>
                 </tr>
-              ) : (
-                usersWithStats.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-white/5 hover:bg-white/[0.03]"
-                  >
-                    <td className="px-4 py-4 align-middle">
-                      <div className="font-medium text-[#f3f3f3]">
-                        {user.email || "Brak emaila"}
-                      </div>
-                    </td>
+              </thead>
 
-                    <td className="px-4 py-4 align-middle">
-                      {user.name || "—"}
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      {user.phoneFromListings ? (
-                        <a
-                          href={`tel:${user.phoneFromListings}`}
-                          className="font-medium text-white transition hover:text-[#9fd14b]"
-                        >
-                          {user.phoneFromListings}
-                        </a>
-                      ) : (
-                        <span className="text-[#8f8f8f]">—</span>
-                      )}
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                          user.role === "ADMIN"
-                            ? "bg-[#7aa333]/20 text-[#9fd14b]"
-                            : "bg-white/10 text-[#d9d9d9]"
-                        }`}
-                      >
-                        {user.role}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      {user.crmIntegration ? (
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                            user.crmIntegration.isActive
-                              ? "bg-[#7aa333]/20 text-[#9fd14b]"
-                              : "bg-red-500/15 text-red-300"
-                          }`}
-                        >
-                          {user.crmIntegration.isActive ? "Aktywna" : "Wyłączona"}
-                        </span>
-                      ) : (
-                        <span className="text-[#8f8f8f]">Brak</span>
-                      )}
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      <span className="font-semibold text-white">
-                        {user._count.dzialki}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                          user.activeListings > 0
-                            ? "bg-[#7aa333]/20 text-[#9fd14b]"
-                            : "bg-white/10 text-[#bdbdbd]"
-                        }`}
-                      >
-                        {user.activeListings}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      {user.listingCredits}
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      {new Date(user.createdAt).toLocaleDateString("pl-PL")}
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      <form
-                        action={saveUserAgencyLogoAction}
-                        className="flex min-w-[390px] flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-3"
-                      >
-                        <input type="hidden" name="userId" value={user.id} />
-
-                        <input
-                          type="url"
-                          name="logoUrl"
-                          defaultValue={user.defaultBiuroLogoUrl || ""}
-                          placeholder="URL logo albo wgraj plik poniżej"
-                          className="h-10 w-full rounded-xl border border-white/10 bg-[#1b1b1b] px-3 text-xs text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
-                        />
-
-                        <input
-                          type="file"
-                          name="logoFile"
-                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                          className="block w-full text-xs text-[#bdbdbd] file:mr-3 file:h-10 file:rounded-xl file:border-0 file:bg-white/10 file:px-3 file:text-xs file:font-semibold file:text-white hover:file:bg-white/15"
-                        />
-
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="flex items-center gap-2 text-xs text-red-300">
-                            <input
-                              type="checkbox"
-                              name="removeLogo"
-                              value="1"
-                              className="h-4 w-4 accent-[#7aa333]"
-                            />
-                            Usuń logo
-                          </label>
-
-                          <button
-                            type="submit"
-                            className="h-10 shrink-0 rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
-                          >
-                            Zapisz
-                          </button>
-                        </div>
-                      </form>
-
-                      {user.defaultBiuroLogoUrl ? (
-                        <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-2">
-                          <img
-                            src={user.defaultBiuroLogoUrl}
-                            alt="Logo biura"
-                            className="h-9 w-auto max-w-[160px] object-contain"
-                          />
-                        </div>
-                      ) : null}
-                    </td>
-
-                    <td className="px-4 py-4 align-middle">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/admin/crm/${user.id}`}
-                          className="rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 py-2 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
-                        >
-                          Konfiguruj CRM
-                        </Link>
-
-                        <form action={toggleUserRoleAction}>
-                          <input type="hidden" name="userId" value={user.id} />
-                          <button
-                            type="submit"
-                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10"
-                          >
-                            {user.role === "ADMIN"
-                              ? "Ustaw jako USER"
-                              : "Ustaw jako ADMIN"}
-                          </button>
-                        </form>
-
-                        <form action={deleteUserAction}>
-                          <input type="hidden" name="userId" value={user.id} />
-                          <button
-                            type="submit"
-                            className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/20"
-                          >
-                            Usuń konto
-                          </button>
-                        </form>
-                      </div>
+              <tbody>
+                {usersWithStats.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="px-4 py-10 text-center text-sm text-[#9f9f9f]">
+                      Brak użytkowników pasujących do wyszukiwania.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  usersWithStats.map((user) => (
+                    <tr key={user.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                      <td className="px-4 py-4 align-middle">
+                        <div className="font-medium text-[#f3f3f3]">
+                          {user.email || "Brak emaila"}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4 align-middle">{user.name || "—"}</td>
+
+                      <td className="px-4 py-4 align-middle">
+                        {user.phoneFromListings ? (
+                          <a
+                            href={`tel:${user.phoneFromListings}`}
+                            className="font-medium text-white transition hover:text-[#9fd14b]"
+                          >
+                            {user.phoneFromListings}
+                          </a>
+                        ) : (
+                          <span className="text-[#8f8f8f]">—</span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                            user.role === "ADMIN"
+                              ? "bg-[#7aa333]/20 text-[#9fd14b]"
+                              : "bg-white/10 text-[#d9d9d9]"
+                          }`}
+                        >
+                          {user.role}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-4 align-middle">
+                        {user.crmIntegration ? (
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                              user.crmIntegration.isActive
+                                ? "bg-[#7aa333]/20 text-[#9fd14b]"
+                                : "bg-red-500/15 text-red-300"
+                            }`}
+                          >
+                            {user.crmIntegration.isActive ? "Aktywna" : "Wyłączona"}
+                          </span>
+                        ) : (
+                          <span className="text-[#8f8f8f]">Brak</span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle">
+                        <span className="font-semibold text-white">{user._count.dzialki}</span>
+                      </td>
+
+                      <td className="px-4 py-4 align-middle">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                            user.activeListings > 0
+                              ? "bg-[#7aa333]/20 text-[#9fd14b]"
+                              : "bg-white/10 text-[#bdbdbd]"
+                          }`}
+                        >
+                          {user.activeListings}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-4 align-middle">{user.listingCredits}</td>
+
+                      <td className="px-4 py-4 align-middle">
+                        {new Date(user.createdAt).toLocaleDateString("pl-PL")}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle">
+                        <form
+                          action={saveUserAgencyLogoAction}
+                          className="flex min-w-[390px] flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-3"
+                        >
+                          <input type="hidden" name="userId" value={user.id} />
+
+                          <input
+                            type="url"
+                            name="logoUrl"
+                            defaultValue={user.defaultBiuroLogoUrl || ""}
+                            placeholder="URL logo albo wgraj plik poniżej"
+                            className="h-10 w-full rounded-xl border border-white/10 bg-[#1b1b1b] px-3 text-xs text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+                          />
+
+                          <input
+                            type="file"
+                            name="logoFile"
+                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                            className="block w-full text-xs text-[#bdbdbd] file:mr-3 file:h-10 file:rounded-xl file:border-0 file:bg-white/10 file:px-3 file:text-xs file:font-semibold file:text-white hover:file:bg-white/15"
+                          />
+
+                          <div className="flex items-center justify-between gap-2">
+                            <label className="flex items-center gap-2 text-xs text-red-300">
+                              <input
+                                type="checkbox"
+                                name="removeLogo"
+                                value="1"
+                                className="h-4 w-4 accent-[#7aa333]"
+                              />
+                              Usuń logo
+                            </label>
+
+                            <button
+                              type="submit"
+                              className="h-10 shrink-0 rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                            >
+                              Zapisz
+                            </button>
+                          </div>
+                        </form>
+
+                        {user.defaultBiuroLogoUrl ? (
+                          <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-2">
+                            <img
+                              src={user.defaultBiuroLogoUrl}
+                              alt="Logo biura"
+                              className="h-9 w-auto max-w-[160px] object-contain"
+                            />
+                          </div>
+                        ) : null}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/crm/${user.id}`}
+                            className="rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 py-2 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                          >
+                            Konfiguruj CRM
+                          </Link>
+
+                          <form action={toggleUserRoleAction}>
+                            <input type="hidden" name="userId" value={user.id} />
+                            <button
+                              type="submit"
+                              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10"
+                            >
+                              {user.role === "ADMIN" ? "Ustaw jako USER" : "Ustaw jako ADMIN"}
+                            </button>
+                          </form>
+
+                          <form action={deleteUserAction}>
+                            <input type="hidden" name="userId" value={user.id} />
+                            <button
+                              type="submit"
+                              className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/20"
+                            >
+                              Usuń konto
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <section className="rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
@@ -785,10 +698,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                 <tbody>
                   {invoices.map((invoice) => (
-                    <tr
-                      key={invoice.id}
-                      className="border-b border-white/5 hover:bg-white/[0.03]"
-                    >
+                    <tr key={invoice.id} className="border-b border-white/5 hover:bg-white/[0.03]">
                       <td className="px-4 py-4 font-medium text-white">
                         {invoice.invoiceNumber || "—"}
                       </td>
@@ -814,9 +724,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <td className="px-4 py-4 text-white/80">
                         {invoice.buyerType === "COMPANY"
                           ? invoice.companyName || "Faktura firmowa"
-                          : invoice.buyerName ||
-                            invoice.invoiceEmail ||
-                            "Osoba prywatna"}
+                          : invoice.buyerName || invoice.invoiceEmail || "Osoba prywatna"}
                       </td>
 
                       <td className="px-4 py-4 text-white/70">
@@ -831,9 +739,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         {new Date(invoice.issuedAt || invoice.createdAt).toLocaleDateString("pl-PL")}
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">
-                        {invoice.source}
-                      </td>
+                      <td className="px-4 py-4 text-white/70">{invoice.source}</td>
 
                       <td className="px-4 py-4 text-white/70">
                         <a
