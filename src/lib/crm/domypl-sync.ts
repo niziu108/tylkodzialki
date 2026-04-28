@@ -552,15 +552,27 @@ async function openFeedReader(localFilePath: string, remoteFileName: string): Pr
   );
 
   return {
-    createXmlReadStream: async () => xmlEntry.stream(),
-    getPhotoBuffer: async (fileName: string) => {
-      const entry = entryMap.get(safeBasename(fileName));
-      if (!entry) return null;
-      return entry.buffer();
-    },
-    close: async () => {},
-  };
-}
+  createXmlReadStream: async () => xmlEntry.stream(),
+  getPhotoBuffer: async (fileName: string) => {
+    const targetName = safeBasename(fileName);
+
+    const entry =
+      entryMap.get(targetName) ||
+      [...entryMap.entries()].find(([key]) => key.endsWith(targetName))?.[1];
+
+    if (!entry) {
+      console.log("[CRM DEBUG] Nie znaleziono zdjęcia w ZIP:", {
+        requested: fileName,
+        targetName,
+        availableFiles: [...entryMap.keys()],
+      });
+      return null;
+    }
+
+    return entry.buffer();
+  },
+  close: async () => {},
+};
 
 function parseHeaderDate(value: unknown): Date | null {
   const text = toTextValue(value);
