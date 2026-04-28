@@ -351,10 +351,11 @@ model CrmIntegration {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  offerLinks CrmOfferLink[]
-  syncLogs   CrmSyncLog[]
-  importJobs CrmImportJob[]
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offerLinks     CrmOfferLink[]
+  syncLogs       CrmSyncLog[]
+  importJobs     CrmImportJob[]
+  processedFiles CrmProcessedFile[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -440,6 +441,33 @@ model CrmImportJob {
   @@index([integrationId])
   @@index([status])
   @@index([createdAt])
+}
+
+model CrmProcessedFile {
+  id             String   @id @default(cuid())
+  integrationId  String
+  remoteFileName String
+  fileSize       Int?
+  fileModifiedAt DateTime?
+  status         String   @default("SUCCESS")
+  importedOffers Int      @default(0)
+  createdCount   Int      @default(0)
+  updatedCount   Int      @default(0)
+  deactivatedCount Int    @default(0)
+  skippedCount   Int      @default(0)
+  errorCount     Int      @default(0)
+  message        String?
+  processedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  integration CrmIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, remoteFileName])
+  @@index([integrationId])
+  @@index([status])
+  @@index([processedAt])
+  @@index([remoteFileName])
 }
 
 enum Role {
