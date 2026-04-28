@@ -88,7 +88,15 @@ type HeaderMeta = {
 type DownloadedFeed = {
   remoteFileName: string;
   localFilePath: string;
+  fileSize: number | null;
+  fileModifiedAt: Date | null;
   cleanup: () => Promise<void>;
+};
+
+type MatchedRemoteFeed = {
+  remoteFileName: string;
+  size: number | null;
+  modifiedAt: Date | null;
 };
 
 type FeedReader = {
@@ -399,7 +407,7 @@ async function uploadOfferPhotosToR2(
   return uploaded;
 }
 
-async function downloadLatestFeedFromFtp(integration: IntegrationForSync): Promise<DownloadedFeed> {
+async function downloadNewFeedsFromFtp(integration: IntegrationForSync): Promise<DownloadedFeed[]> {
   if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
     throw new Error("Integracja FTP nie ma uzupełnionych danych logowania.");
   }
@@ -408,7 +416,6 @@ async function downloadLatestFeedFromFtp(integration: IntegrationForSync): Promi
   client.ftp.verbose = false;
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-crm-"));
-  let localFilePath = "";
 
   try {
     await client.access({
@@ -423,18 +430,6 @@ async function downloadLatestFeedFromFtp(integration: IntegrationForSync): Promi
     await client.cd(remoteDir);
 
     const list = await client.list();
-
-    console.log("[CRM DEBUG] FTP katalog:", remoteDir);
-    console.log(
-      "[CRM DEBUG] Pliki na FTP:",
-      list.map((item) => ({
-        name: item.name,
-        isFile: item.isFile,
-        size: item.size,
-        modifiedAt: item.modifiedAt,
-      }))
-    );
-
     const pattern = integration.expectedFilePattern?.trim() || "oferty_*.zip";
     const regex = wildcardToRegExp(pattern);
 
@@ -447,42 +442,64 @@ async function downloadLatestFeedFromFtp(integration: IntegrationForSync): Promi
       });
     }
 
-    matched = matched.sort((a, b) => {
-  const aTime = a.modifiedAt?.getTime?.() ?? 0;
-  const bTime = b.modifiedAt?.getTime?.() ?? 0;
-  const aSize = a.size ?? 0;
-  const bSize = b.size ?? 0;
-  return bTime - aTime || bSize - aSize || b.name.localeCompare(a.name);
-});
-
-    console.log("[CRM DEBUG] Wzorzec pliku:", pattern);
-    console.log(
-      "[CRM DEBUG] Dopasowane pliki po sortowaniu:",
-      matched.map((item) => ({
-        name: item.name,
-        size: item.size,
-        modifiedAt: item.modifiedAt,
+    const remoteFeeds: MatchedRemoteFeed[] = matched
+      .map((item) => ({
+        remoteFileName: item.name,
+        size: item.size ?? null,
+        modifiedAt: item.modifiedAt ?? null,
       }))
-    );
+      .sort((a, b) => {
+        const aTime = a.modifiedAt?.getTime?.() ?? 0;
+        const bTime = b.modifiedAt?.getTime?.() ?? 0;
+        const aSize = a.size ?? 0;
+        const bSize = b.size ?? 0;
+        return aTime - bTime || aSize - bSize || a.remoteFileName.localeCompare(b.remoteFileName);
+      });
 
-    if (matched.length === 0) {
+    if (remoteFeeds.length === 0) {
       throw new Error(`Nie znaleziono żadnego pliku ZIP/XML w katalogu ${remoteDir}.`);
     }
 
-    const remoteFileName = matched[0].name;
-    localFilePath = path.join(tempDir, remoteFileName);
-
-    await client.downloadTo(localFilePath, remoteFileName);
-
-    console.log("[CRM DEBUG] Pobrano NAJNOWSZY plik:", remoteFileName, "do", localFilePath);
-
-    return {
-      remoteFileName,
-      localFilePath,
-      cleanup: async () => {
-        await fsp.rm(tempDir, { recursive: true, force: true });
+    const successfulProcessedFiles = await prisma.crmProcessedFile.findMany({
+      where: {
+        integrationId: integration.id,
+        status: "SUCCESS",
+        remoteFileName: {
+          in: remoteFeeds.map((file) => file.remoteFileName),
+        },
       },
-    };
+      select: {
+        remoteFileName: true,
+      },
+    });
+
+    const processedNames = new Set(successfulProcessedFiles.map((file) => file.remoteFileName));
+
+    let filesToDownload = remoteFeeds.filter((file) => !processedNames.has(file.remoteFileName));
+
+    if (filesToDownload.length === 0) {
+      filesToDownload = [remoteFeeds[remoteFeeds.length - 1]];
+    }
+
+    const downloadedFeeds: DownloadedFeed[] = [];
+
+    for (const file of filesToDownload) {
+      const localFilePath = path.join(tempDir, file.remoteFileName);
+
+      await client.downloadTo(localFilePath, file.remoteFileName);
+
+      downloadedFeeds.push({
+        remoteFileName: file.remoteFileName,
+        localFilePath,
+        fileSize: file.size,
+        fileModifiedAt: file.modifiedAt,
+        cleanup: async () => {
+          await fsp.rm(tempDir, { recursive: true, force: true });
+        },
+      });
+    }
+
+    return downloadedFeeds;
   } catch (error) {
     await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
     throw error;
@@ -1393,86 +1410,196 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
   }
 
   const now = new Date();
-  let downloaded: DownloadedFeed | null = null;
-  let feedReader: FeedReader | null = null;
+  let downloadedFeeds: DownloadedFeed[] = [];
+  let currentFeedReader: FeedReader | null = null;
+
+  let importedOffers = 0;
+  let createdCount = 0;
+  let updatedCount = 0;
+  let deactivatedCount = 0;
+  let skippedCount = 0;
+  let errorCount = 0;
+
+  const processedFileNames: string[] = [];
 
   try {
-    downloaded = await downloadLatestFeedFromFtp(integration);
-    feedReader = await openFeedReader(downloaded.localFilePath, downloaded.remoteFileName);
+    downloadedFeeds = await downloadNewFeedsFromFtp(integration);
 
-    const xmlStream = await feedReader.createXmlReadStream();
     const appConfig = await prisma.appConfig.findFirst();
     const paymentsEnabled = appConfig?.paymentsEnabled ?? false;
 
-    let importedOffers = 0;
-    let createdCount = 0;
-    let updatedCount = 0;
-    let deactivatedCount = 0;
-    let skippedCount = 0;
-    let errorCount = 0;
+    for (const downloaded of downloadedFeeds) {
+      let fileImportedOffers = 0;
+      let fileCreatedCount = 0;
+      let fileUpdatedCount = 0;
+      let fileDeactivatedCount = 0;
+      let fileSkippedCount = 0;
+      let fileErrorCount = 0;
 
-    const seenExternalIds = new Set<string>();
-
-    const parseResult = await streamParseDomyPlOffers(xmlStream, async (offer) => {
-      importedOffers += 1;
-      seenExternalIds.add(offer.externalId);
+      const seenExternalIds = new Set<string>();
 
       try {
-        const action = await processOffer(
-          integration,
-          offer,
-          feedReader as FeedReader,
-          paymentsEnabled
-        );
+        currentFeedReader = await openFeedReader(downloaded.localFilePath, downloaded.remoteFileName);
+        const xmlStream = await currentFeedReader.createXmlReadStream();
 
-        if (action === "CREATE") {
-          createdCount += 1;
-        } else if (action === "UPDATE" || action === "REACTIVATE") {
-          updatedCount += 1;
-        } else if (action === "SKIP_NO_CREDITS") {
-          skippedCount += 1;
+        const parseResult = await streamParseDomyPlOffers(xmlStream, async (offer) => {
+          importedOffers += 1;
+          fileImportedOffers += 1;
+          seenExternalIds.add(offer.externalId);
+
+          try {
+            const action = await processOffer(
+              integration,
+              offer,
+              currentFeedReader as FeedReader,
+              paymentsEnabled
+            );
+
+            if (action === "CREATE") {
+              createdCount += 1;
+              fileCreatedCount += 1;
+            } else if (action === "UPDATE" || action === "REACTIVATE") {
+              updatedCount += 1;
+              fileUpdatedCount += 1;
+            } else if (action === "SKIP_NO_CREDITS") {
+              skippedCount += 1;
+              fileSkippedCount += 1;
+            }
+          } catch (error) {
+            errorCount += 1;
+            fileErrorCount += 1;
+
+            const message =
+              error instanceof Error
+                ? error.message
+                : "Nieznany błąd podczas importu oferty.";
+
+            await logSync(integration.id, {
+              externalId: offer.externalId,
+              action: "ERROR",
+              status: "ERROR",
+              message,
+              payload: offer.payload,
+            });
+          }
+        });
+
+        const zawartoscPliku = normalizeText(parseResult.headerMeta.zawartoscPliku);
+
+        const isFullExport =
+          zawartoscPliku.includes("pelny") ||
+          zawartoscPliku.includes("pełny") ||
+          zawartoscPliku.includes("calosc") ||
+          zawartoscPliku.includes("całość");
+
+        if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
+          const deactivated = await deactivateMissingOffers(integration.id, seenExternalIds);
+          deactivatedCount += deactivated;
+          fileDeactivatedCount += deactivated;
         }
+
+        await prisma.crmProcessedFile.upsert({
+          where: {
+            integrationId_remoteFileName: {
+              integrationId: integration.id,
+              remoteFileName: downloaded.remoteFileName,
+            },
+          },
+          create: {
+            integrationId: integration.id,
+            remoteFileName: downloaded.remoteFileName,
+            fileSize: downloaded.fileSize,
+            fileModifiedAt: downloaded.fileModifiedAt,
+            status: fileErrorCount > 0 ? "ERROR" : "SUCCESS",
+            importedOffers: fileImportedOffers,
+            createdCount: fileCreatedCount,
+            updatedCount: fileUpdatedCount,
+            deactivatedCount: fileDeactivatedCount,
+            skippedCount: fileSkippedCount,
+            errorCount: fileErrorCount,
+            message:
+              fileErrorCount > 0
+                ? `Plik przetworzony z błędami (${fileErrorCount}).`
+                : "Plik przetworzony poprawnie.",
+            processedAt: new Date(),
+          },
+          update: {
+            fileSize: downloaded.fileSize,
+            fileModifiedAt: downloaded.fileModifiedAt,
+            status: fileErrorCount > 0 ? "ERROR" : "SUCCESS",
+            importedOffers: fileImportedOffers,
+            createdCount: fileCreatedCount,
+            updatedCount: fileUpdatedCount,
+            deactivatedCount: fileDeactivatedCount,
+            skippedCount: fileSkippedCount,
+            errorCount: fileErrorCount,
+            message:
+              fileErrorCount > 0
+                ? `Plik przetworzony z błędami (${fileErrorCount}).`
+                : "Plik przetworzony poprawnie.",
+            processedAt: new Date(),
+          },
+        });
+
+        processedFileNames.push(downloaded.remoteFileName);
       } catch (error) {
         errorCount += 1;
+        fileErrorCount += 1;
 
         const message =
           error instanceof Error
             ? error.message
-            : "Nieznany błąd podczas importu oferty.";
+            : "Nie udało się przetworzyć pliku CRM.";
 
-        console.error("[CRM DEBUG] Błąd zapisu oferty:", offer.externalId, message, error);
+        await prisma.crmProcessedFile.upsert({
+          where: {
+            integrationId_remoteFileName: {
+              integrationId: integration.id,
+              remoteFileName: downloaded.remoteFileName,
+            },
+          },
+          create: {
+            integrationId: integration.id,
+            remoteFileName: downloaded.remoteFileName,
+            fileSize: downloaded.fileSize,
+            fileModifiedAt: downloaded.fileModifiedAt,
+            status: "ERROR",
+            importedOffers: fileImportedOffers,
+            createdCount: fileCreatedCount,
+            updatedCount: fileUpdatedCount,
+            deactivatedCount: fileDeactivatedCount,
+            skippedCount: fileSkippedCount,
+            errorCount: fileErrorCount,
+            message,
+            processedAt: new Date(),
+          },
+          update: {
+            fileSize: downloaded.fileSize,
+            fileModifiedAt: downloaded.fileModifiedAt,
+            status: "ERROR",
+            importedOffers: fileImportedOffers,
+            createdCount: fileCreatedCount,
+            updatedCount: fileUpdatedCount,
+            deactivatedCount: fileDeactivatedCount,
+            skippedCount: fileSkippedCount,
+            errorCount: fileErrorCount,
+            message,
+            processedAt: new Date(),
+          },
+        });
 
         await logSync(integration.id, {
-          externalId: offer.externalId,
           action: "ERROR",
           status: "ERROR",
-          message,
-          payload: offer.payload,
+          message: `Błąd pliku ${downloaded.remoteFileName}: ${message}`,
         });
+      } finally {
+        if (currentFeedReader) {
+          await currentFeedReader.close().catch(() => {});
+          currentFeedReader = null;
+        }
       }
-    });
-
-    const zawartoscPliku = normalizeText(parseResult.headerMeta.zawartoscPliku);
-
-const isFullExport =
-  zawartoscPliku.includes("pelny") ||
-  zawartoscPliku.includes("pełny") ||
-  zawartoscPliku.includes("calosc") ||
-  zawartoscPliku.includes("całość");
-
-console.log("[CRM DEBUG] Tryb pliku:", {
-  remoteFileName: downloaded.remoteFileName,
-  zawartoscPliku,
-  isFullExport,
-  fullImportMode: integration.fullImportMode,
-  seenExternalIds: seenExternalIds.size,
-});
-
-if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
-  deactivatedCount = await deactivateMissingOffers(integration.id, seenExternalIds);
-} else {
-  console.log("[CRM DEBUG] Nie kończę brakujących ofert, bo plik nie jest pełnym eksportem.");
-}
+    }
 
     await prisma.crmIntegration.update({
       where: { id: integration.id },
@@ -1500,7 +1627,10 @@ if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
 
     return {
       success: true,
-      remoteFileName: downloaded.remoteFileName,
+      remoteFileName:
+        processedFileNames.join(", ") ||
+        downloadedFeeds.map((file) => file.remoteFileName).join(", ") ||
+        "BRAK_PLIKOW",
       importedOffers,
       createdCount,
       updatedCount,
@@ -1512,7 +1642,7 @@ if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
           ? "Synchronizacja zakończona z częściowymi błędami."
           : importedOffers === 0
             ? "Synchronizacja zakończona, ale nie znaleziono poprawnych ofert działek. Sprawdź logi [CRM DEBUG] w Vercel."
-            : "Synchronizacja zakończona poprawnie.",
+            : `Synchronizacja zakończona poprawnie. Przetworzono pliki: ${processedFileNames.length}.`,
     };
   } catch (error) {
     const message =
@@ -1538,7 +1668,7 @@ if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
 
     throw error;
   } finally {
-    if (feedReader) await feedReader.close().catch(() => {});
-    if (downloaded) await downloaded.cleanup().catch(() => {});
+    if (currentFeedReader) await currentFeedReader.close().catch(() => {});
+    if (downloadedFeeds[0]) await downloadedFeeds[0].cleanup().catch(() => {});
   }
 }
