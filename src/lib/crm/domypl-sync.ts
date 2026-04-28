@@ -430,6 +430,18 @@ async function downloadNewFeedsFromFtp(integration: IntegrationForSync): Promise
     await client.cd(remoteDir);
 
     const list = await client.list();
+
+    console.log("[CRM DEBUG] FTP katalog:", remoteDir);
+    console.log(
+      "[CRM DEBUG] Pliki na FTP:",
+      list.map((item) => ({
+        name: item.name,
+        isFile: item.isFile,
+        size: item.size,
+        modifiedAt: item.modifiedAt,
+      }))
+    );
+
     const pattern = integration.expectedFilePattern?.trim() || "oferty_*.zip";
     const regex = wildcardToRegExp(pattern);
 
@@ -460,26 +472,16 @@ async function downloadNewFeedsFromFtp(integration: IntegrationForSync): Promise
       throw new Error(`Nie znaleziono żadnego pliku ZIP/XML w katalogu ${remoteDir}.`);
     }
 
-    const successfulProcessedFiles = await prisma.crmProcessedFile.findMany({
-      where: {
-        integrationId: integration.id,
-        status: "SUCCESS",
-        remoteFileName: {
-          in: remoteFeeds.map((file) => file.remoteFileName),
-        },
-      },
-      select: {
-        remoteFileName: true,
-      },
-    });
+    const filesToDownload = remoteFeeds.slice(-10);
 
-    const processedNames = new Set(successfulProcessedFiles.map((file) => file.remoteFileName));
-
-    let filesToDownload = remoteFeeds.filter((file) => !processedNames.has(file.remoteFileName));
-
-    if (filesToDownload.length === 0) {
-      filesToDownload = [remoteFeeds[remoteFeeds.length - 1]];
-    }
+    console.log(
+      "[CRM DEBUG] Pliki wybrane do przetworzenia od najstarszego do najnowszego:",
+      filesToDownload.map((file) => ({
+        name: file.remoteFileName,
+        size: file.size,
+        modifiedAt: file.modifiedAt,
+      }))
+    );
 
     const downloadedFeeds: DownloadedFeed[] = [];
 
