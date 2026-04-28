@@ -225,9 +225,7 @@ function getMimeTypeFromFileName(fileName: string) {
   return "image/jpeg";
 }
 
-function safeBasename(value: string) {
-  return path.basename(value.replace(/\\/g, "/")).toLowerCase();
-}
+
 
 function safeUploadFileName(value: string) {
   const cleaned = value.split("?")[0] || "photo.jpg";

@@ -100,9 +100,7 @@ function arrify<T>(value: T | T[] | null | undefined): T[] {
   return [value];
 }
 
-function safeBasename(value: string) {
-  return path.basename(value.replace(/\\/g, "/")).toLowerCase();
-}
+
 
 function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
