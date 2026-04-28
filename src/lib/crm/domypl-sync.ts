@@ -1668,7 +1668,8 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
 
     throw error;
   } finally {
-    if (currentFeedReader) await currentFeedReader.close().catch(() => {});
-    if (downloadedFeeds[0]) await downloadedFeeds[0].cleanup().catch(() => {});
+    await Promise.all(
+      downloadedFeeds.map((feed) => feed.cleanup().catch(() => {}))
+    );
   }
 }
