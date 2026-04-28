@@ -229,6 +229,11 @@ function safeBasename(value: string) {
   return path.basename(value.replace(/\\/g, "/")).toLowerCase();
 }
 
+function safeUploadFileName(value: string) {
+  const cleaned = value.split("?")[0] || "photo.jpg";
+  return safeBasename(cleaned) || "photo.jpg";
+}
+
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
@@ -360,13 +365,27 @@ async function uploadOfferPhotosToR2(
 
   for (let index = 0; index < photoFileNames.length; index += 1) {
     const originalName = photoFileNames[index];
-    const fileBuffer = await feedReader.getPhotoBuffer(originalName);
+    let fileBuffer = await feedReader.getPhotoBuffer(originalName);
 
-    if (!fileBuffer) continue;
+    if (!fileBuffer && /^https?:\/\//i.test(originalName)) {
+      try {
+        const response = await fetch(originalName);
+        if (response.ok) {
+          fileBuffer = Buffer.from(await response.arrayBuffer());
+        }
+      } catch (error) {
+        console.error("[CRM DEBUG] Nie udało się pobrać zdjęcia z URL:", originalName, error);
+      }
+    }
+
+    if (!fileBuffer) {
+      console.log("[CRM DEBUG] Pominięto zdjęcie, brak pliku/bufora:", originalName);
+      continue;
+    }
 
     const upload = await uploadBufferToR2({
       buffer: fileBuffer,
-      originalFileName: `${integrationId}-${externalId}-${originalName}`,
+      originalFileName: `${integrationId}-${externalId}-${safeUploadFileName(originalName)}`,
       mimeType: getMimeTypeFromFileName(originalName),
     });
 
@@ -1185,19 +1204,28 @@ async function processOffer(
     }
   }
 
-  await removeExistingR2Photos(existingLink.dzialkaId);
+  const uploadedPhotos =
+    offer.photoFileNames.length > 0
+      ? await uploadOfferPhotosToR2(
+          integration.id,
+          offer.externalId,
+          offer.photoFileNames,
+          feedReader
+        )
+      : [];
 
-  const uploadedPhotos = await uploadOfferPhotosToR2(
-    integration.id,
-    offer.externalId,
-    offer.photoFileNames,
-    feedReader
-  );
+  const shouldReplacePhotos = uploadedPhotos.length > 0;
+
+  if (shouldReplacePhotos) {
+    await removeExistingR2Photos(existingLink.dzialkaId);
+  }
 
   await prisma.$transaction(async (tx) => {
-    await tx.zdjecie.deleteMany({
-      where: { dzialkaId: existingLink.dzialkaId },
-    });
+    if (shouldReplacePhotos) {
+      await tx.zdjecie.deleteMany({
+        where: { dzialkaId: existingLink.dzialkaId },
+      });
+    }
 
     const dzialka = await tx.dzialka.update({
       where: { id: existingLink.dzialkaId },
@@ -1211,9 +1239,13 @@ async function processOffer(
               status: "AKTYWNE" as const,
             }
           : {}),
-        zdjecia: {
-          create: uploadedPhotos,
-        },
+        ...(shouldReplacePhotos
+          ? {
+              zdjecia: {
+                create: uploadedPhotos,
+              },
+            }
+          : {}),
       },
     });
 
@@ -1393,9 +1425,9 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
           paymentsEnabled
         );
 
-        if (action === "CREATE" || action === "REACTIVATE") {
+        if (action === "CREATE") {
           createdCount += 1;
-        } else if (action === "UPDATE") {
+        } else if (action === "UPDATE" || action === "REACTIVATE") {
           updatedCount += 1;
         } else if (action === "SKIP_NO_CREDITS") {
           skippedCount += 1;
