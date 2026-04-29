@@ -472,7 +472,27 @@ async function downloadNewFeedsFromFtp(integration: IntegrationForSync): Promise
       throw new Error(`Nie znaleziono żadnego pliku ZIP/XML w katalogu ${remoteDir}.`);
     }
 
-    const filesToDownload = remoteFeeds.slice(-10);
+    const MAX_FEEDS_TO_KEEP = 30;
+
+const oldFeedsToDelete =
+  remoteFeeds.length > MAX_FEEDS_TO_KEEP
+    ? remoteFeeds.slice(0, remoteFeeds.length - MAX_FEEDS_TO_KEEP)
+    : [];
+
+for (const oldFeed of oldFeedsToDelete) {
+  try {
+    await client.remove(oldFeed.remoteFileName);
+    console.log("[CRM DEBUG] Usunięto stary plik FTP:", oldFeed.remoteFileName);
+  } catch (error) {
+    console.error(
+      "[CRM DEBUG] Nie udało się usunąć starego pliku FTP:",
+      oldFeed.remoteFileName,
+      error
+    );
+  }
+}
+
+const filesToDownload = remoteFeeds.slice(-10);
 
     console.log(
       "[CRM DEBUG] Pliki wybrane do przetworzenia od najstarszego do najnowszego:",
