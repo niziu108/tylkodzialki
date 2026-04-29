@@ -440,7 +440,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
               label="Cena"
               value={
                 <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
-                  <span className="text-[20px] font-semibold leading-none md:text-[22px] ${featured ? 'text-[#7aa333]' : 'text-white'}">
+                  <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
                     {formatPLN(d.cenaPln)}
                   </span>
                   {zlZaM2 ? (
