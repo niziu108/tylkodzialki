@@ -135,11 +135,16 @@ function cleanSearchQuery(value: string) {
     'okolice',
   ]);
 
-  return normalizeText(value)
+  const withoutPostalCode = value
+    .replace(/\b\d{2}-\d{3}\b/g, ' ')
+    .replace(/\b\d{5}\b/g, ' ');
+
+  return normalizeText(withoutPostalCode)
     .split(' ')
     .map((x) => x.trim())
     .filter((x) => x.length >= 2)
     .filter((x) => !ignored.has(x))
+    .filter((x) => !/^\d+$/.test(x))
     .join(' ');
 }
 
@@ -154,7 +159,7 @@ function matchesTextSearch(d: ApiDzialka, query: string) {
   if (!haystack) return false;
 
   const tokens = q.split(' ').filter((x) => x.length >= 2);
-  if (!tokens.length) return haystack.includes(q);
+  if (!tokens.length) return false;
 
   return tokens.every((token) => haystack.includes(token));
 }
