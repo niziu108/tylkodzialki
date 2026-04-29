@@ -222,7 +222,7 @@ function DzialkaCard({ d, eagerImage = false }: { d: Dzialka; eagerImage?: boole
             align="center"
             value={
               <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
-                <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
+                <span className="text-[20px] font-semibold leading-none md:text-[22px] ${featured ? 'text-[#7aa333]' : 'text-white'}">
                   {formatPLN(d.cenaPln)}
                 </span>
                 {zlZaM2 ? (
