@@ -4,13 +4,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth-options";
 import { redirect } from "next/navigation";
 import {
-  deleteUserAction,
   savePricingAction,
   saveUserAgencyLogoAction,
   togglePaymentsAction,
   toggleUserRoleAction,
 } from "./actions";
 import AdminMailComposer from "./AdminMailComposer";
+import DeleteUserForm from "./DeleteUserForm";
 
 type AdminPageProps = {
   searchParams?: Promise<{
@@ -635,15 +635,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             </button>
                           </form>
 
-                          <form action={deleteUserAction}>
-                            <input type="hidden" name="userId" value={user.id} />
-                            <button
-                              type="submit"
-                              className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/20"
-                            >
-                              Usuń konto
-                            </button>
-                          </form>
+                          <DeleteUserForm userId={user.id} userEmail={user.email} />
                         </div>
                       </td>
                     </tr>
