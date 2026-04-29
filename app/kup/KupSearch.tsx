@@ -158,10 +158,12 @@ function matchesTextSearch(d: ApiDzialka, query: string) {
 
   if (!haystack) return false;
 
-  const tokens = q.split(' ').filter((x) => x.length >= 2);
-  if (!tokens.length) return false;
+  const queryTokens = q.split(' ').filter((x) => x.length >= 2);
+  if (!queryTokens.length) return false;
 
-  return tokens.every((token) => haystack.includes(token));
+  const haystackTokens = haystack.split(' ').filter(Boolean);
+
+  return queryTokens.every((token) => haystackTokens.includes(token));
 }
 
 function buildMobilePages(page: number, total: number): Array<number | '…'> {
