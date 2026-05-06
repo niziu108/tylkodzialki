@@ -139,7 +139,7 @@ function HomeListingCard({ d }: { d: HomeListing }) {
   return (
     <Link
       href={href}
-      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/20 transition hover:border-white/30 md:min-w-[360px] xl:min-w-[380px]"
+      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/40 transition hover:border-white/30 md:min-w-[360px] xl:min-w-[380px] [touch-action:pan-x_pan-y]"
     >
       <HomeListingCarousel
         photos={photos}
@@ -212,6 +212,83 @@ function HomeListingCard({ d }: { d: HomeListing }) {
   );
 }
 
+function AboutSection() {
+  return (
+    <section className="relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.22),transparent_32%)]" />
+      <div className="pointer-events-none absolute left-[-120px] top-20 z-0 h-[360px] w-[360px] rounded-full bg-[#7aa333]/10 blur-[100px]" />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+        <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div>
+            <div className="text-[12px] uppercase tracking-[0.22em] text-[#9fd14b]">
+              O nas
+            </div>
+
+            <h2 className="mt-5 max-w-2xl text-[34px] font-semibold tracking-tight text-white md:text-[56px] md:leading-[1.02]">
+              Portal stworzony pod sprzedaż działek.
+            </h2>
+
+            <p className="mt-7 max-w-xl text-base leading-8 text-white/68 md:text-lg">
+              tylkodzialki.pl to miejsce dla właścicieli, biur nieruchomości i
+              osób szukających gruntu w całej Polsce.
+            </p>
+          </div>
+
+          <div className="grid gap-5">
+            <div className="rounded-[34px] border border-white/12 bg-[#0d0d0d]/72 p-7 shadow-[0_0_60px_rgba(0,0,0,0.25)] backdrop-blur transition hover:border-[#7aa333]/35 md:p-8">
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <div className="text-[12px] uppercase tracking-[0.2em] text-[#9fd14b]">
+                    Dla prywatnych
+                  </div>
+
+                  <h3 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+                    Proste wystawianie ofert.
+                  </h3>
+
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-white/62 md:text-base">
+                    Zapewniamy szybkie dodawanie ogłoszeń, czytelną prezentację
+                    działki i wygodne zarządzanie ofertą.
+                  </p>
+                </div>
+
+                <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#7aa333]/25 bg-[#7aa333]/10 text-xl font-semibold text-[#9fd14b] md:flex">
+                  01
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[34px] border border-[#7aa333]/25 bg-gradient-to-br from-[#7aa333]/12 via-[#0d0d0d]/82 to-[#0d0d0d]/72 p-7 shadow-[0_0_80px_rgba(122,163,51,0.08)] backdrop-blur transition hover:border-[#7aa333]/45 md:p-8">
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <div className="text-[12px] uppercase tracking-[0.2em] text-[#9fd14b]">
+                    Dla biur nieruchomości
+                  </div>
+
+                  <h3 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
+                    CRM, importy i większa skala.
+                  </h3>
+
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-white/62 md:text-base">
+                    Zapewniamy obsługę większej liczby ofert, automatyzację
+                    publikacji i kompatybilność z systemami CRM.
+                  </p>
+                </div>
+
+                <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/12 text-xl font-semibold text-[#9fd14b] md:flex">
+                  02
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default async function HomePage() {
   const now = new Date();
 
@@ -281,8 +358,11 @@ export default async function HomePage() {
         }));
 
   return (
-    <main className="w-full" style={{ background: PAGE_BG }}>
-      <section className="h-[100svh] w-full" style={{ background: PAGE_BG }}>
+    <main
+      className="relative w-full overflow-hidden"
+      style={{ background: PAGE_BG }}
+    >
+      <section className="h-[100svh] w-full">
         <div className="flex h-full flex-col md:flex-row">
           <Link
             href="/kup"
@@ -338,7 +418,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section style={{ background: PAGE_BG }}>
+      <section>
         <div className="mx-auto max-w-7xl px-6 pt-8 pb-6 md:px-10">
           <h2 className="text-[22px] font-semibold text-white md:text-[28px]">
             Działki na sprzedaż w całej Polsce.
@@ -351,15 +431,13 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section style={{ background: PAGE_BG }}>
+      <section>
         <div className="mx-auto max-w-7xl px-6 pt-4 pb-10 md:px-10">
-          <div>
-            <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-              Najnowsze oferty
-            </div>
+          <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
+            Najnowsze oferty
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 [touch-action:pan-x_pan-y]">
             <HomeHorizontalSlider>
               {latestCards.map((item) => (
                 <HomeListingCard key={item.id} d={item} />
@@ -378,49 +456,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section style={{ background: PAGE_BG }}>
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-          <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-            O nas
-          </div>
+      <AboutSection />
 
-          <h2 className="mt-4 max-w-4xl text-[28px] font-semibold tracking-tight text-white md:text-[38px]">
-            Portal stworzony wyłącznie pod działki
-          </h2>
-
-          <p className="mt-8 max-w-4xl text-base leading-8 text-white/82 md:mt-10 md:text-lg">
-            TylkoDziałki to miejsce stworzone dla osób, które chcą szybko i
-            wygodnie kupić lub sprzedać działkę. Tworzymy portal, który ma być
-            czytelny, nowoczesny i naprawdę pomocny dla osób szukających
-            konkretnych ofert.
-          </p>
-
-          <div className="mt-10 grid grid-cols-1 gap-5 md:mt-12 md:grid-cols-2">
-            <div className="rounded-[28px] border border-white/12 bg-black/20 p-7 transition hover:border-white/20 hover:bg-black/28">
-              <div className="text-2xl font-semibold text-[#9fd14b]">01</div>
-              <h3 className="mt-4 text-xl font-semibold text-white">
-                Proste dodawanie
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-white/72">
-                Intuicyjne wystawianie ofert i wygodne zarządzanie ogłoszeniami.
-              </p>
-            </div>
-
-            <div className="rounded-[28px] border border-[#7aa333]/30 bg-gradient-to-br from-[#7aa333]/12 to-black/20 p-7 transition hover:border-[#7aa333]/45 hover:bg-[#7aa333]/[0.12]">
-              <div className="text-2xl font-semibold text-[#9fd14b]">02</div>
-              <h3 className="mt-4 text-xl font-semibold text-white">
-                Rozwój
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-white/72">
-                Stale rozwijamy portal i docieramy do nowych osób szukających
-                działek.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section style={{ background: PAGE_BG }}>
+      <section>
         <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">
           <div className="flex items-end justify-between">
             <div>
@@ -434,16 +472,18 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="mt-10">
+          <div className="mt-10 [touch-action:pan-x_pan-y]">
             <HomeHorizontalSlider>
               {articleCards.map((article: any) => {
-                const href = article.isPlaceholder ? "/blog" : `/blog/${article.slug}`;
+                const href = article.isPlaceholder
+                  ? "/blog"
+                  : `/blog/${article.slug}`;
 
                 return (
                   <Link
                     key={article.id}
                     href={href}
-                    className="group min-w-[86%] snap-start md:min-w-[360px] xl:min-w-[380px]"
+                    className="group min-w-[86%] snap-start md:min-w-[360px] xl:min-w-[380px] [touch-action:pan-x_pan-y]"
                   >
                     <article className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.045]">
                       <div className="aspect-[16/10] bg-black/20">
@@ -462,7 +502,9 @@ export default async function HomePage() {
 
                       <div className="p-5">
                         <div className="text-[12px] text-white/40">
-                          {new Date(article.createdAt).toLocaleDateString("pl-PL")}
+                          {new Date(article.createdAt).toLocaleDateString(
+                            "pl-PL"
+                          )}
                         </div>
 
                         <h3 className="mt-2 line-clamp-2 text-lg font-semibold text-white">
