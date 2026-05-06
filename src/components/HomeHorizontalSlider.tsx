@@ -16,6 +16,7 @@ export default function HomeHorizontalSlider({
     if (!el) return;
 
     const amount = Math.min(420, Math.round(el.clientWidth * 0.9));
+
     el.scrollBy({
       left: direction === "left" ? -amount : amount,
       behavior: "smooth",
@@ -46,7 +47,13 @@ export default function HomeHorizontalSlider({
 
       <div
         ref={scrollerRef}
-        className="scrollbar-hide -mx-1 flex snap-x snap-mandatory gap-5 overflow-x-auto px-1 pb-2 touch-pan-x"
+        className="scrollbar-hide -mx-1 flex snap-x snap-mandatory gap-5 overflow-x-auto overflow-y-visible px-1 pb-2"
+        style={{
+          WebkitOverflowScrolling: "touch",
+          touchAction: "pan-y pan-x",
+          overscrollBehaviorX: "contain",
+          overscrollBehaviorY: "auto",
+        }}
       >
         {children}
       </div>
