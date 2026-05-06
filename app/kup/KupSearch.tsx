@@ -978,7 +978,7 @@ export default function KupSearch() {
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
               <div className="text-[12px] uppercase tracking-[0.18em] text-white/55">
-                Wyniki: {count}
+              {loading && allItems.length === 0 ? "Ładowanie ofert..." : `Wyniki: ${count}`}
               </div>
               {err && <div className="text-sm text-red-300">{err}</div>}
             </div>
