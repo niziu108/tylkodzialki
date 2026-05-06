@@ -139,7 +139,7 @@ function HomeListingCard({ d }: { d: HomeListing }) {
   return (
     <Link
       href={href}
-      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/40 transition hover:border-white/30 md:min-w-[360px] xl:min-w-[380px] [touch-action:pan-x_pan-y]"
+      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/40 transition hover:border-white/30 md:min-w-[360px] xl:min-w-[380px]"
     >
       <HomeListingCarousel
         photos={photos}
@@ -472,7 +472,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="mt-10 [touch-action:pan-x_pan-y]">
+          <div className="mt-10 touch-auto">
             <HomeHorizontalSlider>
               {articleCards.map((article: any) => {
                 const href = article.isPlaceholder
@@ -483,7 +483,7 @@ export default async function HomePage() {
                   <Link
                     key={article.id}
                     href={href}
-                    className="group min-w-[86%] snap-start md:min-w-[360px] xl:min-w-[380px] [touch-action:pan-x_pan-y]"
+                    className="group min-w-[86%] snap-start md:min-w-[360px] xl:min-w-[380px]"
                   >
                     <article className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.045]">
                       <div className="aspect-[16/10] bg-black/20">
