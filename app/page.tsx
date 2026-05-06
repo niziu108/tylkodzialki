@@ -231,8 +231,8 @@ function AboutSection() {
             </h2>
 
             <p className="mt-7 max-w-xl text-base leading-8 text-white/68 md:text-lg">
-              tylkodzialki.pl to miejsce dla właścicieli, biur nieruchomości i
-              osób szukających gruntu w całej Polsce.
+              tylkodzialki.pl to miejsce dla właścicieli, biur nieruchomości
+              i osób szukających gruntu w całej Polsce.
             </p>
           </div>
 
