@@ -1496,48 +1496,35 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
   const processedFileNames: string[] = [];
 
   try {
-    downloadedFeeds = await downloadNewFeedsFromFtp(integration);
+  downloadedFeeds = await downloadNewFeedsFromFtp(integration);
 
-    if (downloadedFeeds.length === 0) {
-  await prisma.crmIntegration.update({
-    where: { id: integration.id },
-    data: {
-      lastUsedAt: now,
-      lastSyncAt: now,
-      lastSuccessAt: now,
-      lastErrorAt: null,
-      lastErrorMessage: null,
-      lastErrorCount: 0,
-    },
-  });
+  if (downloadedFeeds.length === 0) {
+    await prisma.crmIntegration.update({
+      where: { id: integration.id },
+      data: {
+        lastUsedAt: now,
+        lastSyncAt: now,
+        lastSuccessAt: now,
+        lastErrorAt: null,
+        lastErrorMessage: null,
+        lastErrorCount: 0,
+      },
+    });
 
-  return {
-    success: true,
-    remoteFileName: "BRAK_NOWYCH_PLIKOW",
-    importedOffers: 0,
-    createdCount: 0,
-    updatedCount: 0,
-    deactivatedCount: 0,
-    skippedCount: 0,
-    errorCount: 0,
-    message: "Brak nowych plików do przetworzenia.",
-  };
-}
+    return {
+      success: true,
+      remoteFileName: "BRAK_NOWYCH_PLIKOW",
+      importedOffers: 0,
+      createdCount: 0,
+      updatedCount: 0,
+      deactivatedCount: 0,
+      skippedCount: 0,
+      errorCount: 0,
+      message: "Brak nowych plików do przetworzenia.",
+    };
+  }
 
-  return {
-    success: true,
-    remoteFileName: "BRAK_NOWYCH_PLIKOW",
-    importedOffers: 0,
-    createdCount: 0,
-    updatedCount: 0,
-    deactivatedCount: 0,
-    skippedCount: 0,
-    errorCount: 0,
-    message: "Brak nowych plików do przetworzenia.",
-  };
-}
-
-    const appConfig = await prisma.appConfig.findFirst();
+  const appConfig = await prisma.appConfig.findFirst();
     const paymentsEnabled = appConfig?.paymentsEnabled ?? false;
 
     for (const downloaded of downloadedFeeds) {
