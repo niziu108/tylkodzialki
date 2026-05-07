@@ -55,6 +55,39 @@ function addDays(date: Date, days: number) {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
+function normalizeSearchText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getSearchTerms(q: string) {
+  const ignored = new Set([
+    'polska',
+    'poland',
+    'wojewodztwo',
+    'woj',
+    'powiat',
+    'gmina',
+    'miasto',
+    'okolice',
+  ]);
+
+  return normalizeSearchText(q)
+    .replace(/\b\d{2}-\d{3}\b/g, ' ')
+    .replace(/\b\d{5}\b/g, ' ')
+    .split(' ')
+    .map((x) => x.trim())
+    .filter((x) => x.length >= 2)
+    .filter((x) => !ignored.has(x))
+    .filter((x) => !/^\d+$/.test(x));
+}
+
 async function getAppConfig() {
   let config = await prisma.appConfig.findFirst();
 
@@ -72,12 +105,52 @@ async function getAppConfig() {
 }
 
 export async function GET(req: Request) {
-    } else {
-      andFilters.push(radiusBoxFilter);
-    }
-  } else if (searchTerms.length > 0) {
-    andFilters.push(textSearchFilter);
-  }
+  const url = new URL(req.url);
+
+  const qRaw = (url.searchParams.get('q') || '').trim();
+  const searchTerms = getSearchTerms(qRaw);
+
+  const priceMin = url.searchParams.get('priceMin');
+  const priceMax = url.searchParams.get('priceMax');
+  const areaMin = url.searchParams.get('areaMin');
+  const areaMax = url.searchParams.get('areaMax');
+
+  const latParam = Number(url.searchParams.get('lat'));
+  const lngParam = Number(url.searchParams.get('lng'));
+  const radiusParam = Number(url.searchParams.get('radius') || '0');
+
+  const hasRadiusSearch =
+    Number.isFinite(latParam) &&
+    Number.isFinite(lngParam) &&
+    Number.isFinite(radiusParam) &&
+    radiusParam > 0;
+
+  const przeznRaw = (url.searchParams.get('przeznaczenia') || '').trim();
+  const przeznaczenia = przeznRaw
+    ? przeznRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const takeReq = Number(url.searchParams.get('take') || '20');
+  const take = Math.min(Math.max(Number.isFinite(takeReq) ? Math.floor(takeReq) : 20, 1), 100);
+
+  const pageReq = Number(url.searchParams.get('page') || '1');
+  const page = Math.max(Number.isFinite(pageReq) ? Math.floor(pageReq) : 1, 1);
+
+  const skipParam = url.searchParams.get('skip');
+  const skip =
+    skipParam != null
+      ? Math.max(Number(skipParam) || 0, 0)
+      : (page - 1) * take;
+
+  const sort = (url.searchParams.get('sort') || 'newest').toLowerCase();
+
+  const andFilters: Prisma.DzialkaWhereInput[] = [
+    { ownerId: { not: null } },
+    { status: DzialkaStatus.AKTYWNE },
+    {
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+    },
+  ];
 
   if (priceMin || priceMax) {
     const cenaPln: Prisma.IntFilter = {};
@@ -99,6 +172,54 @@ export async function GET(req: Request) {
     });
   }
 
+  const textSearchFilter: Prisma.DzialkaWhereInput | null =
+    searchTerms.length > 0
+      ? {
+          AND: searchTerms.map((term) => ({
+            OR: [
+              { tytul: { contains: term, mode: 'insensitive' } },
+              { locationLabel: { contains: term, mode: 'insensitive' } },
+              { locationFull: { contains: term, mode: 'insensitive' } },
+              { parcelText: { contains: term, mode: 'insensitive' } },
+              { opis: { contains: term, mode: 'insensitive' } },
+              { sprzedajacyImie: { contains: term, mode: 'insensitive' } },
+              { biuroNazwa: { contains: term, mode: 'insensitive' } },
+              { biuroOpiekun: { contains: term, mode: 'insensitive' } },
+              { numerOferty: { contains: term, mode: 'insensitive' } },
+            ],
+          })),
+        }
+      : null;
+
+  if (hasRadiusSearch) {
+    const lat = latParam;
+    const lng = lngParam;
+    const radiusKm = radiusParam;
+
+    const latDelta = radiusKm / 111;
+    const cosLat = Math.cos((lat * Math.PI) / 180);
+    const lngDelta = radiusKm / (111 * Math.max(Math.abs(cosLat), 0.01));
+
+    const radiusBoxFilter: Prisma.DzialkaWhereInput = {
+      AND: [
+        { lat: { not: null } },
+        { lng: { not: null } },
+        { lat: { gte: lat - latDelta, lte: lat + latDelta } },
+        { lng: { gte: lng - lngDelta, lte: lng + lngDelta } },
+      ],
+    };
+
+    if (textSearchFilter) {
+      andFilters.push({
+        OR: [radiusBoxFilter, textSearchFilter],
+      });
+    } else {
+      andFilters.push(radiusBoxFilter);
+    }
+  } else if (textSearchFilter) {
+    andFilters.push(textSearchFilter);
+  }
+
   const where: Prisma.DzialkaWhereInput = {
     AND: andFilters,
   };
@@ -114,9 +235,6 @@ export async function GET(req: Request) {
             ? { powierzchniaM2: 'desc' }
             : { createdAt: 'desc' };
 
-  // Pobieramy trochę szerzej, żeby globalnie przesunąć oferty bez zdjęć na koniec.
-  // Przy obecnej skali 335 ofert to jest bezpieczne i działa dobrze.
-  // Jak będzie 100k ofert, zrobimy to SQL-em / polem hasPhotos w bazie.
   const allMatching = await prisma.dzialka.findMany({
     where,
     orderBy: baseOrderBy,
@@ -158,7 +276,6 @@ export async function GET(req: Request) {
     },
   });
 }
-
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
