@@ -260,32 +260,8 @@ export async function GET(req: Request) {
     });
   }
 
-  const sortedFiltered = filtered.sort((a, b) => {
-  const aHasPhotos = a.zdjecia.length > 0;
-  const bHasPhotos = b.zdjecia.length > 0;
-
-  if (aHasPhotos !== bHasPhotos) return aHasPhotos ? -1 : 1;
-
-  if (hasRadiusSearch) {
-    const aHasCoords = typeof a.lat === 'number' && typeof a.lng === 'number';
-    const bHasCoords = typeof b.lat === 'number' && typeof b.lng === 'number';
-
-    const aInRadius = aHasCoords
-      ? haversineKm(latParam, lngParam, a.lat!, a.lng!) <= radiusParam
-      : false;
-
-    const bInRadius = bHasCoords
-      ? haversineKm(latParam, lngParam, b.lat!, b.lng!) <= radiusParam
-      : false;
-
-    if (aInRadius !== bInRadius) return aInRadius ? -1 : 1;
-  }
-
-  return 0;
-});
-
-const total = sortedFiltered.length;
-const items = sortedFiltered.slice(skip, skip + take);
+  const total = filtered.length;
+  const items = filtered.slice(skip, skip + take);
 
   const currentPage = Math.floor(skip / take) + 1;
   const totalPages = Math.max(1, Math.ceil(total / take));
