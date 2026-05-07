@@ -21,6 +21,13 @@ type ApiDzialka = {
   featuredUntil?: string | Date | null;
 };
 
+type ApiResponse = {
+  ok: boolean;
+  total?: number;
+  count?: number;
+  items?: ApiDzialka[];
+};
+
 const KM_OPTIONS = [5, 10, 20, 40] as const;
 
 const PRZEZN: { key: Przeznaczenie; label: string }[] = [
@@ -62,19 +69,6 @@ const EMPTY_APPLIED: AppliedFilters = {
   areaMax: '',
   przezn: [],
 };
-
-function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
-  const R = 6371;
-  const dLat = ((bLat - aLat) * Math.PI) / 180;
-  const dLng = ((bLng - aLng) * Math.PI) / 180;
-  const s1 = Math.sin(dLat / 2) ** 2;
-  const s2 =
-    Math.cos((aLat * Math.PI) / 180) *
-    Math.cos((bLat * Math.PI) / 180) *
-    Math.sin(dLng / 2) ** 2;
-
-  return 2 * R * Math.asin(Math.sqrt(s1 + s2));
-}
 
 function loadPlaces(apiKey: string) {
   return new Promise<void>((resolve, reject) => {
@@ -148,62 +142,11 @@ function cleanSearchQuery(value: string) {
     .join(' ');
 }
 
-function matchesTextSearch(d: ApiDzialka, query: string) {
-  const q = cleanSearchQuery(query);
-  if (!q) return false;
-
-  const haystack = normalizeText(
-    [d.locationLabel, d.locationFull, d.tytul].filter(Boolean).join(' ')
-  );
-
-  if (!haystack) return false;
-
-  const queryTokens = q.split(' ').filter((x) => x.length >= 2);
-  if (!queryTokens.length) return false;
-
-  const haystackTokens = haystack.split(' ').filter(Boolean);
-
-  return queryTokens.every((token) => haystackTokens.includes(token));
-}
-
 function buildMobilePages(page: number, total: number): Array<number | '…'> {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-
   if (page <= 3) return [1, 2, 3, 4, '…', total];
-
   if (page >= total - 2) return [1, '…', total - 3, total - 2, total - 1, total];
-
   return [1, '…', page - 1, page, page + 1, '…', total];
-}
-
-function isFeaturedActive(item: ApiDzialka) {
-  return (
-    !!item.isFeatured &&
-    !!item.featuredUntil &&
-    new Date(item.featuredUntil).getTime() > Date.now()
-  );
-}
-
-function sortPublicItems(list: ApiDzialka[], rankMap?: Map<string, number>) {
-  return [...list].sort((a, b) => {
-    const aFeatured = isFeaturedActive(a);
-    const bFeatured = isFeaturedActive(b);
-
-    if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
-
-    const aRank = rankMap?.get(a.id) ?? 99;
-    const bRank = rankMap?.get(b.id) ?? 99;
-    if (aRank !== bRank) return aRank - bRank;
-
-    const aFeaturedUntil = a.featuredUntil ? new Date(a.featuredUntil).getTime() : 0;
-    const bFeaturedUntil = b.featuredUntil ? new Date(b.featuredUntil).getTime() : 0;
-
-    if (aFeatured && bFeatured && aFeaturedUntil !== bFeaturedUntil) {
-      return bFeaturedUntil - aFeaturedUntil;
-    }
-
-    return 0;
-  });
 }
 
 function buildUrlFromState(filters: AppliedFilters, page: number) {
@@ -314,16 +257,25 @@ function readStateFromUrl(): StoredState {
   };
 }
 
-async function fetchDzialki(params: URLSearchParams) {
+async function fetchDzialki(params: URLSearchParams): Promise<ApiResponse> {
   const res = await fetch(`/api/dzialki?${params.toString()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`GET /api/dzialki -> ${res.status}`);
 
-  const data = await res.json();
-  return (data?.items ?? []) as ApiDzialka[];
+  return (await res.json()) as ApiResponse;
 }
 
-function makeBaseParams(filters: AppliedFilters) {
+function makeParams(filters: AppliedFilters, page: number) {
   const sp = new URLSearchParams();
+
+  const cleanedTextQuery = cleanSearchQuery(filters.locText);
+
+  if (cleanedTextQuery) sp.set('q', cleanedTextQuery);
+
+  if (filters.center) {
+    sp.set('lat', String(filters.center.lat));
+    sp.set('lng', String(filters.center.lng));
+    sp.set('radius', String(filters.radiusKm));
+  }
 
   if (filters.priceMin) sp.set('priceMin', filters.priceMin);
   if (filters.priceMax) sp.set('priceMax', filters.priceMax);
@@ -331,24 +283,11 @@ function makeBaseParams(filters: AppliedFilters) {
   if (filters.areaMax) sp.set('areaMax', filters.areaMax);
   if (filters.przezn.length) sp.set('przeznaczenia', filters.przezn.join(','));
 
-  sp.set('skip', '0');
+  sp.set('skip', String((page - 1) * PAGE_SIZE));
+  sp.set('take', String(PAGE_SIZE));
   sp.set('sort', 'newest');
 
   return sp;
-}
-
-function mergeById(lists: ApiDzialka[][]) {
-  const map = new Map<string, ApiDzialka>();
-
-  for (const list of lists) {
-    for (const item of list) {
-      if (!map.has(item.id)) {
-        map.set(item.id, item);
-      }
-    }
-  }
-
-  return Array.from(map.values());
 }
 
 function PagerResponsive({
@@ -527,7 +466,7 @@ export default function KupSearch() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const [allItems, setAllItems] = useState<ApiDzialka[]>([]);
+  const [items, setItems] = useState<ApiDzialka[]>([]);
   const [count, setCount] = useState(0);
 
   const [page, setPage] = useState(initial.page);
@@ -599,14 +538,55 @@ export default function KupSearch() {
     });
   }
 
+  async function fetchDataWith(nextApplied: AppliedFilters, nextPage = 1, replaceUrl = false) {
+    setLoading(true);
+    setErr(null);
+
+    try {
+      updateBrowserUrl(nextApplied, nextPage, replaceUrl);
+
+      const params = makeParams(nextApplied, nextPage);
+      const data = await fetchDzialki(params);
+
+      const nextItems = data.items ?? [];
+      const total = Number(data.total ?? data.count ?? nextItems.length);
+
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      const safeNextPage = Math.max(1, Math.min(totalPages, nextPage));
+
+      if (safeNextPage !== nextPage) {
+        const safeParams = makeParams(nextApplied, safeNextPage);
+        const safeData = await fetchDzialki(safeParams);
+
+        setItems(safeData.items ?? []);
+        setCount(Number(safeData.total ?? safeData.count ?? 0));
+        setPage(safeNextPage);
+        saveState(nextApplied, safeNextPage);
+        updateBrowserUrl(nextApplied, safeNextPage, true);
+        return;
+      }
+
+      setItems(nextItems);
+      setCount(total);
+      setPage(safeNextPage);
+      saveState(nextApplied, safeNextPage);
+    } catch (e: any) {
+      setErr(e?.message ?? 'Błąd pobierania');
+      setItems([]);
+      setCount(0);
+      setPage(1);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function changePage(nextPage: number) {
     const totalPagesNow = Math.max(1, Math.ceil(count / PAGE_SIZE));
     const clamped = Math.max(1, Math.min(totalPagesNow, nextPage));
 
     if (clamped === page) return;
 
-    setPage(clamped);
-    updateBrowserUrl(applied, clamped);
+    fetchDataWith(applied, clamped);
 
     requestAnimationFrame(() => {
       scrollToSearchTop();
@@ -630,96 +610,6 @@ export default function KupSearch() {
 
   function togglePrzezn(k: Przeznaczenie) {
     setPrzezn((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
-  }
-
-  async function fetchDataWith(nextApplied: AppliedFilters, nextPage = 1, replaceUrl = false) {
-    setLoading(true);
-    setErr(null);
-
-    try {
-      updateBrowserUrl(nextApplied, nextPage, replaceUrl);
-
-      const useRadiusSearch = !!nextApplied.center && nextApplied.radiusKm > 0;
-      const cleanedTextQuery = cleanSearchQuery(nextApplied.locText);
-
-      const baseParams = makeBaseParams(nextApplied);
-
-      const broadParams = new URLSearchParams(baseParams);
-      broadParams.set('take', useRadiusSearch ? '1000' : '300');
-
-      if (!useRadiusSearch && cleanedTextQuery) {
-        broadParams.set('q', cleanedTextQuery);
-      }
-
-      const fetches: Promise<ApiDzialka[]>[] = [fetchDzialki(broadParams)];
-
-      if (useRadiusSearch && cleanedTextQuery) {
-        const textParams = new URLSearchParams(baseParams);
-        textParams.set('q', cleanedTextQuery);
-        textParams.set('take', '300');
-        fetches.push(fetchDzialki(textParams));
-      }
-
-      const lists = await Promise.all(fetches);
-      const list = mergeById(lists);
-
-      let filtered = list;
-      const rankMap = new Map<string, number>();
-
-      if (useRadiusSearch) {
-        filtered = list.filter((d) => {
-          const hasCoords = typeof d.lat === 'number' && typeof d.lng === 'number';
-
-          const inRadius = hasCoords
-            ? haversineKm(nextApplied.center!.lat, nextApplied.center!.lng, d.lat!, d.lng!) <=
-              nextApplied.radiusKm
-            : false;
-
-          const textMatch = cleanedTextQuery ? matchesTextSearch(d, cleanedTextQuery) : false;
-
-          if (inRadius) {
-            rankMap.set(d.id, 1);
-            return true;
-          }
-
-          if (textMatch) {
-            rankMap.set(d.id, 2);
-            return true;
-          }
-
-          return false;
-        });
-      } else if (cleanedTextQuery) {
-        filtered = list.filter((d) => {
-          const textMatch = matchesTextSearch(d, cleanedTextQuery);
-          if (textMatch) rankMap.set(d.id, 1);
-          return textMatch;
-        });
-      }
-
-      const sorted = sortPublicItems(filtered, rankMap);
-
-      const total = sorted.length;
-      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-      const safeNextPage = Math.max(1, Math.min(totalPages, nextPage));
-
-      setAllItems(sorted);
-      setCount(total);
-      setPage(safeNextPage);
-
-      saveState(nextApplied, safeNextPage);
-
-      if (safeNextPage !== nextPage) {
-        updateBrowserUrl(nextApplied, safeNextPage, true);
-      }
-    } catch (e: any) {
-      setErr(e?.message ?? 'Błąd pobierania');
-      setAllItems([]);
-      setCount(0);
-      setPage(1);
-    } finally {
-      setLoading(false);
-    }
   }
 
   useEffect(() => {
@@ -749,7 +639,7 @@ export default function KupSearch() {
         });
       }, 80);
     } catch {}
-  }, [loading, page, allItems.length]);
+  }, [loading, page, items.length]);
 
   function applyAndSearch() {
     const next: AppliedFilters = {
@@ -792,11 +682,6 @@ export default function KupSearch() {
 
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const safePage = Math.max(1, Math.min(totalPages, page));
-
-  const pageItems = useMemo(() => {
-    const start = (safePage - 1) * PAGE_SIZE;
-    return allItems.slice(start, start + PAGE_SIZE);
-  }, [allItems, safePage]);
 
   const goPrev = () => changePage(safePage - 1);
   const goNext = () => changePage(safePage + 1);
@@ -978,7 +863,7 @@ export default function KupSearch() {
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
               <div className="text-[12px] uppercase tracking-[0.18em] text-white/55">
-              {loading && allItems.length === 0 ? "Ładowanie ofert..." : `Wyniki: ${count}`}
+                {loading && items.length === 0 ? 'Ładowanie ofert...' : `Wyniki: ${count}`}
               </div>
               {err && <div className="text-sm text-red-300">{err}</div>}
             </div>
@@ -998,7 +883,7 @@ export default function KupSearch() {
           className="mb-6"
         />
 
-        <KupList items={pageItems} loading={loading} error={err} />
+        <KupList items={items} loading={loading} error={err} />
 
         <PagerResponsive
           page={safePage}

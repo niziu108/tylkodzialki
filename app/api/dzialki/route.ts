@@ -80,19 +80,32 @@ export async function GET(req: Request) {
   const areaMin = url.searchParams.get('areaMin');
   const areaMax = url.searchParams.get('areaMax');
 
+  const latParam = Number(url.searchParams.get('lat'));
+  const lngParam = Number(url.searchParams.get('lng'));
+  const radiusParam = Number(url.searchParams.get('radius') || '0');
+
+  const hasRadiusSearch =
+    Number.isFinite(latParam) &&
+    Number.isFinite(lngParam) &&
+    Number.isFinite(radiusParam) &&
+    radiusParam > 0;
+
   const przeznRaw = (url.searchParams.get('przeznaczenia') || '').trim();
   const przeznaczenia = przeznRaw
     ? przeznRaw.split(',').map((s) => s.trim()).filter(Boolean)
     : [];
 
   const takeReq = Number(url.searchParams.get('take') || '20');
-  const take = Math.min(Math.max(Number.isFinite(takeReq) ? takeReq : 20, 1), 500);
+  const take = Math.min(Math.max(Number.isFinite(takeReq) ? Math.floor(takeReq) : 20, 1), 100);
 
   const pageReq = Number(url.searchParams.get('page') || '1');
   const page = Math.max(Number.isFinite(pageReq) ? Math.floor(pageReq) : 1, 1);
 
   const skipParam = url.searchParams.get('skip');
-  const skip = skipParam != null ? Math.max(Number(skipParam) || 0, 0) : (page - 1) * take;
+  const skip =
+    skipParam != null
+      ? Math.max(Number(skipParam) || 0, 0)
+      : (page - 1) * take;
 
   const sort = (url.searchParams.get('sort') || 'newest').toLowerCase();
 
@@ -104,19 +117,47 @@ export async function GET(req: Request) {
     },
   ];
 
-  if (q) {
-    andFilters.push({
-      OR: [
-        { tytul: { contains: q, mode: 'insensitive' } },
-        { locationLabel: { contains: q, mode: 'insensitive' } },
-        { locationFull: { contains: q, mode: 'insensitive' } },
-        { parcelText: { contains: q, mode: 'insensitive' } },
-        { opis: { contains: q, mode: 'insensitive' } },
-        { sprzedajacyImie: { contains: q, mode: 'insensitive' } },
-        { biuroNazwa: { contains: q, mode: 'insensitive' } },
-        { biuroOpiekun: { contains: q, mode: 'insensitive' } },
+  const textSearchFilter: Prisma.DzialkaWhereInput = {
+    OR: [
+      { tytul: { contains: q, mode: 'insensitive' } },
+      { locationLabel: { contains: q, mode: 'insensitive' } },
+      { locationFull: { contains: q, mode: 'insensitive' } },
+      { parcelText: { contains: q, mode: 'insensitive' } },
+      { opis: { contains: q, mode: 'insensitive' } },
+      { sprzedajacyImie: { contains: q, mode: 'insensitive' } },
+      { biuroNazwa: { contains: q, mode: 'insensitive' } },
+      { biuroOpiekun: { contains: q, mode: 'insensitive' } },
+      { numerOferty: { contains: q, mode: 'insensitive' } },
+    ],
+  };
+
+  if (hasRadiusSearch) {
+    const lat = latParam;
+    const lng = lngParam;
+    const radiusKm = radiusParam;
+
+    const latDelta = radiusKm / 111;
+    const cosLat = Math.cos((lat * Math.PI) / 180);
+    const lngDelta = radiusKm / (111 * Math.max(Math.abs(cosLat), 0.01));
+
+    const radiusBoxFilter: Prisma.DzialkaWhereInput = {
+      AND: [
+        { lat: { not: null } },
+        { lng: { not: null } },
+        { lat: { gte: lat - latDelta, lte: lat + latDelta } },
+        { lng: { gte: lng - lngDelta, lte: lng + lngDelta } },
       ],
-    });
+    };
+
+    if (q) {
+      andFilters.push({
+        OR: [radiusBoxFilter, textSearchFilter],
+      });
+    } else {
+      andFilters.push(radiusBoxFilter);
+    }
+  } else if (q) {
+    andFilters.push(textSearchFilter);
   }
 
   if (priceMin || priceMax) {
@@ -147,37 +188,43 @@ export async function GET(req: Request) {
     sort === 'price_asc'
       ? { cenaPln: 'asc' }
       : sort === 'price_desc'
-      ? { cenaPln: 'desc' }
-      : sort === 'area_asc'
-      ? { powierzchniaM2: 'asc' }
-      : sort === 'area_desc'
-      ? { powierzchniaM2: 'desc' }
-      : { createdAt: 'desc' };
+        ? { cenaPln: 'desc' }
+        : sort === 'area_asc'
+          ? { powierzchniaM2: 'asc' }
+          : sort === 'area_desc'
+            ? { powierzchniaM2: 'desc' }
+            : { createdAt: 'desc' };
 
-  const [count, items] = await Promise.all([
+  const [total, items] = await Promise.all([
     prisma.dzialka.count({ where }),
     prisma.dzialka.findMany({
       where,
       orderBy,
       skip,
       take,
-      include: { zdjecia: { orderBy: { kolejnosc: 'asc' } } },
+      include: {
+        zdjecia: {
+          orderBy: { kolejnosc: 'asc' },
+        },
+      },
     }),
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(count / take));
-  const safePage = Math.min(page, totalPages);
+  const currentPage = Math.floor(skip / take) + 1;
+  const totalPages = Math.max(1, Math.ceil(total / take));
 
   return NextResponse.json({
     ok: true,
-    count,
+    total,
+    count: total,
     items,
     meta: {
-      page: safePage,
+      page: currentPage,
+      skip,
       take,
       totalPages,
-      hasPrev: safePage > 1,
-      hasNext: safePage < totalPages,
+      hasPrev: skip > 0,
+      hasNext: skip + take < total,
     },
   });
 }
