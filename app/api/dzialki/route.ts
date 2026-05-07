@@ -55,39 +55,6 @@ function addDays(date: Date, days: number) {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
-function normalizeSearchText(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/ł/g, 'l')
-    .replace(/[^a-z0-9\s-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function getSearchTerms(q: string) {
-  const ignored = new Set([
-    'polska',
-    'poland',
-    'wojewodztwo',
-    'woj',
-    'powiat',
-    'gmina',
-    'miasto',
-    'okolice',
-  ]);
-
-  return normalizeSearchText(q)
-    .replace(/\b\d{2}-\d{3}\b/g, ' ')
-    .replace(/\b\d{5}\b/g, ' ')
-    .split(' ')
-    .map((x) => x.trim())
-    .filter((x) => x.length >= 2)
-    .filter((x) => !ignored.has(x))
-    .filter((x) => !/^\d+$/.test(x));
-}
-
 async function getAppConfig() {
   let config = await prisma.appConfig.findFirst();
 
@@ -104,11 +71,87 @@ async function getAppConfig() {
   return config;
 }
 
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function cleanSearchQuery(value: string) {
+  const ignored = new Set([
+    'polska',
+    'poland',
+    'wojewodztwo',
+    'województwo',
+    'woj',
+    'powiat',
+    'gmina',
+    'miasto',
+    'okolice',
+  ]);
+
+  return normalizeText(
+    value
+      .replace(/\b\d{2}-\d{3}\b/g, ' ')
+      .replace(/\b\d{5}\b/g, ' ')
+  )
+    .split(' ')
+    .map((x) => x.trim())
+    .filter((x) => x.length >= 2)
+    .filter((x) => !ignored.has(x))
+    .filter((x) => !/^\d+$/.test(x));
+}
+
+function matchesTextSearch(d: any, query: string) {
+  const terms = cleanSearchQuery(query);
+  if (!terms.length) return false;
+
+  const haystack = normalizeText(
+    [
+      d.locationLabel,
+      d.locationFull,
+      d.tytul,
+      d.parcelText,
+      d.opis,
+      d.sprzedajacyImie,
+      d.biuroNazwa,
+      d.biuroOpiekun,
+      d.numerOferty,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+
+  if (!haystack) return false;
+
+  return terms.every((term) => haystack.includes(term));
+}
+
+function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const R = 6371;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+
+  const s1 = Math.sin(dLat / 2) ** 2;
+  const s2 =
+    Math.cos((aLat * Math.PI) / 180) *
+    Math.cos((bLat * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
+
+  return 2 * R * Math.asin(Math.sqrt(s1 + s2));
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
 
-  const qRaw = (url.searchParams.get('q') || '').trim();
-  const searchTerms = getSearchTerms(qRaw);
+  const q = (url.searchParams.get('q') || '').trim();
+  const qRaw = (url.searchParams.get('qRaw') || '').trim();
+  const searchText = qRaw || q;
 
   const priceMin = url.searchParams.get('priceMin');
   const priceMax = url.searchParams.get('priceMax');
@@ -138,9 +181,7 @@ export async function GET(req: Request) {
 
   const skipParam = url.searchParams.get('skip');
   const skip =
-    skipParam != null
-      ? Math.max(Number(skipParam) || 0, 0)
-      : (page - 1) * take;
+    skipParam != null ? Math.max(Number(skipParam) || 0, 0) : (page - 1) * take;
 
   const sort = (url.searchParams.get('sort') || 'newest').toLowerCase();
 
@@ -172,54 +213,6 @@ export async function GET(req: Request) {
     });
   }
 
-  const textSearchFilter: Prisma.DzialkaWhereInput | null =
-    searchTerms.length > 0
-      ? {
-          AND: searchTerms.map((term) => ({
-            OR: [
-              { tytul: { contains: term, mode: 'insensitive' } },
-              { locationLabel: { contains: term, mode: 'insensitive' } },
-              { locationFull: { contains: term, mode: 'insensitive' } },
-              { parcelText: { contains: term, mode: 'insensitive' } },
-              { opis: { contains: term, mode: 'insensitive' } },
-              { sprzedajacyImie: { contains: term, mode: 'insensitive' } },
-              { biuroNazwa: { contains: term, mode: 'insensitive' } },
-              { biuroOpiekun: { contains: term, mode: 'insensitive' } },
-              { numerOferty: { contains: term, mode: 'insensitive' } },
-            ],
-          })),
-        }
-      : null;
-
-  if (hasRadiusSearch) {
-    const lat = latParam;
-    const lng = lngParam;
-    const radiusKm = radiusParam;
-
-    const latDelta = radiusKm / 111;
-    const cosLat = Math.cos((lat * Math.PI) / 180);
-    const lngDelta = radiusKm / (111 * Math.max(Math.abs(cosLat), 0.01));
-
-    const radiusBoxFilter: Prisma.DzialkaWhereInput = {
-      AND: [
-        { lat: { not: null } },
-        { lng: { not: null } },
-        { lat: { gte: lat - latDelta, lte: lat + latDelta } },
-        { lng: { gte: lng - lngDelta, lte: lng + lngDelta } },
-      ],
-    };
-
-    if (textSearchFilter) {
-      andFilters.push({
-        OR: [radiusBoxFilter, textSearchFilter],
-      });
-    } else {
-      andFilters.push(radiusBoxFilter);
-    }
-  } else if (textSearchFilter) {
-    andFilters.push(textSearchFilter);
-  }
-
   const where: Prisma.DzialkaWhereInput = {
     AND: andFilters,
   };
@@ -235,9 +228,11 @@ export async function GET(req: Request) {
             ? { powierzchniaM2: 'desc' }
             : { createdAt: 'desc' };
 
+  const needsSmartFiltering = !!searchText || hasRadiusSearch;
+
   const allMatching = await prisma.dzialka.findMany({
     where,
-    orderBy: baseOrderBy,
+    orderBy: [{ zdjecia: { _count: 'desc' } }, baseOrderBy],
     include: {
       zdjecia: {
         orderBy: { kolejnosc: 'asc' },
@@ -245,17 +240,28 @@ export async function GET(req: Request) {
     },
   });
 
-  const sorted = allMatching.sort((a, b) => {
-    const aHasPhotos = a.zdjecia.length > 0;
-    const bHasPhotos = b.zdjecia.length > 0;
+  let filtered = allMatching;
 
-    if (aHasPhotos !== bHasPhotos) return aHasPhotos ? -1 : 1;
+  if (needsSmartFiltering) {
+    filtered = allMatching.filter((d) => {
+      const textMatch = searchText ? matchesTextSearch(d, searchText) : false;
 
-    return 0;
-  });
+      const hasCoords = typeof d.lat === 'number' && typeof d.lng === 'number';
+      const radiusMatch =
+        hasRadiusSearch && hasCoords
+          ? haversineKm(latParam, lngParam, d.lat!, d.lng!) <= radiusParam
+          : false;
 
-  const total = sorted.length;
-  const items = sorted.slice(skip, skip + take);
+      if (hasRadiusSearch && searchText) return radiusMatch || textMatch;
+      if (hasRadiusSearch) return radiusMatch;
+      if (searchText) return textMatch;
+
+      return true;
+    });
+  }
+
+  const total = filtered.length;
+  const items = filtered.slice(skip, skip + take);
 
   const currentPage = Math.floor(skip / take) + 1;
   const totalPages = Math.max(1, Math.ceil(total / take));
@@ -272,7 +278,6 @@ export async function GET(req: Request) {
       totalPages,
       hasPrev: skip > 0,
       hasNext: skip + take < total,
-      searchTerms,
     },
   });
 }
@@ -415,12 +420,8 @@ export async function POST(req: Request) {
   }
 
   if (seller === SprzedajacyTyp.BIURO) {
-    if (!biuroNazwaClean) {
-      return badRequest('Dla BIURA podaj nazwę biura.');
-    }
-    if (!biuroOpiekunClean) {
-      return badRequest('Dla BIURA podaj imię opiekuna.');
-    }
+    if (!biuroNazwaClean) return badRequest('Dla BIURA podaj nazwę biura.');
+    if (!biuroOpiekunClean) return badRequest('Dla BIURA podaj imię opiekuna.');
   }
 
   const pradParsed = parseEnum(PradStatus, prad) ?? PradStatus.BRAK_PRZYLACZA;
@@ -448,49 +449,33 @@ export async function POST(req: Request) {
     const created = await prisma.$transaction(async (tx) => {
       if (appConfig.paymentsEnabled) {
         const updated = await tx.user.updateMany({
-          where: {
-            id: ownerId,
-            listingCredits: {
-              gt: 0,
-            },
-          },
-          data: {
-            listingCredits: {
-              decrement: 1,
-            },
-          },
+          where: { id: ownerId, listingCredits: { gt: 0 } },
+          data: { listingCredits: { decrement: 1 } },
         });
 
-        if (updated.count === 0) {
-          throw new Error('NO_LISTING_CREDITS');
-        }
+        if (updated.count === 0) throw new Error('NO_LISTING_CREDITS');
       }
 
       const item = await tx.dzialka.create({
         data: {
           ownerId,
-
           tytul: tytul.trim(),
           powierzchniaM2,
           cenaPln,
           przeznaczenia: mappedPrzeznaczenia,
           telefon: telefonClean,
           email: dbUser.email ?? null,
-
           status: DzialkaStatus.AKTYWNE,
           publishedAt: now,
           expiresAt,
           endedAt: null,
-
           opis: opisClean,
-
           sprzedajacyTyp: seller,
           sprzedajacyImie: seller === SprzedajacyTyp.PRYWATNIE ? sprzedajacyImieClean : null,
           biuroNazwa: seller === SprzedajacyTyp.BIURO ? biuroNazwaClean : null,
           biuroOpiekun: seller === SprzedajacyTyp.BIURO ? biuroOpiekunClean : null,
           biuroLogoUrl: seller === SprzedajacyTyp.BIURO ? biuroLogoUrlClean : null,
           numerOferty: seller === SprzedajacyTyp.BIURO ? nr : null,
-
           placeId: typeof placeId === 'string' ? placeId : null,
           locationFull: typeof locationFull === 'string' ? locationFull : null,
           locationLabel: safeLocationLabel,
@@ -499,23 +484,18 @@ export async function POST(req: Request) {
           mapsUrl: typeof mapsUrl === 'string' ? mapsUrl : null,
           locationMode: mode,
           parcelText: typeof parcelText === 'string' ? parcelText : null,
-
           prad: pradParsed,
           woda: wodaParsed,
           kanalizacja: kanalParsed,
           gaz: gazParsed,
           swiatlowod: swiatParsed,
-
           wzWydane: !!wzWydane,
           mpzp: !!mpzp,
           projektDomu: !!projektDomu,
-
           klasaZiemi: klasa,
           wymiary: wym,
           ksiegaWieczysta: kw,
-
           editToken,
-
           zdjecia: {
             create: zdjecia.map((z: any, i: number) => ({
               url: z.url,
@@ -534,12 +514,9 @@ export async function POST(req: Request) {
           defaultSprzedajacyTyp: seller,
           defaultSprzedajacyImie:
             seller === SprzedajacyTyp.PRYWATNIE ? sprzedajacyImieClean : null,
-          defaultBiuroNazwa:
-            seller === SprzedajacyTyp.BIURO ? biuroNazwaClean : null,
-          defaultBiuroOpiekun:
-            seller === SprzedajacyTyp.BIURO ? biuroOpiekunClean : null,
-          defaultBiuroLogoUrl:
-            seller === SprzedajacyTyp.BIURO ? biuroLogoUrlClean : null,
+          defaultBiuroNazwa: seller === SprzedajacyTyp.BIURO ? biuroNazwaClean : null,
+          defaultBiuroOpiekun: seller === SprzedajacyTyp.BIURO ? biuroOpiekunClean : null,
+          defaultBiuroLogoUrl: seller === SprzedajacyTyp.BIURO ? biuroLogoUrlClean : null,
         },
       });
 
