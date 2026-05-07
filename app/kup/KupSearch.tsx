@@ -268,8 +268,13 @@ function makeParams(filters: AppliedFilters, page: number) {
   const sp = new URLSearchParams();
 
   const cleanedTextQuery = cleanSearchQuery(filters.locText);
+  const rawTextQuery = filters.locText.trim();
 
+  // q = wersja oczyszczona, bez kodu pocztowego, Polski itd.
   if (cleanedTextQuery) sp.set('q', cleanedTextQuery);
+
+  // qRaw = oryginał z inputa, np. „Częstochowa, Polska” — dzięki temu łapie polskie znaki
+  if (rawTextQuery) sp.set('qRaw', rawTextQuery);
 
   if (filters.center) {
     sp.set('lat', String(filters.center.lat));
