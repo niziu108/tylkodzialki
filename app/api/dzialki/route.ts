@@ -230,7 +230,7 @@ export async function GET(req: Request) {
       const textMatch = searchText ? matchesLocationText(d, searchText) : false;
 
       if (hasRadiusSearch && searchText) {
-        return radiusMatch || (!coords && textMatch);
+        return radiusMatch || textMatch;
       }
 
       if (hasRadiusSearch) return radiusMatch;
