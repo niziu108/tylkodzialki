@@ -492,7 +492,24 @@ for (const oldFeed of oldFeedsToDelete) {
   }
 }
 
-const filesToDownload = remoteFeeds.slice(-10);
+const latestFullIndex = [...remoteFeeds]
+  .map((file, index) => ({ file, index }))
+  .reverse()
+  .find(({ file }) => {
+    const name = file.remoteFileName.toLowerCase();
+    return (
+      name.includes("calosc") ||
+      name.includes("całość") ||
+      name.includes("pelny") ||
+      name.includes("pełny") ||
+      name.includes("full")
+    );
+  })?.index;
+
+const filesToDownload =
+  typeof latestFullIndex === "number"
+    ? remoteFeeds.slice(latestFullIndex)
+    : remoteFeeds.slice(-1);
 
     console.log(
       "[CRM DEBUG] Pliki wybrane do przetworzenia od najstarszego do najnowszego:",
