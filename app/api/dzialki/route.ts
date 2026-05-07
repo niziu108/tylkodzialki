@@ -72,6 +72,17 @@ async function getAppConfig() {
 }
 
 export async function GET(req: Request) {
+    } else {
+      andFilters.push(radiusBoxFilter);
+    }
+  } else if (searchTerms.length > 0) {
+    andFilters.push(textSearchFilter);
+  }
+
+  if (priceMin || priceMax) {
+    const cenaPln: Prisma.IntFilter = {};
+    if (priceMin) cenaPln.gte = Number(priceMin);
+    if (priceMax) cenaPln.lte = Number(priceMax);
     andFilters.push({ cenaPln });
   }
 
