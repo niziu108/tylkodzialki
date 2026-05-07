@@ -95,11 +95,7 @@ function cleanSearchQuery(value: string) {
     'okolice',
   ]);
 
-  return normalizeText(
-    value
-      .replace(/\b\d{2}-\d{3}\b/g, ' ')
-      .replace(/\b\d{5}\b/g, ' ')
-  )
+  return normalizeText(value.replace(/\b\d{2}-\d{3}\b/g, ' ').replace(/\b\d{5}\b/g, ' '))
     .split(' ')
     .map((x) => x.trim())
     .filter((x) => x.length >= 2)
@@ -107,24 +103,12 @@ function cleanSearchQuery(value: string) {
     .filter((x) => !/^\d+$/.test(x));
 }
 
-function matchesTextSearch(d: any, query: string) {
+function matchesLocationText(d: any, query: string) {
   const terms = cleanSearchQuery(query);
   if (!terms.length) return false;
 
   const haystack = normalizeText(
-    [
-      d.locationLabel,
-      d.locationFull,
-      d.tytul,
-      d.parcelText,
-      d.opis,
-      d.sprzedajacyImie,
-      d.biuroNazwa,
-      d.biuroOpiekun,
-      d.numerOferty,
-    ]
-      .filter(Boolean)
-      .join(' ')
+    [d.locationLabel, d.locationFull, d.parcelText].filter(Boolean).join(' ')
   );
 
   if (!haystack) return false;
@@ -144,6 +128,14 @@ function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
     Math.sin(dLng / 2) ** 2;
 
   return 2 * R * Math.asin(Math.sqrt(s1 + s2));
+}
+
+function hasCoords(d: any) {
+  return typeof d.lat === 'number' && typeof d.lng === 'number';
+}
+
+function hasPhotos(d: any) {
+  return Array.isArray(d.zdjecia) && d.zdjecia.length > 0;
 }
 
 export async function GET(req: Request) {
@@ -180,10 +172,7 @@ export async function GET(req: Request) {
   const page = Math.max(Number.isFinite(pageReq) ? Math.floor(pageReq) : 1, 1);
 
   const skipParam = url.searchParams.get('skip');
-  const skip =
-    skipParam != null ? Math.max(Number(skipParam) || 0, 0) : (page - 1) * take;
-
-  const sort = (url.searchParams.get('sort') || 'newest').toLowerCase();
+  const skip = skipParam != null ? Math.max(Number(skipParam) || 0, 0) : (page - 1) * take;
 
   const andFilters: Prisma.DzialkaWhereInput[] = [
     { ownerId: { not: null } },
@@ -217,22 +206,9 @@ export async function GET(req: Request) {
     AND: andFilters,
   };
 
-  const baseOrderBy: Prisma.DzialkaOrderByWithRelationInput =
-    sort === 'price_asc'
-      ? { cenaPln: 'asc' }
-      : sort === 'price_desc'
-        ? { cenaPln: 'desc' }
-        : sort === 'area_asc'
-          ? { powierzchniaM2: 'asc' }
-          : sort === 'area_desc'
-            ? { powierzchniaM2: 'desc' }
-            : { createdAt: 'desc' };
-
-  const needsSmartFiltering = !!searchText || hasRadiusSearch;
-
   const allMatching = await prisma.dzialka.findMany({
     where,
-    orderBy: [{ zdjecia: { _count: 'desc' } }, baseOrderBy],
+    orderBy: { createdAt: 'desc' },
     include: {
       zdjecia: {
         orderBy: { kolejnosc: 'asc' },
@@ -242,23 +218,57 @@ export async function GET(req: Request) {
 
   let filtered = allMatching;
 
-  if (needsSmartFiltering) {
+  if (hasRadiusSearch || searchText) {
     filtered = allMatching.filter((d) => {
-      const textMatch = searchText ? matchesTextSearch(d, searchText) : false;
+      const coords = hasCoords(d);
 
-      const hasCoords = typeof d.lat === 'number' && typeof d.lng === 'number';
       const radiusMatch =
-        hasRadiusSearch && hasCoords
+        hasRadiusSearch && coords
           ? haversineKm(latParam, lngParam, d.lat!, d.lng!) <= radiusParam
           : false;
 
-      if (hasRadiusSearch && searchText) return radiusMatch || textMatch;
+      const textMatch = searchText ? matchesLocationText(d, searchText) : false;
+
+      if (hasRadiusSearch && searchText) {
+        return radiusMatch || (!coords && textMatch);
+      }
+
       if (hasRadiusSearch) return radiusMatch;
       if (searchText) return textMatch;
 
       return true;
     });
   }
+
+  filtered.sort((a, b) => {
+    const aCoords = hasCoords(a);
+    const bCoords = hasCoords(b);
+
+    const aRadius =
+      hasRadiusSearch && aCoords
+        ? haversineKm(latParam, lngParam, a.lat!, a.lng!) <= radiusParam
+        : false;
+
+    const bRadius =
+      hasRadiusSearch && bCoords
+        ? haversineKm(latParam, lngParam, b.lat!, b.lng!) <= radiusParam
+        : false;
+
+    const aTextOnly = !aCoords && searchText ? matchesLocationText(a, searchText) : false;
+    const bTextOnly = !bCoords && searchText ? matchesLocationText(b, searchText) : false;
+
+    const aGroup = aRadius ? 1 : aTextOnly ? 2 : 3;
+    const bGroup = bRadius ? 1 : bTextOnly ? 2 : 3;
+
+    if (aGroup !== bGroup) return aGroup - bGroup;
+
+    const aPhotos = hasPhotos(a);
+    const bPhotos = hasPhotos(b);
+
+    if (aPhotos !== bPhotos) return aPhotos ? -1 : 1;
+
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   const total = filtered.length;
   const items = filtered.slice(skip, skip + take);
