@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import KupSearch from '@/app/kup/KupSearch';
+import KupSearch from '../../../kup/KupSearch';
 import { getSeoCity, SEO_CITIES } from '@/lib/seo-locations';
 
 type PageProps = {
