@@ -297,7 +297,20 @@ function PopularSearchesSection() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.13),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.18),transparent_32%)]" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div>
+  <div className="text-[12px] uppercase tracking-[0.18em] text-[#9fd14b]">
+    Popularne lokalizacje
+  </div>
+
+  <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-tight text-white md:text-4xl">
+    Najpopularniejsze lokalizacje w województwach
+  </h2>
+
+  <p className="mt-4 max-w-3xl text-sm leading-7 text-white/55 md:text-base">
+    Wybierz województwo i przejdź do najczęściej wyszukiwanych miast.
+    Każdy link prowadzi bezpośrednio do działek budowlanych w danej lokalizacji.
+  </p>
+</div>
           <div>
             <div className="text-[12px] uppercase tracking-[0.18em] text-[#9fd14b]">
               Popularne lokalizacje
