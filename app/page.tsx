@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
 import type { Przeznaczenie } from "@prisma/client";
-import { SEO_CITIES } from "@/lib/seo-locations";
+import { SEO_REGIONS } from "@/lib/seo-locations";
 
 export const dynamic = "force-dynamic";
 
@@ -292,21 +292,81 @@ function AboutSection() {
 
 function PopularSearchesSection() {
   return (
-    <section
-      className="sr-only"
-      aria-label="Popularne wyszukiwania działek budowlanych"
-    >
-      <h2>Działki budowlane w popularnych miastach</h2>
+    <section className="relative overflow-hidden border-t border-white/10 bg-[#0b0b0b]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.13),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.18),transparent_32%)]" />
 
-      <ul>
-        {SEO_CITIES.map((city) => (
-          <li key={city.slug}>
-            <Link href={`/dzialki/${city.slug}/budowlane`}>
-              Działki budowlane {city.name}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
+        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="text-[12px] uppercase tracking-[0.18em] text-[#9fd14b]">
+              Popularne lokalizacje
+            </div>
+
+            <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-white md:text-5xl">
+              Działki budowlane według województw
+            </h2>
+
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/55 md:text-base">
+              Wybierz województwo i przejdź do najczęściej wyszukiwanych miast.
+              Każdy link prowadzi bezpośrednio do działek budowlanych w danej lokalizacji.
+            </p>
+          </div>
+
+          <Link
+            href="/kup"
+            className="inline-flex shrink-0 rounded-2xl border border-white/14 px-5 py-3 text-[12px] uppercase tracking-[0.2em] text-white/65 transition hover:border-[#7aa333]/45 hover:text-white"
+          >
+            Wyszukiwarka
+          </Link>
+        </div>
+
+        <div className="mt-10 [touch-action:pan-x_pan-y]">
+          <HomeHorizontalSlider>
+            {SEO_REGIONS.map((region, index) => (
+              <article
+                key={region.name}
+                className="group relative min-w-[86%] snap-start overflow-hidden rounded-[32px] border border-white/12 bg-[#101010]/78 p-6 shadow-[0_0_70px_rgba(0,0,0,0.20)] backdrop-blur transition hover:border-[#7aa333]/35 md:min-w-[360px] xl:min-w-[390px]"
+              >
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(122,163,51,0.12),transparent_34%)] opacity-0 transition group-hover:opacity-100" />
+
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
+                        Województwo
+                      </div>
+
+                      <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                        {region.name}
+                      </h3>
+                    </div>
+
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#7aa333]/25 bg-[#7aa333]/10 text-[13px] font-semibold text-[#9fd14b]">
+                      {String(index + 1).padStart(2, "0")}
+                    </div>
+                  </div>
+
+                  <div className="mt-7 grid gap-2">
+                    {region.cities.map((city) => (
+                      <Link
+                        key={city.slug}
+                        href={`/dzialki/${city.slug}/budowlane`}
+                        className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.025] px-4 py-3 text-sm text-white/68 transition hover:border-[#7aa333]/35 hover:bg-[#7aa333]/10 hover:text-white"
+                      >
+                        <span className="truncate">Działki budowlane {city.name}</span>
+                        <span className="ml-3 text-white/25 transition group-hover:text-white/40">
+                          →
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </HomeHorizontalSlider>
+        </div>
+      </div>
     </section>
   );
 }
