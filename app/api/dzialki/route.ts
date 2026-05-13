@@ -96,7 +96,7 @@ function cleanSearchQuery(value: string) {
   ]);
 
   return normalizeText(value.replace(/\b\d{2}-\d{3}\b/g, ' ').replace(/\b\d{5}\b/g, ' '))
-    .split(' ')
+    .split(/[\s-]+/)
     .map((x) => x.trim())
     .filter((x) => x.length >= 2)
     .filter((x) => !ignored.has(x))
@@ -113,7 +113,22 @@ function matchesLocationText(d: any, query: string) {
 
   if (!haystack) return false;
 
-  return terms.every((term) => haystack.includes(term));
+  const tokens = haystack
+    .split(/[\s-]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  if (!tokens.length) return false;
+
+  return terms.every((term) => {
+    if (tokens.includes(term)) return true;
+
+    if (term.length >= 5) {
+      return tokens.some((token) => token.startsWith(term));
+    }
+
+    return false;
+  });
 }
 
 function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
@@ -136,6 +151,10 @@ function hasCoords(d: any) {
 
 function hasPhotos(d: any) {
   return Array.isArray(d.zdjecia) && d.zdjecia.length > 0;
+}
+
+function isFeaturedActive(d: any) {
+  return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
 }
 
 export async function GET(req: Request) {
@@ -222,19 +241,17 @@ export async function GET(req: Request) {
     filtered = allMatching.filter((d) => {
       const coords = hasCoords(d);
 
-      const radiusMatch =
-        hasRadiusSearch && coords
-          ? haversineKm(latParam, lngParam, d.lat!, d.lng!) <= radiusParam
-          : false;
-
-      const textMatch = searchText ? matchesLocationText(d, searchText) : false;
-
-      if (hasRadiusSearch && searchText) {
-        return radiusMatch || textMatch;
+      if (hasRadiusSearch && coords) {
+        return haversineKm(latParam, lngParam, d.lat!, d.lng!) <= radiusParam;
       }
 
-      if (hasRadiusSearch) return radiusMatch;
-      if (searchText) return textMatch;
+      if (hasRadiusSearch && !coords) {
+        return searchText ? matchesLocationText(d, searchText) : false;
+      }
+
+      if (!hasRadiusSearch && searchText) {
+        return matchesLocationText(d, searchText);
+      }
 
       return true;
     });
@@ -244,28 +261,35 @@ export async function GET(req: Request) {
     const aCoords = hasCoords(a);
     const bCoords = hasCoords(b);
 
-    const aRadius =
-      hasRadiusSearch && aCoords
-        ? haversineKm(latParam, lngParam, a.lat!, a.lng!) <= radiusParam
-        : false;
+    const aDistance =
+      hasRadiusSearch && aCoords ? haversineKm(latParam, lngParam, a.lat!, a.lng!) : null;
+    const bDistance =
+      hasRadiusSearch && bCoords ? haversineKm(latParam, lngParam, b.lat!, b.lng!) : null;
 
-    const bRadius =
-      hasRadiusSearch && bCoords
-        ? haversineKm(latParam, lngParam, b.lat!, b.lng!) <= radiusParam
-        : false;
+    const aRadius = aDistance !== null && aDistance <= radiusParam;
+    const bRadius = bDistance !== null && bDistance <= radiusParam;
 
-    const aTextOnly = !aCoords && searchText ? matchesLocationText(a, searchText) : false;
-    const bTextOnly = !bCoords && searchText ? matchesLocationText(b, searchText) : false;
+    const aTextFallback = !aCoords && searchText ? matchesLocationText(a, searchText) : false;
+    const bTextFallback = !bCoords && searchText ? matchesLocationText(b, searchText) : false;
 
-    const aGroup = aRadius ? 1 : aTextOnly ? 2 : 3;
-    const bGroup = bRadius ? 1 : bTextOnly ? 2 : 3;
+    const aGroup = aRadius ? 1 : aTextFallback ? 2 : 3;
+    const bGroup = bRadius ? 1 : bTextFallback ? 2 : 3;
 
     if (aGroup !== bGroup) return aGroup - bGroup;
+
+    const aFeatured = isFeaturedActive(a);
+    const bFeatured = isFeaturedActive(b);
+
+    if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
 
     const aPhotos = hasPhotos(a);
     const bPhotos = hasPhotos(b);
 
     if (aPhotos !== bPhotos) return aPhotos ? -1 : 1;
+
+    if (hasRadiusSearch && aDistance !== null && bDistance !== null) {
+      return aDistance - bDistance;
+    }
 
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
