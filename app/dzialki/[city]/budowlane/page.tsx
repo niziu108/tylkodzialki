@@ -43,24 +43,8 @@ export default async function DzialkiBudowlaneCityPage({ params }: PageProps) {
   if (!city) notFound();
 
   return (
-    <main className="pt-10 pb-20">
-      <section className="mx-auto max-w-6xl px-3 pb-8 md:px-4">
-        <div className="rounded-3xl border border-white/10 bg-[#0f0f0f]/40 p-6 md:p-8">
-          <p className="text-[12px] uppercase tracking-[0.26em] text-white/45">
-            TylkoDziałki.pl
-          </p>
-
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl">
-            Działki budowlane {city.name}
-          </h1>
-
-          <p className="mt-4 max-w-3xl text-[15px] leading-7 text-white/65 md:text-[16px]">
-            Przeglądaj aktualne oferty działek budowlanych w lokalizacji {city.name}.
-            Filtruj po cenie, powierzchni i lokalizacji, a następnie przejdź do szczegółów
-            wybranej oferty.
-          </p>
-        </div>
-      </section>
+    <main className="pt-0 pb-20">
+      <h1 className="sr-only">Działki budowlane {city.name}</h1>
 
       <KupSearch
         seoMode
@@ -70,6 +54,20 @@ export default async function DzialkiBudowlaneCityPage({ params }: PageProps) {
           przezn: ['BUDOWLANA'],
         }}
       />
+
+      <section className="mx-auto mt-16 max-w-6xl px-3 md:px-4">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.025] p-6 md:p-8">
+          <h2 className="text-xl font-semibold text-white md:text-2xl">
+            Działki budowlane {city.name}
+          </h2>
+
+          <p className="mt-4 max-w-4xl text-sm leading-7 text-white/55 md:text-[15px]">
+            Na tej stronie znajdziesz aktualne oferty działek budowlanych w lokalizacji{' '}
+            {city.name}. Możesz dodatkowo zawęzić wyniki po cenie, powierzchni oraz
+            zasięgu wyszukiwania.
+          </p>
+        </div>
+      </section>
     </main>
   );
 }
