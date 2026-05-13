@@ -298,40 +298,18 @@ function PopularSearchesSection() {
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
         <div>
-  <div className="text-[12px] uppercase tracking-[0.18em] text-[#9fd14b]">
-    Popularne lokalizacje
-  </div>
-
-  <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-tight text-white md:text-4xl">
-    Najpopularniejsze lokalizacje w województwach
-  </h2>
-
-  <p className="mt-4 max-w-3xl text-sm leading-7 text-white/55 md:text-base">
-    Wybierz województwo i przejdź do najczęściej wyszukiwanych miast.
-    Każdy link prowadzi bezpośrednio do działek budowlanych w danej lokalizacji.
-  </p>
-</div>
-          <div>
-            <div className="text-[12px] uppercase tracking-[0.18em] text-[#9fd14b]">
-              Popularne lokalizacje
-            </div>
-
-            <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-white md:text-5xl">
-              Działki budowlane według województw
-            </h2>
-
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/55 md:text-base">
-              Wybierz województwo i przejdź do najczęściej wyszukiwanych miast.
-              Każdy link prowadzi bezpośrednio do działek budowlanych w danej lokalizacji.
-            </p>
+          <div className="text-[12px] uppercase tracking-[0.18em] text-[#9fd14b]">
+            Popularne lokalizacje
           </div>
 
-          <Link
-            href="/kup"
-            className="inline-flex shrink-0 rounded-2xl border border-white/14 px-5 py-3 text-[12px] uppercase tracking-[0.2em] text-white/65 transition hover:border-[#7aa333]/45 hover:text-white"
-          >
-            Wyszukiwarka
-          </Link>
+          <h2 className="mt-3 max-w-4xl text-2xl font-semibold tracking-tight text-white md:text-4xl">
+            Najpopularniejsze lokalizacje w województwach
+          </h2>
+
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-white/55 md:text-base">
+            Wybierz województwo i przejdź do najczęściej wyszukiwanych miast.
+            Każdy link prowadzi bezpośrednio do działek budowlanych w danej lokalizacji.
+          </p>
         </div>
 
         <div className="mt-10 [touch-action:pan-x_pan-y]">
@@ -365,12 +343,9 @@ function PopularSearchesSection() {
                       <Link
                         key={city.slug}
                         href={`/dzialki/${city.slug}/budowlane`}
-                        className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.025] px-4 py-3 text-sm text-white/68 transition hover:border-[#7aa333]/35 hover:bg-[#7aa333]/10 hover:text-white"
+                        className="block rounded-2xl border border-white/8 bg-white/[0.025] px-4 py-3 text-sm leading-5 text-white/68 transition hover:border-[#7aa333]/35 hover:bg-[#7aa333]/10 hover:text-white"
                       >
-                        <span className="truncate">Działki budowlane {city.name}</span>
-                        <span className="ml-3 text-white/25 transition group-hover:text-white/40">
-                          →
-                        </span>
+                        Działki budowlane {city.name}
                       </Link>
                     ))}
                   </div>
