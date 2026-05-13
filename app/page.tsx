@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
 import type { Przeznaczenie } from "@prisma/client";
+import { SEO_CITIES } from "@/lib/seo-locations";
 
 export const dynamic = "force-dynamic";
 
@@ -289,6 +290,57 @@ function AboutSection() {
   );
 }
 
+function PopularSearchesSection() {
+  return (
+    <section className="relative overflow-hidden border-t border-white/10 bg-[#0b0b0b]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(122,163,51,0.12),transparent_28%),radial-gradient(circle_at_90%_85%,rgba(47,94,70,0.18),transparent_30%)]" />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="text-[12px] uppercase tracking-[0.22em] text-[#9fd14b]">
+            Popularne wyszukiwania
+          </div>
+
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-5xl">
+            Działki budowlane w popularnych miastach
+          </h2>
+
+          <p className="mt-5 text-sm leading-7 text-white/55 md:text-base">
+            Szybkie przejścia do najczęściej wyszukiwanych lokalizacji. Wybierz
+            miasto i sprawdź aktualne oferty działek budowlanych na sprzedaż.
+          </p>
+        </div>
+
+        <div className="mt-10 rounded-[32px] border border-white/10 bg-white/[0.025] p-4 shadow-[0_0_80px_rgba(0,0,0,0.22)] backdrop-blur md:p-6">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {SEO_CITIES.map((city) => (
+              <Link
+                key={city.slug}
+                href={`/dzialki/${city.slug}/budowlane`}
+                className="group rounded-2xl border border-white/8 bg-[#111]/70 px-3 py-3 text-center text-[13px] text-white/58 transition hover:border-[#7aa333]/45 hover:bg-[#7aa333]/10 hover:text-white md:px-4 md:text-sm"
+              >
+                <span className="block truncate">
+                  {city.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <Link
+            href="/kup"
+            className="inline-flex rounded-2xl border border-white/14 px-6 py-3 text-[12px] uppercase tracking-[0.2em] text-white/65 transition hover:border-[#7aa333]/45 hover:text-white"
+          >
+            Przejdź do wyszukiwarki
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default async function HomePage() {
   const now = new Date();
 
@@ -536,6 +588,8 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <PopularSearchesSection />
     </main>
   );
 }

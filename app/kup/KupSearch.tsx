@@ -465,8 +465,28 @@ function PagerResponsive({
   );
 }
 
-export default function KupSearch() {
-  const initial = useMemo(() => readStateFromUrl(), []);
+export default function KupSearch({
+  initialFilters,
+  seoMode = false,
+}: {
+  initialFilters?: Partial<AppliedFilters>;
+  seoMode?: boolean;
+}) {
+  const initial = useMemo(() => {
+    const fromUrl = readStateFromUrl();
+
+    if (!initialFilters) return fromUrl;
+
+    return {
+      page: 1,
+      filters: {
+        ...EMPTY_APPLIED,
+        ...initialFilters,
+        center: initialFilters.center ?? null,
+        przezn: initialFilters.przezn ?? [],
+      },
+    };
+  }, [initialFilters]);
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -672,7 +692,14 @@ export default function KupSearch() {
     setAreaMax('');
     setPrzezn([]);
 
-    const next = { ...EMPTY_APPLIED };
+    const next: AppliedFilters = seoMode
+  ? {
+      ...EMPTY_APPLIED,
+      ...initialFilters,
+      center: initialFilters?.center ?? null,
+      przezn: initialFilters?.przezn ?? [],
+    }
+  : { ...EMPTY_APPLIED };
 
     try {
       sessionStorage.removeItem(STORAGE_KEY);
