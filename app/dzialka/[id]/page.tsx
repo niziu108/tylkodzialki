@@ -762,7 +762,7 @@ export default function DzialkaPage() {
 
       {isApproxLocation ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-28 w-28 rounded-full border border-white/70 bg-white/15 shadow-[0_0_40px_rgba(255,255,255,0.20)] backdrop-blur-[1px]" />
+          <div className="h-44 w-44 rounded-full border-2 border-[#7aa333]/70 bg-[#7aa333]/20 shadow-[0_0_60px_rgba(122,163,51,0.28)]" />
         </div>
       ) : null}
     </div>
