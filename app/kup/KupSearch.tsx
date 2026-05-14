@@ -91,6 +91,41 @@ function loadPlaces(apiKey: string) {
   });
 }
 
+async function geocodeTypedLocation(
+  text: string
+): Promise<{ lat: number; lng: number } | null> {
+  // @ts-ignore
+  if (!window.google?.maps?.Geocoder) return null;
+
+  const query = text.trim();
+  if (!query) return null;
+
+  return new Promise((resolve) => {
+    // @ts-ignore
+    const geocoder = new window.google.maps.Geocoder();
+
+    geocoder.geocode(
+      {
+        address: `${query}, Polska`,
+        region: 'pl',
+      },
+      (results: any, status: string) => {
+        if (status !== 'OK' || !results?.[0]?.geometry?.location) {
+          resolve(null);
+          return;
+        }
+
+        const loc = results[0].geometry.location;
+
+        resolve({
+          lat: loc.lat(),
+          lng: loc.lng(),
+        });
+      }
+    );
+  });
+}
+
 function digitsOnly(s: string) {
   return s.replace(/\D/g, '');
 }
@@ -270,10 +305,7 @@ function makeParams(filters: AppliedFilters, page: number) {
   const cleanedTextQuery = cleanSearchQuery(filters.locText);
   const rawTextQuery = filters.locText.trim();
 
-  // q = wersja oczyszczona, bez kodu pocztowego, Polski itd.
   if (cleanedTextQuery) sp.set('q', cleanedTextQuery);
-
-  // qRaw = oryginał z inputa, np. „Częstochowa, Polska” — dzięki temu łapie polskie znaki
   if (rawTextQuery) sp.set('qRaw', rawTextQuery);
 
   if (filters.center) {
@@ -666,11 +698,21 @@ export default function KupSearch({
     } catch {}
   }, [loading, page, items.length]);
 
-  function applyAndSearch() {
+  async function applyAndSearch() {
+    let nextCenter = center;
+
+    if (!nextCenter && locText.trim()) {
+      nextCenter = await geocodeTypedLocation(locText);
+
+      if (nextCenter) {
+        setCenter(nextCenter);
+      }
+    }
+
     const next: AppliedFilters = {
       locText,
       radiusKm,
-      center,
+      center: nextCenter,
       priceMin: digitsOnly(priceMin),
       priceMax: digitsOnly(priceMax),
       areaMin: digitsOnly(areaMin),
@@ -693,13 +735,13 @@ export default function KupSearch({
     setPrzezn([]);
 
     const next: AppliedFilters = seoMode
-  ? {
-      ...EMPTY_APPLIED,
-      ...initialFilters,
-      center: initialFilters?.center ?? null,
-      przezn: initialFilters?.przezn ?? [],
-    }
-  : { ...EMPTY_APPLIED };
+      ? {
+          ...EMPTY_APPLIED,
+          ...initialFilters,
+          center: initialFilters?.center ?? null,
+          przezn: initialFilters?.przezn ?? [],
+        }
+      : { ...EMPTY_APPLIED };
 
     try {
       sessionStorage.removeItem(STORAGE_KEY);

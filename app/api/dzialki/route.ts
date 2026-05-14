@@ -237,24 +237,14 @@ export async function GET(req: Request) {
 
   let filtered = allMatching;
 
-  if (hasRadiusSearch || searchText) {
+  if (hasRadiusSearch) {
     filtered = allMatching.filter((d) => {
-      const coords = hasCoords(d);
+      if (!hasCoords(d)) return false;
 
-      if (hasRadiusSearch && coords) {
-        return haversineKm(latParam, lngParam, d.lat!, d.lng!) <= radiusParam;
-      }
-
-      if (hasRadiusSearch && !coords) {
-        return searchText ? matchesLocationText(d, searchText) : false;
-      }
-
-      if (!hasRadiusSearch && searchText) {
-        return matchesLocationText(d, searchText);
-      }
-
-      return true;
+      return haversineKm(latParam, lngParam, d.lat!, d.lng!) <= radiusParam;
     });
+  } else if (searchText) {
+    filtered = allMatching.filter((d) => matchesLocationText(d, searchText));
   }
 
   filtered.sort((a, b) => {
@@ -269,11 +259,8 @@ export async function GET(req: Request) {
     const aRadius = aDistance !== null && aDistance <= radiusParam;
     const bRadius = bDistance !== null && bDistance <= radiusParam;
 
-    const aTextFallback = !aCoords && searchText ? matchesLocationText(a, searchText) : false;
-    const bTextFallback = !bCoords && searchText ? matchesLocationText(b, searchText) : false;
-
-    const aGroup = aRadius ? 1 : aTextFallback ? 2 : 3;
-    const bGroup = bRadius ? 1 : bTextFallback ? 2 : 3;
+    const aGroup = aRadius ? 1 : 2;
+    const bGroup = bRadius ? 1 : 2;
 
     if (aGroup !== bGroup) return aGroup - bGroup;
 
