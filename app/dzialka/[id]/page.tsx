@@ -17,6 +17,7 @@ type Dzialka = {
   email?: string | null;
 
   locationLabel?: string | null;
+  locationMode?: 'EXACT' | 'APPROX' | string | null;
   lat?: number | null;
   lng?: number | null;
   mapsUrl?: string | null;
@@ -298,9 +299,11 @@ export default function DzialkaPage() {
   const przeznText = przezn.length ? przezn.map(labelPrzeznaczenie).join(', ') : null;
 
   const loc = d?.locationLabel?.trim() || null;
+  const isApproxLocation = d?.locationMode === 'APPROX';
 
   const mapSrc = useMemo(() => {
     if (!d) return null;
+    if (d.locationMode === 'APPROX') return null;
     if (d.lat && d.lng) return `https://www.google.com/maps?q=${d.lat},${d.lng}&z=15&output=embed`;
     return null;
   }, [d]);
@@ -715,7 +718,7 @@ export default function DzialkaPage() {
                 </>
               ) : null}
 
-              {(loc || showMap) ? (
+              {(loc || showMap || isApproxLocation) ? (
                 <div className="py-5">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Lokalizacja</div>
 
@@ -725,7 +728,13 @@ export default function DzialkaPage() {
                     </div>
                   ) : null}
 
-                  {d.mapsUrl ? (
+                  {isApproxLocation ? (
+                    <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[12px] leading-relaxed text-white/55">
+                      Lokalizacja przybliżona. Dokładne położenie działki należy potwierdzić z ogłoszeniodawcą.
+                    </div>
+                  ) : null}
+
+                  {d.mapsUrl && !isApproxLocation ? (
                     <a
                       href={d.mapsUrl}
                       target="_blank"
