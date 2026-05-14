@@ -39,8 +39,8 @@ export default function RegulaminPage() {
           <p className="max-w-3xl text-[15px] leading-8 text-white/65">
             Niniejszy regulamin określa zasady korzystania z serwisu internetowego
             TylkoDziałki, w szczególności zasady tworzenia kont, publikowania ogłoszeń,
-            korzystania z usług płatnych oraz zasady odpowiedzialności użytkowników i
-            operatora serwisu.
+            korzystania z usług bezpłatnych i płatnych oraz zasady odpowiedzialności
+            użytkowników i operatora serwisu.
           </p>
 
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 text-sm leading-7 text-white/70">
@@ -82,7 +82,7 @@ export default function RegulaminPage() {
             §4. Zasady publikacji ogłoszeń
           </Link>
           <Link href="#uslugi-platne" className="transition hover:text-white">
-            §5. Usługi płatne
+            §5. Usługi bezpłatne i płatne
           </Link>
           <Link href="#odstapienie" className="transition hover:text-white">
             §6. Odstąpienie od umowy i zwroty
@@ -115,7 +115,7 @@ export default function RegulaminPage() {
             <p>
               3. Regulamin określa zasady korzystania z serwisu, warunki świadczenia usług
               drogą elektroniczną, zasady zawierania umów na odległość oraz zasady korzystania
-              z usług płatnych.
+              z usług bezpłatnych i płatnych.
             </p>
             <p>
               4. Użytkownik, korzystając z serwisu, zobowiązuje się do przestrzegania
@@ -128,7 +128,8 @@ export default function RegulaminPage() {
             <p>2. Operator – Ultima Reality Sp. z o.o.</p>
             <p>
               3. Użytkownik – osoba fizyczna, osoba prawna lub jednostka organizacyjna
-              korzystająca z serwisu.
+              korzystająca z serwisu, w tym właściciel nieruchomości, biuro nieruchomości,
+              pośrednik lub inny podmiot publikujący ogłoszenia.
             </p>
             <p>
               4. Konto – indywidualny panel użytkownika umożliwiający korzystanie z funkcji
@@ -136,11 +137,16 @@ export default function RegulaminPage() {
             </p>
             <p>5. Ogłoszenie – oferta dotycząca działki opublikowana w serwisie przez użytkownika.</p>
             <p>
-              6. Usługi płatne – usługi odpłatne oferowane w serwisie, w szczególności
-              publikacja ogłoszeń i wyróżnienia ogłoszeń.
+              6. Integracja CRM – techniczny sposób przekazywania ogłoszeń do serwisu za
+              pośrednictwem systemów zewnętrznych, eksportów XML, plików, integracji FTP lub
+              innych narzędzi wykorzystywanych przez użytkownika.
             </p>
             <p>
-              7. Pakiet – przyznany użytkownikowi limit publikacji lub wyróżnień do
+              7. Usługi płatne – usługi odpłatne oferowane w serwisie, w szczególności
+              publikacja ogłoszeń, wyróżnienia ogłoszeń lub inne funkcje dodatkowe.
+            </p>
+            <p>
+              8. Pakiet – przyznany użytkownikowi limit publikacji lub wyróżnień do
               wykorzystania w serwisie.
             </p>
           </Section>
@@ -178,35 +184,65 @@ export default function RegulaminPage() {
             </p>
             <p>
               3. Użytkownik ponosi pełną odpowiedzialność za treść ogłoszenia, w tym za jej
-              zgodność z prawem i stanem faktycznym.
+              zgodność z prawem, stanem faktycznym oraz za posiadanie prawa do publikacji
+              przekazanych treści, zdjęć, opisów, danych kontaktowych i innych materiałów.
             </p>
             <p>
-              4. Operator ma prawo odmówić publikacji, usunąć ogłoszenie albo zakończyć jego
+              4. Użytkownik publikujący ogłoszenia lub przekazujący dane ofert poprzez
+              integracje CRM, eksporty XML, pliki, systemy zewnętrzne lub inne formy
+              automatycznego przekazywania danych oświadcza, że posiada prawo do publikacji
+              tych treści oraz ich udostępniania w serwisie.
+            </p>
+            <p>
+              5. Przekazanie danych ofert do serwisu, w tym poprzez integrację CRM, eksport XML
+              lub inną formę techniczną, jest równoznaczne ze zgodą na ich publikację w serwisie
+              TylkoDziałki w zakresie niezbędnym do prezentacji ogłoszeń.
+            </p>
+            <p>
+              6. Operator ma prawo odmówić publikacji, usunąć ogłoszenie albo zakończyć jego
               emisję, jeżeli treść ogłoszenia narusza regulamin, przepisy prawa lub interes
               serwisu.
             </p>
             <p>
-              5. Usunięcie lub blokada ogłoszenia z przyczyn leżących po stronie użytkownika nie
+              7. Usunięcie lub blokada ogłoszenia z przyczyn leżących po stronie użytkownika nie
               stanowi podstawy do zwrotu środków.
             </p>
           </Section>
 
-          <Section id="uslugi-platne" title="§5. Usługi płatne">
+          <Section id="uslugi-platne" title="§5. Usługi bezpłatne i płatne">
             <p>
-              1. Serwis może oferować usługi płatne, w szczególności publikację ogłoszeń oraz
-              wyróżnianie ogłoszeń.
+              1. Serwis może oferować zarówno usługi bezpłatne, jak i usługi płatne.
             </p>
-            <p>2. Płatności są realizowane za pośrednictwem zewnętrznego operatora płatności Stripe.</p>
             <p>
-              3. Szczegółowe ceny usług płatnych są prezentowane w serwisie przed złożeniem
+              2. Publikacja ogłoszeń może być czasowo lub stale udostępniana bezpłatnie, zgodnie
+              z aktualną ofertą prezentowaną w serwisie lub ustaleniami przekazanymi
+              użytkownikowi przez operatora.
+            </p>
+            <p>
+              3. Samo założenie konta, przekazanie danych ofert, uruchomienie integracji CRM lub
+              publikacja ogłoszeń w ramach aktualnie bezpłatnej oferty nie powoduje
+              automatycznego powstania obowiązku zapłaty po stronie użytkownika.
+            </p>
+            <p>
+              4. Jakiekolwiek usługi płatne wymagają wyraźnego działania użytkownika, w
+              szczególności złożenia zamówienia, wyboru płatnej usługi, pakietu lub dokonania
+              płatności.
+            </p>
+            <p>
+              5. Serwis może oferować usługi płatne, w szczególności publikację ogłoszeń,
+              wyróżnianie ogłoszeń lub inne funkcje dodatkowe.
+            </p>
+            <p>6. Płatności są realizowane za pośrednictwem zewnętrznego operatora płatności Stripe.</p>
+            <p>
+              7. Szczegółowe ceny usług płatnych są prezentowane w serwisie przed złożeniem
               zamówienia.
             </p>
             <p>
-              4. Zakupione pakiety publikacji lub wyróżnień nie tracą ważności do momentu ich
+              8. Zakupione pakiety publikacji lub wyróżnień nie tracą ważności do momentu ich
               wykorzystania, chyba że wyraźnie wskazano inaczej w ofercie danego pakietu.
             </p>
             <p>
-              5. Wykorzystanie pakietu następuje z chwilą skutecznego użycia danej usługi w
+              9. Wykorzystanie pakietu następuje z chwilą skutecznego użycia danej usługi w
               serwisie, zgodnie z jej przeznaczeniem.
             </p>
           </Section>
@@ -274,7 +310,18 @@ export default function RegulaminPage() {
               z prawa.
             </p>
             <p>
-              4. Operator może prowadzić prace techniczne, aktualizacje i działania
+              4. Operator nie ponosi odpowiedzialności za brak aktualizacji, błędne dane,
+              nieprawidłowe zdjęcia, nieaktualne ceny lub inne nieścisłości wynikające z danych
+              przekazanych przez użytkownika, jego system CRM, eksport XML lub inne narzędzie
+              zewnętrzne.
+            </p>
+            <p>
+              5. Użytkownik zobowiązany jest do niezwłocznego zgłaszania operatorowi potrzeby
+              usunięcia, poprawy lub zakończenia publikacji ogłoszenia, jeżeli nie ma możliwości
+              dokonania tego samodzielnie.
+            </p>
+            <p>
+              6. Operator może prowadzić prace techniczne, aktualizacje i działania
               administracyjne niezbędne do utrzymania, rozwoju lub zabezpieczenia serwisu.
             </p>
           </Section>
@@ -303,12 +350,20 @@ export default function RegulaminPage() {
           <Section id="postanowienia-koncowe" title="§10. Postanowienia końcowe">
             <p>
               1. Operator zastrzega sobie prawo do zmiany regulaminu z ważnych przyczyn, w
-              szczególności w razie zmiany przepisów prawa, rozwoju funkcjonalności serwisu lub
-              zmiany modelu świadczenia usług.
+              szczególności w razie zmiany przepisów prawa, rozwoju funkcjonalności serwisu,
+              zmiany modelu świadczenia usług lub wprowadzenia nowych funkcji serwisu.
             </p>
-            <p>2. Nowa wersja regulaminu publikowana jest w serwisie wraz z datą wejścia w życie.</p>
-            <p>3. W sprawach nieuregulowanych regulaminem zastosowanie mają przepisy prawa polskiego.</p>
-            <p>4. Regulamin wchodzi w życie z dniem publikacji w serwisie.</p>
+            <p>
+              2. Nowa wersja regulaminu publikowana jest w serwisie wraz z datą wejścia w życie.
+            </p>
+            <p>
+              3. Zmiana regulaminu nie powoduje automatycznego powstania obowiązku zapłaty po
+              stronie użytkownika za usługi, które wcześniej były świadczone bezpłatnie, chyba że
+              użytkownik wyraźnie zaakceptuje płatną usługę lub złoży zamówienie zgodnie z
+              aktualną ofertą serwisu.
+            </p>
+            <p>4. W sprawach nieuregulowanych regulaminem zastosowanie mają przepisy prawa polskiego.</p>
+            <p>5. Regulamin wchodzi w życie z dniem publikacji w serwisie.</p>
           </Section>
         </div>
       </div>
