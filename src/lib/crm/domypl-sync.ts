@@ -1273,7 +1273,7 @@ async function processOffer(
     await prisma.$transaction(async (tx) => {
       const dzialka = await tx.dzialka.create({
         data: {
-          ...buildDzialkaDataFromOffer(offer),
+          ...buildDzialkaDataFromOffer(offerForDb),
           ownerId: integration.userId,
           editToken: makeEditToken(),
           publishedAt: now,
@@ -1399,7 +1399,7 @@ async function processOffer(
     const dzialka = await tx.dzialka.update({
       where: { id: existingLink.dzialkaId },
       data: {
-        ...buildDzialkaDataFromOffer(offer),
+        ...buildDzialkaDataFromOffer(offerForDb),
         ...(wasEnded
           ? {
               publishedAt: now,
