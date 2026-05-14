@@ -187,6 +187,103 @@ function buildMapsUrl(lat: number | null, lng: number | null) {
   return `https://maps.google.com/?q=${lat},${lng}`;
 }
 
+type GeocodeResult = {
+  lat: number;
+  lng: number;
+  formattedAddress: string | null;
+};
+
+function getGoogleGeocodeKey() {
+  return process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+}
+
+function buildGeocodeQuery(offer: ParsedDomyOffer) {
+  const parts = [offer.locationFull, offer.locationLabel]
+    .map((x) => (x ?? "").trim())
+    .filter(Boolean);
+
+  const unique = [...new Set(parts)];
+
+  if (!unique.length) return null;
+
+  return `${unique.join(", ")}, Polska`;
+}
+
+async function geocodeOfferLocation(offer: ParsedDomyOffer): Promise<GeocodeResult | null> {
+  if (typeof offer.lat === "number" && typeof offer.lng === "number") return null;
+
+  const key = getGoogleGeocodeKey();
+  if (!key) {
+    console.log("[CRM GEOCODE] Brak GOOGLE_MAPS_API_KEY - pomijam geokodowanie.");
+    return null;
+  }
+
+  const query = buildGeocodeQuery(offer);
+  if (!query) return null;
+
+  try {
+    const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+    url.searchParams.set("address", query);
+    url.searchParams.set("region", "pl");
+    url.searchParams.set("language", "pl");
+    url.searchParams.set("key", key);
+
+    const res = await fetch(url.toString());
+    const data = await res.json();
+
+    if (data.status !== "OK") {
+      console.log("[CRM GEOCODE] Brak wyniku:", data.status, query);
+      return null;
+    }
+
+    const result = data.results?.[0];
+    const loc = result?.geometry?.location;
+
+    if (typeof loc?.lat !== "number" || typeof loc?.lng !== "number") {
+      console.log("[CRM GEOCODE] Brak lat/lng:", query);
+      return null;
+    }
+
+    const isPoland = result.address_components?.some((c: any) => {
+      return c.types?.includes("country") && c.short_name === "PL";
+    });
+
+    if (!isPoland) {
+      console.log("[CRM GEOCODE] Wynik poza Polską:", query, result.formatted_address);
+      return null;
+    }
+
+    console.log("[CRM GEOCODE] OK:", query, "=>", loc.lat, loc.lng, result.formatted_address);
+
+    return {
+      lat: loc.lat,
+      lng: loc.lng,
+      formattedAddress: result.formatted_address ?? null,
+    };
+  } catch (error) {
+    console.error("[CRM GEOCODE] Błąd geokodowania:", query, error);
+    return null;
+  }
+}
+
+async function enrichOfferWithGeocoding(offer: ParsedDomyOffer): Promise<ParsedDomyOffer> {
+  if (typeof offer.lat === "number" && typeof offer.lng === "number") {
+    return offer;
+  }
+
+  const geocoded = await geocodeOfferLocation(offer);
+
+  if (!geocoded) return offer;
+
+  return {
+    ...offer,
+    lat: geocoded.lat,
+    lng: geocoded.lng,
+    mapsUrl: buildMapsUrl(geocoded.lat, geocoded.lng),
+    locationFull: offer.locationFull || geocoded.formattedAddress,
+  };
+}
+
 function mapPlotTypeToPrzeznaczenia(plotTypeRaw: string | null): Przeznaczenie[] {
   const text = (plotTypeRaw ?? "").toLowerCase();
   const result = new Set<Przeznaczenie>();
@@ -1124,6 +1221,8 @@ async function processOffer(
   const now = new Date();
   const expiresAt = addDays(now, 30);
 
+  const offerForDb = await enrichOfferWithGeocoding(offer);
+
   const existingLink = await prisma.crmOfferLink.findUnique({
     where: {
       integrationId_externalId: {
@@ -1174,7 +1273,7 @@ async function processOffer(
     await prisma.$transaction(async (tx) => {
       const dzialka = await tx.dzialka.create({
         data: {
-          ...buildDzialkaDataFromOffer(offer),
+          ...buildDzialkaDataFromOffer(offerForDb),
           ownerId: integration.userId,
           editToken: makeEditToken(),
           publishedAt: now,
@@ -1300,7 +1399,7 @@ async function processOffer(
     const dzialka = await tx.dzialka.update({
       where: { id: existingLink.dzialkaId },
       data: {
-        ...buildDzialkaDataFromOffer(offer),
+        ...buildDzialkaDataFromOffer(offerForDb),
         ...(wasEnded
           ? {
               publishedAt: now,
