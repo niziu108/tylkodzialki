@@ -302,11 +302,15 @@ export default function DzialkaPage() {
   const isApproxLocation = d?.locationMode === 'APPROX';
 
   const mapSrc = useMemo(() => {
-    if (!d) return null;
-    if (d.locationMode === 'APPROX') return null;
-    if (d.lat && d.lng) return `https://www.google.com/maps?q=${d.lat},${d.lng}&z=15&output=embed`;
-    return null;
-  }, [d]);
+  if (!d) return null;
+  if (!d.lat || !d.lng) return null;
+
+  if (d.locationMode === 'APPROX') {
+    return `https://www.google.com/maps?ll=${d.lat},${d.lng}&z=12&output=embed`;
+  }
+
+  return `https://www.google.com/maps?q=${d.lat},${d.lng}&z=15&output=embed`;
+}, [d]);
 
   const prad = labelPrad(d?.prad ?? null);
   const woda = labelWoda(d?.woda ?? null);
@@ -729,9 +733,9 @@ export default function DzialkaPage() {
                   ) : null}
 
                   {isApproxLocation ? (
-                    <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[12px] leading-relaxed text-white/55">
-                      Lokalizacja przybliżona. Dokładne położenie działki należy potwierdzić z ogłoszeniodawcą.
-                    </div>
+                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-white/45">
+                     Lokalizacja przybliżona
+                   </div>
                   ) : null}
 
                   {d.mapsUrl && !isApproxLocation ? (
@@ -746,18 +750,24 @@ export default function DzialkaPage() {
                   ) : null}
 
                   {showMap ? (
-                    <div className="mt-4 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-                      <div className="aspect-video">
-                        <iframe
-                          title="Mapa"
-                          src={mapSrc!}
-                          className="h-full w-full"
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                        />
-                      </div>
-                    </div>
-                  ) : null}
+  <div className="mt-4 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
+    <div className="relative aspect-video">
+      <iframe
+        title="Mapa"
+        src={mapSrc!}
+        className="h-full w-full"
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+
+      {isApproxLocation ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-28 w-28 rounded-full border border-white/70 bg-white/15 shadow-[0_0_40px_rgba(255,255,255,0.20)] backdrop-blur-[1px]" />
+        </div>
+      ) : null}
+    </div>
+  </div>
+) : null}
                 </div>
               ) : null}
             </div>
