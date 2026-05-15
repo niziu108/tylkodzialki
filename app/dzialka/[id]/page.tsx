@@ -851,10 +851,10 @@ export default function DzialkaPage() {
       ) : null}
 
             {telefon && telefonHref ? (
-        <div className="fixed bottom-0 left-0 right-0 z-[90] border-t border-white/10 bg-[#131313]/92 px-4 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3 backdrop-blur-xl md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-[90] bg-[#131313]/88 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 backdrop-blur-xl md:hidden">
           <a
             href={`tel:${telefonHref}`}
-            className="flex h-14 w-full items-center justify-center rounded-2xl border border-[#7aa333]/50 bg-[#7aa333] text-[14px] font-semibold uppercase tracking-[0.18em] text-[#131313] shadow-[0_0_34px_rgba(122,163,51,0.28)] transition active:scale-[0.98]"
+            className="mx-auto flex h-12 max-w-[420px] items-center justify-center rounded-2xl border border-[#7aa333]/70 bg-[#0f0f0f]/92 text-[13px] font-semibold uppercase tracking-[0.22em] text-[#D8D2DB] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
           >
             Zadzwoń
           </a>
