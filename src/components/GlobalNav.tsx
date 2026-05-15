@@ -67,19 +67,6 @@ export default function GlobalNav() {
     return () => document.removeEventListener('mousedown', onDown);
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    if (window.location.hash === '#footer') {
-      const footer = document.getElementById('footer');
-      if (footer) {
-        setTimeout(() => {
-          footer.scrollIntoView({ behavior: 'smooth' });
-        }, 80);
-      }
-    }
-  }, [pathname]);
-
   const go = (href: string) => {
     setOpen(false);
     setAccountOpen(false);
@@ -93,21 +80,6 @@ export default function GlobalNav() {
     router.push(`/auth?callbackUrl=${cb}`);
   };
 
-  const goToFooter = () => {
-    setOpen(false);
-    setAccountOpen(false);
-
-    if (pathname !== '/') {
-      router.push('/#footer');
-      return;
-    }
-
-    const footer = document.getElementById('footer');
-    if (footer) {
-      footer.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   const navBtnBase =
     'relative inline-flex h-[72px] items-center justify-center font-display uppercase tracking-[0.20em] text-[12px] transition';
 
@@ -116,6 +88,9 @@ export default function GlobalNav() {
 
   const navBtnGreen =
     'text-[#7aa333] hover:text-[#9fd14b] after:absolute after:left-0 after:right-0 after:bottom-[18px] after:h-px after:origin-center after:scale-x-0 after:bg-[#7aa333] after:transition-transform after:duration-200 hover:after:scale-x-100';
+
+  const navBtnSearch =
+    'relative inline-flex h-11 items-center justify-center rounded-full border border-[#7aa333]/60 bg-[#7aa333] px-6 font-display uppercase tracking-[0.16em] text-[12px] text-[#131313] shadow-[0_0_28px_rgba(122,163,51,0.22)] transition hover:-translate-y-px hover:bg-[#9fd14b] hover:shadow-[0_0_38px_rgba(122,163,51,0.34)]';
 
   const linkMobile =
     'font-display uppercase tracking-wide text-white text-[clamp(34px,9vw,60px)] hover:opacity-90 transition-opacity';
@@ -135,12 +110,12 @@ export default function GlobalNav() {
             />
           </button>
 
-          <nav className="hidden items-center gap-14 md:flex">
+          <nav className="hidden items-center gap-10 md:flex">
             <button onClick={() => go('/')} className={`${navBtnBase} ${navBtnWhite}`}>
               START
             </button>
 
-            <button onClick={() => go('/kup')} className={`${navBtnBase} ${navBtnWhite}`}>
+            <button onClick={() => go('/kup')} className={navBtnSearch}>
               SZUKAJ DZIAŁKI
             </button>
 
@@ -148,13 +123,9 @@ export default function GlobalNav() {
               WYSTAW DZIAŁKĘ
             </button>
 
-            <button onClick={goToFooter} className={`${navBtnBase} ${navBtnWhite}`}>
-              KONTAKT
-            </button>
-
             {!isLogged ? (
               <button onClick={goAuth} className={`${navBtnBase} ${navBtnGreen}`}>
-                ZALOGUJ / REJESTRACJA
+                LOGOWANIE / REJESTRACJA
               </button>
             ) : (
               <div
@@ -266,19 +237,18 @@ export default function GlobalNav() {
                 <button onClick={() => go('/')} className={linkMobile}>
                   START
                 </button>
-                <button onClick={() => go('/kup')} className={linkMobile}>
+
+                <button onClick={() => go('/kup')} className={linkMobile} style={{ color: GREEN }}>
                   SZUKAJ DZIAŁKI
                 </button>
+
                 <button onClick={() => go('/sprzedaj')} className={linkMobile}>
                   WYSTAW DZIAŁKĘ
-                </button>
-                <button onClick={goToFooter} className={linkMobile}>
-                  KONTAKT
                 </button>
 
                 {!isLogged ? (
                   <button onClick={goAuth} className={linkMobile} style={{ color: GREEN }}>
-                    ZALOGUJ / REJESTRACJA
+                    LOGOWANIE / REJESTRACJA
                   </button>
                 ) : (
                   <>
