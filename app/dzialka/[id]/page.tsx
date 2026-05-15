@@ -856,7 +856,7 @@ export default function DzialkaPage() {
             href={`tel:${telefonHref}`}
             className="mx-auto flex h-12 max-w-[420px] items-center justify-center rounded-2xl border border-[#7aa333]/70 bg-[#0f0f0f]/92 text-[13px] font-semibold uppercase tracking-[0.22em] text-[#D8D2DB] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
           >
-            Zadzwoń
+            Zadzwoń teraz
           </a>
         </div>
       ) : null}
