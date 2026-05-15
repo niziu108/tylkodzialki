@@ -54,6 +54,7 @@ export default function GlobalNav() {
         setAccountOpen(false);
       }
     };
+
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
@@ -61,8 +62,11 @@ export default function GlobalNav() {
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!accountRef.current) return;
-      if (!accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+      if (!accountRef.current.contains(e.target as Node)) {
+        setAccountOpen(false);
+      }
     };
+
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, []);
@@ -70,12 +74,16 @@ export default function GlobalNav() {
   const go = (href: string) => {
     setOpen(false);
     setAccountOpen(false);
-    if (pathname !== href) router.push(href);
+
+    if (pathname !== href) {
+      router.push(href);
+    }
   };
 
   const goAuth = () => {
     setOpen(false);
     setAccountOpen(false);
+
     const cb = encodeURIComponent(pathname || '/');
     router.push(`/auth?callbackUrl=${cb}`);
   };
@@ -89,15 +97,12 @@ export default function GlobalNav() {
   const navBtnGreen =
     'text-[#7aa333] hover:text-[#9fd14b] after:absolute after:left-0 after:right-0 after:bottom-[18px] after:h-px after:origin-center after:scale-x-0 after:bg-[#7aa333] after:transition-transform after:duration-200 hover:after:scale-x-100';
 
-  const navBtnSearch =
-    'relative inline-flex h-11 items-center justify-center rounded-full border border-[#7aa333]/60 bg-[#7aa333] px-6 font-display uppercase tracking-[0.16em] text-[12px] text-[#131313] shadow-[0_0_28px_rgba(122,163,51,0.22)] transition hover:-translate-y-px hover:bg-[#9fd14b] hover:shadow-[0_0_38px_rgba(122,163,51,0.34)]';
-
   const linkMobile =
     'font-display uppercase tracking-wide text-white text-[clamp(34px,9vw,60px)] hover:opacity-90 transition-opacity';
 
   return (
     <>
-      <header className="sticky top-0 left-0 z-[100] w-full border-b border-white/10 bg-[#131313]">
+      <header className="sticky top-0 left-0 z-[100] w-full border-b border-white/10 bg-[#131313] backdrop-blur">
         <div className="flex h-[72px] w-full items-center justify-between px-4 sm:px-8">
           <button onClick={() => go('/')} className="flex items-center">
             <Image
@@ -111,20 +116,32 @@ export default function GlobalNav() {
           </button>
 
           <nav className="hidden items-center gap-10 md:flex">
-            <button onClick={() => go('/')} className={`${navBtnBase} ${navBtnWhite}`}>
+            <button
+              onClick={() => go('/')}
+              className={`${navBtnBase} ${navBtnWhite}`}
+            >
               START
             </button>
 
-            <button onClick={() => go('/kup')} className={navBtnSearch}>
+            <button
+              onClick={() => go('/kup')}
+              className={`${navBtnBase} ${navBtnWhite}`}
+            >
               SZUKAJ DZIAŁKI
             </button>
 
-            <button onClick={() => go('/sprzedaj')} className={`${navBtnBase} ${navBtnWhite}`}>
+            <button
+              onClick={() => go('/sprzedaj')}
+              className={`${navBtnBase} ${navBtnWhite}`}
+            >
               WYSTAW DZIAŁKĘ
             </button>
 
             {!isLogged ? (
-              <button onClick={goAuth} className={`${navBtnBase} ${navBtnGreen}`}>
+              <button
+                onClick={goAuth}
+                className={`${navBtnBase} ${navBtnGreen}`}
+              >
                 LOGOWANIE / REJESTRACJA
               </button>
             ) : (
@@ -155,6 +172,7 @@ export default function GlobalNav() {
                         <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">
                           Zalogowano
                         </div>
+
                         <div className="mt-1 truncate text-[13px] text-white/75">
                           {session?.user?.email ?? '—'}
                         </div>
@@ -188,7 +206,7 @@ export default function GlobalNav() {
       <motion.button
         aria-label={open ? 'Zamknij menu' : 'Otwórz menu'}
         onClick={() => setOpen((s) => !s)}
-        className="fixed top-3 right-4 z-[120] p-2 md:hidden"
+        className="fixed right-4 top-3 z-[120] p-2 md:hidden"
         animate={{ rotate: open ? 180 : 0 }}
         transition={{ duration: 0.35 }}
         style={{ color: FG }}
@@ -201,6 +219,7 @@ export default function GlobalNav() {
           >
             <BurgerIcon className="h-9 w-9" />
           </motion.div>
+
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
             initial={false}
@@ -221,7 +240,11 @@ export default function GlobalNav() {
             className="fixed inset-0 z-[110] flex flex-col md:hidden"
             style={{ backgroundColor: BG, color: FG }}
           >
-            <button aria-hidden onClick={() => setOpen(false)} className="absolute inset-0 -z-10" />
+            <button
+              aria-hidden
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 -z-10"
+            />
 
             <div className="flex flex-1 flex-col items-center justify-center gap-10 px-6 text-center">
               <Image
@@ -238,23 +261,38 @@ export default function GlobalNav() {
                   START
                 </button>
 
-                <button onClick={() => go('/kup')} className={linkMobile} style={{ color: GREEN }}>
+                <button
+                  onClick={() => go('/kup')}
+                  className={linkMobile}
+                >
                   SZUKAJ DZIAŁKI
                 </button>
 
-                <button onClick={() => go('/sprzedaj')} className={linkMobile}>
+                <button
+                  onClick={() => go('/sprzedaj')}
+                  className={linkMobile}
+                >
                   WYSTAW DZIAŁKĘ
                 </button>
 
                 {!isLogged ? (
-                  <button onClick={goAuth} className={linkMobile} style={{ color: GREEN }}>
+                  <button
+                    onClick={goAuth}
+                    className={linkMobile}
+                    style={{ color: GREEN }}
+                  >
                     LOGOWANIE / REJESTRACJA
                   </button>
                 ) : (
                   <>
-                    <button onClick={() => go('/panel')} className={linkMobile} style={{ color: GREEN }}>
+                    <button
+                      onClick={() => go('/panel')}
+                      className={linkMobile}
+                      style={{ color: GREEN }}
+                    >
                       PANEL KLIENTA
                     </button>
+
                     <button
                       onClick={() => {
                         setOpen(false);
