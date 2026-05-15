@@ -138,3 +138,7 @@ html {
 .font-bungee {
   font-family: var(--font-bungee), sans-serif;
 }
+
+.font-hero {
+  font-family: var(--font-bebas), sans-serif;
+}

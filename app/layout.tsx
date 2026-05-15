@@ -7,17 +7,17 @@ import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
 import ConsentScripts from '@/components/ConsentScripts';
 import GoogleAnalyticsConsent from '@/components/GoogleAnalyticsConsent';
-import { Geist, Bungee } from 'next/font/google';
+import { Geist, Bebas_Neue } from 'next/font/google';
 
 const geist = Geist({
   subsets: ['latin'],
   variable: '--font-geist',
 });
 
-const bungee = Bungee({
+const bebas = Bebas_Neue({
   subsets: ['latin'],
   weight: '400',
-  variable: '--font-bungee',
+  variable: '--font-bebas',
 });
 
 const siteUrl = 'https://tylkodzialki.pl';
@@ -101,7 +101,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pl" className={`${geist.variable} ${bungee.variable}`}>
+    <html lang="pl" className={`${geist.variable} ${bebas.variable}`}>
       <body className="font-sans bg-[#131313] text-white">
         <Providers>
           <div className="flex min-h-screen flex-col">
