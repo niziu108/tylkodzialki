@@ -7,16 +7,17 @@ import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
 import ConsentScripts from '@/components/ConsentScripts';
 import GoogleAnalyticsConsent from '@/components/GoogleAnalyticsConsent';
-import { Geist, Sora } from 'next/font/google';
+import { Geist, Bebas_Neue } from 'next/font/google';
 
 const geist = Geist({
   subsets: ['latin'],
   variable: '--font-geist',
 });
 
-const sora = Sora({
+const bebas = Bebas_Neue({
   subsets: ['latin'],
-  variable: '--font-sora',
+  weight: '400',
+  variable: '--font-bebas',
 });
 
 const siteUrl = 'https://tylkodzialki.pl';
@@ -100,7 +101,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pl" className={`${geist.variable} ${sora.variable}`}>
+    <html lang="pl" className={`${geist.variable} ${bebas.variable}`}>
       <body className="font-sans bg-[#131313] text-white">
         <Providers>
           <div className="flex min-h-screen flex-col">
