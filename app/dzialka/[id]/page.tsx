@@ -322,6 +322,7 @@ export default function DzialkaPage() {
   const opis = formatOpis(d?.opis);
 
   const telefon = (d?.telefon ?? '').trim() || null;
+  const telefonHref = telefon ? telefon.replace(/[^\d+]/g, '') : null;
   const numerOferty = (d?.numerOferty ?? '').trim() || null;
   const klasaZiemi = (d?.klasaZiemi ?? '').trim() || null;
   const wymiary = (d?.wymiary ?? '').trim() || null;
@@ -846,6 +847,17 @@ export default function DzialkaPage() {
               ) : null}
             </div>
           </div>
+        </div>
+      ) : null}
+
+            {telefon && telefonHref ? (
+        <div className="fixed bottom-0 left-0 right-0 z-[90] border-t border-white/10 bg-[#131313]/92 px-4 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3 backdrop-blur-xl md:hidden">
+          <a
+            href={`tel:${telefonHref}`}
+            className="flex h-14 w-full items-center justify-center rounded-2xl border border-[#7aa333]/50 bg-[#7aa333] text-[14px] font-semibold uppercase tracking-[0.18em] text-[#131313] shadow-[0_0_34px_rgba(122,163,51,0.28)] transition active:scale-[0.98]"
+          >
+            Zadzwoń
+          </a>
         </div>
       ) : null}
 
