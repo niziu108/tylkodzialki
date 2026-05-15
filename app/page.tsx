@@ -445,7 +445,7 @@ export default async function HomePage() {
             <div className="absolute inset-0 bg-black/45" />
 
             <div className="relative z-10 flex flex-col items-center px-6 text-center">
-              <h1 className="font-hero text-[36px] uppercase tracking-[0.08em] text-[#D8D2DB] md:text-[74px] md:leading-none">
+              <h1 className="font-hero text-[30px] font-semibold uppercase tracking-[0.18em] text-[#D7D2D9] md:text-[64px] md:leading-none">
                 SZUKAM DZIAŁKI
               </h1>
 
@@ -473,7 +473,7 @@ export default async function HomePage() {
             <div className="absolute inset-0 bg-black/40" />
 
             <div className="relative z-10 flex flex-col items-center px-6 text-center">
-              <h2 className="font-hero text-[36px] uppercase tracking-[0.08em] text-[#D8D2DB] md:text-[74px] md:leading-none">
+              <h2 className="font-hero text-[30px] font-semibold uppercase tracking-[0.18em] text-[#D7D2D9] md:text-[64px] md:leading-none">
                 SPRZEDAJĘ DZIAŁKĘ
               </h2>
 

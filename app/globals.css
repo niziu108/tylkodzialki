@@ -142,3 +142,7 @@ html {
 .font-hero {
   font-family: var(--font-bebas), sans-serif;
 }
+
+.font-hero {
+  font-family: var(--font-sora), sans-serif;
+}
