@@ -445,7 +445,7 @@ export default async function HomePage() {
             <div className="absolute inset-0 bg-black/45" />
 
             <div className="relative z-10 flex flex-col items-center px-6 text-center">
-              <h1 className="font-bungee text-[30px] tracking-wide text-[#F3EFF5] md:text-[52px]">
+              <h1 className="font-bungee text-[30px] tracking-wide text-[#D8D2DB] md:text-[52px]">
                 SZUKAM DZIAŁKI
               </h1>
 
@@ -473,7 +473,7 @@ export default async function HomePage() {
             <div className="absolute inset-0 bg-black/40" />
 
             <div className="relative z-10 flex flex-col items-center px-6 text-center">
-              <h2 className="font-bungee text-[30px] tracking-wide text-[#F3EFF5] md:text-[52px]">
+              <h2 className="font-bungee text-[30px] tracking-wide text-[#D8D2DB] md:text-[52px]">
                 SPRZEDAJĘ DZIAŁKĘ
               </h2>
 
