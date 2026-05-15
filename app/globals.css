@@ -134,3 +134,7 @@ textarea::placeholder { text-decoration: none !important; }
 html {
   scroll-behavior: smooth;
 }
+
+.font-bungee {
+  font-family: var(--font-bungee), sans-serif;
+}
