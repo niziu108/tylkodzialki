@@ -47,13 +47,13 @@ export default async function DzialkiBudowlaneCityPage({ params }: PageProps) {
       <h1 className="sr-only">Działki budowlane {city.name}</h1>
 
       <KupSearch
-        seoMode
-        initialFilters={{
-          locText: city.name,
-          radiusKm: 40,
-          przezn: ['BUDOWLANA'],
-        }}
-      />
+  seoMode
+  initialFilters={{
+    locText: city.name,
+    radiusKm: 40,
+    przezn: [],
+  }}
+/>
 
       <section className="mx-auto mt-16 max-w-6xl px-3 md:px-4">
         <div className="rounded-3xl border border-white/10 bg-white/[0.025] p-6 md:p-8">

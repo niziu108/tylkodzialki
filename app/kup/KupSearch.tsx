@@ -670,9 +670,38 @@ export default function KupSearch({
   }
 
   useEffect(() => {
-    fetchDataWith(initial.filters, initial.page, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  let cancelled = false;
+
+  async function runInitialSearch() {
+    let nextFilters = initial.filters;
+
+    if (nextFilters.locText.trim() && !nextFilters.center) {
+      const geocoded = await geocodeTypedLocation(nextFilters.locText);
+
+      if (!cancelled && geocoded) {
+        nextFilters = {
+          ...nextFilters,
+          center: geocoded,
+        };
+
+        setCenter(geocoded);
+        setApplied(nextFilters);
+      }
+    }
+
+    if (!cancelled) {
+      fetchDataWith(nextFilters, initial.page, true);
+    }
+  }
+
+  runInitialSearch();
+
+  return () => {
+    cancelled = true;
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   useEffect(() => {
     if (loading) return;
