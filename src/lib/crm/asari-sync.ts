@@ -70,11 +70,132 @@ type AsariOffer = {
   payload: Prisma.InputJsonValue;
 };
 
+
+type AsariDefinitions = {
+  byId: Map<string, string>;
+  byNormalizedName: Map<string, string[]>;
+};
+
+function normalizeFieldName(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ł/g, "l")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function emptyDefinitions(): AsariDefinitions {
+  return {
+    byId: new Map<string, string>(),
+    byNormalizedName: new Map<string, string[]>(),
+  };
+}
+
+function parseDefinitionsXml(xml: string): AsariDefinitions {
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: "",
+    trimValues: true,
+    parseTagValue: false,
+    parseAttributeValue: false,
+  });
+
+  const definitions = emptyDefinitions();
+  const doc = parser.parse(xml) as Record<string, unknown>;
+  const root = (doc.definitions ?? doc.DEFINITIONS ?? doc) as Record<string, unknown>;
+  const parametersNode = root.parameters as Record<string, unknown> | undefined;
+
+  for (const item of arrify(parametersNode?.p)) {
+    if (!item || typeof item !== "object") continue;
+
+    const p = item as Record<string, unknown>;
+    const id = String(p.id ?? p["@_id"] ?? "").trim();
+    const name = toTextValue(p.name);
+
+    if (!id || !name) continue;
+
+    definitions.byId.set(id, name);
+
+    const normalizedName = normalizeFieldName(name);
+    const list = definitions.byNormalizedName.get(normalizedName) ?? [];
+    list.push(id);
+    definitions.byNormalizedName.set(normalizedName, list);
+  }
+
+  console.log("[ASARI DEBUG] Wczytano definicje pól:", definitions.byId.size);
+  return definitions;
+}
+
+function getParamByIds(params: Record<string, unknown>, ids: string[]) {
+  for (const id of ids) {
+    const value = params[id];
+    const text = toTextValue(value);
+    if (text) return value;
+  }
+
+  return null;
+}
+
+function getParamByName(
+  params: Record<string, unknown>,
+  definitions: AsariDefinitions,
+  nameIncludes: string[],
+  fallbackIds: string[] = []
+) {
+  const normalizedNeedles = nameIncludes.map(normalizeFieldName).filter(Boolean);
+
+  for (const [id, rawName] of definitions.byId.entries()) {
+    const normalizedName = normalizeFieldName(rawName);
+
+    if (normalizedNeedles.every((needle) => normalizedName.includes(needle))) {
+      const value = params[id];
+      if (toTextValue(value)) return value;
+    }
+  }
+
+  return getParamByIds(params, fallbackIds);
+}
+
+function getNumberByName(
+  params: Record<string, unknown>,
+  definitions: AsariDefinitions,
+  nameIncludes: string[],
+  fallbackIds: string[] = []
+) {
+  const byName = getParamByName(params, definitions, nameIncludes, []);
+  const numberByName = toNumber(byName);
+  if (numberByName != null) return numberByName;
+
+  for (const id of fallbackIds) {
+    const parsed = toNumber(params[id]);
+    if (parsed != null) return parsed;
+  }
+
+  return null;
+}
+
+function getTextByName(
+  params: Record<string, unknown>,
+  definitions: AsariDefinitions,
+  nameIncludes: string[],
+  fallbackIds: string[] = []
+) {
+  const byName = toTextValue(getParamByName(params, definitions, nameIncludes, []));
+  if (byName) return byName;
+
+  return toTextValue(getParamByIds(params, fallbackIds));
+}
+
+
 type DownloadedAsariFeed = {
   remoteFileName: string;
   tempDir: string;
   offerXmlFiles: string[];
   localFileByBasename: Map<string, string>;
+  definitions: AsariDefinitions;
   cfg: {
     fileName: string | null;
     emptyOffers: boolean;
@@ -283,14 +404,30 @@ function parsePictures(picturesNode: unknown): string[] {
     .map((item) => item.unique);
 }
 
-function isLikelyLandOffer(params: Record<string, unknown>) {
-  const plotType = toTextValue(params["18"]);
-  const lotArea = toTextValue(params["61"]);
-  const plan = toTextValue(params["44"]);
-  return Boolean(plotType || lotArea || plan);
+function isLikelyLandOffer(params: Record<string, unknown>, definitions: AsariDefinitions) {
+  const categoryText = [
+    getTextByName(params, definitions, ["typ", "nieruchomosci"], ["17", "18"]),
+    getTextByName(params, definitions, ["rodzaj"], ["18"]),
+    getTextByName(params, definitions, ["przeznaczenie"], ["44"]),
+    getTextByName(params, definitions, ["powierzchnia", "dzialki"], ["61", "128"]),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return Boolean(
+    categoryText.includes("dzial") ||
+      categoryText.includes("grunt") ||
+      categoryText.includes("land") ||
+      toTextValue(params["61"]) ||
+      toTextValue(params["128"])
+  );
 }
 
-function parseAsariOffer(rawOffer: Record<string, unknown>, agencyName: string | null): AsariOffer | null {
+function parseAsariOffer(
+  rawOffer: Record<string, unknown>,
+  agencyName: string | null,
+  definitions: AsariDefinitions
+): AsariOffer | null {
   const externalId = toTextValue(rawOffer.signature);
 
   if (!externalId) {
@@ -300,20 +437,28 @@ function parseAsariOffer(rawOffer: Record<string, unknown>, agencyName: string |
 
   const params = parseParams(rawOffer.parameters);
 
-  if (!isLikelyLandOffer(params)) {
+  if (!isLikelyLandOffer(params, definitions)) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "to nie wygląda na działkę.");
     return null;
   }
 
-  const price = toNumber(params["10"]);
-  const area = toNumber(params["61"]) ?? toNumber(params["128"]);
+  const price =
+    getNumberByName(params, definitions, ["cena", "pln"], ["10"]) ??
+    getNumberByName(params, definitions, ["cena"], ["10"]);
 
-  const wojewodztwo = toTextValue(params["45"]) || toTextValue(params["190"]) || null;
-  const powiat = toTextValue(params["46"]) || toTextValue(params["191"]) || null;
-  const gmina = toTextValue(params["47"]) || toTextValue(params["192"]) || null;
-  const miasto = toTextValue(params["48"]) || toTextValue(params["193"]) || null;
-  const dzielnica = toTextValue(params["49"]) || toTextValue(params["194"]) || null;
-  const ulica = toTextValue(params["195"]) || toTextValue(params["300"]) || null;
+  const area =
+    getNumberByName(params, definitions, ["powierzchnia", "dzialki"], ["61", "128"]) ??
+    getNumberByName(params, definitions, ["powierzchnia"], ["61", "128"]);
+
+  const wojewodztwo = getTextByName(params, definitions, ["wojewodztwo"], ["45", "190"]) || null;
+  const powiat = getTextByName(params, definitions, ["powiat"], ["46", "191"]) || null;
+  const gmina = getTextByName(params, definitions, ["gmina"], ["47", "192"]) || null;
+  const miasto =
+    getTextByName(params, definitions, ["miejscowosc"], ["48", "193"]) ||
+    getTextByName(params, definitions, ["miasto"], ["48", "193"]) ||
+    null;
+  const dzielnica = getTextByName(params, definitions, ["dzielnica"], ["49", "194"]) || null;
+  const ulica = getTextByName(params, definitions, ["ulica"], ["195", "300"]) || null;
 
   if (!price || price <= 0) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "brak ceny.", { cena: params["10"] });
@@ -321,46 +466,82 @@ function parseAsariOffer(rawOffer: Record<string, unknown>, agencyName: string |
   }
 
   if (!area || area < 1) {
-    console.log("[ASARI DEBUG] Odrzucono:", externalId, "brak powierzchni.", { lotArea: params["61"] });
+    console.log("[ASARI DEBUG] Odrzucono:", externalId, "brak powierzchni.", { powierzchnia: params["61"] ?? params["128"] });
     return null;
   }
 
-  if (!wojewodztwo || !miasto) {
+  if (!miasto && !gmina && !powiat && !wojewodztwo) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "brak lokalizacji.", {
       wojewodztwo,
+      powiat,
+      gmina,
       miasto,
     });
     return null;
   }
 
-  const plotTypeRaw = toTextValue(params["18"]) || null;
-  const planRaw = toTextValue(params["44"]) || null;
-  const titleRaw = toTextValue(params["491"]);
-  const description = toTextValue(rawOffer.description) || toTextValue(params["64"]) || null;
+  const plotTypeRaw =
+    getTextByName(params, definitions, ["przeznaczenie"], ["18", "44"]) ||
+    getTextByName(params, definitions, ["rodzaj"], ["18"]) ||
+    null;
+
+  const planRaw =
+    getTextByName(params, definitions, ["plan"], ["44"]) ||
+    getTextByName(params, definitions, ["mpzp"], ["44"]) ||
+    null;
+
+  const titleRaw =
+    getTextByName(params, definitions, ["tytul"], ["491"]) ||
+    getTextByName(params, definitions, ["nazwa"], ["491"]);
+
+  const description =
+    toTextValue(rawOffer.description) ||
+    getTextByName(params, definitions, ["opis"], ["64"]) ||
+    null;
 
   const labelParts = [miasto, dzielnica].filter(Boolean);
-  const locationLabel = labelParts.length > 0 ? labelParts.join(", ") : miasto;
+  const locationLabel = labelParts.length > 0 ? labelParts.join(", ") : miasto || gmina || powiat || wojewodztwo;
 
   const fullParts = [ulica, miasto, dzielnica, gmina, powiat, wojewodztwo].filter(Boolean);
-  const locationFull = fullParts.length > 0 ? fullParts.join(", ") : null;
+  const locationFull = fullParts.length > 0 ? fullParts.join(", ") : locationLabel;
 
-  const lat = toNumber(params["201"]) ?? toNumber(params["205"]);
-  const lng = toNumber(params["202"]) ?? toNumber(params["206"]);
+  const lat =
+    getNumberByName(params, definitions, ["szerokosc"], ["201", "205"]) ??
+    getNumberByName(params, definitions, ["latitude"], ["201", "205"]);
+
+  const lng =
+    getNumberByName(params, definitions, ["dlugosc"], ["202", "206"]) ??
+    getNumberByName(params, definitions, ["longitude"], ["202", "206"]);
 
   const mediaText = [
-    toTextValue(params["39"]),
-    toTextValue(params["155"]),
-    toTextValue(params["156"]),
-    toTextValue(params["157"]),
+    getTextByName(params, definitions, ["media"], ["39"]),
+    getTextByName(params, definitions, ["prad"], ["155"]),
+    getTextByName(params, definitions, ["woda"], ["156"]),
+    getTextByName(params, definitions, ["gaz"], ["157"]),
+    getTextByName(params, definitions, ["kanalizacja"], []),
+    description,
   ].join(" ");
 
-  const width = toNumber(params["57"]);
-  const length = toNumber(params["56"]);
+  const width = getNumberByName(params, definitions, ["szerokosc", "dzialki"], ["57"]);
+  const length = getNumberByName(params, definitions, ["dlugosc", "dzialki"], ["56"]);
 
-  const email = normalizeEmail(toTextValue(params["171"]) || toTextValue(params["475"])) || "kontakt@tylkodzialki.pl";
-  const phone = normalizePhone(toTextValue(params["170"]) || toTextValue(params["473"]) || "000000000");
+  const email =
+    normalizeEmail(
+      getTextByName(params, definitions, ["email"], ["171", "475"]) ||
+        getTextByName(params, definitions, ["mail"], ["171", "475"])
+    ) || "kontakt@tylkodzialki.pl";
 
-  const biuroOpiekun = toTextValue(params["305"]) || toTextValue(params["471"]) || null;
+  const phone =
+    normalizePhone(
+      getTextByName(params, definitions, ["telefon"], ["170", "473"]) ||
+        getTextByName(params, definitions, ["komorka"], ["170", "473"]) ||
+        "000000000"
+    );
+
+  const biuroOpiekun =
+    getTextByName(params, definitions, ["opiekun"], ["305", "471"]) ||
+    getTextByName(params, definitions, ["agent"], ["305", "471"]) ||
+    null;
 
   const photoFileNames = parsePictures(rawOffer.pictures);
 
@@ -371,8 +552,13 @@ function parseAsariOffer(rawOffer: Record<string, unknown>, agencyName: string |
 
   return {
     externalId,
-    externalUpdatedAt: parseDate(params["3"]) ?? parseDate(params["406"]) ?? null,
-    title: sanitizeTitle(titleRaw, miasto, plotTypeRaw),
+    externalUpdatedAt:
+      parseDate(getParamByName(params, definitions, ["data", "modyfikacji"], [])) ??
+      parseDate(getParamByName(params, definitions, ["data", "aktualizacji"], [])) ??
+      parseDate(params["3"]) ??
+      parseDate(params["406"]) ??
+      null,
+    title: sanitizeTitle(titleRaw, miasto || gmina || powiat || "działka", plotTypeRaw),
     description,
     pricePln: Math.round(price),
     areaM2: Math.round(area),
@@ -396,6 +582,7 @@ function parseAsariOffer(rawOffer: Record<string, unknown>, agencyName: string |
     payload: toInputJsonValue({
       externalId,
       params,
+      definitions: Object.fromEntries(definitions.byId.entries()),
       plotTypeRaw,
       planRaw,
       agencyName,
@@ -504,6 +691,7 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-asari-"));
   const localFileByBasename = new Map<string, string>();
+  let definitions = emptyDefinitions();
 
   try {
     await client.access({
@@ -562,8 +750,39 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       };
 
       console.log("[ASARI DEBUG] Wybrany CFG:", cfg);
+      if (cfg.definitionsFileName) {
+        const definitionRemoteName = cfg.definitionsFileName;
+        const definitionFile = xmlFiles.find((item) => safeBasename(item.name) === safeBasename(definitionRemoteName));
+
+        if (definitionFile) {
+          const definitionLocalPath = path.join(tempDir, definitionFile.remotePath);
+          await downloadFile(client, definitionFile.remotePath, definitionLocalPath);
+          localFileByBasename.set(safeBasename(definitionFile.name), definitionLocalPath);
+
+          const definitionsXml = await fsp.readFile(definitionLocalPath, "utf8");
+          definitions = parseDefinitionsXml(definitionsXml);
+        } else {
+          console.log("[ASARI DEBUG] CFG wskazuje definicje, ale nie znaleziono pliku:", definitionRemoteName);
+        }
+      }
+
     } else {
       console.log("[ASARI DEBUG] Nie znaleziono pliku *_CFG.xml. Używam fallbacku po *_001.xml.");
+    }
+
+    if (definitions.byId.size === 0) {
+      const fallbackDefinitionFile = xmlFiles.find((item) =>
+        ["definictions.xml", "definitions.xml"].includes(safeBasename(item.name))
+      );
+
+      if (fallbackDefinitionFile) {
+        const definitionLocalPath = path.join(tempDir, fallbackDefinitionFile.remotePath);
+        await downloadFile(client, fallbackDefinitionFile.remotePath, definitionLocalPath);
+        localFileByBasename.set(safeBasename(fallbackDefinitionFile.name), definitionLocalPath);
+
+        const definitionsXml = await fsp.readFile(definitionLocalPath, "utf8");
+        definitions = parseDefinitionsXml(definitionsXml);
+      }
     }
 
     const offerXmlCandidates =
@@ -600,6 +819,7 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       tempDir,
       offerXmlFiles,
       localFileByBasename,
+      definitions,
       cfg,
       cleanup: async () => {
         await fsp.rm(tempDir, { recursive: true, force: true });
@@ -613,7 +833,7 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
   }
 }
 
-function parseOfferXmlFile(xml: string, agencyName: string | null) {
+function parseOfferXmlFile(xml: string, agencyName: string | null, definitions: AsariDefinitions) {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "",
@@ -628,7 +848,7 @@ function parseOfferXmlFile(xml: string, agencyName: string | null) {
   const offers = arrify(packageNode.offer)
     .map((offerNode) => {
       if (!offerNode || typeof offerNode !== "object") return null;
-      return parseAsariOffer(offerNode as Record<string, unknown>, agencyName);
+      return parseAsariOffer(offerNode as Record<string, unknown>, agencyName, definitions);
     })
     .filter((offer): offer is AsariOffer => Boolean(offer));
 
@@ -1151,7 +1371,7 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
 
     for (const offerXmlFile of downloaded.offerXmlFiles) {
       const xml = await fsp.readFile(offerXmlFile, "utf8");
-      const result = parseOfferXmlFile(xml, integration.name);
+      const result = parseOfferXmlFile(xml, integration.name, downloaded.definitions);
 
       for (const externalId of result.deletedExternalIds) {
         deletedExternalIds.add(externalId);
