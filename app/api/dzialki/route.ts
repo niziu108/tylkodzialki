@@ -93,6 +93,9 @@ function cleanSearchQuery(value: string) {
     'gmina',
     'miasto',
     'okolice',
+    'okolicy',
+    'dzialki',
+    'dzialka',
   ]);
 
   return normalizeText(value.replace(/\b\d{2}-\d{3}\b/g, ' ').replace(/\b\d{5}\b/g, ' '))
@@ -103,79 +106,108 @@ function cleanSearchQuery(value: string) {
     .filter((x) => !/^\d+$/.test(x));
 }
 
-const VOIVODESHIPS = [
-  { key: 'dolnoslaskie', aliases: ['dolnoslask', 'dolnoslaskie'], bbox: { minLat: 50.05, maxLat: 51.85, minLng: 14.75, maxLng: 17.85 } },
-  { key: 'kujawsko-pomorskie', aliases: ['kujawsko', 'pomorskie kujaw', 'kujawsko pomorsk'], bbox: { minLat: 52.25, maxLat: 53.85, minLng: 17.20, maxLng: 19.75 } },
-  { key: 'lubelskie', aliases: ['lubelsk', 'lubelskie'], bbox: { minLat: 50.15, maxLat: 52.35, minLng: 21.60, maxLng: 24.20 } },
-  { key: 'lubuskie', aliases: ['lubusk', 'lubuskie'], bbox: { minLat: 51.35, maxLat: 53.15, minLng: 14.50, maxLng: 16.45 } },
-  { key: 'lodzkie', aliases: ['lodzk', 'lodzkie'], bbox: { minLat: 50.80, maxLat: 52.40, minLng: 18.05, maxLng: 20.75 } },
-  { key: 'malopolskie', aliases: ['malopolsk', 'malopolskie'], bbox: { minLat: 49.15, maxLat: 50.55, minLng: 19.05, maxLng: 21.45 } },
-  { key: 'mazowieckie', aliases: ['mazowieck', 'mazowieckie'], bbox: { minLat: 51.00, maxLat: 53.50, minLng: 19.25, maxLng: 23.15 } },
-  { key: 'opolskie', aliases: ['opolsk', 'opolskie'], bbox: { minLat: 49.95, maxLat: 51.25, minLng: 16.85, maxLng: 18.70 } },
-  { key: 'podkarpackie', aliases: ['podkarpack', 'podkarpackie'], bbox: { minLat: 49.00, maxLat: 50.85, minLng: 21.15, maxLng: 23.65 } },
-  { key: 'podlaskie', aliases: ['podlask', 'podlaskie'], bbox: { minLat: 52.25, maxLat: 54.45, minLng: 21.55, maxLng: 23.95 } },
-  { key: 'pomorskie', aliases: ['pomorsk', 'pomorskie'], bbox: { minLat: 53.45, maxLat: 54.85, minLng: 16.70, maxLng: 19.85 } },
-  { key: 'slaskie', aliases: ['slask', 'slaskie'], bbox: { minLat: 49.35, maxLat: 51.25, minLng: 18.00, maxLng: 19.95 } },
-  { key: 'swietokrzyskie', aliases: ['swietokrzysk', 'swietokrzyskie'], bbox: { minLat: 50.15, maxLat: 51.35, minLng: 19.70, maxLng: 21.75 } },
-  { key: 'warminsko-mazurskie', aliases: ['warminsko', 'mazursk', 'warminsko mazursk'], bbox: { minLat: 53.15, maxLat: 54.55, minLng: 19.10, maxLng: 22.80 } },
-  { key: 'wielkopolskie', aliases: ['wielkopolsk', 'wielkopolskie'], bbox: { minLat: 51.05, maxLat: 53.65, minLng: 15.75, maxLng: 18.75 } },
-  { key: 'zachodniopomorskie', aliases: ['zachodniopomorsk', 'zachodnio pomorsk'], bbox: { minLat: 52.55, maxLat: 54.85, minLng: 14.10, maxLng: 16.95 } },
-];
-
-const CITY_DISTRICT_ALIASES: Record<string, string[]> = {
-  wroclaw: ['psie pole', 'krzyki', 'fabryczna', 'srodmiescie', 'stare miasto', 'jagodno', 'wojnow', 'zakrzow', 'osobowice', 'lesnica', 'muchobor', 'oporow', 'karłowice', 'karlowice', 'biskupin', 'sepolno', 'klecina', 'gaj', 'oltaszyn', 'oltaszyn', 'brochow'],
-  warszawa: ['mokotow', 'wilanow', 'ursynow', 'wola', 'bemowo', 'bielany', 'targowek', 'praga', 'ochota', 'zoliborz', 'wawer', 'wlochy', 'wesola', 'rembertow', 'ursus'],
-  lodz: ['baluty', 'gorna', 'polesie', 'widzew', 'srodmiescie'],
-  krakow: ['nowa huta', 'podgorze', 'krowodrza', 'srodmiescie', 'bronowice', 'debinki'],
-  poznan: ['grunwald', 'jezyce', 'nowe miasto', 'stare miasto', 'wilda', 'rataje', 'piatkowo'],
-  gdansk: ['wrzeszcz', 'oliwa', 'przymorze', 'zaspa', 'osowa', 'morena', 'brzezno'],
+type BBox = {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
 };
 
+type SearchArea = {
+  type: 'city' | 'voivodeship';
+  key: string;
+  label: string;
+  aliases: string[];
+  bbox: BBox;
+};
+
+const VOIVODESHIPS: SearchArea[] = [
+  { type: 'voivodeship', key: 'dolnoslaskie', label: 'dolnośląskie', aliases: ['dolnoslask', 'dolnoslaskie'], bbox: { minLat: 50.05, maxLat: 51.85, minLng: 14.75, maxLng: 17.85 } },
+  { type: 'voivodeship', key: 'kujawsko-pomorskie', label: 'kujawsko-pomorskie', aliases: ['kujawsko', 'kujawsko pomorsk', 'kujawsko-pomorsk', 'pomorskie kujaw'], bbox: { minLat: 52.25, maxLat: 53.85, minLng: 17.20, maxLng: 19.75 } },
+  { type: 'voivodeship', key: 'lubelskie', label: 'lubelskie', aliases: ['lubelsk', 'lubelskie'], bbox: { minLat: 50.15, maxLat: 52.35, minLng: 21.60, maxLng: 24.20 } },
+  { type: 'voivodeship', key: 'lubuskie', label: 'lubuskie', aliases: ['lubusk', 'lubuskie'], bbox: { minLat: 51.35, maxLat: 53.15, minLng: 14.50, maxLng: 16.45 } },
+  { type: 'voivodeship', key: 'lodzkie', label: 'łódzkie', aliases: ['lodzk', 'lodzkie'], bbox: { minLat: 50.80, maxLat: 52.40, minLng: 18.05, maxLng: 20.75 } },
+  { type: 'voivodeship', key: 'malopolskie', label: 'małopolskie', aliases: ['malopolsk', 'malopolskie'], bbox: { minLat: 49.15, maxLat: 50.55, minLng: 19.05, maxLng: 21.45 } },
+  { type: 'voivodeship', key: 'mazowieckie', label: 'mazowieckie', aliases: ['mazowieck', 'mazowieckie'], bbox: { minLat: 51.00, maxLat: 53.50, minLng: 19.25, maxLng: 23.15 } },
+  { type: 'voivodeship', key: 'opolskie', label: 'opolskie', aliases: ['opolsk', 'opolskie'], bbox: { minLat: 49.95, maxLat: 51.25, minLng: 16.85, maxLng: 18.70 } },
+  { type: 'voivodeship', key: 'podkarpackie', label: 'podkarpackie', aliases: ['podkarpack', 'podkarpackie'], bbox: { minLat: 49.00, maxLat: 50.85, minLng: 21.15, maxLng: 23.65 } },
+  { type: 'voivodeship', key: 'podlaskie', label: 'podlaskie', aliases: ['podlask', 'podlaskie'], bbox: { minLat: 52.25, maxLat: 54.45, minLng: 21.55, maxLng: 23.95 } },
+  { type: 'voivodeship', key: 'pomorskie', label: 'pomorskie', aliases: ['pomorsk', 'pomorskie'], bbox: { minLat: 53.45, maxLat: 54.85, minLng: 16.70, maxLng: 19.85 } },
+  { type: 'voivodeship', key: 'slaskie', label: 'śląskie', aliases: ['slask', 'slaskie'], bbox: { minLat: 49.35, maxLat: 51.25, minLng: 18.00, maxLng: 19.95 } },
+  { type: 'voivodeship', key: 'swietokrzyskie', label: 'świętokrzyskie', aliases: ['swietokrzysk', 'swietokrzyskie'], bbox: { minLat: 50.15, maxLat: 51.35, minLng: 19.70, maxLng: 21.75 } },
+  { type: 'voivodeship', key: 'warminsko-mazurskie', label: 'warmińsko-mazurskie', aliases: ['warminsko', 'mazursk', 'warminsko mazursk', 'warminsko-mazursk'], bbox: { minLat: 53.15, maxLat: 54.55, minLng: 19.10, maxLng: 22.80 } },
+  { type: 'voivodeship', key: 'wielkopolskie', label: 'wielkopolskie', aliases: ['wielkopolsk', 'wielkopolskie'], bbox: { minLat: 51.05, maxLat: 53.65, minLng: 15.75, maxLng: 18.75 } },
+  { type: 'voivodeship', key: 'zachodniopomorskie', label: 'zachodniopomorskie', aliases: ['zachodniopomorsk', 'zachodnio pomorsk', 'zachodnio-pomorsk'], bbox: { minLat: 52.55, maxLat: 54.85, minLng: 14.10, maxLng: 16.95 } },
+];
+
+const CITY_AREAS: SearchArea[] = [
+  { type: 'city', key: 'wroclaw', label: 'Wrocław', aliases: ['wroclaw', 'wrocław'], bbox: { minLat: 51.015, maxLat: 51.215, minLng: 16.780, maxLng: 17.205 } },
+  { type: 'city', key: 'warszawa', label: 'Warszawa', aliases: ['warszawa', 'warsaw'], bbox: { minLat: 52.095, maxLat: 52.370, minLng: 20.780, maxLng: 21.270 } },
+  { type: 'city', key: 'krakow', label: 'Kraków', aliases: ['krakow', 'kraków'], bbox: { minLat: 49.965, maxLat: 50.130, minLng: 19.790, maxLng: 20.220 } },
+  { type: 'city', key: 'lodz', label: 'Łódź', aliases: ['lodz', 'łódź'], bbox: { minLat: 51.685, maxLat: 51.855, minLng: 19.320, maxLng: 19.640 } },
+  { type: 'city', key: 'poznan', label: 'Poznań', aliases: ['poznan', 'poznań'], bbox: { minLat: 52.300, maxLat: 52.510, minLng: 16.735, maxLng: 17.070 } },
+  { type: 'city', key: 'gdansk', label: 'Gdańsk', aliases: ['gdansk', 'gdańsk'], bbox: { minLat: 54.250, maxLat: 54.465, minLng: 18.450, maxLng: 18.950 } },
+  { type: 'city', key: 'szczecin', label: 'Szczecin', aliases: ['szczecin'], bbox: { minLat: 53.300, maxLat: 53.560, minLng: 14.380, maxLng: 14.820 } },
+  { type: 'city', key: 'bydgoszcz', label: 'Bydgoszcz', aliases: ['bydgoszcz'], bbox: { minLat: 53.040, maxLat: 53.220, minLng: 17.850, maxLng: 18.210 } },
+  { type: 'city', key: 'lublin', label: 'Lublin', aliases: ['lublin'], bbox: { minLat: 51.145, maxLat: 51.340, minLng: 22.430, maxLng: 22.700 } },
+  { type: 'city', key: 'bialystok', label: 'Białystok', aliases: ['bialystok', 'białystok'], bbox: { minLat: 53.060, maxLat: 53.210, minLng: 23.040, maxLng: 23.300 } },
+  { type: 'city', key: 'katowice', label: 'Katowice', aliases: ['katowice'], bbox: { minLat: 50.150, maxLat: 50.335, minLng: 18.850, maxLng: 19.150 } },
+  { type: 'city', key: 'rzeszow', label: 'Rzeszów', aliases: ['rzeszow', 'rzeszów'], bbox: { minLat: 49.940, maxLat: 50.115, minLng: 21.890, maxLng: 22.120 } },
+  { type: 'city', key: 'torun', label: 'Toruń', aliases: ['torun', 'toruń'], bbox: { minLat: 52.950, maxLat: 53.080, minLng: 18.460, maxLng: 18.750 } },
+  { type: 'city', key: 'olsztyn', label: 'Olsztyn', aliases: ['olsztyn'], bbox: { minLat: 53.700, maxLat: 53.850, minLng: 20.330, maxLng: 20.620 } },
+  { type: 'city', key: 'kielce', label: 'Kielce', aliases: ['kielce'], bbox: { minLat: 50.790, maxLat: 50.950, minLng: 20.500, maxLng: 20.780 } },
+  { type: 'city', key: 'opole', label: 'Opole', aliases: ['opole'], bbox: { minLat: 50.600, maxLat: 50.760, minLng: 17.790, maxLng: 18.060 } },
+  { type: 'city', key: 'zielona-gora', label: 'Zielona Góra', aliases: ['zielona gora', 'zielona-gora', 'zielona góra'], bbox: { minLat: 51.840, maxLat: 52.020, minLng: 15.350, maxLng: 15.700 } },
+  { type: 'city', key: 'gorzow-wielkopolski', label: 'Gorzów Wielkopolski', aliases: ['gorzow', 'gorzow wielkopolski', 'gorzów', 'gorzów wielkopolski'], bbox: { minLat: 52.650, maxLat: 52.820, minLng: 15.100, maxLng: 15.360 } },
+];
+
 function getLocationHaystack(d: any) {
-  return normalizeText([d.locationLabel, d.locationFull, d.parcelText, d.tytul].filter(Boolean).join(' '));
+  return normalizeText([d.locationLabel, d.locationFull, d.parcelText].filter(Boolean).join(' '));
 }
 
 function detectVoivodeship(query: string) {
   const normalized = normalizeText(query);
   if (!normalized) return null;
 
-  return (
-    VOIVODESHIPS.find((v) => v.aliases.some((alias) => normalized.includes(normalizeText(alias)))) ?? null
-  );
+  return VOIVODESHIPS.find((area) =>
+    area.aliases.some((alias) => normalized.includes(normalizeText(alias)))
+  ) ?? null;
 }
 
-function matchesVoivodeshipByText(d: any, query: string) {
-  const voivodeship = detectVoivodeship(query);
-  if (!voivodeship) return false;
-
-  const haystack = getLocationHaystack(d);
-  if (!haystack) return false;
-
-  return voivodeship.aliases.some((alias) => haystack.includes(normalizeText(alias)));
-}
-
-function matchesVoivodeshipByCoords(d: any, query: string) {
-  const voivodeship = detectVoivodeship(query);
-  if (!voivodeship || !hasCoords(d)) return false;
-
-  const { minLat, maxLat, minLng, maxLng } = voivodeship.bbox;
-
-  return d.lat! >= minLat && d.lat! <= maxLat && d.lng! >= minLng && d.lng! <= maxLng;
-}
-
-function matchesCityDistrictAlias(d: any, query: string) {
+function detectCity(query: string) {
   const normalized = normalizeText(query);
-  if (!normalized) return false;
+  if (!normalized) return null;
 
-  const haystack = getLocationHaystack(d);
-  if (!haystack) return false;
+  return CITY_AREAS.find((area) =>
+    area.aliases.some((alias) => normalized.includes(normalizeText(alias)))
+  ) ?? null;
+}
 
-  return Object.entries(CITY_DISTRICT_ALIASES).some(([city, districts]) => {
-    const cityNorm = normalizeText(city);
-    if (!normalized.includes(cityNorm)) return false;
+function kmToLatDegrees(km: number) {
+  return km / 111.32;
+}
 
-    return districts.some((district) => haystack.includes(normalizeText(district)));
-  });
+function kmToLngDegrees(km: number, atLat: number) {
+  const cos = Math.cos((atLat * Math.PI) / 180);
+  if (Math.abs(cos) < 0.01) return km / 111.32;
+  return km / (111.32 * cos);
+}
+
+function expandBBoxByKm(bbox: BBox, km: number): BBox {
+  const midLat = (bbox.minLat + bbox.maxLat) / 2;
+  const latPad = kmToLatDegrees(km);
+  const lngPad = kmToLngDegrees(km, midLat);
+
+  return {
+    minLat: bbox.minLat - latPad,
+    maxLat: bbox.maxLat + latPad,
+    minLng: bbox.minLng - lngPad,
+    maxLng: bbox.maxLng + lngPad,
+  };
+}
+
+function coordsInBBox(d: any, bbox: BBox) {
+  return hasCoords(d) && d.lat! >= bbox.minLat && d.lat! <= bbox.maxLat && d.lng! >= bbox.minLng && d.lng! <= bbox.maxLng;
 }
 
 function matchesLocationText(d: any, query: string) {
@@ -194,7 +226,6 @@ function matchesLocationText(d: any, query: string) {
 
   return terms.every((term) => {
     if (tokens.includes(term)) return true;
-
     if (haystack.includes(term)) return true;
 
     if (term.length >= 5) {
@@ -205,28 +236,60 @@ function matchesLocationText(d: any, query: string) {
   });
 }
 
-function getSearchMatchInfo(d: any, query: string, latParam: number, lngParam: number, radiusParam: number, hasRadiusSearch: boolean) {
-  const radiusDistance = hasRadiusSearch && hasCoords(d) ? haversineKm(latParam, lngParam, d.lat!, d.lng!) : null;
-  const radiusMatch = radiusDistance !== null && radiusDistance <= radiusParam;
+function getSearchMatchInfo(
+  d: any,
+  query: string,
+  latParam: number,
+  lngParam: number,
+  radiusParam: number,
+  hasRadiusSearch: boolean
+) {
+  const city = query ? detectCity(query) : null;
+  const voivodeship = query ? detectVoivodeship(query) : null;
+
+  const radiusDistance = hasRadiusSearch && hasCoords(d)
+    ? haversineKm(latParam, lngParam, d.lat!, d.lng!)
+    : null;
+
+  const pointRadiusMatch = radiusDistance !== null && radiusDistance <= radiusParam;
+
+  const cityBBox =
+    city && hasRadiusSearch
+      ? expandBBoxByKm(city.bbox, radiusParam)
+      : city
+        ? city.bbox
+        : null;
+
+  const cityAreaMatch = cityBBox ? coordsInBBox(d, cityBBox) : false;
+  const voivodeshipAreaMatch = voivodeship ? coordsInBBox(d, voivodeship.bbox) : false;
 
   const textMatch = query ? matchesLocationText(d, query) : false;
-  const voivodeshipTextMatch = query ? matchesVoivodeshipByText(d, query) : false;
-  const voivodeshipCoordsMatch = query ? matchesVoivodeshipByCoords(d, query) : false;
-  const cityDistrictAliasMatch = query ? matchesCityDistrictAlias(d, query) : false;
+  const textFallbackMatch = query && (!hasRadiusSearch || !hasCoords(d)) ? textMatch : false;
+
+  const anyMatch =
+    voivodeshipAreaMatch ||
+    cityAreaMatch ||
+    pointRadiusMatch ||
+    textFallbackMatch;
+
+  let group = 99;
+
+  if (voivodeshipAreaMatch) group = 1;
+  else if (cityAreaMatch) group = 1;
+  else if (pointRadiusMatch) group = 2;
+  else if (textFallbackMatch) group = 3;
 
   return {
+    city,
+    voivodeship,
     radiusDistance,
-    radiusMatch,
+    pointRadiusMatch,
+    cityAreaMatch,
+    voivodeshipAreaMatch,
     textMatch,
-    voivodeshipTextMatch,
-    voivodeshipCoordsMatch,
-    cityDistrictAliasMatch,
-    anyMatch:
-      radiusMatch ||
-      textMatch ||
-      voivodeshipTextMatch ||
-      voivodeshipCoordsMatch ||
-      cityDistrictAliasMatch,
+    textFallbackMatch,
+    anyMatch,
+    group,
   };
 }
 
@@ -337,33 +400,23 @@ export async function GET(req: Request) {
   let filtered = allMatching;
 
   if (hasRadiusSearch || searchText) {
-    filtered = allMatching.filter((d) => {
-      return getSearchMatchInfo(
+    filtered = allMatching.filter((d) =>
+      getSearchMatchInfo(
         d,
         searchText,
         latParam,
         lngParam,
         radiusParam,
         hasRadiusSearch
-      ).anyMatch;
-    });
+      ).anyMatch
+    );
   }
 
   filtered.sort((a, b) => {
     const aInfo = getSearchMatchInfo(a, searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
     const bInfo = getSearchMatchInfo(b, searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
 
-    const getGroup = (info: ReturnType<typeof getSearchMatchInfo>) => {
-      if (info.radiusMatch) return 1;
-      if (info.textMatch || info.cityDistrictAliasMatch || info.voivodeshipTextMatch) return 2;
-      if (info.voivodeshipCoordsMatch) return 3;
-      return 4;
-    };
-
-    const aGroup = getGroup(aInfo);
-    const bGroup = getGroup(bInfo);
-
-    if (aGroup !== bGroup) return aGroup - bGroup;
+    if (aInfo.group !== bInfo.group) return aInfo.group - bInfo.group;
 
     const aFeatured = isFeaturedActive(a);
     const bFeatured = isFeaturedActive(b);
