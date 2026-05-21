@@ -700,7 +700,6 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       user: integration.ftpUsername,
       password: integration.ftpPassword,
       secure: false,
-      passive: false,
     });
 
     const remoteDir = integration.ftpRemotePath?.trim() || "/";
