@@ -9,7 +9,7 @@ type Integration = {
   provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA";
   isActive: boolean;
   transportType: "API" | "FTP";
-  feedFormat: "DOMY_PL";
+  feedFormat: "DOMY_PL" | "EBIURO_V2";
   ftpHost: string | null;
   ftpPort: number | null;
   ftpUsername: string | null;
