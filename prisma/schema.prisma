@@ -621,6 +621,7 @@ enum CrmTransportType {
 
 enum CrmFeedFormat {
   DOMY_PL
+  EBIURO_V2
 }
 
 enum CrmSyncAction {
