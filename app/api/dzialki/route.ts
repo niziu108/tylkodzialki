@@ -103,14 +103,86 @@ function cleanSearchQuery(value: string) {
     .filter((x) => !/^\d+$/.test(x));
 }
 
+const VOIVODESHIPS = [
+  { key: 'dolnoslaskie', aliases: ['dolnoslask', 'dolnoslaskie'], bbox: { minLat: 50.05, maxLat: 51.85, minLng: 14.75, maxLng: 17.85 } },
+  { key: 'kujawsko-pomorskie', aliases: ['kujawsko', 'pomorskie kujaw', 'kujawsko pomorsk'], bbox: { minLat: 52.25, maxLat: 53.85, minLng: 17.20, maxLng: 19.75 } },
+  { key: 'lubelskie', aliases: ['lubelsk', 'lubelskie'], bbox: { minLat: 50.15, maxLat: 52.35, minLng: 21.60, maxLng: 24.20 } },
+  { key: 'lubuskie', aliases: ['lubusk', 'lubuskie'], bbox: { minLat: 51.35, maxLat: 53.15, minLng: 14.50, maxLng: 16.45 } },
+  { key: 'lodzkie', aliases: ['lodzk', 'lodzkie'], bbox: { minLat: 50.80, maxLat: 52.40, minLng: 18.05, maxLng: 20.75 } },
+  { key: 'malopolskie', aliases: ['malopolsk', 'malopolskie'], bbox: { minLat: 49.15, maxLat: 50.55, minLng: 19.05, maxLng: 21.45 } },
+  { key: 'mazowieckie', aliases: ['mazowieck', 'mazowieckie'], bbox: { minLat: 51.00, maxLat: 53.50, minLng: 19.25, maxLng: 23.15 } },
+  { key: 'opolskie', aliases: ['opolsk', 'opolskie'], bbox: { minLat: 49.95, maxLat: 51.25, minLng: 16.85, maxLng: 18.70 } },
+  { key: 'podkarpackie', aliases: ['podkarpack', 'podkarpackie'], bbox: { minLat: 49.00, maxLat: 50.85, minLng: 21.15, maxLng: 23.65 } },
+  { key: 'podlaskie', aliases: ['podlask', 'podlaskie'], bbox: { minLat: 52.25, maxLat: 54.45, minLng: 21.55, maxLng: 23.95 } },
+  { key: 'pomorskie', aliases: ['pomorsk', 'pomorskie'], bbox: { minLat: 53.45, maxLat: 54.85, minLng: 16.70, maxLng: 19.85 } },
+  { key: 'slaskie', aliases: ['slask', 'slaskie'], bbox: { minLat: 49.35, maxLat: 51.25, minLng: 18.00, maxLng: 19.95 } },
+  { key: 'swietokrzyskie', aliases: ['swietokrzysk', 'swietokrzyskie'], bbox: { minLat: 50.15, maxLat: 51.35, minLng: 19.70, maxLng: 21.75 } },
+  { key: 'warminsko-mazurskie', aliases: ['warminsko', 'mazursk', 'warminsko mazursk'], bbox: { minLat: 53.15, maxLat: 54.55, minLng: 19.10, maxLng: 22.80 } },
+  { key: 'wielkopolskie', aliases: ['wielkopolsk', 'wielkopolskie'], bbox: { minLat: 51.05, maxLat: 53.65, minLng: 15.75, maxLng: 18.75 } },
+  { key: 'zachodniopomorskie', aliases: ['zachodniopomorsk', 'zachodnio pomorsk'], bbox: { minLat: 52.55, maxLat: 54.85, minLng: 14.10, maxLng: 16.95 } },
+];
+
+const CITY_DISTRICT_ALIASES: Record<string, string[]> = {
+  wroclaw: ['psie pole', 'krzyki', 'fabryczna', 'srodmiescie', 'stare miasto', 'jagodno', 'wojnow', 'zakrzow', 'osobowice', 'lesnica', 'muchobor', 'oporow', 'karłowice', 'karlowice', 'biskupin', 'sepolno', 'klecina', 'gaj', 'oltaszyn', 'oltaszyn', 'brochow'],
+  warszawa: ['mokotow', 'wilanow', 'ursynow', 'wola', 'bemowo', 'bielany', 'targowek', 'praga', 'ochota', 'zoliborz', 'wawer', 'wlochy', 'wesola', 'rembertow', 'ursus'],
+  lodz: ['baluty', 'gorna', 'polesie', 'widzew', 'srodmiescie'],
+  krakow: ['nowa huta', 'podgorze', 'krowodrza', 'srodmiescie', 'bronowice', 'debinki'],
+  poznan: ['grunwald', 'jezyce', 'nowe miasto', 'stare miasto', 'wilda', 'rataje', 'piatkowo'],
+  gdansk: ['wrzeszcz', 'oliwa', 'przymorze', 'zaspa', 'osowa', 'morena', 'brzezno'],
+};
+
+function getLocationHaystack(d: any) {
+  return normalizeText([d.locationLabel, d.locationFull, d.parcelText, d.tytul].filter(Boolean).join(' '));
+}
+
+function detectVoivodeship(query: string) {
+  const normalized = normalizeText(query);
+  if (!normalized) return null;
+
+  return (
+    VOIVODESHIPS.find((v) => v.aliases.some((alias) => normalized.includes(normalizeText(alias)))) ?? null
+  );
+}
+
+function matchesVoivodeshipByText(d: any, query: string) {
+  const voivodeship = detectVoivodeship(query);
+  if (!voivodeship) return false;
+
+  const haystack = getLocationHaystack(d);
+  if (!haystack) return false;
+
+  return voivodeship.aliases.some((alias) => haystack.includes(normalizeText(alias)));
+}
+
+function matchesVoivodeshipByCoords(d: any, query: string) {
+  const voivodeship = detectVoivodeship(query);
+  if (!voivodeship || !hasCoords(d)) return false;
+
+  const { minLat, maxLat, minLng, maxLng } = voivodeship.bbox;
+
+  return d.lat! >= minLat && d.lat! <= maxLat && d.lng! >= minLng && d.lng! <= maxLng;
+}
+
+function matchesCityDistrictAlias(d: any, query: string) {
+  const normalized = normalizeText(query);
+  if (!normalized) return false;
+
+  const haystack = getLocationHaystack(d);
+  if (!haystack) return false;
+
+  return Object.entries(CITY_DISTRICT_ALIASES).some(([city, districts]) => {
+    const cityNorm = normalizeText(city);
+    if (!normalized.includes(cityNorm)) return false;
+
+    return districts.some((district) => haystack.includes(normalizeText(district)));
+  });
+}
+
 function matchesLocationText(d: any, query: string) {
   const terms = cleanSearchQuery(query);
   if (!terms.length) return false;
 
-  const haystack = normalizeText(
-    [d.locationLabel, d.locationFull, d.parcelText].filter(Boolean).join(' ')
-  );
-
+  const haystack = getLocationHaystack(d);
   if (!haystack) return false;
 
   const tokens = haystack
@@ -123,12 +195,39 @@ function matchesLocationText(d: any, query: string) {
   return terms.every((term) => {
     if (tokens.includes(term)) return true;
 
+    if (haystack.includes(term)) return true;
+
     if (term.length >= 5) {
-      return tokens.some((token) => token.startsWith(term));
+      return tokens.some((token) => token.startsWith(term) || term.startsWith(token));
     }
 
     return false;
   });
+}
+
+function getSearchMatchInfo(d: any, query: string, latParam: number, lngParam: number, radiusParam: number, hasRadiusSearch: boolean) {
+  const radiusDistance = hasRadiusSearch && hasCoords(d) ? haversineKm(latParam, lngParam, d.lat!, d.lng!) : null;
+  const radiusMatch = radiusDistance !== null && radiusDistance <= radiusParam;
+
+  const textMatch = query ? matchesLocationText(d, query) : false;
+  const voivodeshipTextMatch = query ? matchesVoivodeshipByText(d, query) : false;
+  const voivodeshipCoordsMatch = query ? matchesVoivodeshipByCoords(d, query) : false;
+  const cityDistrictAliasMatch = query ? matchesCityDistrictAlias(d, query) : false;
+
+  return {
+    radiusDistance,
+    radiusMatch,
+    textMatch,
+    voivodeshipTextMatch,
+    voivodeshipCoordsMatch,
+    cityDistrictAliasMatch,
+    anyMatch:
+      radiusMatch ||
+      textMatch ||
+      voivodeshipTextMatch ||
+      voivodeshipCoordsMatch ||
+      cityDistrictAliasMatch,
+  };
 }
 
 function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
@@ -237,30 +336,32 @@ export async function GET(req: Request) {
 
   let filtered = allMatching;
 
-  if (hasRadiusSearch) {
+  if (hasRadiusSearch || searchText) {
     filtered = allMatching.filter((d) => {
-      if (!hasCoords(d)) return false;
-
-      return haversineKm(latParam, lngParam, d.lat!, d.lng!) <= radiusParam;
+      return getSearchMatchInfo(
+        d,
+        searchText,
+        latParam,
+        lngParam,
+        radiusParam,
+        hasRadiusSearch
+      ).anyMatch;
     });
-  } else if (searchText) {
-    filtered = allMatching.filter((d) => matchesLocationText(d, searchText));
   }
 
   filtered.sort((a, b) => {
-    const aCoords = hasCoords(a);
-    const bCoords = hasCoords(b);
+    const aInfo = getSearchMatchInfo(a, searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
+    const bInfo = getSearchMatchInfo(b, searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
 
-    const aDistance =
-      hasRadiusSearch && aCoords ? haversineKm(latParam, lngParam, a.lat!, a.lng!) : null;
-    const bDistance =
-      hasRadiusSearch && bCoords ? haversineKm(latParam, lngParam, b.lat!, b.lng!) : null;
+    const getGroup = (info: ReturnType<typeof getSearchMatchInfo>) => {
+      if (info.radiusMatch) return 1;
+      if (info.textMatch || info.cityDistrictAliasMatch || info.voivodeshipTextMatch) return 2;
+      if (info.voivodeshipCoordsMatch) return 3;
+      return 4;
+    };
 
-    const aRadius = aDistance !== null && aDistance <= radiusParam;
-    const bRadius = bDistance !== null && bDistance <= radiusParam;
-
-    const aGroup = aRadius ? 1 : 2;
-    const bGroup = bRadius ? 1 : 2;
+    const aGroup = getGroup(aInfo);
+    const bGroup = getGroup(bInfo);
 
     if (aGroup !== bGroup) return aGroup - bGroup;
 
@@ -274,8 +375,8 @@ export async function GET(req: Request) {
 
     if (aPhotos !== bPhotos) return aPhotos ? -1 : 1;
 
-    if (hasRadiusSearch && aDistance !== null && bDistance !== null) {
-      return aDistance - bDistance;
+    if (hasRadiusSearch && aInfo.radiusDistance !== null && bInfo.radiusDistance !== null) {
+      return aInfo.radiusDistance - bInfo.radiusDistance;
     }
 
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
