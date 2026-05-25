@@ -751,7 +751,40 @@ function ActionBtn({
   );
 }
 
-function StatsBadge({
+function ListingAnalytics({
+  viewsCount,
+  detailViewsCount,
+  favoritesCount,
+  phoneClicksCount,
+  messageClicksCount,
+}: {
+  viewsCount: number;
+  detailViewsCount: number;
+  favoritesCount: number;
+  phoneClicksCount: number;
+  messageClicksCount: number;
+}) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+          Statystyki ogłoszenia
+        </div>
+        <div className="h-px flex-1 bg-white/8" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <AnalyticsTile label="Wyświetlenia" value={viewsCount} />
+        <AnalyticsTile label="Wejścia" value={detailViewsCount} />
+        <AnalyticsTile label="Ulubione" value={favoritesCount} accent />
+        <AnalyticsTile label="Telefony" value={phoneClicksCount} />
+        <AnalyticsTile label="Wiadomości" value={messageClicksCount} />
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsTile({
   label,
   value,
   accent = false,
@@ -762,16 +795,22 @@ function StatsBadge({
 }) {
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-medium backdrop-blur-md ${
+      className={`rounded-2xl border px-3 py-3 text-center ${
         accent
-          ? 'border border-[#7aa333]/40 bg-[#7aa333]/18 text-[#c7ec81]'
-          : 'border border-white/12 bg-black/55 text-white/90'
+          ? 'border-[#7aa333]/30 bg-[#7aa333]/12'
+          : 'border-white/8 bg-black/18'
       }`}
     >
-      <span className={accent ? 'text-[#c7ec81]/80' : 'text-white/65'}>{label}</span>
-      <span className={accent ? 'font-semibold text-[#c7ec81]' : 'font-semibold text-white'}>
+      <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">
+        {label}
+      </div>
+      <div
+        className={`mt-1 text-[21px] font-semibold leading-none ${
+          accent ? 'text-[#9fd14b]' : 'text-white'
+        }`}
+      >
         {formatIntPL(value)}
-      </span>
+      </div>
     </div>
   );
 }
@@ -780,21 +819,11 @@ function Carousel({
   photos,
   coverFallback,
   title,
-  viewsCount,
-  detailViewsCount,
-  favoritesCount,
-  phoneClicksCount,
-  messageClicksCount,
   featured,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
   title: string;
-  viewsCount: number;
-  detailViewsCount: number;
-  favoritesCount: number;
-  phoneClicksCount: number;
-  messageClicksCount: number;
   featured: boolean;
 }) {
   const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
@@ -875,14 +904,6 @@ function Carousel({
         <>
           <img src={list[i]} alt={title} className="h-full w-full object-cover" loading="lazy" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-
-          <div className="absolute left-4 top-4 z-10 flex max-w-[calc(100%-32px)] flex-wrap gap-2">
-            <StatsBadge label="Wyświetlenia" value={viewsCount} />
-            <StatsBadge label="Wejścia" value={detailViewsCount} />
-            <StatsBadge label="Ulubione" value={favoritesCount} accent />
-            <StatsBadge label="Telefony" value={phoneClicksCount} />
-            <StatsBadge label="Wiadomości" value={messageClicksCount} />
-          </div>
 
           {featured ? (
             <div className="absolute left-4 bottom-4 z-10">

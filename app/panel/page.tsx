@@ -274,7 +274,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
                     Ogłoszenia
@@ -290,51 +290,6 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                   </div>
                   <div className="mt-2 text-[28px] font-semibold leading-none text-[#9fd14b]">
                     {activeCount}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
-                    Wyświetlenia
-                  </div>
-                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
-                    {totalViews}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
-                    Wejścia
-                  </div>
-                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
-                    {totalDetailViews}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
-                    Ulubione
-                  </div>
-                  <div className="mt-2 text-[28px] font-semibold leading-none text-[#9fd14b]">
-                    {totalFavorites}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
-                    Telefony
-                  </div>
-                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
-                    {totalPhoneClicks}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
-                    Wiadomości
-                  </div>
-                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
-                    {totalMessageClicks}
                   </div>
                 </div>
               </div>
