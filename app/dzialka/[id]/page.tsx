@@ -1,63 +1,47 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
+import type { Przeznaczenie } from '@prisma/client';
+import {
+  przedluzOgloszenieAction,
+  zakonczOgloszenieAction,
+  usunOgloszenieAction,
+  wyroznijOgloszenieAction,
+} from '../../app/panel/actions';
 
-type Photo = { id?: string; url: string; publicId?: string; kolejnosc?: number };
+type Photo = { url: string; publicId?: string; kolejnosc?: number };
+type DzialkaStatus = 'AKTYWNE' | 'ZAKONCZONE';
+type FilterStatus = 'all' | 'active' | 'ended' | 'featured';
+type SortOption =
+  | 'newest'
+  | 'oldest'
+  | 'price_high'
+  | 'price_low'
+  | 'area_high'
+  | 'area_low'
+  | 'expiring';
 
-type Dzialka = {
+export type Dzialka = {
   id: string;
   tytul: string;
-  opis?: string | null;
   cenaPln: number;
   powierzchniaM2: number;
-
-  telefon?: string | null;
-  email?: string | null;
-
   locationLabel?: string | null;
-  locationMode?: 'EXACT' | 'APPROX' | string | null;
-  lat?: number | null;
-  lng?: number | null;
-  mapsUrl?: string | null;
-
-  przeznaczenia?: string[];
-
-  prad?: string | null;
-  woda?: string | null;
-  kanalizacja?: string | null;
-  gaz?: string | null;
-  swiatlowod?: string | null;
-
-  wzWydane?: boolean | null;
-  mpzp?: boolean | null;
-  projektDomu?: boolean | null;
-
-  klasaZiemi?: string | null;
-  wymiary?: string | null;
-  ksiegaWieczysta?: string | null;
-
-  sprzedajacyTyp?: 'PRYWATNIE' | 'BIURO' | string | null;
-  sprzedajacyImie?: string | null;
-  biuroNazwa?: string | null;
-  biuroOpiekun?: string | null;
-  biuroLogoUrl?: string | null;
-  numerOferty?: string | null;
-
+  przeznaczenia?: Przeznaczenie[];
   zdjecia?: Photo[];
+  status?: DzialkaStatus;
+  publishedAt?: string | Date | null;
+  expiresAt?: string | Date | null;
+  endedAt?: string | Date | null;
+  isFeatured?: boolean | null;
+  featuredUntil?: string | Date | null;
+  viewsCount?: number | null;
+  detailViewsCount?: number | null;
+  favoritesCount?: number | null;
+  phoneClicksCount?: number | null;
+  messageClicksCount?: number | null;
 };
-
-const BG = '#131313';
-const FG = '#F3EFF5';
-
-function cx(...s: Array<string | false | null | undefined>) {
-  return s.filter(Boolean).join(' ');
-}
-
-function Hr({ className }: { className?: string }) {
-  return <div className={cx('border-b border-white/10', className)} />;
-}
 
 function formatPLN(value: number) {
   return new Intl.NumberFormat('pl-PL', {
@@ -68,10 +52,36 @@ function formatPLN(value: number) {
 }
 
 function formatIntPL(value: number) {
-  return new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat('pl-PL', {
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
-function labelPrzeznaczenie(p: string) {
+function formatDatePL(value?: string | Date | null) {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString('pl-PL');
+}
+
+function getDaysLeft(expiresAt?: string | Date | null) {
+  if (!expiresAt) return null;
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+function getEffectiveStatus(
+  status?: DzialkaStatus,
+  expiresAt?: string | Date | null
+): DzialkaStatus {
+  if (status === 'ZAKONCZONE') return 'ZAKONCZONE';
+  if (expiresAt && new Date(expiresAt).getTime() < Date.now()) return 'ZAKONCZONE';
+  return 'AKTYWNE';
+}
+
+function isFeaturedNow(d: Dzialka) {
+  return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
+}
+
+function labelPrzeznaczenie(p: Przeznaczenie) {
   const map: Record<string, string> = {
     INWESTYCYJNA: 'Inwestycyjna',
     BUDOWLANA: 'Budowlana',
@@ -79,191 +89,277 @@ function labelPrzeznaczenie(p: string) {
     LESNA: 'Leśna',
     REKREACYJNA: 'Rekreacyjna',
     SIEDLISKOWA: 'Siedliskowa',
+    USLUGOWA: 'Usługowa',
   };
 
-  return map[p] ?? p;
+  return map[p] ?? String(p);
 }
 
-function labelPrad(v?: string | null) {
-  if (!v || v === 'BRAK_PRZYLACZA') return null;
-  const map: Record<string, string> = {
-    PRZYLACZE_NA_DZIALCE: 'Przyłącze na działce',
-    PRZYLACZE_W_DRODZE: 'Przyłącze w drodze',
-    WARUNKI_PRZYLACZENIA_WYDANE: 'Warunki przyłączenia wydane',
-    MOZLIWOSC_PRZYLACZENIA: 'Możliwość przyłączenia',
-  };
-  return map[v] ?? v;
-}
+const GREEN = '#7aa333';
 
-function labelWoda(v?: string | null) {
-  if (!v || v === 'BRAK_PRZYLACZA') return null;
-  const map: Record<string, string> = {
-    WODOCIAG_NA_DZIALCE: 'Wodociąg na działce',
-    WODOCIAG_W_DRODZE: 'Wodociąg w drodze',
-    STUDNIA_GLEBINOWA: 'Studnia głębinowa',
-    MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
-  };
-  return map[v] ?? v;
-}
-
-function labelKanalizacja(v?: string | null) {
-  if (!v || v === 'BRAK') return null;
-  const map: Record<string, string> = {
-    MIEJSKA_NA_DZIALCE: 'Miejska na działce',
-    MIEJSKA_W_DRODZE: 'Miejska w drodze',
-    SZAMBO: 'Szambo',
-    PRZYDOMOWA_OCZYSZCZALNIA: 'Przydomowa oczyszczalnia',
-    MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
-  };
-  return map[v] ?? v;
-}
-
-function labelGazShort(v?: string | null) {
-  if (!v || v === 'BRAK') return null;
-  const map: Record<string, string> = {
-    GAZ_NA_DZIALCE: 'Na działce',
-    GAZ_W_DRODZE: 'W drodze',
-    MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
-  };
-  return map[v] ?? v.replace(/^GAZ_/, '');
-}
-
-function labelSwiatlowod(v?: string | null) {
-  if (!v || v === 'BRAK') return null;
-  const map: Record<string, string> = {
-    W_DRODZE: 'W drodze',
-    NA_DZIALCE: 'Na działce',
-    MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
-  };
-  return map[v] ?? v;
-}
-
-function formatOpis(raw?: string | null) {
-  const text = (raw ?? '').trim();
-  if (!text) return null;
-
-  const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(text);
-
-  if (looksLikeHtml) {
-    return text
-      .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '</p><p>')
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/\n{2,}/g, '</p><p>')
-      .replace(/\n/g, '<br />');
-  }
-
-  return text
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => `<p>${p.replace(/\n/g, '<br />')}</p>`)
-    .join('');
-}
-
-function SmartImg({
-  src,
-  alt,
-  className,
-  eager = false,
-  onClick,
-}: {
-  src: string;
-  alt: string;
-  className?: string;
-  eager?: boolean;
-  onClick?: () => void;
-}) {
+function SelectChevron() {
   return (
-    <img
-      src={src}
-      alt={alt}
-      className={className}
-      loading={eager ? 'eager' : 'lazy'}
-      decoding="async"
-      draggable={false}
-      onClick={onClick}
-    />
-  );
-}
-
-function FieldBlock({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="py-5">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">{label}</div>
-      <div className="mt-2">{children}</div>
+    <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-white/55">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="m6 9 6 6 6-6" />
+      </svg>
     </div>
   );
 }
 
-export default function DzialkaPage() {
-  const params = useParams();
-  const router = useRouter();
-  const id = params?.id as string | undefined;
+export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<FilterStatus>('all');
+  const [sort, setSort] = useState<SortOption>('newest');
 
-  const [d, setD] = useState<Dzialka | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const filteredItems = useMemo(() => {
+    if (!items?.length) return [];
 
-  const [idx, setIdx] = useState(0);
-  const [open, setOpen] = useState(false);
+    let list = [...items];
+    const q = query.trim().toLowerCase();
 
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
+    if (q) {
+      list = list.filter((d) => {
+        const title = d.tytul?.toLowerCase() ?? '';
+        const location = d.locationLabel?.toLowerCase() ?? '';
+        const types =
+          d.przeznaczenia?.map((p) => labelPrzeznaczenie(p).toLowerCase()).join(' ') ?? '';
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-  }, [id]);
+        return title.includes(q) || location.includes(q) || types.includes(q);
+      });
+    }
 
-  useEffect(() => {
-    if (!id) return;
+    if (status === 'active') {
+      list = list.filter((d) => getEffectiveStatus(d.status, d.expiresAt) === 'AKTYWNE');
+    }
 
-    let alive = true;
+    if (status === 'ended') {
+      list = list.filter((d) => getEffectiveStatus(d.status, d.expiresAt) === 'ZAKONCZONE');
+    }
 
-    (async () => {
-      try {
-        setLoading(true);
-        setErr(null);
+    if (status === 'featured') {
+      list = list.filter((d) => isFeaturedNow(d));
+    }
 
-        const res = await fetch(`/api/dzialki/${id}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`GET /api/dzialki/${id} -> ${res.status}`);
+    list.sort((a, b) => {
+      const aFeatured = isFeaturedNow(a);
+      const bFeatured = isFeaturedNow(b);
 
-        const data = await res.json();
-        if (alive) {
-          setD(data);
-          setIdx(0);
-        }
-      } catch (e: any) {
-        if (alive) setErr(e?.message ?? 'Błąd pobierania');
-      } finally {
-        if (alive) setLoading(false);
+      if (sort === 'newest') {
+        if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
+        return (
+          new Date(b.publishedAt ?? b.endedAt ?? 0).getTime() -
+          new Date(a.publishedAt ?? a.endedAt ?? 0).getTime()
+        );
       }
-    })();
 
-    return () => {
-      alive = false;
-    };
-  }, [id]);
+      if (sort === 'oldest') {
+        return (
+          new Date(a.publishedAt ?? a.endedAt ?? 0).getTime() -
+          new Date(b.publishedAt ?? b.endedAt ?? 0).getTime()
+        );
+      }
+
+      if (sort === 'price_high') return b.cenaPln - a.cenaPln;
+      if (sort === 'price_low') return a.cenaPln - b.cenaPln;
+      if (sort === 'area_high') return b.powierzchniaM2 - a.powierzchniaM2;
+      if (sort === 'area_low') return a.powierzchniaM2 - b.powierzchniaM2;
+
+      if (sort === 'expiring') {
+        const aExpiry =
+          getEffectiveStatus(a.status, a.expiresAt) === 'AKTYWNE' && a.expiresAt
+            ? new Date(a.expiresAt).getTime()
+            : Number.MAX_SAFE_INTEGER;
+
+        const bExpiry =
+          getEffectiveStatus(b.status, b.expiresAt) === 'AKTYWNE' && b.expiresAt
+            ? new Date(b.expiresAt).getTime()
+            : Number.MAX_SAFE_INTEGER;
+
+        return aExpiry - bExpiry;
+      }
+
+      return 0;
+    });
+
+    return list;
+  }, [items, query, status, sort]);
+
+  if (!items?.length) {
+    return (
+      <div className="rounded-3xl border border-white/12 bg-[#0f0f0f]/20 p-6 text-white/70">
+        Nie masz jeszcze żadnych ogłoszeń.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4 md:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="w-full xl:max-w-md">
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+              Szukaj ogłoszenia
+            </label>
+
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Np. tytuł ogłoszenia, lokalizacja..."
+              className="h-[54px] w-full rounded-2xl border border-white/12 bg-black/20 px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#7aa333]/60 focus:bg-black/30"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-end">
+            <div className="min-w-[190px]">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                Status
+              </label>
+
+              <div className="relative">
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as FilterStatus)}
+                  className="h-[54px] w-full appearance-none rounded-2xl border border-white/12 bg-[#161616] px-4 pr-10 text-sm font-medium text-white outline-none transition focus:border-[#7aa333]/60"
+                  style={{ colorScheme: 'dark' }}
+                >
+                  <option value="all" className="bg-[#161616] text-white">
+                    Wszystkie
+                  </option>
+                  <option value="active" className="bg-[#161616] text-white">
+                    Aktywne
+                  </option>
+                  <option value="ended" className="bg-[#161616] text-white">
+                    Zakończone
+                  </option>
+                  <option value="featured" className="bg-[#161616] text-white">
+                    Wyróżnione
+                  </option>
+                </select>
+                <SelectChevron />
+              </div>
+            </div>
+
+            <div className="min-w-[250px]">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                Sortowanie
+              </label>
+
+              <div className="relative">
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as SortOption)}
+                  className="h-[54px] w-full appearance-none rounded-2xl border border-white/12 bg-[#161616] px-4 pr-10 text-sm font-medium text-white outline-none transition focus:border-[#7aa333]/60"
+                  style={{ colorScheme: 'dark' }}
+                >
+                  <option value="newest" className="bg-[#161616] text-white">
+                    Najnowsze
+                  </option>
+                  <option value="oldest" className="bg-[#161616] text-white">
+                    Najstarsze
+                  </option>
+                  <option value="price_high" className="bg-[#161616] text-white">
+                    Cena: od najwyższej
+                  </option>
+                  <option value="price_low" className="bg-[#161616] text-white">
+                    Cena: od najniższej
+                  </option>
+                  <option value="area_high" className="bg-[#161616] text-white">
+                    Powierzchnia: od największej
+                  </option>
+                  <option value="area_low" className="bg-[#161616] text-white">
+                    Powierzchnia: od najmniejszej
+                  </option>
+                  <option value="expiring" className="bg-[#161616] text-white">
+                    Wygasają najszybciej
+                  </option>
+                </select>
+                <SelectChevron />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/8 pt-4 text-sm text-white/55">
+          <span>
+            Znaleziono: <span className="font-semibold text-white">{filteredItems.length}</span>
+          </span>
+
+          {query.trim() ? (
+            <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[12px] text-white/70">
+              Szukasz: {query}
+            </span>
+          ) : null}
+
+          {status !== 'all' ? (
+            <span className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[12px] text-[#9fd14b]">
+              Filtr aktywny
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {!filteredItems.length ? (
+        <div className="rounded-3xl border border-white/12 bg-[#0f0f0f]/20 p-6 text-white/70">
+          Nie znaleziono ogłoszeń dla wybranych filtrów.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {filteredItems.map((d) => (
+            <PanelDzialkaCard key={d.id} d={d} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PanelDzialkaCard({ d }: { d: Dzialka }) {
+  const [isPending, startTransition] = useTransition();
+
+  const photos = (d.zdjecia ?? [])
+    .slice()
+    .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
+
+  const coverFallback = photos[0]?.url ?? null;
+  const loc = d.locationLabel?.trim() || 'Lokalizacja niepodana';
+  const area = d.powierzchniaM2 ?? 0;
+  const zlZaM2 = area ? Math.round(d.cenaPln / area) : 0;
+  const przezn = d.przeznaczenia?.length ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ') : '—';
+
+  const effectiveStatus = getEffectiveStatus(d.status, d.expiresAt);
+  const daysLeft = getDaysLeft(d.expiresAt);
+  const isFeaturedActive = isFeaturedNow(d);
+  const isIndefinite = effectiveStatus === 'AKTYWNE' && !d.expiresAt;
+
+  const viewsCount = d.viewsCount ?? 0;
+  const detailViewsCount = d.detailViewsCount ?? 0;
+  const favoritesCount = d.favoritesCount ?? 0;
+  const phoneClicksCount = d.phoneClicksCount ?? 0;
+  const messageClicksCount = d.messageClicksCount ?? 0;
+
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!d.id || !cardRef.current) return;
 
-    const key = `TD_DETAIL_VIEWED_${id}`;
+    const key = `TD_PANEL_VIEWED_${d.id}`;
     let shouldTrack = true;
 
     try {
       if (sessionStorage.getItem(key)) {
         shouldTrack = false;
-      } else {
-        sessionStorage.setItem(key, '1');
       }
     } catch {
       shouldTrack = true;
@@ -271,665 +367,586 @@ export default function DzialkaPage() {
 
     if (!shouldTrack) return;
 
-    fetch(`/api/dzialki/${id}/track-detail`, {
-      method: 'POST',
-      cache: 'no-store',
-    }).catch(() => {});
-  }, [id]);
+    const el = cardRef.current;
 
-  const photos = useMemo(() => {
-    return (d?.zdjecia ?? [])
-      .slice()
-      .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0))
-      .map((z) => z.url)
-      .filter(Boolean);
-  }, [d]);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        if (entry.intersectionRatio < 0.35) return;
 
-  useEffect(() => {
-    setIdx(0);
-  }, [photos.length]);
+        try {
+          sessionStorage.setItem(key, '1');
+        } catch {}
 
-  const hasPhotos = photos.length > 0;
-  const cover = hasPhotos ? photos[Math.min(idx, photos.length - 1)] : null;
+        fetch(`/api/dzialki/${d.id}/track-view`, {
+          method: 'POST',
+          cache: 'no-store',
+        }).catch(() => {});
 
-  const area = d?.powierzchniaM2 ?? 0;
-  const zlZaM2 = area ? Math.round((d?.cenaPln ?? 0) / area) : 0;
+        observer.disconnect();
+      },
+      {
+        threshold: [0.35],
+      }
+    );
 
-  const przezn = Array.isArray(d?.przeznaczenia) ? d.przeznaczenia.filter(Boolean) : [];
-  const przeznText = przezn.length ? przezn.map(labelPrzeznaczenie).join(', ') : null;
+    observer.observe(el);
 
-  const loc = d?.locationLabel?.trim() || null;
-  const isApproxLocation = d?.locationMode === 'APPROX';
-
-  const mapSrc = useMemo(() => {
-  if (!d) return null;
-  if (!d.lat || !d.lng) return null;
-
-  if (d.locationMode === 'APPROX') {
-    return `https://www.google.com/maps?ll=${d.lat},${d.lng}&z=12&output=embed`;
-  }
-
-  return `https://www.google.com/maps?q=${d.lat},${d.lng}&z=15&output=embed`;
-}, [d]);
-
-  const prad = labelPrad(d?.prad ?? null);
-  const woda = labelWoda(d?.woda ?? null);
-  const kan = labelKanalizacja(d?.kanalizacja ?? null);
-  const gaz = labelGazShort(d?.gaz ?? null);
-  const sw = labelSwiatlowod(d?.swiatlowod ?? null);
-  const hasUzbrojenie = Boolean(prad || woda || kan || gaz || sw);
-
-  const opis = formatOpis(d?.opis);
-
-  const telefon = (d?.telefon ?? '').trim() || null;
-  const telefonHref = telefon ? telefon.replace(/[^\d+]/g, '') : null;
-  const numerOferty = (d?.numerOferty ?? '').trim() || null;
-  const smsText = numerOferty
-  ? `Dzień dobry, piszę w sprawie oferty nr ${numerOferty} z TylkoDziałki.pl.`
-  : `Dzień dobry, piszę w sprawie działki z TylkoDziałki.pl.`;
-
-  const smsHref = telefonHref
-  ? `sms:${telefonHref}?&body=${encodeURIComponent(smsText)}`
-  : null;
-  const klasaZiemi = (d?.klasaZiemi ?? '').trim() || null;
-  const wymiary = (d?.wymiary ?? '').trim() || null;
-  const ksiega = (d?.ksiegaWieczysta ?? '').trim() || null;
-
-  const sprzedajacyTyp = d?.sprzedajacyTyp ?? null;
-  const sprzedajacyImie = (d?.sprzedajacyImie ?? '').trim() || null;
-  const biuroOpiekun = (d?.biuroOpiekun ?? '').trim() || null;
-  const biuroLogoUrl = (d?.biuroLogoUrl ?? '').trim() || null;
-
-  const hasDocs = Boolean(d?.mpzp || d?.wzWydane || d?.projektDomu);
-  const showMap = Boolean(mapSrc);
-
-  const prev = () => {
-    if (photos.length < 2) return;
-    setIdx((p) => (p - 1 + photos.length) % photos.length);
-  };
-
-  const next = () => {
-    if (photos.length < 2) return;
-    setIdx((p) => (p + 1) % photos.length);
-  };
-
-  const onBackToListClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-
-    try {
-      const url = sessionStorage.getItem('TD_KUP_URL') || '/kup';
-      const y = sessionStorage.getItem('TD_KUP_SCROLL_Y');
-
-      if (y) sessionStorage.setItem('TD_KUP_RESTORE_Y', y);
-
-      router.push(url);
-    } catch {
-      router.push('/kup');
-    }
-  };
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches?.[0];
-    if (!t) return;
-    touchStartX.current = t.clientX;
-    touchStartY.current = t.clientY;
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const sx = touchStartX.current;
-    const sy = touchStartY.current;
-    touchStartX.current = null;
-    touchStartY.current = null;
-    if (sx == null || sy == null) return;
-
-    const t = e.changedTouches?.[0];
-    if (!t) return;
-
-    const dx = t.clientX - sx;
-    const dy = t.clientY - sy;
-
-    if (Math.abs(dy) > Math.abs(dx)) return;
-
-    const TH = 40;
-    if (dx > TH) prev();
-    else if (dx < -TH) next();
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const prevOverflow = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
     return () => {
-      document.documentElement.style.overflow = prevOverflow;
+      observer.disconnect();
     };
-  }, [open]);
+  }, [d.id]);
 
-  if (!id) {
-    return (
-      <main className="min-h-screen" style={{ background: BG, color: FG }}>
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <div className="text-sm text-red-300">Brak ID w URL.</div>
-        </div>
-      </main>
-    );
-  }
+  async function runAction(action: () => Promise<void>, errorText: string) {
+    startTransition(async () => {
+      try {
+        await action();
+      } catch (e: any) {
+        const msg = String(e?.message || '');
 
-  if (loading) {
-    return (
-      <main className="min-h-screen" style={{ background: BG, color: FG }}>
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <Link
-            href="/kup"
-            scroll={false}
-            onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
-          >
-            <span className="relative top-[-1px]">←</span> Wróć do listy
-          </Link>
+        if (msg.includes('NEXT_REDIRECT')) {
+          return;
+        }
 
-          <div className="mt-6 grid gap-10 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-              <div className="aspect-video animate-pulse bg-white/5" />
-              <div className="p-6 space-y-4">
-                <div className="h-4 w-40 animate-pulse rounded bg-white/5" />
-                <div className="h-4 w-64 animate-pulse rounded bg-white/5" />
-              </div>
-            </div>
-
-            <div className="rounded-3xl bg-[#0f0f0f]/20 p-6 space-y-4">
-              <div className="h-5 w-64 animate-pulse rounded bg-white/5" />
-              <div className="h-4 w-48 animate-pulse rounded bg-white/5" />
-              <div className="h-4 w-56 animate-pulse rounded bg-white/5" />
-              <div className="h-4 w-72 animate-pulse rounded bg-white/5" />
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (err || !d) {
-    return (
-      <main className="min-h-screen" style={{ background: BG, color: FG }}>
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <Link
-            href="/kup"
-            scroll={false}
-            onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
-          >
-            <span className="relative top-[-1px]">←</span> Wróć do listy
-          </Link>
-
-          <div className="mt-6 rounded-3xl bg-[#0f0f0f]/20 p-6">
-            <div className="font-medium text-white/90">Nie udało się załadować ogłoszenia</div>
-            <div className="mt-2 text-sm text-white/60">{err ?? 'Brak danych'}</div>
-          </div>
-        </div>
-      </main>
-    );
+        alert(msg || errorText);
+      }
+    });
   }
 
   return (
-    <main className="min-h-screen" style={{ background: BG, color: FG }}>
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <Link
-          href="/kup"
-          scroll={false}
-          onClick={onBackToListClick}
-          className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
-        >
-          <span className="relative top-[-1px]">←</span> Wróć do listy
-        </Link>
+    <div
+      ref={cardRef}
+      className={`group overflow-hidden rounded-3xl border transition ${
+        effectiveStatus === 'ZAKONCZONE'
+          ? 'border-white/10 bg-[#0f0f0f]/15 opacity-80'
+          : isFeaturedActive
+          ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
+          : 'border-white/14 bg-[#0f0f0f]/20 hover:border-white/30'
+      }`}
+    >
+      <Link
+        href={`/dzialka/${d.id}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+      >
+        <Carousel
+          photos={photos}
+          coverFallback={coverFallback}
+          title={d.tytul}
+          viewsCount={viewsCount}
+          detailViewsCount={detailViewsCount}
+          favoritesCount={favoritesCount}
+          phoneClicksCount={phoneClicksCount}
+          messageClicksCount={messageClicksCount}
+          featured={isFeaturedActive}
+        />
 
-        <div className="mt-6 grid gap-10 lg:grid-cols-2">
-          <section className="min-w-0 space-y-8">
-            <div className="min-w-0 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-              <div className="relative aspect-video bg-white/5">
-                {cover ? (
-                  <>
-                    <SmartImg
-                      src={cover}
-                      alt={d.tytul}
-                      className="h-full w-full object-cover cursor-zoom-in"
-                      eager
-                      onClick={() => setOpen(true)}
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-                  </>
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-white/50">
-                    Brak zdjęć
-                  </div>
-                )}
-
-                {hasPhotos && photos.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={prev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
-                      aria-label="Poprzednie"
-                    >
-                      ‹
-                    </button>
-                    <button
-                      type="button"
-                      onClick={next}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
-                      aria-label="Następne"
-                    >
-                      ›
-                    </button>
-
-                    <div className="absolute right-4 top-4 rounded-full bg-black/45 px-3 py-1 text-xs text-white/80 border border-white/10">
-                      {idx + 1}/{photos.length}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {hasPhotos && photos.length > 1 && (
-                <div
-                  className={cx(
-                    'td-thumbstrip px-3 py-3',
-                    'flex flex-nowrap gap-2',
-                    'overflow-x-auto overscroll-x-contain',
-                    'min-w-0'
-                  )}
-                >
-                  {photos.map((u, i) => (
-                    <button
-                      key={u + i}
-                      type="button"
-                      onClick={() => setIdx(i)}
-                      className={cx(
-                        'shrink-0 h-16 w-28 overflow-hidden rounded-2xl border transition',
-                        i === idx ? 'border-white/60' : 'border-white/10 opacity-85 hover:opacity-100'
-                      )}
-                      title={`Zdjęcie ${i + 1}`}
-                    >
-                      <SmartImg
-                        src={u}
-                        alt={`Zdjęcie ${i + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {opis ? (
-              <div className="hidden lg:block">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Opis</div>
-                <div
-                  className="td-opis mt-4 text-[15px] leading-relaxed text-white/85"
-                  dangerouslySetInnerHTML={{ __html: opis }}
-                />
-              </div>
-            ) : null}
-          </section>
-
-          <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
-            <div className="p-6 md:p-7">
-              <div className="text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
-                {d.tytul}
-              </div>
-
-              <Hr className="mt-6" />
-
-              <FieldBlock label="Cena">
-                <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 break-words">
-                  {formatPLN(d.cenaPln)}
+        <div className="p-5 md:p-6">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <MetricBlock
+              label="Cena"
+              value={
+                <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
+                  <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
+                    {formatPLN(d.cenaPln)}
+                  </span>
                   {zlZaM2 ? (
-                    <span className="ml-2 text-[12px] text-white/50 font-normal">
+                    <span className="text-[12px] text-white/50">
                       ({formatIntPL(zlZaM2)} zł/m²)
                     </span>
                   ) : null}
                 </div>
-              </FieldBlock>
+              }
+            />
 
-              <Hr />
+            <div className="h-14 w-px bg-white/10" />
 
-              <FieldBlock label="Powierzchnia">
-                <div className="text-[15px] md:text-[16px] font-medium text-white/95 break-words">
+            <MetricBlock
+              label="Powierzchnia"
+              value={
+                <div className="text-[20px] font-medium leading-none text-white/95 md:text-[22px]">
                   {formatIntPL(area)} m²
                 </div>
-              </FieldBlock>
+              }
+            />
+          </div>
 
-              <Hr />
-
-              {przeznText ? (
-                <>
-                  <FieldBlock label="Przeznaczenie">
-                    <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
-                      {przeznText}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {sprzedajacyTyp === 'PRYWATNIE' ? (
-                <>
-                  <FieldBlock label="Ogłoszenie prywatne">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {sprzedajacyImie ? (
-                        <div className="break-words">
-                          Imię: <span className="text-white/95">{sprzedajacyImie}</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {sprzedajacyTyp === 'BIURO' ? (
-                <>
-                  <FieldBlock label="Ogłoszenie biura nieruchomości">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1 space-y-3 text-[14px] text-white/85">
-                        {biuroOpiekun ? (
-                          <div className="break-words">
-                            Opiekun: <span className="text-white/95">{biuroOpiekun}</span>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {biuroLogoUrl ? (
-                        <div className="shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                          <img
-                            src={biuroLogoUrl}
-                            alt="Logo biura"
-                            className="h-16 w-auto max-w-[120px] object-contain"
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {telefon ? (
-                <>
-                  <FieldBlock label="Kontakt">
-                    <a
-                      href={`tel:${telefon.replace(/\s+/g, '')}`}
-                      className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
-                    >
-                      {telefon}
-                    </a>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {numerOferty ? (
-                <>
-                  <FieldBlock label="Numer oferty">
-                    <div className="text-white/90 text-[14px] break-words">{numerOferty}</div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {hasUzbrojenie ? (
-                <>
-                  <FieldBlock label="Uzbrojenie">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {prad ? <div>Prąd: <span className="text-white/95">{prad}</span></div> : null}
-                      {woda ? <div>Woda: <span className="text-white/95">{woda}</span></div> : null}
-                      {kan ? <div>Kanalizacja: <span className="text-white/95">{kan}</span></div> : null}
-                      {gaz ? <div>Gaz: <span className="text-white/95">{gaz}</span></div> : null}
-                      {sw ? <div>Światłowód: <span className="text-white/95">{sw}</span></div> : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {hasDocs ? (
-                <>
-                  <FieldBlock label="Dokumenty / plan">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {d.mpzp ? <div>Obowiązuje MPZP</div> : null}
-                      {d.wzWydane ? <div>Wydane warunki zabudowy</div> : null}
-                      {d.projektDomu ? <div>Działka posiada projekt domu</div> : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {(klasaZiemi || wymiary || ksiega) ? (
-                <>
-                  <FieldBlock label="Dodatkowe informacje">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {klasaZiemi ? <div>Klasa ziemi: <span className="text-white/95">{klasaZiemi}</span></div> : null}
-                      {wymiary ? <div>Wymiary: <span className="text-white/95">{wymiary}</span></div> : null}
-                      {ksiega ? <div>Księga wieczysta: <span className="text-white/95">{ksiega}</span></div> : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {opis ? (
-                <>
-                  <div className="py-5 lg:hidden">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Opis</div>
-                    <div
-                      className="td-opis mt-4 text-[15px] leading-relaxed text-white/85"
-                      dangerouslySetInnerHTML={{ __html: opis }}
-                    />
-                  </div>
-                  <Hr className="lg:hidden" />
-                </>
-              ) : null}
-
-              {(loc || showMap || isApproxLocation) ? (
-                <div className="py-5">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Lokalizacja</div>
-
-                  {loc ? (
-                    <div className="mt-2 min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
-                      {loc}
-                    </div>
-                  ) : null}
-
-                  {isApproxLocation ? (
-                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-white/45">
-                     Lokalizacja przybliżona
-                   </div>
-                  ) : null}
-
-                  {d.mapsUrl && !isApproxLocation ? (
-                    <a
-                      href={d.mapsUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-4 inline-flex text-[12px] tracking-[0.18em] uppercase text-white/70 hover:text-white transition underline decoration-white/20 underline-offset-8"
-                    >
-                      OTWÓRZ W MAPACH GOOGLE
-                    </a>
-                  ) : null}
-
-                  {showMap ? (
-  <div className="mt-4 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-    <div className="relative aspect-video">
-      <iframe
-        title="Mapa"
-        src={mapSrc!}
-        className="h-full w-full"
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
-
-      {isApproxLocation ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-44 w-44 rounded-full border-2 border-[#7aa333]/70 bg-[#7aa333]/20 shadow-[0_0_60px_rgba(122,163,51,0.28)]" />
-        </div>
-      ) : null}
-    </div>
-  </div>
-) : null}
-                </div>
-              ) : null}
-            </div>
-          </aside>
-        </div>
-      </div>
-
-      {open && hasPhotos ? (
-        <div className="fixed inset-0 z-[999] bg-black/90 backdrop-blur-sm" onClick={() => setOpen(false)}>
-          <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
-            <div className="relative w-full max-w-6xl" onClick={(e) => e.stopPropagation()}>
-              <div className="relative rounded-3xl bg-black/30 overflow-visible">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="absolute right-3 top-3 sm:right-4 sm:top-4 z-20 h-10 w-10 rounded-full border border-white/20 bg-black/55 text-white/90 hover:border-white/40 transition flex items-center justify-center"
-                  aria-label="Zamknij galerię"
-                >
-                  <span className="text-[20px] leading-none relative top-[-1px]">×</span>
-                </button>
-
-                <div className="overflow-hidden rounded-3xl">
-                  <div className="relative w-full" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-                    <SmartImg
-                      src={cover ?? photos[0]}
-                      alt={d.tytul}
-                      className="mx-auto w-full object-contain max-h-[82svh] sm:max-h-[78vh]"
-                      eager
-                    />
-
-                    {photos.length > 1 ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={prev}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-white border border-white/10"
-                          aria-label="Poprzednie"
-                        >
-                          ‹
-                        </button>
-                        <button
-                          type="button"
-                          onClick={next}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-white border border-white/10"
-                          aria-label="Następne"
-                        >
-                          ›
-                        </button>
-
-                        <div className="absolute right-3 bottom-3 sm:right-4 sm:bottom-4 rounded-full bg-black/45 px-3 py-1 text-xs text-white/80 border border-white/10">
-                          {idx + 1}/{photos.length}
-                        </div>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-
-              {photos.length > 1 ? (
-                <div className="mt-4 flex flex-nowrap gap-2 overflow-x-auto overscroll-x-contain pb-1 td-thumbstrip">
-                  {photos.map((u, i) => (
-                    <button
-                      key={u + i}
-                      type="button"
-                      onClick={() => setIdx(i)}
-                      className={cx(
-                        'h-16 w-28 shrink-0 overflow-hidden rounded-2xl border transition',
-                        i === idx ? 'border-white/60' : 'border-white/10 opacity-85 hover:opacity-100'
-                      )}
-                      title={`Zdjęcie ${i + 1}`}
-                    >
-                      <SmartImg src={u} alt={`Zdjęcie ${i + 1}`} className="h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              ) : null}
+          <div className="mt-6">
+            <div className="mx-auto max-w-[92%] text-center text-[16px] font-medium leading-[1.35] text-white/92 md:text-[17px]">
+              {d.tytul}
             </div>
           </div>
+
+          <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <MetricBlock
+              label="Lokalizacja"
+              value={
+                <div className="break-words text-[14px] leading-[1.4] text-white/90">
+                  {loc}
+                </div>
+              }
+            />
+
+            <div className="h-14 w-px bg-white/10" />
+
+            <MetricBlock
+              label="Przeznaczenie"
+              value={
+                <div className="break-words text-[14px] leading-[1.4] text-white/90">
+                  {przezn}
+                </div>
+              }
+            />
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/8 pt-4">
+            <StatusPill effectiveStatus={effectiveStatus} />
+            {isFeaturedActive ? <FeaturedPill /> : null}
+
+            {effectiveStatus === 'AKTYWNE' ? (
+              isIndefinite ? (
+                <MetaPill text="Bezterminowo" subtle />
+              ) : (
+                <MetaPill
+                  text={`Widoczne do: ${formatDatePL(d.expiresAt)}${
+                    typeof daysLeft === 'number' && daysLeft >= 0 ? ` (${daysLeft} dni)` : ''
+                  }`}
+                  subtle
+                />
+              )
+            ) : (
+              <MetaPill
+                text={
+                  d.status === 'ZAKONCZONE'
+                    ? 'Ogłoszenie zostało zakończone'
+                    : 'Ogłoszenie wygasło'
+                }
+                danger
+              />
+            )}
+          </div>
         </div>
-      ) : null}
+      </Link>
 
-            {telefon && telefonHref ? (
-  <div className="fixed bottom-0 left-0 right-0 z-[90] bg-[#131313]/88 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 backdrop-blur-xl md:hidden">
-    <div className="mx-auto grid max-w-[420px] grid-cols-2 gap-2">
-      <a
-        href={`tel:${telefonHref}`}
-        className="flex h-12 items-center justify-center rounded-2xl border border-[#7aa333]/70 bg-[#0f0f0f]/92 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#D8D2DB] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
-      >
-        Zadzwoń
-      </a>
+      <div className="px-5 pb-5 md:px-6 md:pb-6">
+        <div className="rounded-[24px] border border-white/10 bg-black/20 p-4">
+          <div className="flex flex-wrap gap-3">
+            <ActionBtnAsLink
+              href={`/panel/ogloszenia/${d.id}/edytuj`}
+              label="Edytuj"
+              disabled={isPending}
+            />
 
-      {smsHref ? (
-        <a
-          href={smsHref}
-          className="flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-[#7aa333]/95 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#131313] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
-        >
-          Napisz
-        </a>
-      ) : null}
+            <ActionBtnAsLink
+              href={`/dzialka/${d.id}`}
+              label="Zobacz"
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+
+            <ActionBtn
+              label={
+                isPending
+                  ? 'Trwa...'
+                  : effectiveStatus === 'AKTYWNE'
+                  ? 'Przedłuż'
+                  : 'Aktywuj'
+              }
+              disabled={isPending}
+              onClick={() =>
+                runAction(
+                  () => przedluzOgloszenieAction(d.id),
+                  effectiveStatus === 'AKTYWNE'
+                    ? 'Nie udało się przedłużyć ogłoszenia.'
+                    : 'Nie udało się aktywować ogłoszenia.'
+                )
+              }
+            />
+
+            {effectiveStatus === 'AKTYWNE' ? (
+              <ActionBtn
+                label={isPending ? 'Trwa...' : 'Zakończ'}
+                disabled={isPending}
+                onClick={() => {
+                  const ok = window.confirm('Na pewno zakończyć to ogłoszenie?');
+                  if (!ok) return;
+
+                  runAction(
+                    () => zakonczOgloszenieAction(d.id),
+                    'Nie udało się zakończyć ogłoszenia.'
+                  );
+                }}
+              />
+            ) : null}
+
+            {isFeaturedActive ? (
+              <div className="inline-flex min-h-[40px] items-center rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-4 text-[12px] font-semibold text-[#9fd14b]">
+                Wyróżnione do: {formatDatePL(d.featuredUntil)}
+              </div>
+            ) : (
+              <ActionBtn
+                label={isPending ? 'Trwa...' : 'Wyróżnij'}
+                disabled={isPending}
+                accent
+                onClick={() =>
+                  runAction(
+                    () => wyroznijOgloszenieAction(d.id),
+                    'Nie udało się wyróżnić ogłoszenia.'
+                  )
+                }
+              />
+            )}
+
+            <ActionBtn
+              label={isPending ? 'Trwa...' : 'Usuń'}
+              danger
+              disabled={isPending}
+              onClick={() => {
+                const ok = window.confirm('Na pewno usunąć to ogłoszenie?');
+                if (!ok) return;
+
+                runAction(
+                  () => usunOgloszenieAction(d.id),
+                  'Nie udało się usunąć ogłoszenia.'
+                );
+              }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-) : null}
+  );
+}
 
-      <style jsx global>{`
-        .td-opis {
-          overflow-wrap: anywhere;
-          word-break: break-word;
-          white-space: normal;
-        }
-        .td-opis b,
-        .td-opis strong {
-          color: rgba(243, 239, 245, 0.98);
-          font-weight: 700;
-        }
-        .td-opis p {
-          margin: 0 0 12px 0;
-        }
-        .td-opis ul {
-          margin: 10px 0 10px 18px;
-          padding: 0;
-          list-style: disc !important;
-          list-style-position: outside;
-        }
-        .td-opis ol {
-          margin: 10px 0 10px 18px;
-          padding: 0;
-          list-style: decimal !important;
-          list-style-position: outside;
-        }
-        .td-opis li {
-          margin: 6px 0;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-        }
-        .td-opis a {
-          color: rgba(243, 239, 245, 0.85);
-          text-decoration: underline;
-          text-underline-offset: 6px;
-          text-decoration-color: rgba(243, 239, 245, 0.25);
-          overflow-wrap: anywhere;
-          word-break: break-word;
-        }
-        .td-opis a:hover {
-          text-decoration-color: rgba(243, 239, 245, 0.45);
-        }
+function MetricBlock({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0 flex flex-col items-center text-center">
+      <div className="text-[11px] uppercase tracking-[0.16em] text-white/35">
+        {label}
+      </div>
+      <div className="mt-2 min-w-0">{value}</div>
+    </div>
+  );
+}
 
-        .td-thumbstrip {
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-        }
-        .td-thumbstrip::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
-    </main>
+function StatusPill({ effectiveStatus }: { effectiveStatus: DzialkaStatus }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.08em] ${
+        effectiveStatus === 'AKTYWNE'
+          ? 'border border-green-400/20 bg-green-500/15 text-green-300'
+          : 'border border-red-400/20 bg-red-500/15 text-red-300'
+      }`}
+    >
+      {effectiveStatus === 'AKTYWNE' ? 'AKTYWNE' : 'ZAKOŃCZONE'}
+    </span>
+  );
+}
+
+function FeaturedPill() {
+  return (
+    <span className="inline-flex items-center rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-3 py-1 text-[11px] font-semibold tracking-[0.08em] text-[#9fd14b]">
+      WYRÓŻNIONE
+    </span>
+  );
+}
+
+function MetaPill({
+  text,
+  subtle,
+  danger,
+}: {
+  text: string;
+  subtle?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] ${
+        danger
+          ? 'border border-red-400/15 bg-red-500/10 text-red-200'
+          : subtle
+          ? 'border border-white/10 bg-white/[0.03] text-white/60'
+          : 'border border-white/10 bg-white/[0.03] text-white/70'
+      }`}
+    >
+      {text}
+    </span>
+  );
+}
+
+function ActionBtnAsLink({
+  href,
+  label,
+  disabled,
+  target,
+  rel,
+}: {
+  href: string;
+  label: string;
+  disabled?: boolean;
+  target?: string;
+  rel?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      target={target}
+      rel={rel}
+      onClick={(e) => {
+        if (disabled) e.preventDefault();
+      }}
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-full border px-4 text-[12px] font-semibold transition ${
+        disabled
+          ? 'border-white/10 bg-white/[0.02] text-white/35'
+          : 'border-white/14 bg-white/[0.03] text-white/80 hover:border-white/28 hover:bg-white/[0.05] hover:text-white'
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function ActionBtn({
+  label,
+  onClick,
+  danger,
+  accent,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  accent?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (disabled) return;
+        onClick();
+      }}
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-full border px-4 text-[12px] font-semibold transition disabled:opacity-40 ${
+        danger
+          ? 'border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-400/35 hover:bg-red-500/15'
+          : accent
+          ? 'border-[#7aa333]/30 bg-[#7aa333]/12 text-[#9fd14b] hover:border-[#7aa333]/50 hover:bg-[#7aa333]/18'
+          : 'border-white/14 bg-white/[0.03] text-white/80 hover:border-white/28 hover:bg-white/[0.05] hover:text-white'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ListingAnalytics({
+  viewsCount,
+  detailViewsCount,
+  favoritesCount,
+  phoneClicksCount,
+  messageClicksCount,
+}: {
+  viewsCount: number;
+  detailViewsCount: number;
+  favoritesCount: number;
+  phoneClicksCount: number;
+  messageClicksCount: number;
+}) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+          Statystyki ogłoszenia
+        </div>
+        <div className="h-px flex-1 bg-white/8" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <AnalyticsTile label="Wyświetlenia" value={viewsCount} />
+        <AnalyticsTile label="Wejścia" value={detailViewsCount} />
+        <AnalyticsTile label="Ulubione" value={favoritesCount} accent />
+        <AnalyticsTile label="Telefony" value={phoneClicksCount} />
+        <AnalyticsTile label="Wiadomości" value={messageClicksCount} />
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsTile({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border px-3 py-3 text-center ${
+        accent
+          ? 'border-[#7aa333]/30 bg-[#7aa333]/12'
+          : 'border-white/8 bg-black/18'
+      }`}
+    >
+      <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">
+        {label}
+      </div>
+      <div
+        className={`mt-1 text-[21px] font-semibold leading-none ${
+          accent ? 'text-[#9fd14b]' : 'text-white'
+        }`}
+      >
+        {formatIntPL(value)}
+      </div>
+    </div>
+  );
+}
+
+function Carousel({
+  photos,
+  coverFallback,
+  title,
+  featured,
+}: {
+  photos: { url: string }[];
+  coverFallback: string | null;
+  title: string;
+  featured: boolean;
+}) {
+  const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
+  const has = list.length > 0;
+  const [i, setI] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  useEffect(() => {
+    setI(0);
+  }, [photos, coverFallback]);
+
+  const goPrev = () => {
+    if (list.length < 2) return;
+    setI((v) => (v - 1 + list.length) % list.length);
+  };
+
+  const goNext = () => {
+    if (list.length < 2) return;
+    setI((v) => (v + 1) % list.length);
+  };
+
+  const prev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    goPrev();
+  };
+
+  const next = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    goNext();
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (list.length < 2) return;
+    touchStartX.current = e.changedTouches[0]?.clientX ?? null;
+    touchEndX.current = null;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (list.length < 2) return;
+    touchEndX.current = e.changedTouches[0]?.clientX ?? null;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (list.length < 2) return;
+
+    const start = touchStartX.current;
+    const end = touchEndX.current ?? e.changedTouches[0]?.clientX ?? null;
+
+    if (start == null || end == null) return;
+
+    const diff = start - end;
+    const threshold = 40;
+
+    if (Math.abs(diff) < threshold) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (diff > 0) {
+      goNext();
+    } else {
+      goPrev();
+    }
+  };
+
+  return (
+    <div
+      className="relative aspect-[16/10] bg-white/5 md:aspect-video"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ touchAction: 'pan-y' }}
+    >
+      {has ? (
+        <>
+          <img src={list[i]} alt={title} className="h-full w-full object-cover" loading="lazy" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+
+          {featured ? (
+            <div className="absolute left-4 bottom-4 z-10">
+              <span className="inline-flex items-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
+                WYRÓŻNIONE
+              </span>
+            </div>
+          ) : null}
+
+          {list.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={prev}
+                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+              >
+                ‹
+              </button>
+
+              <button
+                type="button"
+                onClick={next}
+                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+              >
+                ›
+              </button>
+
+              <div className="absolute right-4 top-4 flex gap-2">
+                {list.slice(0, 6).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`h-2 w-2 rounded-full ${idx === i ? 'bg-white' : 'bg-white/40'}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      ) : (
+        <div className="flex h-full items-center justify-center text-white/50">
+          Brak zdjęć
+        </div>
+      )}
+    </div>
   );
 }
