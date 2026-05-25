@@ -593,61 +593,63 @@ export default function DzialkaPage() {
 
           <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
             <div className="p-6 md:p-7">
-              <div className="flex flex-col gap-4">
-  <div className="flex items-center justify-end">
-    <button
-      type="button"
-      disabled={favoriteLoading}
-      onClick={async () => {
-        if (!d?.id) return;
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  disabled={favoriteLoading}
+                  onClick={async () => {
+                    if (!d?.id) return;
 
-        try {
-          setFavoriteLoading(true);
+                    try {
+                      setFavoriteLoading(true);
 
-          const res = await fetch('/api/favorites', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              dzialkaId: d.id,
-            }),
-          });
+                      const res = await fetch('/api/favorites', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          dzialkaId: d.id,
+                        }),
+                      });
 
-          if (res.status === 401) {
-            window.location.href = '/auth';
-            return;
-          }
+                      if (res.status === 401) {
+                        window.location.href = '/auth';
+                        return;
+                      }
 
-          const data = await res.json();
+                      const data = await res.json();
 
-          if (typeof data?.isFavorite === 'boolean') {
-            setIsFavorite(data.isFavorite);
-          }
-        } finally {
-          setFavoriteLoading(false);
-        }
-      }}
-      className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
-        isFavorite
-          ? 'border-[#7aa333]/40 bg-[#7aa333]/10 text-[#b7db74]'
-          : 'border-white/10 bg-white/[0.04] text-white/70 hover:border-[#7aa333]/30 hover:text-[#b7db74]'
-      }`}
-    >
-      <span className="text-lg">
-        {isFavorite ? '♥' : '♡'}
-      </span>
+                      if (typeof data?.isFavorite === 'boolean') {
+                        setIsFavorite(data.isFavorite);
+                      }
+                    } finally {
+                      setFavoriteLoading(false);
+                    }
+                  }}
+                  aria-pressed={isFavorite}
+                  className="group inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:text-[#b7db74] disabled:cursor-wait disabled:opacity-60"
+                >
+                  <span
+                    className={`text-[23px] leading-none transition ${
+                      isFavorite
+                        ? 'text-[#7aa333]'
+                        : 'text-white/70 group-hover:text-[#7aa333]'
+                    }`}
+                  >
+                    {isFavorite ? '♥' : '♡'}
+                  </span>
 
-      {isFavorite
-        ? 'W ulubionych'
-        : 'Dodaj do ulubionych'}
-    </button>
-  </div>
+                  <span>
+                    {isFavorite ? 'W ulubionych' : 'Dodaj do ulubionych'}
+                  </span>
+                </button>
 
-  <div className="text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
-    {d.tytul}
-  </div>
-</div>
+                <div className="text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
+                  {d.tytul}
+                </div>
+              </div>
+
 
               <Hr className="mt-6" />
 
