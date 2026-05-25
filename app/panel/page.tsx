@@ -162,8 +162,13 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
   const now = Date.now();
 
   const items =
-    activeTab === "ogloszenia"
-      ? [...rawItems].sort((a, b) => {
+  activeTab === "ogloszenia"
+    ? [...rawItems]
+        .map((item) => ({
+          ...item,
+          favoritesCount: item._count?.favoritedBy ?? 0,
+        }))
+        .sort((a, b) => {
           const aFeatured =
             !!a.isFeatured &&
             !!a.featuredUntil &&
@@ -187,7 +192,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
           return bUpdated - aUpdated;
         })
-      : [];
+    : [];
 
   const activeCount =
     activeTab === "ogloszenia"
