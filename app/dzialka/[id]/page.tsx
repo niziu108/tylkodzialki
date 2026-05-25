@@ -637,7 +637,7 @@ export default function DzialkaPage() {
                         : 'text-white/70 group-hover:text-[#7aa333]'
                     }`}
                   >
-                    {isFavorite ? '♥' : '♡'}
+                    ♡
                   </span>
 
                   <span>
