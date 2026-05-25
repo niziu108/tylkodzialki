@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { wyroznijOgloszenieAction } from '../../panel/actions';
+import { wyroznijOgloszenieAction } from '../../app/panel/actions';
 
 export default function AutoFeaturedAfterPurchase({
   dzialkaId,
