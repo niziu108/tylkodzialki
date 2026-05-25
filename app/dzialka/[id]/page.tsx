@@ -8,7 +8,7 @@ import {
   zakonczOgloszenieAction,
   usunOgloszenieAction,
   wyroznijOgloszenieAction,
-} from '../../panel/actions';
+} from '../../app/panel/actions';
 
 type Photo = { url: string; publicId?: string; kolejnosc?: number };
 type DzialkaStatus = 'AKTYWNE' | 'ZAKONCZONE';
@@ -432,11 +432,11 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
         className="block"
       >
         <Carousel
-  photos={photos}
-  coverFallback={coverFallback}
-  title={d.tytul}
-  featured={isFeaturedActive}
-/>
+          photos={photos}
+          coverFallback={coverFallback}
+          title={d.tytul}
+          featured={isFeaturedActive}
+        />
 
         <div className="p-5 md:p-6">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
