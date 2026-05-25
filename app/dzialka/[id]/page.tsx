@@ -324,6 +324,13 @@ export default function DzialkaPage() {
   const telefon = (d?.telefon ?? '').trim() || null;
   const telefonHref = telefon ? telefon.replace(/[^\d+]/g, '') : null;
   const numerOferty = (d?.numerOferty ?? '').trim() || null;
+  const smsText = numerOferty
+  ? `Dzień dobry, piszę w sprawie oferty nr ${numerOferty} z TylkoDziałki.pl.`
+  : `Dzień dobry, piszę w sprawie działki z TylkoDziałki.pl.`;
+
+  const smsHref = telefonHref
+  ? `sms:${telefonHref}?&body=${encodeURIComponent(smsText)}`
+  : null;
   const klasaZiemi = (d?.klasaZiemi ?? '').trim() || null;
   const wymiary = (d?.wymiary ?? '').trim() || null;
   const ksiega = (d?.ksiegaWieczysta ?? '').trim() || null;
@@ -851,15 +858,26 @@ export default function DzialkaPage() {
       ) : null}
 
             {telefon && telefonHref ? (
-        <div className="fixed bottom-0 left-0 right-0 z-[90] bg-[#131313]/88 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 backdrop-blur-xl md:hidden">
-          <a
-            href={`tel:${telefonHref}`}
-            className="mx-auto flex h-12 max-w-[420px] items-center justify-center rounded-2xl border border-[#7aa333]/70 bg-[#0f0f0f]/92 text-[13px] font-semibold uppercase tracking-[0.22em] text-[#D8D2DB] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
-          >
-            Zadzwoń teraz
-          </a>
-        </div>
+  <div className="fixed bottom-0 left-0 right-0 z-[90] bg-[#131313]/88 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 backdrop-blur-xl md:hidden">
+    <div className="mx-auto grid max-w-[420px] grid-cols-2 gap-2">
+      <a
+        href={`tel:${telefonHref}`}
+        className="flex h-12 items-center justify-center rounded-2xl border border-[#7aa333]/70 bg-[#0f0f0f]/92 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#D8D2DB] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
+      >
+        Zadzwoń
+      </a>
+
+      {smsHref ? (
+        <a
+          href={smsHref}
+          className="flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-[#7aa333]/95 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#131313] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
+        >
+          Napisz
+        </a>
       ) : null}
+    </div>
+  </div>
+) : null}
 
       <style jsx global>{`
         .td-opis {
