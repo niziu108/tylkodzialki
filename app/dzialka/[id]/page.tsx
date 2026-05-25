@@ -218,6 +218,7 @@ export default function DzialkaPage() {
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -952,6 +953,42 @@ export default function DzialkaPage() {
     </div>
   </div>
 ) : null}
+
+
+      {favoriteModalOpen ? (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 px-4 backdrop-blur-md">
+          <div className="w-full max-w-[480px] rounded-[28px] border border-white/10 bg-[#151515] px-6 py-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/10 text-[28px] text-[#7aa333]">
+              ♡
+            </div>
+
+            <div className="text-[25px] font-semibold uppercase tracking-[0.13em] text-white">
+              Zapisz ofertę
+            </div>
+
+            <p className="mt-5 text-[14px] leading-relaxed text-white/58">
+              Zaloguj się lub zarejestruj, aby dodać ofertę do ulubionych.
+            </p>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setFavoriteModalOpen(false)}
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.035] px-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/75 transition hover:bg-white/[0.06] hover:text-white"
+              >
+                Przeglądaj dalej
+              </button>
+
+              <Link
+                href="/auth"
+                className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#7aa333] px-4 text-[12px] font-black uppercase tracking-[0.18em] text-[#101010] transition hover:brightness-110"
+              >
+                Przejdź do logowania
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <style jsx global>{`
         .td-opis {
