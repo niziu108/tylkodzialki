@@ -274,7 +274,7 @@ export default function KupList({
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-white/65">
-              Zaloguj się lub zarejestruj, aby dodać tę ofertę do ulubionych i wrócić do niej później.
+              Zaloguj się lub zarejestruj, aby dodać ofertę do ulubionych.
             </p>
 
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">

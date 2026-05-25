@@ -44,7 +44,7 @@ export default async function UlubionePage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            Tutaj znajdziesz oferty zapisane serduszkiem.
+            Tutaj znajdziesz polubione oferty.
           </p>
         </div>
 
