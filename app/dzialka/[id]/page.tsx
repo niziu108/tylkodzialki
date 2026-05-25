@@ -615,10 +615,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       });
 
                       if (res.status === 401) {
-                        window.location.href = '/auth';
-                        return;
-                      }
-
+                     setFavoriteModalOpen(true);
+                     return;
+                     }
                       const data = await res.json();
 
                       if (typeof data?.isFavorite === 'boolean') {
