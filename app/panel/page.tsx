@@ -112,6 +112,11 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             featuredUntil: true,
             viewsCount: true,
             detailViewsCount: true,
+            phoneClicksCount: true,
+            messageClicksCount: true,
+            _count: {
+              select: { favoritedBy: true },
+            },
             zdjecia: {
               select: { url: true, publicId: true, kolejnosc: true },
               orderBy: { kolejnosc: "asc" },
@@ -211,6 +216,21 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
       ? items.reduce((sum, item) => sum + (item.detailViewsCount ?? 0), 0)
       : 0;
 
+  const totalFavorites =
+    activeTab === "ogloszenia"
+      ? items.reduce((sum, item) => sum + ((item as any)._count?.favoritedBy ?? 0), 0)
+      : 0;
+
+  const totalPhoneClicks =
+    activeTab === "ogloszenia"
+      ? items.reduce((sum, item) => sum + ((item as any).phoneClicksCount ?? 0), 0)
+      : 0;
+
+  const totalMessageClicks =
+    activeTab === "ogloszenia"
+      ? items.reduce((sum, item) => sum + ((item as any).messageClicksCount ?? 0), 0)
+      : 0;
+
   return (
     <main className="min-h-screen bg-[#131313] text-[#d9d9d9]">
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-8">
@@ -254,7 +274,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
                     Ogłoszenia
@@ -288,6 +308,33 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                   </div>
                   <div className="mt-2 text-[28px] font-semibold leading-none text-white">
                     {totalDetailViews}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
+                    Ulubione
+                  </div>
+                  <div className="mt-2 text-[28px] font-semibold leading-none text-[#9fd14b]">
+                    {totalFavorites}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
+                    Telefony
+                  </div>
+                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
+                    {totalPhoneClicks}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
+                    Wiadomości
+                  </div>
+                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
+                    {totalMessageClicks}
                   </div>
                 </div>
               </div>

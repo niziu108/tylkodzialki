@@ -123,8 +123,10 @@ model Dzialka {
   status           DzialkaStatus     @default(AKTYWNE)
   featuredUntil    DateTime?
   isFeatured       Boolean           @default(false)
-  detailViewsCount Int               @default(0)
-  viewsCount       Int               @default(0)
+  detailViewsCount   Int               @default(0)
+  viewsCount         Int               @default(0)
+  phoneClicksCount   Int               @default(0)
+  messageClicksCount Int               @default(0)
 
   sourceType      DzialkaSourceType @default(MANUAL)
   crmImportedAt   DateTime?

@@ -38,6 +38,9 @@ export type Dzialka = {
   featuredUntil?: string | Date | null;
   viewsCount?: number | null;
   detailViewsCount?: number | null;
+  favoritesCount?: number | null;
+  phoneClicksCount?: number | null;
+  messageClicksCount?: number | null;
 };
 
 function formatPLN(value: number) {
@@ -342,6 +345,9 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
 
   const viewsCount = d.viewsCount ?? 0;
   const detailViewsCount = d.detailViewsCount ?? 0;
+  const favoritesCount = d.favoritesCount ?? 0;
+  const phoneClicksCount = d.phoneClicksCount ?? 0;
+  const messageClicksCount = d.messageClicksCount ?? 0;
 
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -431,6 +437,9 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           title={d.tytul}
           viewsCount={viewsCount}
           detailViewsCount={detailViewsCount}
+          favoritesCount={favoritesCount}
+          phoneClicksCount={phoneClicksCount}
+          messageClicksCount={messageClicksCount}
           featured={isFeaturedActive}
         />
 
@@ -745,14 +754,24 @@ function ActionBtn({
 function StatsBadge({
   label,
   value,
+  accent = false,
 }: {
   label: string;
   value: number;
+  accent?: boolean;
 }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/55 px-3 py-1.5 text-[11px] font-medium text-white/90 backdrop-blur-md">
-      <span className="text-white/65">{label}</span>
-      <span className="font-semibold text-white">{formatIntPL(value)}</span>
+    <div
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-medium backdrop-blur-md ${
+        accent
+          ? 'border border-[#7aa333]/40 bg-[#7aa333]/18 text-[#c7ec81]'
+          : 'border border-white/12 bg-black/55 text-white/90'
+      }`}
+    >
+      <span className={accent ? 'text-[#c7ec81]/80' : 'text-white/65'}>{label}</span>
+      <span className={accent ? 'font-semibold text-[#c7ec81]' : 'font-semibold text-white'}>
+        {formatIntPL(value)}
+      </span>
     </div>
   );
 }
@@ -763,6 +782,9 @@ function Carousel({
   title,
   viewsCount,
   detailViewsCount,
+  favoritesCount,
+  phoneClicksCount,
+  messageClicksCount,
   featured,
 }: {
   photos: { url: string }[];
@@ -770,6 +792,9 @@ function Carousel({
   title: string;
   viewsCount: number;
   detailViewsCount: number;
+  favoritesCount: number;
+  phoneClicksCount: number;
+  messageClicksCount: number;
   featured: boolean;
 }) {
   const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
@@ -851,9 +876,12 @@ function Carousel({
           <img src={list[i]} alt={title} className="h-full w-full object-cover" loading="lazy" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
 
-          <div className="absolute left-4 top-4 z-10 flex flex-wrap gap-2">
+          <div className="absolute left-4 top-4 z-10 flex max-w-[calc(100%-32px)] flex-wrap gap-2">
             <StatsBadge label="Wyświetlenia" value={viewsCount} />
             <StatsBadge label="Wejścia" value={detailViewsCount} />
+            <StatsBadge label="Ulubione" value={favoritesCount} accent />
+            <StatsBadge label="Telefony" value={phoneClicksCount} />
+            <StatsBadge label="Wiadomości" value={messageClicksCount} />
           </div>
 
           {featured ? (
