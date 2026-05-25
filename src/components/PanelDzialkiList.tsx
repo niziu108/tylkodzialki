@@ -820,11 +820,21 @@ function Carousel({
   coverFallback,
   title,
   featured,
+  viewsCount,
+  detailViewsCount,
+  favoritesCount,
+  phoneClicksCount,
+  messageClicksCount,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
   title: string;
   featured: boolean;
+  viewsCount?: number;
+  detailViewsCount?: number;
+  favoritesCount?: number;
+  phoneClicksCount?: number;
+  messageClicksCount?: number;
 }) {
   const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
   const has = list.length > 0;
