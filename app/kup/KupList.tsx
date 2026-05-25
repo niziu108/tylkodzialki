@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
@@ -102,6 +102,7 @@ export default function KupList({
   const { status } = useSession();
   const isLogged = status === 'authenticated';
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
 
   useEffect(() => {
     if (!isLogged || !items.length) {
@@ -121,9 +122,9 @@ export default function KupList({
       .catch(() => {});
   }, [isLogged, items]);
 
-  const toggleFavorite = async (dzialkaId: string) => {
+  const toggleFavorite = useCallback(async (dzialkaId: string) => {
     if (!isLogged) {
-      window.location.href = `/auth?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      setLoginPromptOpen(true);
       return;
     }
 
@@ -161,7 +162,7 @@ export default function KupList({
         return next;
       });
     }
-  };
+  }, [favoriteIds, isLogged]);
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | null = null;
@@ -257,7 +258,50 @@ export default function KupList({
     );
   }, [items, loading, error, favoriteIds, toggleFavorite]);
 
-  return <div>{content}</div>;
+  return (
+    <>
+      <div>{content}</div>
+
+      {loginPromptOpen ? (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/65 px-5 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-white/12 bg-[#131313] p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/12 text-[#7aa333]">
+              <HeartIcon />
+            </div>
+
+            <h2 className="mt-5 font-display text-[24px] uppercase tracking-[0.08em] text-white">
+              Zapisz ofertę
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-white/65">
+              Zaloguj się lub zarejestruj, aby dodać tę ofertę do ulubionych i wrócić do niej później.
+            </p>
+
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setLoginPromptOpen(false)}
+                className="h-12 rounded-2xl border border-white/14 bg-transparent px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-white/75 transition hover:border-white/30 hover:text-white"
+              >
+                Przeglądaj dalej
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const cb = encodeURIComponent(window.location.pathname + window.location.search);
+                  window.location.href = `/auth?callbackUrl=${cb}`;
+                }}
+                className="h-12 rounded-2xl border border-[#7aa333]/60 bg-[#7aa333] px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#131313] transition hover:bg-[#8dbb3a]"
+              >
+                Przejdź do logowania
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 function DzialkaCard({

@@ -132,11 +132,11 @@ export default function GlobalNav() {
             {isLogged ? (
               <button
                 onClick={() => go('/ulubione')}
-                className={`${navBtnBase} ${navBtnGreen} gap-2`}
+                className={`${navBtnBase} ${navBtnWhite} gap-2`}
                 aria-label="Ulubione działki"
               >
-                <HeartIcon className="h-4 w-4" />
-                ULUBIONE
+                <HeartIcon className="h-4 w-4 text-[#7aa333]" />
+                <span>ULUBIONE</span>
               </button>
             ) : null}
 
@@ -232,27 +232,27 @@ export default function GlobalNav() {
           type="button"
           aria-label="Ulubione działki"
           onClick={() => go('/ulubione')}
-          className="fixed right-16 top-3 z-[120] flex h-14 w-12 items-center justify-center text-[#7aa333] md:hidden"
+          className="fixed right-[62px] top-4 z-[120] flex h-10 w-10 items-center justify-center text-[#7aa333] md:hidden"
         >
-          <HeartIcon className="h-7 w-7" />
+          <HeartIcon className="h-5 w-5" />
         </button>
       ) : null}
 
       <motion.button
         aria-label={open ? 'Zamknij menu' : 'Otwórz menu'}
         onClick={() => setOpen((s) => !s)}
-        className="fixed right-4 top-3 z-[120] p-2 md:hidden"
+        className="fixed right-4 top-4 z-[120] flex h-10 w-10 items-center justify-center p-0 md:hidden"
         animate={{ rotate: open ? 180 : 0 }}
         transition={{ duration: 0.35 }}
         style={{ color: FG }}
       >
-        <div className="relative h-10 w-10">
+        <div className="relative h-9 w-9">
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
             initial={false}
             animate={{ opacity: open ? 0 : 1 }}
           >
-            <BurgerIcon className="h-9 w-9" />
+            <BurgerIcon className="h-7 w-7" />
           </motion.div>
 
           <motion.div
@@ -260,7 +260,7 @@ export default function GlobalNav() {
             initial={false}
             animate={{ opacity: open ? 1 : 0 }}
           >
-            <CrossIcon className="h-9 w-9" />
+            <CrossIcon className="h-7 w-7" />
           </motion.div>
         </div>
       </motion.button>
