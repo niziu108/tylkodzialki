@@ -26,6 +26,19 @@ function CrossIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function HeartIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+      <path
+        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function GlobalNav() {
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -116,6 +129,17 @@ export default function GlobalNav() {
           </button>
 
           <nav className="hidden items-center gap-10 md:flex">
+            {isLogged ? (
+              <button
+                onClick={() => go('/ulubione')}
+                className={`${navBtnBase} ${navBtnGreen} gap-2`}
+                aria-label="Ulubione działki"
+              >
+                <HeartIcon className="h-4 w-4" />
+                ULUBIONE
+              </button>
+            ) : null}
+
             <button
               onClick={() => go('/')}
               className={`${navBtnBase} ${navBtnWhite}`}
@@ -202,6 +226,17 @@ export default function GlobalNav() {
           </nav>
         </div>
       </header>
+
+      {isLogged ? (
+        <button
+          type="button"
+          aria-label="Ulubione działki"
+          onClick={() => go('/ulubione')}
+          className="fixed right-16 top-3 z-[120] flex h-14 w-12 items-center justify-center text-[#7aa333] md:hidden"
+        >
+          <HeartIcon className="h-7 w-7" />
+        </button>
+      ) : null}
 
       <motion.button
         aria-label={open ? 'Zamknij menu' : 'Otwórz menu'}

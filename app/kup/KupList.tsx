@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { Przeznaczenie } from '@prisma/client';
@@ -76,6 +77,19 @@ function SmartImg({
   );
 }
 
+function HeartIcon({ filled = false }: { filled?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill={filled ? 'currentColor' : 'none'} stroke="currentColor">
+      <path
+        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function KupList({
   items,
   loading,
@@ -85,6 +99,70 @@ export default function KupList({
   loading: boolean;
   error: string | null;
 }) {
+  const { status } = useSession();
+  const isLogged = status === 'authenticated';
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isLogged || !items.length) {
+      setFavoriteIds(new Set());
+      return;
+    }
+
+    const ids = items.map((d) => d.id).join(',');
+
+    fetch(`/api/favorites?ids=${encodeURIComponent(ids)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data?.favoriteIds)) {
+          setFavoriteIds(new Set(data.favoriteIds));
+        }
+      })
+      .catch(() => {});
+  }, [isLogged, items]);
+
+  const toggleFavorite = async (dzialkaId: string) => {
+    if (!isLogged) {
+      window.location.href = `/auth?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      return;
+    }
+
+    const wasFavorite = favoriteIds.has(dzialkaId);
+
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (wasFavorite) next.delete(dzialkaId);
+      else next.add(dzialkaId);
+      return next;
+    });
+
+    try {
+      const res = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dzialkaId }),
+      });
+
+      if (!res.ok) throw new Error('Nie udało się zapisać ulubionej oferty.');
+
+      const data = await res.json();
+
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (data?.isFavorite) next.add(dzialkaId);
+        else next.delete(dzialkaId);
+        return next;
+      });
+    } catch {
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (wasFavorite) next.add(dzialkaId);
+        else next.delete(dzialkaId);
+        return next;
+      });
+    }
+  };
+
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | null = null;
 
@@ -167,16 +245,32 @@ export default function KupList({
     return (
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {items.map((d, index) => (
-          <DzialkaCard key={d.id} d={d} eagerImage={index < 2} />
+          <DzialkaCard
+            key={d.id}
+            d={d}
+            eagerImage={index < 2}
+            isFavorite={favoriteIds.has(d.id)}
+            onToggleFavorite={toggleFavorite}
+          />
         ))}
       </div>
     );
-  }, [items, loading, error]);
+  }, [items, loading, error, favoriteIds, toggleFavorite]);
 
   return <div>{content}</div>;
 }
 
-function DzialkaCard({ d, eagerImage = false }: { d: Dzialka; eagerImage?: boolean }) {
+function DzialkaCard({
+  d,
+  eagerImage = false,
+  isFavorite,
+  onToggleFavorite,
+}: {
+  d: Dzialka;
+  eagerImage?: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: (dzialkaId: string) => void;
+}) {
   const photos = (d.zdjecia ?? [])
     .slice()
     .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
@@ -213,6 +307,8 @@ function DzialkaCard({ d, eagerImage = false }: { d: Dzialka; eagerImage?: boole
         title={d.tytul}
         featured={featured}
         eagerImage={eagerImage}
+        isFavorite={isFavorite}
+        onToggleFavorite={() => onToggleFavorite(d.id)}
       />
 
       <div className="p-5 md:p-6">
@@ -316,12 +412,16 @@ function Carousel({
   title,
   featured,
   eagerImage = false,
+  isFavorite,
+  onToggleFavorite,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
   title: string;
   featured: boolean;
   eagerImage?: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }) {
   const list = useMemo(
     () => (photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : []),
@@ -412,6 +512,23 @@ function Carousel({
 
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
 
+          <button
+            type="button"
+            aria-label={isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+            className={`absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
+              isFavorite
+                ? 'border-[#7aa333]/70 bg-[#7aa333] text-[#131313]'
+                : 'border-white/20 bg-black/45 text-white hover:border-[#7aa333]/70 hover:text-[#7aa333]'
+            }`}
+          >
+            <HeartIcon filled={isFavorite} />
+          </button>
+
           {featured ? (
             <div className="absolute left-4 top-4 z-10">
               <span className="inline-flex items-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
@@ -437,7 +554,7 @@ function Carousel({
                 ›
               </button>
 
-              <div className="absolute right-4 top-4 flex gap-2">
+              <div className="absolute right-4 top-16 z-10 flex gap-2">
                 {list.slice(0, 6).map((_, idx) => (
                   <span
                     key={idx}
