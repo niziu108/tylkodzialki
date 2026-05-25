@@ -8,7 +8,7 @@ import {
   zakonczOgloszenieAction,
   usunOgloszenieAction,
   wyroznijOgloszenieAction,
-} from '../../app/panel/actions';
+} from '@/app/panel/actions';
 
 type Photo = { url: string; publicId?: string; kolejnosc?: number };
 type DzialkaStatus = 'AKTYWNE' | 'ZAKONCZONE';
