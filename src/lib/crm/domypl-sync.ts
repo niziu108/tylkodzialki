@@ -1219,7 +1219,7 @@ async function processOffer(
   paymentsEnabled: boolean
 ): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS"> {
   const now = new Date();
-  const expiresAt = addDays(now, 30);
+  const expiresAt = null;
 
   const offerForDb = await enrichOfferWithGeocoding(offer);
 
