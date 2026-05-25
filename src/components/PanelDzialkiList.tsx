@@ -435,15 +435,59 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           photos={photos}
           coverFallback={coverFallback}
           title={d.tytul}
-          viewsCount={viewsCount}
-          detailViewsCount={detailViewsCount}
-          favoritesCount={favoritesCount}
-          phoneClicksCount={phoneClicksCount}
-          messageClicksCount={messageClicksCount}
           featured={isFeaturedActive}
         />
 
-        <div className="p-5 md:p-6">
+        
+        <div className="border-b border-white/10 bg-[#111111] px-5 py-4 sm:px-7">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                Wyświetlenia
+              </div>
+              <div className="mt-1 text-xl font-black text-white">
+                {formatIntPL(viewsCount)}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                Wejścia
+              </div>
+              <div className="mt-1 text-xl font-black text-white">
+                {formatIntPL(detailViewsCount)}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#7aa333]/35 bg-[#7aa333]/10 px-3 py-3 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b7db74]/80">
+                Ulubione
+              </div>
+              <div className="mt-1 text-xl font-black text-[#b7db74]">
+                {formatIntPL(favoritesCount)}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                Telefony
+              </div>
+              <div className="mt-1 text-xl font-black text-white">
+                {formatIntPL(phoneClicksCount)}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                Wiadomości
+              </div>
+              <div className="mt-1 text-xl font-black text-white">
+                {formatIntPL(messageClicksCount)}
+              </div>
+            </div>
+          </div>
+        </div>
+<div className="p-5 md:p-6">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
             <MetricBlock
               label="Cena"
@@ -820,21 +864,11 @@ function Carousel({
   coverFallback,
   title,
   featured,
-  viewsCount,
-  detailViewsCount,
-  favoritesCount,
-  phoneClicksCount,
-  messageClicksCount,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
   title: string;
   featured: boolean;
-  viewsCount?: number;
-  detailViewsCount?: number;
-  favoritesCount?: number;
-  phoneClicksCount?: number;
-  messageClicksCount?: number;
 }) {
   const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
   const has = list.length > 0;
