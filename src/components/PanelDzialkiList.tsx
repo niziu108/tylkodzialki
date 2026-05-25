@@ -439,51 +439,22 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
         />
 
         
-        <div className="border-b border-white/10 bg-[#111111] px-5 py-4 sm:px-7">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                Wyświetlenia
-              </div>
-              <div className="mt-1 text-xl font-black text-white">
-                {formatIntPL(viewsCount)}
-              </div>
+        <div className="border-b border-white/10 bg-[#111111] px-5 py-3 sm:px-7">
+          <div className="grid gap-y-1.5 text-[13px] leading-relaxed text-white/62 sm:grid-cols-2 sm:gap-x-10">
+            <div>
+              Wyświetlenia: <span className="font-semibold text-white">{formatIntPL(viewsCount)}</span>
             </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                Wejścia
-              </div>
-              <div className="mt-1 text-xl font-black text-white">
-                {formatIntPL(detailViewsCount)}
-              </div>
+            <div>
+              Wejścia: <span className="font-semibold text-white">{formatIntPL(detailViewsCount)}</span>
             </div>
-
-            <div className="rounded-2xl border border-[#7aa333]/35 bg-[#7aa333]/10 px-3 py-3 text-center">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b7db74]/80">
-                Ulubione
-              </div>
-              <div className="mt-1 text-xl font-black text-[#b7db74]">
-                {formatIntPL(favoritesCount)}
-              </div>
+            <div>
+              Ulubione: <span className="font-semibold text-[#b7db74]">{formatIntPL(favoritesCount)}</span>
             </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                Telefony
-              </div>
-              <div className="mt-1 text-xl font-black text-white">
-                {formatIntPL(phoneClicksCount)}
-              </div>
+            <div>
+              Telefony: <span className="font-semibold text-white">{formatIntPL(phoneClicksCount)}</span>
             </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                Wiadomości
-              </div>
-              <div className="mt-1 text-xl font-black text-white">
-                {formatIntPL(messageClicksCount)}
-              </div>
+            <div className="sm:col-span-2">
+              Wiadomości: <span className="font-semibold text-white">{formatIntPL(messageClicksCount)}</span>
             </div>
           </div>
         </div>
