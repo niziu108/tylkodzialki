@@ -155,6 +155,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             id: true,
             status: true,
             expiresAt: true,
+            sourceType: true,
             telefon: true,
             createdAt: true,
           },
@@ -180,9 +181,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const usersWithStats = users
     .map((user) => {
       const activeListings = user.dzialki.filter((d) => {
-        const isActiveStatus = d.status === "AKTYWNE";
-        const isNotExpired = !d.expiresAt || d.expiresAt > now;
-        return isActiveStatus && isNotExpired;
+        if (d.status !== "AKTYWNE") return false;
+
+        // Oferty z CRM nie powinny wygasać po expiresAt.
+        // Ich aktywność wynika z statusu i synchronizacji CRM.
+        if (d.sourceType === "CRM") return true;
+
+        // expiresAt zostaje tylko dla ofert ręcznych / płatnych.
+        return !d.expiresAt || d.expiresAt > now;
       }).length;
 
       const phoneFromListings =
