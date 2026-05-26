@@ -15,13 +15,7 @@ export default function Footer() {
             {/* LOGO + OPIS */}
             <div className="space-y-6">
               <Link href="/" className="inline-flex items-center">
-                <Image
-                  src="/logo1.png"
-                  alt="TylkoDziałki"
-                  width={180}
-                  height={46}
-                  className="object-contain"
-                />
+                <Image src="/logo1.png" alt="TylkoDziałki" width={180} height={46} className="object-contain" />
               </Link>
 
               <p className="max-w-sm text-[15px] leading-7 text-white/65">
@@ -38,20 +32,14 @@ export default function Footer() {
               <div className="space-y-5 text-[15px]">
                 <div>
                   <p className="mb-1 text-sm text-white/40">Obsługa klienta</p>
-                  <a
-                    href="mailto:kontakt@tylkodzialki.pl"
-                    className="text-[#7aa333] transition hover:opacity-80"
-                  >
+                  <a href="mailto:kontakt@tylkodzialki.pl" className="text-[#7aa333] transition hover:opacity-80">
                     kontakt@tylkodzialki.pl
                   </a>
                 </div>
 
                 <div>
                   <p className="mb-1 text-sm text-white/40">Dla partnerów biznesowych</p>
-                  <a
-                    href="mailto:biuro@tylkodzialki.pl"
-                    className="text-[#7aa333] transition hover:opacity-80"
-                  >
+                  <a href="mailto:biuro@tylkodzialki.pl" className="text-[#7aa333] transition hover:opacity-80">
                     biuro@tylkodzialki.pl
                   </a>
                 </div>
@@ -65,21 +53,11 @@ export default function Footer() {
               </h3>
 
               <div className="flex flex-col gap-4 text-[15px] text-white/70">
-                <a
-                  href="https://www.instagram.com/tylkodzialki.pl/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-fit items-center gap-3 transition hover:text-white"
-                >
+                <a href="https://www.instagram.com/tylkodzialki.pl/" target="_blank" rel="noopener noreferrer" className="flex w-fit items-center gap-3 transition hover:text-white">
                   Instagram
                 </a>
 
-                <a
-                  href="https://www.facebook.com/profile.php?id=61573292127976"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-fit items-center gap-3 transition hover:text-white"
-                >
+                <a href="https://www.facebook.com/profile.php?id=61573292127976" target="_blank" rel="noopener noreferrer" className="flex w-fit items-center gap-3 transition hover:text-white">
                   Facebook
                 </a>
               </div>
@@ -87,7 +65,20 @@ export default function Footer() {
           </div>
 
           {/* DOLNY RZĄD */}
-          <div className="grid gap-12 pt-16 md:grid-cols-2">
+          <div className="grid gap-12 pt-16 md:grid-cols-3">
+
+            {/* OFERTY */}
+            <div className="space-y-6">
+              <h3 className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#7aa333]">
+                Oferty
+              </h3>
+
+              <nav className="flex flex-col gap-4 text-[15px] text-white/70">
+                <Link href="/kup" className="transition hover:text-white">
+                  Szukaj działki
+                </Link>
+              </nav>
+            </div>
 
             {/* KONTO */}
             <div className="space-y-6">
