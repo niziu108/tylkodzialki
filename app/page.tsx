@@ -275,6 +275,7 @@ function AboutSection() {
                   <p className="mt-4 max-w-2xl text-sm leading-7 text-white/62 md:text-base">
                     Zapewniamy obsługę większej liczby ofert, automatyzację
                     publikacji i kompatybilność z systemami CRM.
+                    Chcesz dodać swój import ? Napisz do Nas: biuro@tylkodzialki.pl
                   </p>
                 </div>
 
