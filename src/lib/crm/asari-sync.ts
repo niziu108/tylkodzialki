@@ -189,12 +189,14 @@ function getTextByName(
   return toTextValue(getParamByIds(params, fallbackIds));
 }
 
-
 type DownloadedAsariFeed = {
   remoteFileName: string;
   tempDir: string;
   offerXmlFiles: string[];
   localFileByBasename: Map<string, string>;
+  imageRemotePathByBasename: Map<string, string>;
+  downloadedPhotoByBasename: Map<string, string>;
+  photoFtpClient?: ftp.Client | null;
   definitions: AsariDefinitions;
   cfg: {
     fileName: string | null;
@@ -691,6 +693,8 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-asari-"));
   const localFileByBasename = new Map<string, string>();
+  const imageRemotePathByBasename = new Map<string, string>();
+  const downloadedPhotoByBasename = new Map<string, string>();
   let definitions = emptyDefinitions();
 
   try {
@@ -806,32 +810,30 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
     }
 
     for (const file of imageFiles) {
-      const localPath = path.join(tempDir, file.remotePath);
-      await downloadFile(client, file.remotePath, localPath);
-      localFileByBasename.set(safeBasename(file.name), localPath);
-    }
-
-    console.log("[ASARI DEBUG] Pobrane pliki ofert XML:", offerXmlFiles.map((file) => path.basename(file)));
-    console.log("[ASARI DEBUG] Pobrane zdjęcia:", imageFiles.length);
-
-    return {
-      remoteFileName: cfg.fileName ?? "ASARI_MULTIPLE_FILES",
-      tempDir,
-      offerXmlFiles,
-      localFileByBasename,
-      definitions,
-      cfg,
-      cleanup: async () => {
-        await fsp.rm(tempDir, { recursive: true, force: true });
-      },
-    };
-  } catch (error) {
-    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    throw error;
-  } finally {
-    client.close();
-  }
+  imageRemotePathByBasename.set(safeBasename(file.name), file.remotePath);
 }
+
+console.log("[ASARI DEBUG] Pobrane pliki ofert XML:", offerXmlFiles.map((file) => path.basename(file)));
+console.log("[ASARI DEBUG] Zdjęcia dostępne na FTP:", imageFiles.length);
+console.log("[ASARI DEBUG] Zdjęcia nie są pobierane hurtowo — będą pobierane tylko dla importowanych ofert.");
+
+    const feed: DownloadedAsariFeed = {
+  remoteFileName: cfg.fileName ?? "ASARI_MULTIPLE_FILES",
+  tempDir,
+  offerXmlFiles,
+  localFileByBasename,
+  imageRemotePathByBasename,
+  downloadedPhotoByBasename,
+  photoFtpClient: null,
+  definitions,
+  cfg,
+  cleanup: async () => {
+    feed.photoFtpClient?.close();
+    await fsp.rm(tempDir, { recursive: true, force: true });
+  },
+};
+
+return feed;
 
 function parseOfferXmlFile(xml: string, agencyName: string | null, definitions: AsariDefinitions) {
   const parser = new XMLParser({
@@ -877,20 +879,71 @@ async function removeExistingR2Photos(dzialkaId: string) {
   }
 }
 
+async function getAsariPhotoLocalPath(
+  integration: IntegrationForSync,
+  downloaded: DownloadedAsariFeed,
+  originalName: string
+) {
+  const basename = safeBasename(originalName);
+
+  const alreadyDownloaded = downloaded.downloadedPhotoByBasename.get(basename);
+  if (alreadyDownloaded) return alreadyDownloaded;
+
+  const remotePath = downloaded.imageRemotePathByBasename.get(basename);
+
+  if (!remotePath) {
+    console.log("[ASARI DEBUG] Brak pliku zdjęcia na FTP:", originalName);
+    return null;
+  }
+
+  if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
+    throw new Error("Integracja ASARI nie ma uzupełnionych danych FTP do pobrania zdjęć.");
+  }
+
+  if (!downloaded.photoFtpClient || downloaded.photoFtpClient.closed) {
+    const client = new ftp.Client(30000);
+    client.ftp.verbose = false;
+
+    await client.access({
+      host: integration.ftpHost,
+      port: integration.ftpPort ?? 21,
+      user: integration.ftpUsername,
+      password: integration.ftpPassword,
+      secure: false,
+    });
+
+    const remoteDir = integration.ftpRemotePath?.trim() || "/";
+    await client.cd(remoteDir);
+
+    downloaded.photoFtpClient = client;
+  }
+
+  const localPath = path.join(downloaded.tempDir, "photos", remotePath);
+
+  console.log("[ASARI DEBUG] Pobieram zdjęcie na żądanie:", remotePath);
+
+  await downloadFile(downloaded.photoFtpClient, remotePath, localPath);
+
+  downloaded.downloadedPhotoByBasename.set(basename, localPath);
+  downloaded.localFileByBasename.set(basename, localPath);
+
+  return localPath;
+}
+
 async function uploadOfferPhotosToR2(
-  integrationId: string,
+  integration: IntegrationForSync,
+  downloaded: DownloadedAsariFeed,
   externalId: string,
-  photoFileNames: string[],
-  localFileByBasename: Map<string, string>
+  photoFileNames: string[]
 ) {
   const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> = [];
 
   for (let index = 0; index < photoFileNames.length; index += 1) {
     const originalName = photoFileNames[index];
-    const localPath = localFileByBasename.get(safeBasename(originalName));
+
+    const localPath = await getAsariPhotoLocalPath(integration, downloaded, originalName);
 
     if (!localPath) {
-      console.log("[ASARI DEBUG] Brak pliku zdjęcia:", originalName);
       continue;
     }
 
@@ -898,7 +951,7 @@ async function uploadOfferPhotosToR2(
 
     const upload = await uploadBufferToR2({
       buffer,
-      originalFileName: `${integrationId}-${externalId}-${originalName}`,
+      originalFileName: `${integration.id}-${externalId}-${originalName}`,
       mimeType: getMimeTypeFromFileName(originalName),
     });
 
@@ -1009,12 +1062,12 @@ async function processOffer(
       return "SKIP_NO_CREDITS";
     }
 
-    const uploadedPhotos = await uploadOfferPhotosToR2(
-      integration.id,
-      offer.externalId,
-      offer.photoFileNames,
-      downloaded.localFileByBasename
-    );
+   const uploadedPhotos = await uploadOfferPhotosToR2(
+  integration,
+  downloaded,
+  offer.externalId,
+  offer.photoFileNames
+);
 
     await prisma.$transaction(async (tx) => {
       const dzialka = await tx.dzialka.create({
@@ -1114,11 +1167,11 @@ async function processOffer(
   await removeExistingR2Photos(existingLink.dzialkaId);
 
   const uploadedPhotos = await uploadOfferPhotosToR2(
-    integration.id,
-    offer.externalId,
-    offer.photoFileNames,
-    downloaded.localFileByBasename
-  );
+  integration,
+  downloaded,
+  offer.externalId,
+  offer.photoFileNames
+);
 
   await prisma.$transaction(async (tx) => {
     await tx.zdjecie.deleteMany({
