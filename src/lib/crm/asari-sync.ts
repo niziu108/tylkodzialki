@@ -809,31 +809,38 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       offerXmlFiles.push(localPath);
     }
 
-    for (const file of imageFiles) {
-  imageRemotePathByBasename.set(safeBasename(file.name), file.remotePath);
-}
+        for (const file of imageFiles) {
+      imageRemotePathByBasename.set(safeBasename(file.name), file.remotePath);
+    }
 
-console.log("[ASARI DEBUG] Pobrane pliki ofert XML:", offerXmlFiles.map((file) => path.basename(file)));
-console.log("[ASARI DEBUG] Zdjęcia dostępne na FTP:", imageFiles.length);
-console.log("[ASARI DEBUG] Zdjęcia nie są pobierane hurtowo — będą pobierane tylko dla importowanych ofert.");
+    console.log("[ASARI DEBUG] Pobrane pliki ofert XML:", offerXmlFiles.map((file) => path.basename(file)));
+    console.log("[ASARI DEBUG] Zdjęcia dostępne na FTP:", imageFiles.length);
+    console.log("[ASARI DEBUG] Zdjęcia nie są pobierane hurtowo — będą pobierane tylko dla importowanych ofert.");
 
     const feed: DownloadedAsariFeed = {
-  remoteFileName: cfg.fileName ?? "ASARI_MULTIPLE_FILES",
-  tempDir,
-  offerXmlFiles,
-  localFileByBasename,
-  imageRemotePathByBasename,
-  downloadedPhotoByBasename,
-  photoFtpClient: null,
-  definitions,
-  cfg,
-  cleanup: async () => {
-    feed.photoFtpClient?.close();
-    await fsp.rm(tempDir, { recursive: true, force: true });
-  },
-};
+      remoteFileName: cfg.fileName ?? "ASARI_MULTIPLE_FILES",
+      tempDir,
+      offerXmlFiles,
+      localFileByBasename,
+      imageRemotePathByBasename,
+      downloadedPhotoByBasename,
+      photoFtpClient: null,
+      definitions,
+      cfg,
+      cleanup: async () => {
+        feed.photoFtpClient?.close();
+        await fsp.rm(tempDir, { recursive: true, force: true });
+      },
+    };
 
-return feed;
+    return feed;
+  } catch (error) {
+    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    throw error;
+  } finally {
+    client.close();
+  }
+}
 
 function parseOfferXmlFile(xml: string, agencyName: string | null, definitions: AsariDefinitions) {
   const parser = new XMLParser({
@@ -1062,7 +1069,7 @@ async function processOffer(
       return "SKIP_NO_CREDITS";
     }
 
-   const uploadedPhotos = await uploadOfferPhotosToR2(
+const uploadedPhotos = await uploadOfferPhotosToR2(
   integration,
   downloaded,
   offer.externalId,
@@ -1166,7 +1173,7 @@ async function processOffer(
 
   await removeExistingR2Photos(existingLink.dzialkaId);
 
-  const uploadedPhotos = await uploadOfferPhotosToR2(
+const uploadedPhotos = await uploadOfferPhotosToR2(
   integration,
   downloaded,
   offer.externalId,
