@@ -425,6 +425,20 @@ function isLikelyLandOffer(params: Record<string, unknown>, definitions: AsariDe
   );
 }
 
+
+function isAsariLandExternalId(externalId: string): boolean {
+  const normalized = externalId.trim().toUpperCase();
+
+  // ASARI signatures use category codes like:
+  // OGS / OGW = działki/grunty
+  // OMS / OMW = mieszkania
+  // ODS / ODW / OHS / OHW = domy
+  // OLS / OLW = lokale
+  //
+  // TylkoDzialki.pl imports only land offers.
+  return /\/OG[A-Z0-9_-]*$/.test(normalized) || normalized.includes("/OG");
+}
+
 function parseAsariOffer(
   rawOffer: Record<string, unknown>,
   agencyName: string | null,
@@ -434,6 +448,11 @@ function parseAsariOffer(
 
   if (!externalId) {
     console.log("[ASARI DEBUG] Odrzucono ofertę: brak signature.");
+    return null;
+  }
+
+  if (!isAsariLandExternalId(externalId)) {
+    console.log("[ASARI DEBUG] Odrzucono:", externalId, "kod ASARI nie jest działką/gruntem.");
     return null;
   }
 
