@@ -189,6 +189,7 @@ function getTextByName(
   return toTextValue(getParamByIds(params, fallbackIds));
 }
 
+
 type DownloadedAsariFeed = {
   remoteFileName: string;
   tempDir: string;
@@ -196,7 +197,7 @@ type DownloadedAsariFeed = {
   localFileByBasename: Map<string, string>;
   imageRemotePathByBasename: Map<string, string>;
   downloadedPhotoByBasename: Map<string, string>;
-  photoFtpClient?: ftp.Client | null;
+  photoFtpClient: ftp.Client | null;
   definitions: AsariDefinitions;
   cfg: {
     fileName: string | null;
@@ -425,20 +426,6 @@ function isLikelyLandOffer(params: Record<string, unknown>, definitions: AsariDe
   );
 }
 
-
-function isAsariLandExternalId(externalId: string): boolean {
-  const normalized = externalId.trim().toUpperCase();
-
-  // ASARI signatures use category codes like:
-  // OGS / OGW = działki/grunty
-  // OMS / OMW = mieszkania
-  // ODS / ODW / OHS / OHW = domy
-  // OLS / OLW = lokale
-  //
-  // TylkoDzialki.pl imports only land offers.
-  return /\/OG[A-Z0-9_-]*$/.test(normalized) || normalized.includes("/OG");
-}
-
 function parseAsariOffer(
   rawOffer: Record<string, unknown>,
   agencyName: string | null,
@@ -451,7 +438,9 @@ function parseAsariOffer(
     return null;
   }
 
-  if (!isAsariLandExternalId(externalId)) {
+  const asariOfferCode = externalId.split("/").pop()?.toUpperCase() || "";
+
+  if (!asariOfferCode.startsWith("OG")) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "kod ASARI nie jest działką/gruntem.");
     return null;
   }
@@ -714,6 +703,7 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
   const localFileByBasename = new Map<string, string>();
   const imageRemotePathByBasename = new Map<string, string>();
   const downloadedPhotoByBasename = new Map<string, string>();
+  let photoFtpClient: ftp.Client | null = null;
   let definitions = emptyDefinitions();
 
   try {
@@ -808,16 +798,30 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       }
     }
 
-    const offerXmlCandidates =
-      cfg.listedOfferFiles.length > 0
-        ? xmlFiles.filter((item) => cfg.listedOfferFiles.map(safeBasename).includes(safeBasename(item.name)))
-        : xmlFiles.filter(
-            (item) =>
-              /_\d{3}\.xml$/i.test(item.name) &&
-              !/_cfg\.xml$/i.test(item.name) &&
-              !/^definictions\.xml$/i.test(item.name) &&
-              !/^definitions\.xml$/i.test(item.name)
-          );
+    const allOfferXmlCandidates = xmlFiles.filter(
+      (item) =>
+        /_\d{3}\.xml$/i.test(item.name) &&
+        !/_cfg\.xml$/i.test(item.name) &&
+        !/^definictions\.xml$/i.test(item.name) &&
+        !/^definitions\.xml$/i.test(item.name)
+    );
+
+    const listedOfferBasenames = new Set(cfg.listedOfferFiles.map(safeBasename));
+
+    let offerXmlCandidates =
+      listedOfferBasenames.size > 0
+        ? allOfferXmlCandidates.filter((item) => listedOfferBasenames.has(safeBasename(item.name)))
+        : allOfferXmlCandidates;
+
+    if (listedOfferBasenames.size > 0 && offerXmlCandidates.length < allOfferXmlCandidates.length) {
+      console.log("[ASARI DEBUG] CFG wskazuje tylko część plików XML. Używam wszystkich plików ofert z katalogu.", {
+        listedInCfg: [...listedOfferBasenames],
+        selectedFromCfg: offerXmlCandidates.map((item) => item.name),
+        allOfferXmlFiles: allOfferXmlCandidates.map((item) => item.name),
+      });
+
+      offerXmlCandidates = allOfferXmlCandidates;
+    }
 
     const offerXmlFiles: string[] = [];
 
@@ -828,7 +832,7 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       offerXmlFiles.push(localPath);
     }
 
-        for (const file of imageFiles) {
+    for (const file of imageFiles) {
       imageRemotePathByBasename.set(safeBasename(file.name), file.remotePath);
     }
 
@@ -843,7 +847,7 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       localFileByBasename,
       imageRemotePathByBasename,
       downloadedPhotoByBasename,
-      photoFtpClient: null,
+      photoFtpClient,
       definitions,
       cfg,
       cleanup: async () => {
@@ -926,7 +930,7 @@ async function getAsariPhotoLocalPath(
     throw new Error("Integracja ASARI nie ma uzupełnionych danych FTP do pobrania zdjęć.");
   }
 
-  if (!downloaded.photoFtpClient || downloaded.photoFtpClient.closed) {
+  if (!downloaded.photoFtpClient) {
     const client = new ftp.Client(30000);
     client.ftp.verbose = false;
 
@@ -1088,12 +1092,12 @@ async function processOffer(
       return "SKIP_NO_CREDITS";
     }
 
-const uploadedPhotos = await uploadOfferPhotosToR2(
-  integration,
-  downloaded,
-  offer.externalId,
-  offer.photoFileNames
-);
+    const uploadedPhotos = await uploadOfferPhotosToR2(
+      integration,
+      downloaded,
+      offer.externalId,
+      offer.photoFileNames
+    );
 
     await prisma.$transaction(async (tx) => {
       const dzialka = await tx.dzialka.create({
@@ -1192,12 +1196,12 @@ const uploadedPhotos = await uploadOfferPhotosToR2(
 
   await removeExistingR2Photos(existingLink.dzialkaId);
 
-const uploadedPhotos = await uploadOfferPhotosToR2(
-  integration,
-  downloaded,
-  offer.externalId,
-  offer.photoFileNames
-);
+  const uploadedPhotos = await uploadOfferPhotosToR2(
+      integration,
+      downloaded,
+      offer.externalId,
+      offer.photoFileNames
+    );
 
   await prisma.$transaction(async (tx) => {
     await tx.zdjecie.deleteMany({
