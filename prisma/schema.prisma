@@ -466,7 +466,7 @@ model CrmProcessedFile {
   id             String   @id @default(cuid())
   integrationId  String
   remoteFileName String
-  fileSize       Int?
+  fileSize       BigInt?
   fileModifiedAt DateTime?
   status         String   @default("SUCCESS")
   importedOffers Int      @default(0)
