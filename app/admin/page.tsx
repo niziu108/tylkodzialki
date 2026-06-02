@@ -7,7 +7,6 @@ import {
   savePricingAction,
   saveUserAgencyLogoAction,
   togglePaymentsAction,
-  toggleUserRoleAction,
 } from "./actions";
 import AdminMailComposer from "./AdminMailComposer";
 import DeleteUserForm from "./DeleteUserForm";
@@ -502,32 +501,30 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
         <div className="mb-8 rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
           <div className="max-h-[72vh] overflow-auto overscroll-contain rounded-3xl">
-            <table className="w-full min-w-[2140px] text-sm">
+            <table className="w-full min-w-[1980px] text-sm">
               <thead className="sticky top-0 z-20 bg-[#1b1b1b] shadow-[0_1px_0_rgba(255,255,255,0.08)]">
                 <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
                   <th className="px-4 py-4 font-medium">Email</th>
-                  <th className="px-4 py-4 font-medium">Imię</th>
                   <th className="px-4 py-4 font-medium">Telefon</th>
-                  <th className="px-4 py-4 font-medium">Rola</th>
                   <th className="px-4 py-4 font-medium">CRM</th>
                   <th className="px-4 py-4 font-medium">Wszystkie oferty</th>
                   <th className="px-4 py-4 font-medium">Aktywne</th>
+                  <th className="px-4 py-4 font-medium">Logo</th>
                   <th className="px-4 py-4 font-medium">Wyświetlenia</th>
                   <th className="px-4 py-4 font-medium">Wejścia</th>
                   <th className="px-4 py-4 font-medium">Telefony</th>
                   <th className="px-4 py-4 font-medium">SMS</th>
                   <th className="px-4 py-4 font-medium">Ulubione</th>
                   <th className="px-4 py-4 font-medium">Kredyty</th>
-                  <th className="px-4 py-4 font-medium">Data rejestracji</th>
-                  <th className="px-4 py-4 font-medium">Logo</th>
-                  <th className="px-4 py-4 font-medium text-right">Akcje</th>
+                  <th className="px-4 py-4 font-medium">Konfiguruj CRM</th>
+                  <th className="px-4 py-4 font-medium text-right">Usuń konto</th>
                 </tr>
               </thead>
 
               <tbody>
                 {usersWithStats.length === 0 ? (
                   <tr>
-                    <td colSpan={16} className="px-4 py-10 text-center text-sm text-[#9f9f9f]">
+                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-[#9f9f9f]">
                       Brak użytkowników pasujących do wyszukiwania.
                     </td>
                   </tr>
@@ -540,8 +537,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         </div>
                       </td>
 
-                      <td className="px-4 py-4 align-middle">{user.name || "—"}</td>
-
                       <td className="px-4 py-4 align-middle">
                         {user.phoneFromListings ? (
                           <a
@@ -553,18 +548,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         ) : (
                           <span className="text-[#8f8f8f]">—</span>
                         )}
-                      </td>
-
-                      <td className="px-4 py-4 align-middle">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                            user.role === "ADMIN"
-                              ? "bg-[#7aa333]/20 text-[#9fd14b]"
-                              : "bg-white/10 text-[#d9d9d9]"
-                          }`}
-                        >
-                          {user.role}
-                        </span>
                       </td>
 
                       <td className="px-4 py-4 align-middle">
@@ -599,36 +582,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         </span>
                       </td>
 
-                      <td className="px-4 py-4 align-middle font-semibold text-white">
-                        {user.totalViews}
-                      </td>
-
-                      <td className="px-4 py-4 align-middle font-semibold text-white">
-                        {user.totalDetailViews}
-                      </td>
-
-                      <td className="px-4 py-4 align-middle font-semibold text-[#9fd14b]">
-                        {user.totalPhoneClicks}
-                      </td>
-
-                      <td className="px-4 py-4 align-middle font-semibold text-[#9fd14b]">
-                        {user.totalMessageClicks}
-                      </td>
-
-                      <td className="px-4 py-4 align-middle font-semibold text-white">
-                        {user.totalFavorites}
-                      </td>
-
-                      <td className="px-4 py-4 align-middle">{user.listingCredits}</td>
-
-                      <td className="px-4 py-4 align-middle">
-                        {new Date(user.createdAt).toLocaleDateString("pl-PL")}
-                      </td>
-
                       <td className="px-4 py-4 align-middle">
                         <form
                           action={saveUserAgencyLogoAction}
-                          className="flex min-w-[390px] flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-3"
+                          className="flex min-w-[360px] flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-3"
                         >
                           <input type="hidden" name="userId" value={user.id} />
 
@@ -678,29 +635,40 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         ) : null}
                       </td>
 
-                      <td className="px-4 py-4 align-middle">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/admin/crm/${user.id}`}
-                            className="rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 py-2 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
-                          >
-                            Konfiguruj CRM
-                          </Link>
-
-                          <form action={toggleUserRoleAction}>
-                            <input type="hidden" name="userId" value={user.id} />
-                            <button
-                              type="submit"
-                              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10"
-                            >
-                              {user.role === "ADMIN" ? "Ustaw jako USER" : "Ustaw jako ADMIN"}
-                            </button>
-                          </form>
-
-                          <DeleteUserForm userId={user.id} userEmail={user.email} />
-                        </div>
+                      <td className="px-4 py-4 align-middle font-semibold text-white">
+                        {user.totalViews}
                       </td>
-                    </tr>
+
+                      <td className="px-4 py-4 align-middle font-semibold text-white">
+                        {user.totalDetailViews}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle font-semibold text-[#9fd14b]">
+                        {user.totalPhoneClicks}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle font-semibold text-[#9fd14b]">
+                        {user.totalMessageClicks}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle font-semibold text-white">
+                        {user.totalFavorites}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle">{user.listingCredits}</td>
+
+                      <td className="px-4 py-4 align-middle">
+                        <Link
+                          href={`/admin/crm/${user.id}`}
+                          className="rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 py-2 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                        >
+                          Konfiguruj CRM
+                        </Link>
+                      </td>
+
+                      <td className="px-4 py-4 align-middle text-right">
+                        <DeleteUserForm userId={user.id} userEmail={user.email} />
+                      </td>                    </tr>
                   ))
                 )}
               </tbody>
