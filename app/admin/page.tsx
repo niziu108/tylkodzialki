@@ -158,6 +158,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             sourceType: true,
             telefon: true,
             createdAt: true,
+            viewsCount: true,
+            detailViewsCount: true,
+            phoneClicksCount: true,
+            messageClicksCount: true,
+            _count: { select: { favoritedBy: true } },
           },
           orderBy: { createdAt: "desc" },
         },
@@ -194,10 +199,36 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       const phoneFromListings =
         user.dzialki.find((d) => d.telefon?.trim())?.telefon || null;
 
+      const totalViews = user.dzialki.reduce(
+        (sum, d) => sum + (d.viewsCount || 0),
+        0
+      );
+      const totalDetailViews = user.dzialki.reduce(
+        (sum, d) => sum + (d.detailViewsCount || 0),
+        0
+      );
+      const totalPhoneClicks = user.dzialki.reduce(
+        (sum, d) => sum + (d.phoneClicksCount || 0),
+        0
+      );
+      const totalMessageClicks = user.dzialki.reduce(
+        (sum, d) => sum + (d.messageClicksCount || 0),
+        0
+      );
+      const totalFavorites = user.dzialki.reduce(
+        (sum, d) => sum + (d._count?.favoritedBy || 0),
+        0
+      );
+
       return {
         ...user,
         activeListings,
         phoneFromListings,
+        totalViews,
+        totalDetailViews,
+        totalPhoneClicks,
+        totalMessageClicks,
+        totalFavorites,
         crmIntegration: user.crmIntegrations[0] ?? null,
       };
     })
@@ -471,7 +502,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
         <div className="mb-8 rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
           <div className="max-h-[72vh] overflow-auto overscroll-contain rounded-3xl">
-            <table className="w-full min-w-[1740px] text-sm">
+            <table className="w-full min-w-[2140px] text-sm">
               <thead className="sticky top-0 z-20 bg-[#1b1b1b] shadow-[0_1px_0_rgba(255,255,255,0.08)]">
                 <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
                   <th className="px-4 py-4 font-medium">Email</th>
@@ -481,6 +512,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <th className="px-4 py-4 font-medium">CRM</th>
                   <th className="px-4 py-4 font-medium">Wszystkie oferty</th>
                   <th className="px-4 py-4 font-medium">Aktywne</th>
+                  <th className="px-4 py-4 font-medium">Wyświetlenia</th>
+                  <th className="px-4 py-4 font-medium">Wejścia</th>
+                  <th className="px-4 py-4 font-medium">Telefony</th>
+                  <th className="px-4 py-4 font-medium">SMS</th>
+                  <th className="px-4 py-4 font-medium">Ulubione</th>
                   <th className="px-4 py-4 font-medium">Kredyty</th>
                   <th className="px-4 py-4 font-medium">Data rejestracji</th>
                   <th className="px-4 py-4 font-medium">Logo</th>
@@ -491,7 +527,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <tbody>
                 {usersWithStats.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-4 py-10 text-center text-sm text-[#9f9f9f]">
+                    <td colSpan={16} className="px-4 py-10 text-center text-sm text-[#9f9f9f]">
                       Brak użytkowników pasujących do wyszukiwania.
                     </td>
                   </tr>
@@ -561,6 +597,26 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         >
                           {user.activeListings}
                         </span>
+                      </td>
+
+                      <td className="px-4 py-4 align-middle font-semibold text-white">
+                        {user.totalViews}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle font-semibold text-white">
+                        {user.totalDetailViews}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle font-semibold text-[#9fd14b]">
+                        {user.totalPhoneClicks}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle font-semibold text-[#9fd14b]">
+                        {user.totalMessageClicks}
+                      </td>
+
+                      <td className="px-4 py-4 align-middle font-semibold text-white">
+                        {user.totalFavorites}
                       </td>
 
                       <td className="px-4 py-4 align-middle">{user.listingCredits}</td>
