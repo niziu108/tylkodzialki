@@ -364,6 +364,36 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const hasDocs = Boolean(d?.mpzp || d?.wzWydane || d?.projektDomu);
   const showMap = Boolean(mapSrc);
 
+
+  const trackContact = (type: 'phone' | 'message') => {
+    if (!id) return;
+
+    const url = `/api/dzialki/${id}/track-contact`;
+    const body = JSON.stringify({ type });
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        const blob = new Blob([body], { type: 'application/json' });
+        navigator.sendBeacon(url, blob);
+        return;
+      }
+
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  };
+
   const prev = () => {
     if (photos.length < 2) return;
     setIdx((p) => (p - 1 + photos.length) % photos.length);
@@ -732,6 +762,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   <FieldBlock label="Kontakt">
                     <a
                       href={`tel:${telefon.replace(/\s+/g, '')}`}
+                      onClick={() => trackContact('phone')}
                       className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
                     >
                       {telefon}
@@ -936,6 +967,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     <div className="mx-auto grid max-w-[420px] grid-cols-2 gap-2">
       <a
         href={`tel:${telefonHref}`}
+        onClick={() => trackContact('phone')}
         className="flex h-12 items-center justify-center rounded-2xl border border-[#7aa333]/70 bg-[#0f0f0f]/92 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#D8D2DB] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
       >
         Zadzwoń
@@ -944,6 +976,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       {smsHref ? (
         <a
           href={smsHref}
+          onClick={() => trackContact('message')}
           className="flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-[#7aa333]/95 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#131313] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
         >
           Napisz
