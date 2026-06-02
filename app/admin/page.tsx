@@ -660,7 +660,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <td className="px-4 py-4 align-middle">
                         <Link
                           href={`/admin/crm/${user.id}`}
-                          className="rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 py-2 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                          className="inline-flex h-11 min-w-[138px] items-center justify-center rounded-2xl border border-[#7aa333]/35 bg-[#7aa333]/10 px-4 text-xs font-semibold text-white shadow-[0_0_18px_rgba(122,163,51,0.08)] transition hover:border-[#9fd14b]/70 hover:bg-[#7aa333]/20 hover:text-[#f3ffd7]"
                         >
                           Konfiguruj CRM
                         </Link>
@@ -668,7 +668,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                       <td className="px-4 py-4 align-middle text-right">
                         <DeleteUserForm userId={user.id} userEmail={user.email} />
-                      </td>                    </tr>
+                      </td>
+                    </tr>
                   ))
                 )}
               </tbody>
