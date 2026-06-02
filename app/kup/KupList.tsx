@@ -6,6 +6,33 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { Przeznaczenie } from '@prisma/client';
 
+const trackedListViewIds = new Set<string>();
+
+function trackListView(dzialkaId: string) {
+  if (!dzialkaId || trackedListViewIds.has(dzialkaId)) return;
+
+  trackedListViewIds.add(dzialkaId);
+
+  const url = `/api/dzialki/${dzialkaId}/track-view`;
+
+  try {
+    if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+      const sent = navigator.sendBeacon(url, new Blob([], { type: 'application/json' }));
+      if (sent) return;
+    }
+
+    fetch(url, {
+      method: 'POST',
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    fetch(url, {
+      method: 'POST',
+      keepalive: true,
+    }).catch(() => {});
+  }
+}
+
 type Photo = {
   id?: string;
   url: string;
@@ -328,9 +355,40 @@ function DzialkaCard({
     : '—';
 
   const featured = isFeaturedActive(d);
+  const cardRef = useRef<HTMLAnchorElement | null>(null);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || trackedListViewIds.has(d.id)) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      const timeout = window.setTimeout(() => trackListView(d.id), 600);
+      return () => window.clearTimeout(timeout);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+
+        trackListView(d.id);
+        observer.disconnect();
+      },
+      {
+        root: null,
+        rootMargin: '120px 0px',
+        threshold: 0.35,
+      }
+    );
+
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, [d.id]);
 
   return (
     <Link
+      ref={cardRef}
       href={`/dzialka/${d.id}`}
       scroll={false}
       onClick={() => {
