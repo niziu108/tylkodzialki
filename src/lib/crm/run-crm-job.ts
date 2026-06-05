@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { syncCrmIntegrationNow } from "@/lib/crm/domypl-sync";
 import { syncAsariIntegrationNow } from "@/lib/crm/asari-sync";
+import { syncEstiCrmIntegrationNow } from "@/lib/crm/esticrm-sync";
 
 export async function runCrmImportJob(jobId: string) {
   const job = await prisma.crmImportJob.findUnique({
@@ -23,8 +24,14 @@ export async function runCrmImportJob(jobId: string) {
   });
 
   try {
-    const result =
-      job.integration.provider === "ASARI"
+    const isAsari = job.integration.provider === "ASARI";
+    const isEstiCrm =
+      job.integration.provider === "ESTI_CRM" ||
+      job.integration.feedFormat === "ESTICRM_XML";
+
+    const result = isEstiCrm
+      ? await syncEstiCrmIntegrationNow(job.integrationId)
+      : isAsari
         ? await syncAsariIntegrationNow(job.integrationId)
         : await syncCrmIntegrationNow(job.integrationId);
 
@@ -33,8 +40,9 @@ export async function runCrmImportJob(jobId: string) {
       data: {
         status: "SUCCESS",
         finishedAt: new Date(),
-        message:
-          job.integration.provider === "ASARI"
+        message: isEstiCrm
+          ? "Import EstiCRM zakończony poprawnie."
+          : isAsari
             ? "Import ASARI zakończony poprawnie."
             : "Import CRM zakończony poprawnie.",
         remoteFileName: result.remoteFileName ?? null,
@@ -49,13 +57,18 @@ export async function runCrmImportJob(jobId: string) {
 
     return result;
   } catch (error) {
+    const provider = job.integration.provider;
+    const isEstiCrm =
+      provider === "ESTI_CRM" || job.integration.feedFormat === "ESTICRM_XML";
+
     await prisma.crmImportJob.update({
       where: { id: jobId },
       data: {
         status: "ERROR",
         finishedAt: new Date(),
-        message:
-          job.integration.provider === "ASARI"
+        message: isEstiCrm
+          ? "Import EstiCRM zakończony błędem."
+          : provider === "ASARI"
             ? "Import ASARI zakończony błędem."
             : "Import CRM zakończony błędem.",
         errorMessage: error instanceof Error ? error.message : String(error),
