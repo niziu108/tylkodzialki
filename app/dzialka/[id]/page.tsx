@@ -1,1078 +1,177 @@
-'use client';
+import type { Metadata } from 'next';
+import DzialkaClient from './DzialkaClient';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+const SITE_URL = 'https://tylkodzialki.pl';
+const SITE_NAME = 'TylkoDziałki.pl';
 
-type Photo = { id?: string; url: string; publicId?: string; kolejnosc?: number };
-
-type Dzialka = {
-  id: string;
-  tytul: string;
-  opis?: string | null;
-  cenaPln: number;
-  powierzchniaM2: number;
-
-  telefon?: string | null;
-  email?: string | null;
-
-  locationLabel?: string | null;
-  locationMode?: 'EXACT' | 'APPROX' | string | null;
-  lat?: number | null;
-  lng?: number | null;
-  mapsUrl?: string | null;
-
-  przeznaczenia?: string[];
-
-  prad?: string | null;
-  woda?: string | null;
-  kanalizacja?: string | null;
-  gaz?: string | null;
-  swiatlowod?: string | null;
-
-  wzWydane?: boolean | null;
-  mpzp?: boolean | null;
-  projektDomu?: boolean | null;
-
-  klasaZiemi?: string | null;
-  wymiary?: string | null;
-  ksiegaWieczysta?: string | null;
-
-  sprzedajacyTyp?: 'PRYWATNIE' | 'BIURO' | string | null;
-  sprzedajacyImie?: string | null;
-  biuroNazwa?: string | null;
-  biuroOpiekun?: string | null;
-  biuroLogoUrl?: string | null;
-  numerOferty?: string | null;
-
-  zdjecia?: Photo[];
+type PageProps = {
+  params: Promise<{ id: string }>;
 };
 
-const BG = '#131313';
-const FG = '#F3EFF5';
+type Photo = {
+  url: string;
+  kolejnosc?: number | null;
+};
 
-function cx(...s: Array<string | false | null | undefined>) {
-  return s.filter(Boolean).join(' ');
+type DzialkaSeo = {
+  id: string;
+  tytul?: string | null;
+  opis?: string | null;
+  cenaPln?: number | null;
+  powierzchniaM2?: number | null;
+  locationLabel?: string | null;
+  przeznaczenia?: string[] | null;
+  zdjecia?: Photo[] | null;
+};
+
+function cleanText(value?: string | null) {
+  return (value ?? '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-function Hr({ className }: { className?: string }) {
-  return <div className={cx('border-b border-white/10', className)} />;
-}
-
-function formatPLN(value: number) {
+function formatArea(value?: number | null) {
+  if (!value) return null;
   return new Intl.NumberFormat('pl-PL', {
-    style: 'currency',
-    currency: 'PLN',
     maximumFractionDigits: 0,
   }).format(value);
 }
 
-function formatIntPL(value: number) {
-  return new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 }).format(value);
+function formatPrice(value?: number | null) {
+  if (!value) return null;
+  return new Intl.NumberFormat('pl-PL', {
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
-function labelPrzeznaczenie(p: string) {
+function labelPrzeznaczenie(value?: string | null) {
   const map: Record<string, string> = {
-    INWESTYCYJNA: 'Inwestycyjna',
-    BUDOWLANA: 'Budowlana',
-    ROLNA: 'Rolna',
-    LESNA: 'Leśna',
-    REKREACYJNA: 'Rekreacyjna',
-    SIEDLISKOWA: 'Siedliskowa',
+    INWESTYCYJNA: 'inwestycyjna',
+    BUDOWLANA: 'budowlana',
+    ROLNA: 'rolna',
+    LESNA: 'leśna',
+    REKREACYJNA: 'rekreacyjna',
+    SIEDLISKOWA: 'siedliskowa',
   };
 
-  return map[p] ?? p;
+  if (!value) return 'działka';
+  return map[value] ?? value.toLowerCase();
 }
 
-function labelPrad(v?: string | null) {
-  if (!v || v === 'BRAK_PRZYLACZA') return null;
-  const map: Record<string, string> = {
-    PRZYLACZE_NA_DZIALCE: 'Przyłącze na działce',
-    PRZYLACZE_W_DRODZE: 'Przyłącze w drodze',
-    WARUNKI_PRZYLACZENIA_WYDANE: 'Warunki przyłączenia wydane',
-    MOZLIWOSC_PRZYLACZENIA: 'Możliwość przyłączenia',
-  };
-  return map[v] ?? v;
+function getMainImage(dzialka: DzialkaSeo) {
+  const photos = (dzialka.zdjecia ?? [])
+    .slice()
+    .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0))
+    .map((p) => p.url)
+    .filter(Boolean);
+
+  return photos[0] || `${SITE_URL}/logo.png`;
 }
 
-function labelWoda(v?: string | null) {
-  if (!v || v === 'BRAK_PRZYLACZA') return null;
-  const map: Record<string, string> = {
-    WODOCIAG_NA_DZIALCE: 'Wodociąg na działce',
-    WODOCIAG_W_DRODZE: 'Wodociąg w drodze',
-    STUDNIA_GLEBINOWA: 'Studnia głębinowa',
-    MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
-  };
-  return map[v] ?? v;
-}
+async function getDzialka(id: string): Promise<DzialkaSeo | null> {
+  try {
+    const res = await fetch(`${SITE_URL}/api/dzialki/${id}`, {
+      next: { revalidate: 3600 },
+    });
 
-function labelKanalizacja(v?: string | null) {
-  if (!v || v === 'BRAK') return null;
-  const map: Record<string, string> = {
-    MIEJSKA_NA_DZIALCE: 'Miejska na działce',
-    MIEJSKA_W_DRODZE: 'Miejska w drodze',
-    SZAMBO: 'Szambo',
-    PRZYDOMOWA_OCZYSZCZALNIA: 'Przydomowa oczyszczalnia',
-    MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
-  };
-  return map[v] ?? v;
-}
+    if (!res.ok) return null;
 
-function labelGazShort(v?: string | null) {
-  if (!v || v === 'BRAK') return null;
-  const map: Record<string, string> = {
-    GAZ_NA_DZIALCE: 'Na działce',
-    GAZ_W_DRODZE: 'W drodze',
-    MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
-  };
-  return map[v] ?? v.replace(/^GAZ_/, '');
-}
-
-function labelSwiatlowod(v?: string | null) {
-  if (!v || v === 'BRAK') return null;
-  const map: Record<string, string> = {
-    W_DRODZE: 'W drodze',
-    NA_DZIALCE: 'Na działce',
-    MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
-  };
-  return map[v] ?? v;
-}
-
-function formatOpis(raw?: string | null) {
-  const text = (raw ?? '').trim();
-  if (!text) return null;
-
-  const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(text);
-
-  if (looksLikeHtml) {
-    return text
-      .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '</p><p>')
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/\n{2,}/g, '</p><p>')
-      .replace(/\n/g, '<br />');
+    return await res.json();
+  } catch {
+    return null;
   }
-
-  return text
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => `<p>${p.replace(/\n/g, '<br />')}</p>`)
-    .join('');
 }
 
-function SmartImg({
-  src,
-  alt,
-  className,
-  eager = false,
-  onClick,
-}: {
-  src: string;
-  alt: string;
-  className?: string;
-  eager?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className={className}
-      loading={eager ? 'eager' : 'lazy'}
-      decoding="async"
-      draggable={false}
-      onClick={onClick}
-    />
-  );
-}
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const dzialka = await getDzialka(id);
 
-function FieldBlock({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="py-5">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">{label}</div>
-      <div className="mt-2">{children}</div>
-    </div>
-  );
-}
+  const canonical = `/dzialka/${id}`;
 
-export default function DzialkaPage() {
-  const params = useParams();
-  const router = useRouter();
-  const id = params?.id as string | undefined;
-
-  const [d, setD] = useState<Dzialka | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const [idx, setIdx] = useState(0);
-  const [open, setOpen] = useState(false);
-
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
-const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
-
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-  }, [id]);
-
-  useEffect(() => {
-    if (!id) return;
-
-    let alive = true;
-
-    (async () => {
-      try {
-        setLoading(true);
-        setErr(null);
-
-        const res = await fetch(`/api/dzialki/${id}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`GET /api/dzialki/${id} -> ${res.status}`);
-
-        const data = await res.json();
-        if (alive) {
-          setD(data);
-          setIdx(0);
-        }
-      } catch (e: any) {
-        if (alive) setErr(e?.message ?? 'Błąd pobierania');
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
+  if (!dzialka) {
+    return {
+      title: 'Działka na sprzedaż',
+      description:
+        'Sprawdź aktualną ofertę działki na sprzedaż w serwisie TylkoDziałki.pl.',
+      alternates: {
+        canonical,
+      },
+      robots: {
+        index: false,
+        follow: true,
+      },
     };
-  }, [id]);
-
-  useEffect(() => {
-    if (!id) return;
-
-    const key = `TD_DETAIL_VIEWED_${id}`;
-    let shouldTrack = true;
-
-    try {
-      if (sessionStorage.getItem(key)) {
-        shouldTrack = false;
-      } else {
-        sessionStorage.setItem(key, '1');
-      }
-    } catch {
-      shouldTrack = true;
-    }
-
-    if (!shouldTrack) return;
-
-    fetch(`/api/dzialki/${id}/track-detail`, {
-      method: 'POST',
-      cache: 'no-store',
-    }).catch(() => {});
-  }, [id]);
-
-  useEffect(() => {
-  if (!d?.id) return;
-
-  fetch(`/api/favorites?ids=${d.id}`, {
-    cache: 'no-store',
-  })
-    .then((r) => r.json())
-    .then((data) => {
-      const ids = Array.isArray(data?.favoriteIds)
-        ? data.favoriteIds
-        : [];
-
-      setIsFavorite(ids.includes(d.id));
-    })
-    .catch(() => {});
-}, [d?.id]);
-
-  const photos = useMemo(() => {
-    return (d?.zdjecia ?? [])
-      .slice()
-      .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0))
-      .map((z) => z.url)
-      .filter(Boolean);
-  }, [d]);
-
-  useEffect(() => {
-    setIdx(0);
-  }, [photos.length]);
-
-  const hasPhotos = photos.length > 0;
-  const cover = hasPhotos ? photos[Math.min(idx, photos.length - 1)] : null;
-
-  const area = d?.powierzchniaM2 ?? 0;
-  const zlZaM2 = area ? Math.round((d?.cenaPln ?? 0) / area) : 0;
-
-  const przezn = Array.isArray(d?.przeznaczenia) ? d.przeznaczenia.filter(Boolean) : [];
-  const przeznText = przezn.length ? przezn.map(labelPrzeznaczenie).join(', ') : null;
-
-  const loc = d?.locationLabel?.trim() || null;
-  const isApproxLocation = d?.locationMode === 'APPROX';
-
-  const mapSrc = useMemo(() => {
-  if (!d) return null;
-  if (!d.lat || !d.lng) return null;
-
-  if (d.locationMode === 'APPROX') {
-    return `https://www.google.com/maps?ll=${d.lat},${d.lng}&z=12&output=embed`;
   }
 
-  return `https://www.google.com/maps?q=${d.lat},${d.lng}&z=15&output=embed`;
-}, [d]);
+  const area = formatArea(dzialka.powierzchniaM2);
+  const price = formatPrice(dzialka.cenaPln);
+  const location = cleanText(dzialka.locationLabel) || 'Polska';
 
-  const prad = labelPrad(d?.prad ?? null);
-  const woda = labelWoda(d?.woda ?? null);
-  const kan = labelKanalizacja(d?.kanalizacja ?? null);
-  const gaz = labelGazShort(d?.gaz ?? null);
-  const sw = labelSwiatlowod(d?.swiatlowod ?? null);
-  const hasUzbrojenie = Boolean(prad || woda || kan || gaz || sw);
+  const firstPurpose = Array.isArray(dzialka.przeznaczenia)
+    ? dzialka.przeznaczenia[0]
+    : null;
 
-  const opis = formatOpis(d?.opis);
+  const purpose = labelPrzeznaczenie(firstPurpose);
 
-  const telefon = (d?.telefon ?? '').trim() || null;
-  const telefonHref = telefon ? telefon.replace(/[^\d+]/g, '') : null;
-  const numerOferty = (d?.numerOferty ?? '').trim() || null;
-  const smsText = numerOferty
-  ? `Dzień dobry, piszę w sprawie oferty nr ${numerOferty} z TylkoDziałki.pl.`
-  : `Dzień dobry, piszę w sprawie działki z TylkoDziałki.pl.`;
+  const baseTitle = area
+    ? `Działka ${purpose} ${area} m² na sprzedaż – ${location}`
+    : `Działka ${purpose} na sprzedaż – ${location}`;
 
-  const smsHref = telefonHref
-  ? `sms:${telefonHref}?&body=${encodeURIComponent(smsText)}`
-  : null;
-  const klasaZiemi = (d?.klasaZiemi ?? '').trim() || null;
-  const wymiary = (d?.wymiary ?? '').trim() || null;
-  const ksiega = (d?.ksiegaWieczysta ?? '').trim() || null;
+  const descriptionParts = [
+    area ? `Działka ${purpose} o powierzchni ${area} m²` : `Działka ${purpose}`,
+    `lokalizacja: ${location}`,
+    price ? `cena: ${price} zł` : null,
+    'sprawdź zdjęcia, opis i kontakt do ogłoszeniodawcy na TylkoDziałki.pl',
+  ].filter(Boolean);
 
-  const sprzedajacyTyp = d?.sprzedajacyTyp ?? null;
-  const sprzedajacyImie = (d?.sprzedajacyImie ?? '').trim() || null;
-  const biuroOpiekun = (d?.biuroOpiekun ?? '').trim() || null;
-  const biuroLogoUrl = (d?.biuroLogoUrl ?? '').trim() || null;
+  const description = descriptionParts.join(', ').slice(0, 155);
 
-  const hasDocs = Boolean(d?.mpzp || d?.wzWydane || d?.projektDomu);
-  const showMap = Boolean(mapSrc);
+  const image = getMainImage(dzialka);
+  const fullUrl = `${SITE_URL}${canonical}`;
 
-
-  const trackContact = (type: 'phone' | 'message') => {
-    if (!id) return;
-
-    const url = `/api/dzialki/${id}/track-contact`;
-    const body = JSON.stringify({ type });
-
-    try {
-      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-        const blob = new Blob([body], { type: 'application/json' });
-        navigator.sendBeacon(url, blob);
-        return;
-      }
-
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        keepalive: true,
-      }).catch(() => {});
-    } catch {
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        keepalive: true,
-      }).catch(() => {});
-    }
+  return {
+    title: baseTitle,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      type: 'article',
+      url: fullUrl,
+      siteName: SITE_NAME,
+      locale: 'pl_PL',
+      title: `${baseTitle} | ${SITE_NAME}`,
+      description,
+      images: [
+        {
+          url: image,
+          width: 1200,
+          height: 630,
+          alt: baseTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${baseTitle} | ${SITE_NAME}`,
+      description,
+      images: [image],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': -1,
+      },
+    },
   };
+}
 
-  const prev = () => {
-    if (photos.length < 2) return;
-    setIdx((p) => (p - 1 + photos.length) % photos.length);
-  };
-
-  const next = () => {
-    if (photos.length < 2) return;
-    setIdx((p) => (p + 1) % photos.length);
-  };
-
-  const onBackToListClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-
-    try {
-      const url = sessionStorage.getItem('TD_KUP_URL') || '/kup';
-      const y = sessionStorage.getItem('TD_KUP_SCROLL_Y');
-
-      if (y) sessionStorage.setItem('TD_KUP_RESTORE_Y', y);
-
-      router.push(url);
-    } catch {
-      router.push('/kup');
-    }
-  };
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches?.[0];
-    if (!t) return;
-    touchStartX.current = t.clientX;
-    touchStartY.current = t.clientY;
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const sx = touchStartX.current;
-    const sy = touchStartY.current;
-    touchStartX.current = null;
-    touchStartY.current = null;
-    if (sx == null || sy == null) return;
-
-    const t = e.changedTouches?.[0];
-    if (!t) return;
-
-    const dx = t.clientX - sx;
-    const dy = t.clientY - sy;
-
-    if (Math.abs(dy) > Math.abs(dx)) return;
-
-    const TH = 40;
-    if (dx > TH) prev();
-    else if (dx < -TH) next();
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const prevOverflow = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
-    return () => {
-      document.documentElement.style.overflow = prevOverflow;
-    };
-  }, [open]);
-
-  if (!id) {
-    return (
-      <main className="min-h-screen" style={{ background: BG, color: FG }}>
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <div className="text-sm text-red-300">Brak ID w URL.</div>
-        </div>
-      </main>
-    );
-  }
-
-  if (loading) {
-    return (
-      <main className="min-h-screen" style={{ background: BG, color: FG }}>
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <Link
-            href="/kup"
-            scroll={false}
-            onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
-          >
-            <span className="relative top-[-1px]">←</span> Wróć do listy
-          </Link>
-
-          <div className="mt-6 grid gap-10 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-              <div className="aspect-video animate-pulse bg-white/5" />
-              <div className="p-6 space-y-4">
-                <div className="h-4 w-40 animate-pulse rounded bg-white/5" />
-                <div className="h-4 w-64 animate-pulse rounded bg-white/5" />
-              </div>
-            </div>
-
-            <div className="rounded-3xl bg-[#0f0f0f]/20 p-6 space-y-4">
-              <div className="h-5 w-64 animate-pulse rounded bg-white/5" />
-              <div className="h-4 w-48 animate-pulse rounded bg-white/5" />
-              <div className="h-4 w-56 animate-pulse rounded bg-white/5" />
-              <div className="h-4 w-72 animate-pulse rounded bg-white/5" />
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (err || !d) {
-    return (
-      <main className="min-h-screen" style={{ background: BG, color: FG }}>
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <Link
-            href="/kup"
-            scroll={false}
-            onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
-          >
-            <span className="relative top-[-1px]">←</span> Wróć do listy
-          </Link>
-
-          <div className="mt-6 rounded-3xl bg-[#0f0f0f]/20 p-6">
-            <div className="font-medium text-white/90">Nie udało się załadować ogłoszenia</div>
-            <div className="mt-2 text-sm text-white/60">{err ?? 'Brak danych'}</div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="min-h-screen" style={{ background: BG, color: FG }}>
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <Link
-          href="/kup"
-          scroll={false}
-          onClick={onBackToListClick}
-          className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
-        >
-          <span className="relative top-[-1px]">←</span> Wróć do listy
-        </Link>
-
-        <div className="mt-6 grid gap-10 lg:grid-cols-2">
-          <section className="min-w-0 space-y-8">
-            <div className="min-w-0 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-              <div className="relative aspect-video bg-white/5">
-                {cover ? (
-                  <>
-                    <SmartImg
-                      src={cover}
-                      alt={d.tytul}
-                      className="h-full w-full object-cover cursor-zoom-in"
-                      eager
-                      onClick={() => setOpen(true)}
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-                  </>
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-white/50">
-                    Brak zdjęć
-                  </div>
-                )}
-
-                {hasPhotos && photos.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={prev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
-                      aria-label="Poprzednie"
-                    >
-                      ‹
-                    </button>
-                    <button
-                      type="button"
-                      onClick={next}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
-                      aria-label="Następne"
-                    >
-                      ›
-                    </button>
-
-                    <div className="absolute right-4 top-4 rounded-full bg-black/45 px-3 py-1 text-xs text-white/80 border border-white/10">
-                      {idx + 1}/{photos.length}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {hasPhotos && photos.length > 1 && (
-                <div
-                  className={cx(
-                    'td-thumbstrip px-3 py-3',
-                    'flex flex-nowrap gap-2',
-                    'overflow-x-auto overscroll-x-contain',
-                    'min-w-0'
-                  )}
-                >
-                  {photos.map((u, i) => (
-                    <button
-                      key={u + i}
-                      type="button"
-                      onClick={() => setIdx(i)}
-                      className={cx(
-                        'shrink-0 h-16 w-28 overflow-hidden rounded-2xl border transition',
-                        i === idx ? 'border-white/60' : 'border-white/10 opacity-85 hover:opacity-100'
-                      )}
-                      title={`Zdjęcie ${i + 1}`}
-                    >
-                      <SmartImg
-                        src={u}
-                        alt={`Zdjęcie ${i + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {opis ? (
-              <div className="hidden lg:block">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Opis</div>
-                <div
-                  className="td-opis mt-4 text-[15px] leading-relaxed text-white/85"
-                  dangerouslySetInnerHTML={{ __html: opis }}
-                />
-              </div>
-            ) : null}
-          </section>
-
-          <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
-            <div className="p-6 md:p-7">
-              <div className="space-y-4">
-                <button
-                  type="button"
-                  disabled={favoriteLoading}
-                  onClick={async () => {
-                    if (!d?.id) return;
-
-                    try {
-                      setFavoriteLoading(true);
-
-                      const res = await fetch('/api/favorites', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          dzialkaId: d.id,
-                        }),
-                      });
-
-                      if (res.status === 401) {
-                     setFavoriteModalOpen(true);
-                     return;
-                     }
-                      const data = await res.json();
-
-                      if (typeof data?.isFavorite === 'boolean') {
-                        setIsFavorite(data.isFavorite);
-                      }
-                    } finally {
-                      setFavoriteLoading(false);
-                    }
-                  }}
-                  aria-pressed={isFavorite}
-                  className="group inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:text-[#b7db74] disabled:cursor-wait disabled:opacity-60"
-                >
-                  <span
-                    className={`text-[23px] leading-none transition ${
-                      isFavorite
-                        ? 'text-[#7aa333]'
-                        : 'text-white/70 group-hover:text-[#7aa333]'
-                    }`}
-                  >
-                    ♡
-                  </span>
-
-                  <span>
-                    {isFavorite ? 'W ulubionych' : 'Dodaj do ulubionych'}
-                  </span>
-                </button>
-
-                <div className="text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
-                  {d.tytul}
-                </div>
-              </div>
-
-
-              <Hr className="mt-6" />
-
-              <FieldBlock label="Cena">
-                <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 break-words">
-                  {formatPLN(d.cenaPln)}
-                  {zlZaM2 ? (
-                    <span className="ml-2 text-[12px] text-white/50 font-normal">
-                      ({formatIntPL(zlZaM2)} zł/m²)
-                    </span>
-                  ) : null}
-                </div>
-              </FieldBlock>
-
-              <Hr />
-
-              <FieldBlock label="Powierzchnia">
-                <div className="text-[15px] md:text-[16px] font-medium text-white/95 break-words">
-                  {formatIntPL(area)} m²
-                </div>
-              </FieldBlock>
-
-              <Hr />
-
-              {przeznText ? (
-                <>
-                  <FieldBlock label="Przeznaczenie">
-                    <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
-                      {przeznText}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {sprzedajacyTyp === 'PRYWATNIE' ? (
-                <>
-                  <FieldBlock label="Ogłoszenie prywatne">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {sprzedajacyImie ? (
-                        <div className="break-words">
-                          Imię: <span className="text-white/95">{sprzedajacyImie}</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {sprzedajacyTyp === 'BIURO' ? (
-                <>
-                  <FieldBlock label="Ogłoszenie biura nieruchomości">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1 space-y-3 text-[14px] text-white/85">
-                        {biuroOpiekun ? (
-                          <div className="break-words">
-                            Opiekun: <span className="text-white/95">{biuroOpiekun}</span>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {biuroLogoUrl ? (
-                        <div className="shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                          <img
-                            src={biuroLogoUrl}
-                            alt="Logo biura"
-                            className="h-16 w-auto max-w-[120px] object-contain"
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {telefon ? (
-                <>
-                  <FieldBlock label="Kontakt">
-                    <a
-                      href={`tel:${telefon.replace(/\s+/g, '')}`}
-                      onClick={() => trackContact('phone')}
-                      className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
-                    >
-                      {telefon}
-                    </a>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {numerOferty ? (
-                <>
-                  <FieldBlock label="Numer oferty">
-                    <div className="text-white/90 text-[14px] break-words">{numerOferty}</div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {hasUzbrojenie ? (
-                <>
-                  <FieldBlock label="Uzbrojenie">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {prad ? <div>Prąd: <span className="text-white/95">{prad}</span></div> : null}
-                      {woda ? <div>Woda: <span className="text-white/95">{woda}</span></div> : null}
-                      {kan ? <div>Kanalizacja: <span className="text-white/95">{kan}</span></div> : null}
-                      {gaz ? <div>Gaz: <span className="text-white/95">{gaz}</span></div> : null}
-                      {sw ? <div>Światłowód: <span className="text-white/95">{sw}</span></div> : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {hasDocs ? (
-                <>
-                  <FieldBlock label="Dokumenty / plan">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {d.mpzp ? <div>Obowiązuje MPZP</div> : null}
-                      {d.wzWydane ? <div>Wydane warunki zabudowy</div> : null}
-                      {d.projektDomu ? <div>Działka posiada projekt domu</div> : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {(klasaZiemi || wymiary || ksiega) ? (
-                <>
-                  <FieldBlock label="Dodatkowe informacje">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {klasaZiemi ? <div>Klasa ziemi: <span className="text-white/95">{klasaZiemi}</span></div> : null}
-                      {wymiary ? <div>Wymiary: <span className="text-white/95">{wymiary}</span></div> : null}
-                      {ksiega ? <div>Księga wieczysta: <span className="text-white/95">{ksiega}</span></div> : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {opis ? (
-                <>
-                  <div className="py-5 lg:hidden">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Opis</div>
-                    <div
-                      className="td-opis mt-4 text-[15px] leading-relaxed text-white/85"
-                      dangerouslySetInnerHTML={{ __html: opis }}
-                    />
-                  </div>
-                  <Hr className="lg:hidden" />
-                </>
-              ) : null}
-
-              {(loc || showMap || isApproxLocation) ? (
-                <div className="py-5">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Lokalizacja</div>
-
-                  {loc ? (
-                    <div className="mt-2 min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
-                      {loc}
-                    </div>
-                  ) : null}
-
-                  {isApproxLocation ? (
-                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-white/45">
-                     Lokalizacja przybliżona
-                   </div>
-                  ) : null}
-
-                  {d.mapsUrl && !isApproxLocation ? (
-                    <a
-                      href={d.mapsUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-4 inline-flex text-[12px] tracking-[0.18em] uppercase text-white/70 hover:text-white transition underline decoration-white/20 underline-offset-8"
-                    >
-                      OTWÓRZ W MAPACH GOOGLE
-                    </a>
-                  ) : null}
-
-                  {showMap ? (
-  <div className="mt-4 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-    <div className="relative aspect-video">
-      <iframe
-        title="Mapa"
-        src={mapSrc!}
-        className="h-full w-full"
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
-
-      {isApproxLocation ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-44 w-44 rounded-full border-2 border-[#7aa333]/70 bg-[#7aa333]/20 shadow-[0_0_60px_rgba(122,163,51,0.28)]" />
-        </div>
-      ) : null}
-    </div>
-  </div>
-) : null}
-                </div>
-              ) : null}
-            </div>
-          </aside>
-        </div>
-      </div>
-
-      {open && hasPhotos ? (
-        <div className="fixed inset-0 z-[999] bg-black/90 backdrop-blur-sm" onClick={() => setOpen(false)}>
-          <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
-            <div className="relative w-full max-w-6xl" onClick={(e) => e.stopPropagation()}>
-              <div className="relative rounded-3xl bg-black/30 overflow-visible">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="absolute right-3 top-3 sm:right-4 sm:top-4 z-20 h-10 w-10 rounded-full border border-white/20 bg-black/55 text-white/90 hover:border-white/40 transition flex items-center justify-center"
-                  aria-label="Zamknij galerię"
-                >
-                  <span className="text-[20px] leading-none relative top-[-1px]">×</span>
-                </button>
-
-                <div className="overflow-hidden rounded-3xl">
-                  <div className="relative w-full" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-                    <SmartImg
-                      src={cover ?? photos[0]}
-                      alt={d.tytul}
-                      className="mx-auto w-full object-contain max-h-[82svh] sm:max-h-[78vh]"
-                      eager
-                    />
-
-                    {photos.length > 1 ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={prev}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-white border border-white/10"
-                          aria-label="Poprzednie"
-                        >
-                          ‹
-                        </button>
-                        <button
-                          type="button"
-                          onClick={next}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-white border border-white/10"
-                          aria-label="Następne"
-                        >
-                          ›
-                        </button>
-
-                        <div className="absolute right-3 bottom-3 sm:right-4 sm:bottom-4 rounded-full bg-black/45 px-3 py-1 text-xs text-white/80 border border-white/10">
-                          {idx + 1}/{photos.length}
-                        </div>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-
-              {photos.length > 1 ? (
-                <div className="mt-4 flex flex-nowrap gap-2 overflow-x-auto overscroll-x-contain pb-1 td-thumbstrip">
-                  {photos.map((u, i) => (
-                    <button
-                      key={u + i}
-                      type="button"
-                      onClick={() => setIdx(i)}
-                      className={cx(
-                        'h-16 w-28 shrink-0 overflow-hidden rounded-2xl border transition',
-                        i === idx ? 'border-white/60' : 'border-white/10 opacity-85 hover:opacity-100'
-                      )}
-                      title={`Zdjęcie ${i + 1}`}
-                    >
-                      <SmartImg src={u} alt={`Zdjęcie ${i + 1}`} className="h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-            {telefon && telefonHref ? (
-  <div className="fixed bottom-0 left-0 right-0 z-[90] bg-[#131313]/88 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 backdrop-blur-xl md:hidden">
-    <div className="mx-auto grid max-w-[420px] grid-cols-2 gap-2">
-      <a
-        href={`tel:${telefonHref}`}
-        onClick={() => trackContact('phone')}
-        className="flex h-12 items-center justify-center rounded-2xl border border-[#7aa333]/70 bg-[#0f0f0f]/92 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#D8D2DB] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
-      >
-        Zadzwoń
-      </a>
-
-      {smsHref ? (
-        <a
-          href={smsHref}
-          onClick={() => trackContact('message')}
-          className="flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-[#7aa333]/95 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#131313] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
-        >
-          Napisz
-        </a>
-      ) : null}
-    </div>
-  </div>
-) : null}
-
-
-      {favoriteModalOpen ? (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 px-4 backdrop-blur-md">
-          <div className="w-full max-w-[480px] rounded-[28px] border border-white/10 bg-[#151515] px-6 py-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
-            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/10 text-[28px] text-[#7aa333]">
-              ♡
-            </div>
-
-            <div className="text-[25px] font-semibold uppercase tracking-[0.13em] text-white">
-              Zapisz ofertę
-            </div>
-
-            <p className="mt-5 text-[14px] leading-relaxed text-white/58">
-              Zaloguj się lub zarejestruj, aby dodać ofertę do ulubionych.
-            </p>
-
-            <div className="mt-7 grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setFavoriteModalOpen(false)}
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.035] px-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/75 transition hover:bg-white/[0.06] hover:text-white"
-              >
-                Przeglądaj dalej
-              </button>
-
-              <Link
-                href="/auth"
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#7aa333] px-4 text-[12px] font-black uppercase tracking-[0.18em] text-[#101010] transition hover:brightness-110"
-              >
-                Przejdź do logowania
-              </Link>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <style jsx global>{`
-        .td-opis {
-          overflow-wrap: anywhere;
-          word-break: break-word;
-          white-space: normal;
-        }
-        .td-opis b,
-        .td-opis strong {
-          color: rgba(243, 239, 245, 0.98);
-          font-weight: 700;
-        }
-        .td-opis p {
-          margin: 0 0 12px 0;
-        }
-        .td-opis ul {
-          margin: 10px 0 10px 18px;
-          padding: 0;
-          list-style: disc !important;
-          list-style-position: outside;
-        }
-        .td-opis ol {
-          margin: 10px 0 10px 18px;
-          padding: 0;
-          list-style: decimal !important;
-          list-style-position: outside;
-        }
-        .td-opis li {
-          margin: 6px 0;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-        }
-        .td-opis a {
-          color: rgba(243, 239, 245, 0.85);
-          text-decoration: underline;
-          text-underline-offset: 6px;
-          text-decoration-color: rgba(243, 239, 245, 0.25);
-          overflow-wrap: anywhere;
-          word-break: break-word;
-        }
-        .td-opis a:hover {
-          text-decoration-color: rgba(243, 239, 245, 0.45);
-        }
-
-        .td-thumbstrip {
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-        }
-        .td-thumbstrip::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
-    </main>
-  );
+export default async function Page() {
+  return <DzialkaClient />;
 }

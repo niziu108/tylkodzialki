@@ -47,9 +47,6 @@ export const metadata: Metadata = {
   authors: [{ name: 'TylkoDziałki' }],
   creator: 'TylkoDziałki',
   publisher: 'TylkoDziałki',
-  alternates: {
-    canonical: '/',
-  },
   manifest: '/site.webmanifest',
   openGraph: {
     type: 'website',
