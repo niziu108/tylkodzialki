@@ -471,7 +471,7 @@ export default async function HomePage() {
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: "url(/sprzedaj.webp)" }}
             />
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-black/35" />
 
             <div className="relative z-10 flex flex-col items-center px-6 text-center">
               <h2 className="font-hero text-[36px] uppercase tracking-[0.08em] text-[#D8D2DB] md:text-[74px] md:leading-none">
