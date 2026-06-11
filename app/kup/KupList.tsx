@@ -420,11 +420,11 @@ function DzialkaCard({
             align="center"
             value={
               <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
-                <span className="text-[20px] font-semibold leading-none text- #9fd14b md:text-[22px]">
+                <span className="text-[20px] font-semibold leading-none text-[#7aa333] md:text-[22px]">
                   {formatPLN(d.cenaPln)}
                 </span>
                 {zlZaM2 ? (
-                  <span className="text-[12px] text- #9fd14b">
+                  <span className="text-[12px] text-[#7aa333]">
                     ({formatIntPL(zlZaM2)} zł/m²)
                   </span>
                 ) : null}
@@ -438,7 +438,7 @@ function DzialkaCard({
             label="Powierzchnia"
             align="center"
             value={
-              <div className="text-[20px] font-medium leading-none text- #9fd14b md:text-[22px]">
+              <div className="text-[20px] font-medium leading-none text-[#7aa333] md:text-[22px]">
                 {formatIntPL(area)} m²
               </div>
             }
@@ -456,7 +456,7 @@ function DzialkaCard({
             label="Lokalizacja"
             align="center"
             value={
-              <div className="break-words text-[14px] leading-[1.4] text- #9fd14b">
+              <div className="break-words text-[14px] leading-[1.4] text-[#7aa333]">
                 {loc}
               </div>
             }
@@ -468,7 +468,7 @@ function DzialkaCard({
             label="Przeznaczenie"
             align="center"
             value={
-              <div className="break-words text-[14px] leading-[1.4] text- #9fd14b">
+              <div className="break-words text-[14px] leading-[1.4] text-[#7aa333]">
                 {przezn}
               </div>
             }
@@ -499,7 +499,7 @@ function MetricBlock({
 
   return (
     <div className={`min-w-0 flex flex-col ${alignClass}`}>
-      <div className="text-[11px] uppercase tracking-[0.16em] text-white/35">
+      <div className="text-[11px] uppercase tracking-[0.16em] text-[#7aa333]">
         {label}
       </div>
       <div className="mt-2 min-w-0">{value}</div>
