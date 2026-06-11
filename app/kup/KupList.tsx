@@ -424,7 +424,7 @@ function DzialkaCard({
                   {formatPLN(d.cenaPln)}
                 </span>
                 {zlZaM2 ? (
-                  <span className="text-[12px] text-[#7aa333]">
+                  <span className="text-[12px] text-white/60">
                     ({formatIntPL(zlZaM2)} zł/m²)
                   </span>
                 ) : null}
