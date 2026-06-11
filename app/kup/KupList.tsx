@@ -420,7 +420,7 @@ function DzialkaCard({
             align="center"
             value={
               <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
-                <span className="text-[20px] font-semibold leading-none text-[#7aa333] md:text-[22px]">
+                <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
                   {formatPLN(d.cenaPln)}
                 </span>
                 {zlZaM2 ? (
@@ -438,7 +438,7 @@ function DzialkaCard({
             label="Powierzchnia"
             align="center"
             value={
-              <div className="text-[20px] font-medium leading-none text-[#7aa333] md:text-[22px]">
+              <div className="text-[20px] font-medium leading-none text-white/95 md:text-[22px]">
                 {formatIntPL(area)} m²
               </div>
             }
@@ -456,7 +456,7 @@ function DzialkaCard({
             label="Lokalizacja"
             align="center"
             value={
-              <div className="break-words text-[14px] leading-[1.4] text-[#7aa333]">
+              <div className="break-words text-[14px] leading-[1.4] text-white/90">
                 {loc}
               </div>
             }
@@ -468,7 +468,7 @@ function DzialkaCard({
             label="Przeznaczenie"
             align="center"
             value={
-              <div className="break-words text-[14px] leading-[1.4] text-[#7aa333]">
+              <div className="break-words text-[14px] leading-[1.4] text-white/90">
                 {przezn}
               </div>
             }
