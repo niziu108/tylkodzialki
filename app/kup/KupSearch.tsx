@@ -823,7 +823,7 @@ export default function KupSearch({
   const goTo = (p: number) => changePage(p);
 
   const filterContent = (
-    <>
+    <div className="text-left">
       {/* Row 1: Lokalizacja + Zasięg — always visible */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_200px]">
         <div>
@@ -871,8 +871,8 @@ export default function KupSearch({
         </div>
       </div>
 
-      {/* Row 2: Toggle + action buttons — always visible */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      {/* Row 2: Toggle only */}
+      <div className="mt-4">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
@@ -881,26 +881,6 @@ export default function KupSearch({
           <span className="text-[8px]">{expanded ? '▲' : '▼'}</span>
           {expanded ? 'Mniej filtrów' : 'Więcej filtrów'}
         </button>
-
-        <div className="flex gap-3">
-          {!navigationMode && (
-            <button
-              type="button"
-              onClick={reset}
-              className="rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
-            >
-              Wyczyść
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={applyAndSearch}
-            className="rounded-xl bg-white px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? 'Szukam…' : 'Szukaj'}
-          </button>
-        </div>
       </div>
 
       {/* Expanded: Powierzchnia + Cena + Przeznaczenie */}
@@ -1000,16 +980,38 @@ export default function KupSearch({
         </div>
       )}
 
-      {/* Results count — only on /kup */}
-      {!navigationMode && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+      {/* Action buttons — always at the bottom */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        {/* Results count (only on /kup) */}
+        {!navigationMode ? (
           <div className="text-[12px] uppercase tracking-[0.18em] text-white/55">
             {loading && items.length === 0 ? 'Ładowanie ofert...' : `Wyniki: ${count}`}
           </div>
-          {err && <div className="text-sm text-red-300">{err}</div>}
+        ) : (
+          <div />
+        )}
+
+        <div className="flex gap-3">
+          {!navigationMode && (
+            <button
+              type="button"
+              onClick={reset}
+              className="rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
+            >
+              Wyczyść
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={applyAndSearch}
+            className="rounded-xl bg-white px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:opacity-60"
+            disabled={loading}
+          >
+            {loading ? 'Szukam…' : 'Szukaj'}
+          </button>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 
   if (navigationMode) {
