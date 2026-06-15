@@ -561,8 +561,6 @@ export default function KupSearch({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchTopRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollRef = useRef(false);
-  const lastAutocompleteLabel = useRef('');
-
 
   function updateBrowserUrl(filters: AppliedFilters, nextPage: number, replace = false) {
     const url = buildUrlFromState(filters, nextPage);
@@ -680,37 +678,6 @@ export default function KupSearch({
       // Load Maps — needed for autocomplete (all modes) and Case B geocoding
       if (key) {
         await loadPlaces(key).catch(() => {});
-      }
-
-      // Set up autocomplete
-      if (!cancelled && inputRef.current && window.google?.maps?.places) {
-        const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
-          fields: ['geometry', 'formatted_address', 'name'],
-        });
-
-        ac.addListener('place_changed', async () => {
-          const p = ac.getPlace();
-          const label = p?.formatted_address || p?.name || '';
-          const loc = p?.geometry?.location;
-
-          // For new Google Maps API customers, getPlace() returns an empty object —
-          // label will be ''. Don't overwrite the user's typed text in that case.
-          if (label) {
-            lastAutocompleteLabel.current = label;
-            setLocText(label);
-          }
-
-          if (loc) {
-            setCenter({ lat: loc.lat(), lng: loc.lng() });
-          } else {
-            // Use autocomplete label if available, otherwise whatever the user typed
-            const textToGeocode = label || inputRef.current?.value || '';
-            if (textToGeocode.trim()) {
-              const fallback = await geocodeTypedLocation(textToGeocode);
-              if (fallback) setCenter(fallback);
-            }
-          }
-        });
       }
 
       // Case B: geocode text from URL, then search
@@ -850,12 +817,8 @@ export default function KupSearch({
               ref={inputRef}
               value={locText}
               onChange={(e) => {
-                const val = e.target.value;
-                setLocText(val);
-                if (val !== lastAutocompleteLabel.current) {
-                  setCenter(null);
-                  lastAutocompleteLabel.current = '';
-                }
+                setLocText(e.target.value);
+                setCenter(null);
               }}
               placeholder="Wpisz lokalizację"
               className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
