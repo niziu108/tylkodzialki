@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import DzialkaClient from './DzialkaClient';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const SITE_URL = 'https://tylkodzialki.pl';
 const SITE_NAME = 'TylkoDziałki.pl';
@@ -172,6 +174,62 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function Page() {
-  return <DzialkaClient />;
+export default async function Page({ params }: PageProps) {
+  const { id } = await params;
+  const dzialka = await getDzialka(id);
+
+  const canonical = `/dzialka/${id}`;
+  const fullUrl = `${SITE_URL}${canonical}`;
+  const title = dzialka?.tytul?.trim() || 'Działka na sprzedaż';
+
+  const price =
+    typeof dzialka?.cenaPln === 'number' && dzialka.cenaPln > 0
+      ? dzialka.cenaPln
+      : null;
+
+  const productJsonLd = dzialka
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: title,
+        description:
+          cleanText(dzialka.opis) ||
+          `Działka na sprzedaż – ${cleanText(dzialka.locationLabel) || 'Polska'}`,
+        image: getMainImage(dzialka),
+        url: fullUrl,
+        ...(price
+          ? {
+              offers: {
+                '@type': 'Offer',
+                url: fullUrl,
+                priceCurrency: 'PLN',
+                price,
+                availability: 'https://schema.org/InStock',
+              },
+            }
+          : {}),
+      }
+    : null;
+
+  return (
+    <>
+      {productJsonLd ? (
+        <Script id="td-product-schema" type="application/ld+json" strategy="afterInteractive">
+          {JSON.stringify(productJsonLd)}
+        </Script>
+      ) : null}
+
+      <div className="mx-auto max-w-7xl px-6 pt-6 md:px-10">
+        <Breadcrumbs
+          items={[
+            { label: 'Strona główna', href: '/' },
+            { label: 'Działki na sprzedaż', href: '/kup' },
+            { label: title },
+          ]}
+        />
+      </div>
+
+      <DzialkaClient />
+    </>
+  );
 }

@@ -26,6 +26,16 @@ type PricingResponse = {
   };
 };
 
+type CreditsResponse = {
+  ok: boolean;
+  credits?: {
+    listingCredits: number;
+    listingCreditsExpiresAt: string | null;
+    featuredCredits: number;
+    featuredCreditsExpiresAt: string | null;
+  };
+};
+
 const initialInvoiceState: InvoiceFormState = {
   companyName: '',
   nip: '',
@@ -39,8 +49,14 @@ function formatPrice(grosze: number) {
   return `${Math.round(grosze / 100)} zł`;
 }
 
+function formatDatePL(value: string | null | undefined) {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString('pl-PL');
+}
+
 function WyroznieniaPageContent() {
   const [loadingKey, setLoadingKey] = useState<FeaturedPackageKey | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [invoiceType, setInvoiceType] = useState<InvoiceChoice>('NONE');
   const [invoice, setInvoice] = useState<InvoiceFormState>(initialInvoiceState);
 
@@ -49,7 +65,32 @@ function WyroznieniaPageContent() {
     featuredPack3PriceGrossPln: 3900,
   });
 
+  const [credits, setCredits] = useState<CreditsResponse['credits'] | null>(null);
+
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCredits() {
+      try {
+        const res = await fetch('/api/user/credits', { cache: 'no-store' });
+        const data = (await res.json().catch(() => null)) as CreditsResponse | null;
+
+        if (!cancelled && data?.ok && data.credits) {
+          setCredits(data.credits);
+        }
+      } catch (e) {
+        console.error('LOAD_CREDITS_ERROR', e);
+      }
+    }
+
+    loadCredits();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,6 +132,7 @@ function WyroznieniaPageContent() {
 
   async function handleCheckout(packageKey: FeaturedPackageKey) {
     try {
+      setCheckoutError(null);
       setLoadingKey(packageKey);
 
       const body =
@@ -121,7 +163,7 @@ function WyroznieniaPageContent() {
 
       window.location.href = data.url;
     } catch (e: any) {
-      alert(e?.message || 'Nie udało się rozpocząć płatności.');
+      setCheckoutError(e?.message || 'Nie udało się rozpocząć płatności.');
       setLoadingKey(null);
     }
   }
@@ -133,7 +175,22 @@ function WyroznieniaPageContent() {
           <h1 className="text-2xl font-semibold tracking-tight text-white md:text-4xl">
             Kupione wyróżnienia są przypisane do Twojego konta i nie wygasają.
           </h1>
+
+          {credits && credits.featuredCredits > 0 ? (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-5 py-2 text-sm font-semibold text-[#9fd14b]">
+              Dostępne wyróżnienia: {credits.featuredCredits}
+              {credits.featuredCreditsExpiresAt
+                ? ` · ważne do ${formatDatePL(credits.featuredCreditsExpiresAt)}`
+                : ''}
+            </div>
+          ) : null}
         </div>
+
+        {checkoutError ? (
+          <div className="mx-auto mb-6 max-w-[920px] rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {checkoutError}
+          </div>
+        ) : null}
 
         <div className="mx-auto mb-6 max-w-[920px]">
           <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4 md:p-5">

@@ -26,6 +26,16 @@ type PricingResponse = {
   };
 };
 
+type CreditsResponse = {
+  ok: boolean;
+  credits?: {
+    listingCredits: number;
+    listingCreditsExpiresAt: string | null;
+    featuredCredits: number;
+    featuredCreditsExpiresAt: string | null;
+  };
+};
+
 const initialInvoiceState: InvoiceFormState = {
   companyName: '',
   nip: '',
@@ -40,8 +50,14 @@ function formatPrice(grosze: number) {
   return `${Math.round(grosze / 100)} zł`;
 }
 
+function formatDatePL(value: string | null | undefined) {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString('pl-PL');
+}
+
 export default function PakietyPage() {
   const [loadingKey, setLoadingKey] = useState<PackageKey | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [invoiceType, setInvoiceType] = useState<InvoiceChoice>('NONE');
   const [invoice, setInvoice] = useState<InvoiceFormState>(initialInvoiceState);
 
@@ -50,6 +66,31 @@ export default function PakietyPage() {
     listingPack10PriceGrossPln: 14900,
     listingPack40PriceGrossPln: 39900,
   });
+
+  const [credits, setCredits] = useState<CreditsResponse['credits'] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCredits() {
+      try {
+        const res = await fetch('/api/user/credits', { cache: 'no-store' });
+        const data = (await res.json().catch(() => null)) as CreditsResponse | null;
+
+        if (!cancelled && data?.ok && data.credits) {
+          setCredits(data.credits);
+        }
+      } catch (e) {
+        console.error('LOAD_CREDITS_ERROR', e);
+      }
+    }
+
+    loadCredits();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +137,7 @@ export default function PakietyPage() {
 
   async function handleCheckout(packageKey: PackageKey) {
     try {
+      setCheckoutError(null);
       setLoadingKey(packageKey);
 
       const body =
@@ -124,7 +166,7 @@ export default function PakietyPage() {
 
       window.location.href = data.url;
     } catch (e: any) {
-      alert(e?.message || 'Nie udało się rozpocząć płatności.');
+      setCheckoutError(e?.message || 'Nie udało się rozpocząć płatności.');
       setLoadingKey(null);
     }
   }
@@ -136,7 +178,22 @@ export default function PakietyPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-white md:text-4xl">
             Kupione publikacje są przypisane do Twojego konta i nie wygasają.
           </h1>
+
+          {credits && credits.listingCredits > 0 ? (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-5 py-2 text-sm font-semibold text-[#9fd14b]">
+              Dostępne publikacje: {credits.listingCredits}
+              {credits.listingCreditsExpiresAt
+                ? ` · ważne do ${formatDatePL(credits.listingCreditsExpiresAt)}`
+                : ''}
+            </div>
+          ) : null}
         </div>
+
+        {checkoutError ? (
+          <div className="mx-auto mb-6 max-w-[920px] rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {checkoutError}
+          </div>
+        ) : null}
 
         <div className="mx-auto mb-6 max-w-[920px]">
           <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4 md:p-5">

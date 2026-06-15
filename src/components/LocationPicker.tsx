@@ -100,7 +100,7 @@ export default function LocationPicker({ value, onChange }: Props) {
       const map = new google.maps.Map(mapDivRef.current, {
         center,
         zoom: value?.lat ? 15 : 6,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#131313',
         clickableIcons: false,
         mapTypeControl: false,
         streetViewControl: false,
@@ -225,16 +225,28 @@ export default function LocationPicker({ value, onChange }: Props) {
         className="w-full rounded-xl border border-white/15 bg-black/25 px-4 py-3 text-white outline-none placeholder:text-white/35 focus:border-[#7aa333]/60"
       />
 
-      <div className="flex flex-wrap gap-6 text-sm text-white/85">
-        <label className="flex items-center gap-2">
-          <input type="radio" checked={mode === 'EXACT'} onChange={() => setMode('EXACT')} />
-          <span>Dokładna lokalizacja</span>
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input type="radio" checked={mode === 'APPROX'} onChange={() => setMode('APPROX')} />
-          <span>Przybliżona</span>
-        </label>
+      <div className="flex flex-wrap gap-8">
+        {(['EXACT', 'APPROX'] as LocationMode[]).map((v) => {
+          const label = v === 'EXACT' ? 'Dokładna lokalizacja' : 'Przybliżona';
+          const active = mode === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setMode(v)}
+              aria-pressed={active}
+              className={`text-[15px] font-semibold tracking-tight transition ${active ? 'text-white' : 'text-white/70 hover:text-white'}`}
+              style={{
+                textDecoration: active ? 'underline' : 'none',
+                textUnderlineOffset: '10px',
+                textDecorationThickness: '1px',
+                textDecorationColor: active ? 'rgba(243,239,245,0.95)' : 'transparent',
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       <input
@@ -244,8 +256,8 @@ export default function LocationPicker({ value, onChange }: Props) {
         onChange={(e) => setParcelText(e.target.value)}
       />
 
-      <div className="rounded-2xl border border-white/10 bg-white p-2">
-        <div ref={mapDivRef} className="h-80 w-full rounded-xl" />
+      <div className="overflow-hidden rounded-2xl border border-white/10">
+        <div ref={mapDivRef} className="h-80 w-full" />
       </div>
 
       {value?.lat != null && value?.lng != null && (

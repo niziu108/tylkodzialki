@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 type BlogArticlePageProps = {
   params: Promise<{
@@ -144,6 +145,16 @@ export default async function BlogArticlePage({
           >
             ← Wróć do bloga
           </Link>
+
+          <div className="mt-4">
+            <Breadcrumbs
+              items={[
+                { label: 'Strona główna', href: '/' },
+                { label: 'Blog', href: '/blog' },
+                { label: article.title },
+              ]}
+            />
+          </div>
 
           <div className="mt-6 text-[12px] uppercase tracking-[0.14em] text-[#9fd14b]">
             {new Date(article.createdAt).toLocaleDateString("pl-PL")}

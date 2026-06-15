@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendWelcomeEmail } from "@/lib/welcomeEmail";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -18,12 +20,19 @@ export async function POST(req: Request) {
       );
     }
 
-    if (password.length < 6) {
+    if (!EMAIL_RE.test(email)) {
+      return NextResponse.json(
+        { ok: false, code: "INVALID_EMAIL", message: "Podaj poprawny adres email." },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 8) {
       return NextResponse.json(
         {
           ok: false,
           code: "WEAK_PASSWORD",
-          message: "Hasło musi mieć minimum 6 znaków.",
+          message: "Hasło musi mieć minimum 8 znaków.",
         },
         { status: 400 }
       );

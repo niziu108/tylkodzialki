@@ -8,6 +8,8 @@ const BG = '#131313';
 const FG = '#F3EFF5';
 const GREEN = '#7aa333';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function cx(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(' ');
 }
@@ -50,8 +52,10 @@ function AuthPageContent() {
   }, [sp]);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
+  const [rodo, setRodo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -79,8 +83,18 @@ function AuthPageContent() {
       return;
     }
 
-    if (mode === 'register' && pass.length < 6) {
-      setError('Hasło musi mieć minimum 6 znaków.');
+    if (!EMAIL_RE.test(cleanEmail)) {
+      setError('Podaj poprawny adres email.');
+      return;
+    }
+
+    if (mode === 'register' && pass.length < 8) {
+      setError('Hasło musi mieć minimum 8 znaków.');
+      return;
+    }
+
+    if (mode === 'register' && !rodo) {
+      setError('Zaakceptuj politykę prywatności, aby się zarejestrować.');
       return;
     }
 
@@ -91,7 +105,7 @@ function AuthPageContent() {
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: cleanEmail, password: pass }),
+          body: JSON.stringify({ email: cleanEmail, password: pass, name: name.trim() }),
         });
 
         const data = await res.json().catch(() => ({}));
@@ -215,6 +229,27 @@ function AuthPageContent() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {mode === 'register' && (
+                    <label className="block">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+                        Imię
+                      </div>
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        type="text"
+                        placeholder="np. Jan"
+                        className={cx(
+                          'mt-2 w-full bg-transparent text-[18px] text-white/90',
+                          'border-0 border-b border-white/25 pb-2',
+                          'placeholder:text-white/35 outline-none',
+                          'focus:border-white/70',
+                          'selection:bg-white/20 selection:text-white'
+                        )}
+                      />
+                    </label>
+                  )}
+
                   <label className="block">
                     <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
                       Email
@@ -252,6 +287,40 @@ function AuthPageContent() {
                       )}
                     />
                   </label>
+
+                  {mode === 'register' && (
+                    <label className="flex items-start gap-3 text-[12px] leading-relaxed text-white/65">
+                      <input
+                        type="checkbox"
+                        checked={rodo}
+                        onChange={(e) => setRodo(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#7aa333]"
+                      />
+                      <span>
+                        Zapoznałem się i akceptuję{' '}
+                        <a
+                          href="/polityka-prywatnosci"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline decoration-white/25 underline-offset-4 transition hover:text-white/85"
+                          style={{ color: GREEN }}
+                        >
+                          politykę prywatności
+                        </a>{' '}
+                        oraz{' '}
+                        <a
+                          href="/regulamin"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline decoration-white/25 underline-offset-4 transition hover:text-white/85"
+                          style={{ color: GREEN }}
+                        >
+                          regulamin
+                        </a>
+                        .
+                      </span>
+                    </label>
+                  )}
 
                   {error && (
                     <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import KupSearch from '../../../kup/KupSearch';
 import { getSeoCity, SEO_CITIES } from '@/lib/seo-locations';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 type PageProps = {
   params: Promise<{
@@ -45,6 +46,16 @@ export default async function DzialkiBudowlaneCityPage({ params }: PageProps) {
   return (
     <main className="pt-0 pb-20">
       <h1 className="sr-only">Działki budowlane {city.name}</h1>
+
+      <div className="mx-auto max-w-6xl px-3 pt-6 md:px-4">
+        <Breadcrumbs
+          items={[
+            { label: 'Strona główna', href: '/' },
+            { label: 'Działki na sprzedaż', href: '/kup' },
+            { label: `Działki budowlane ${city.name}` },
+          ]}
+        />
+      </div>
 
       <KupSearch
   seoMode

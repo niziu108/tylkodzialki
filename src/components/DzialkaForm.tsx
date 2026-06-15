@@ -18,6 +18,18 @@ type LocationMode = 'EXACT' | 'APPROX';
 type SprzedajacyTypUI = 'PRYWATNIE' | 'BIURO_NIERUCHOMOSCI';
 type SwiatlowodStatus = 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE' | 'MOZLIWOSC_PODLACZENIA';
 
+type FieldKey =
+  | 'tytul'
+  | 'cenaPln'
+  | 'powierzchniaM2'
+  | 'telefon'
+  | 'przeznaczenia'
+  | 'location'
+  | 'photos'
+  | 'sprzedajacyImie'
+  | 'biuroNazwa'
+  | 'biuroOpiekun';
+
 type LocationValue = {
   placeId: string | null;
   locationFull: string | null;
@@ -263,6 +275,7 @@ function UnderlineField({
   maxLength,
   showCounter,
   required,
+  error,
 }: {
   label: string;
   value: string;
@@ -274,13 +287,17 @@ function UnderlineField({
   maxLength?: number;
   showCounter?: boolean;
   required?: boolean;
+  error?: boolean;
 }) {
   return (
     <label className="block">
       <div className="flex items-end justify-between gap-4">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+        <div className={cx(
+          'text-[11px] uppercase tracking-[0.18em]',
+          error ? 'text-red-400/90' : 'text-white/55'
+        )}>
           {label}
-          {required ? <span className="text-[#9fd14b]"> *</span> : null}
+          {required ? <span className={error ? 'text-red-400' : 'text-[#9fd14b]'}> *</span> : null}
         </div>
         {showCounter && typeof maxLength === 'number' ? (
           <div className="text-[11px] tracking-[0.12em] text-white/40">
@@ -299,11 +316,13 @@ function UnderlineField({
         maxLength={maxLength}
         className={cx(
           'mt-2 w-full bg-transparent text-[18px] md:text-[19px] text-white/90',
-          'border-0 border-b border-white/20 pb-2',
+          error ? 'border-0 border-b border-red-400/70 pb-2' : 'border-0 border-b border-white/20 pb-2',
           'placeholder:text-white/35',
-          'outline-none focus:border-white/70 focus:ring-0',
-          'underline decoration-white/55 decoration-[1px] underline-offset-[10px]',
-          'focus:decoration-white/85',
+          error ? 'outline-none focus:border-red-400/90 focus:ring-0' : 'outline-none focus:border-white/70 focus:ring-0',
+          error
+            ? 'underline decoration-red-400/55 decoration-[1px] underline-offset-[10px]'
+            : 'underline decoration-white/55 decoration-[1px] underline-offset-[10px]',
+          error ? 'focus:decoration-red-400/80' : 'focus:decoration-white/85',
           'selection:bg-white/20 selection:text-white'
         )}
       />
@@ -500,6 +519,7 @@ export default function DzialkaForm({
   const shouldAutoPublish = mode === 'create' && searchParams.get('autopublish') === '1';
   const autoPublishAttemptedRef = useRef(false);
   const opisWrapRef = useRef<HTMLDivElement | null>(null);
+  const errSummaryRef = useRef<HTMLDivElement | null>(null);
 
   const [tytul, setTytul] = useState(initialData?.tytul ?? '');
   const [telefon, setTelefon] = useState(initialData?.telefon ?? '');
@@ -587,6 +607,8 @@ export default function DzialkaForm({
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Set<FieldKey>>(new Set());
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const [createdListing, setCreatedListing] = useState<{
     id: string;
@@ -671,8 +693,18 @@ export default function DzialkaForm({
     };
   }, [opis]);
 
+  function clearFieldError(key: FieldKey) {
+    setFieldErrors((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  }
+
   function togglePrzeznaczenie(p: Przeznaczenie) {
     setPrzeznaczenia((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
+    clearFieldError('przeznaczenia');
   }
 
   useEffect(() => {
@@ -877,27 +909,40 @@ export default function DzialkaForm({
     setUploadingPhotos(true);
 
     try {
-      const uploadedNow: UploadedPhoto[] = [];
+      const results = await Promise.allSettled(
+        filesToUpload.map((file) => uploadImageViaApi(file))
+      );
 
-      for (const file of filesToUpload) {
-        const out = await uploadImageViaApi(file);
-        uploadedNow.push({
-          url: out.url,
-          publicId: out.key,
+      const uploadedNow: UploadedPhoto[] = [];
+      let failedCount = 0;
+
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          uploadedNow.push({ url: result.value.url, publicId: result.value.key });
+        } else {
+          failedCount += 1;
+        }
+      }
+
+      if (uploadedNow.length > 0) {
+        setUploaded((prev) => {
+          const merged = [...prev, ...uploadedNow].slice(0, MAX_PHOTOS);
+          return normalizeUploadedOrder(merged);
+        });
+
+        clearFieldError('photos');
+
+        setActiveIdx((prev) => {
+          if (uploaded.length === 0) return 0;
+          return prev;
         });
       }
 
-      setUploaded((prev) => {
-        const merged = [...prev, ...uploadedNow].slice(0, MAX_PHOTOS);
-        return normalizeUploadedOrder(merged);
-      });
-
-      setActiveIdx((prev) => {
-        if (uploaded.length === 0) return 0;
-        return prev;
-      });
-
-      if (arr.length > remainingSlots) {
+      if (failedCount > 0 && uploadedNow.length > 0) {
+        setErr(`Nie udało się wgrać ${failedCount} z ${filesToUpload.length} zdjęć. Pozostałe dodano pomyślnie.`);
+      } else if (failedCount > 0) {
+        setErr('Nie udało się wgrać zdjęć. Spróbuj ponownie.');
+      } else if (arr.length > remainingSlots) {
         setErr(`Możesz dodać maksymalnie ${MAX_PHOTOS} zdjęć. Nadmiarowe pliki zostały pominięte.`);
       }
 
@@ -970,30 +1015,76 @@ export default function DzialkaForm({
     setErr(null);
     setOk(null);
 
-    if (!tytul.trim()) return setErr('Podaj tytuł.');
-    if (tytul.trim().length > MAX_TITLE_CHARS) return setErr(`Tytuł jest za długi (max ${MAX_TITLE_CHARS} znaków).`);
+    const errs: string[] = [];
+    const fields = new Set<FieldKey>();
+
+    if (!tytul.trim()) {
+      errs.push('Podaj tytuł ogłoszenia.');
+      fields.add('tytul');
+    } else if (tytul.trim().length > MAX_TITLE_CHARS) {
+      errs.push(`Tytuł jest za długi (max ${MAX_TITLE_CHARS} znaków).`);
+      fields.add('tytul');
+    }
 
     const pm2 = parseFormattedNumber(powierzchniaM2);
     const cena = parseFormattedNumber(cenaPln);
 
-    if (!Number.isFinite(pm2) || pm2 <= 0) return setErr('Podaj poprawną powierzchnię.');
-    if (!Number.isFinite(cena) || cena <= 0) return setErr('Podaj poprawną cenę.');
-    if (!telefon.trim()) return setErr('Podaj telefon.');
-    if (przeznaczenia.length < 1) return setErr('Wybierz min. 1 przeznaczenie.');
-    if (!location) return setErr('Wybierz lokalizację.');
-    if (uploaded.length < 1) return setErr('Dodaj minimum 1 zdjęcie.');
-    if (uploaded.length > MAX_PHOTOS) return setErr(`Możesz dodać maksymalnie ${MAX_PHOTOS} zdjęć.`);
-    if (uploadingPhotos) return setErr('Poczekaj aż zdjęcia się wgrają.');
-    if (uploadingLogo) return setErr('Poczekaj aż logo biura się wgra.');
-
+    if (!Number.isFinite(pm2) || pm2 <= 0) {
+      errs.push('Podaj poprawną powierzchnię (m²).');
+      fields.add('powierzchniaM2');
+    }
+    if (!Number.isFinite(cena) || cena <= 0) {
+      errs.push('Podaj poprawną cenę (PLN).');
+      fields.add('cenaPln');
+    }
+    if (!telefon.trim()) {
+      errs.push('Podaj numer telefonu.');
+      fields.add('telefon');
+    }
+    if (przeznaczenia.length < 1) {
+      errs.push('Wybierz minimum 1 przeznaczenie.');
+      fields.add('przeznaczenia');
+    }
+    if (!location) {
+      errs.push('Wybierz lokalizację działki.');
+      fields.add('location');
+    }
+    if (uploaded.length < 1) {
+      errs.push('Dodaj minimum 1 zdjęcie.');
+      fields.add('photos');
+    }
+    if (uploadingPhotos) {
+      errs.push('Poczekaj aż zdjęcia się wgrają.');
+    }
+    if (uploadingLogo) {
+      errs.push('Poczekaj aż logo biura się wgra.');
+    }
     if (sprzedajacyTyp === 'PRYWATNIE' && !sprzedajacyImie.trim()) {
-      return setErr('Dla ogłoszenia prywatnego podaj imię.');
+      errs.push('Podaj imię sprzedającego.');
+      fields.add('sprzedajacyImie');
+    }
+    if (sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI') {
+      if (!biuroNazwa.trim()) {
+        errs.push('Podaj nazwę biura nieruchomości.');
+        fields.add('biuroNazwa');
+      }
+      if (!biuroOpiekun.trim()) {
+        errs.push('Podaj imię opiekuna biura.');
+        fields.add('biuroOpiekun');
+      }
     }
 
-    if (sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI') {
-      if (!biuroNazwa.trim()) return setErr('Dla biura nieruchomości podaj nazwę biura.');
-      if (!biuroOpiekun.trim()) return setErr('Dla biura nieruchomości podaj imię opiekuna.');
+    if (errs.length > 0) {
+      setValidationErrors(errs);
+      setFieldErrors(fields);
+      requestAnimationFrame(() => {
+        errSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+      return;
     }
+
+    setValidationErrors([]);
+    setFieldErrors(new Set());
 
     const uploadedSorted = [...uploaded].sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
 
@@ -1236,6 +1327,23 @@ export default function DzialkaForm({
             <span className="text-[#9fd14b]">*</span> pole wymagane
           </div>
 
+          {validationErrors.length > 0 ? (
+            <div
+              ref={errSummaryRef}
+              className="rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-4"
+            >
+              <div className="mb-2 text-sm font-semibold text-red-200">Uzupełnij brakujące pola:</div>
+              <ul className="space-y-1">
+                {validationErrors.map((e, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-red-300/90">
+                    <span className="mt-0.5 shrink-0 text-red-400/70">·</span>
+                    {e}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="space-y-6">
             <SectionTitle>
               Tytuł ogłoszenia <span className="text-[#9fd14b]">*</span>
@@ -1244,10 +1352,11 @@ export default function DzialkaForm({
             <UnderlineField
               label=""
               value={tytul}
-              onChange={(v) => setTytul(v.slice(0, MAX_TITLE_CHARS))}
+              onChange={(v) => { setTytul(v.slice(0, MAX_TITLE_CHARS)); clearFieldError('tytul'); }}
               placeholder="Wpisz tutaj np. Działka budowlana"
               maxLength={MAX_TITLE_CHARS}
               showCounter
+              error={fieldErrors.has('tytul')}
             />
 
             <Hr className="mt-8" />
@@ -1263,7 +1372,10 @@ export default function DzialkaForm({
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+            <div className={cx(
+              'overflow-hidden rounded-3xl border bg-white/[0.03]',
+              fieldErrors.has('photos') ? 'border-red-400/50' : 'border-white/10'
+            )}>
               <div className="relative aspect-[16/9] bg-black/25">
                 {previewUrl ? (
                   <img src={previewUrl} alt="" className="h-full w-full object-contain" />
@@ -1399,30 +1511,33 @@ export default function DzialkaForm({
               <UnderlineField
                 label="Telefon"
                 value={telefon}
-                onChange={setTelefon}
+                onChange={(v) => { setTelefon(v); clearFieldError('telefon'); }}
                 placeholder="Np. 605 000 000"
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
                 required
+                error={fieldErrors.has('telefon')}
               />
 
               <UnderlineField
                 label="Cena (PLN)"
                 value={cenaPln}
-                onChange={(v) => setCenaPln(formatThousandsSpaces(v))}
+                onChange={(v) => { setCenaPln(formatThousandsSpaces(v)); clearFieldError('cenaPln'); }}
                 placeholder="Np. 150 000"
                 inputMode="numeric"
                 required
+                error={fieldErrors.has('cenaPln')}
               />
 
               <UnderlineField
                 label="Powierzchnia (m²)"
                 value={powierzchniaM2}
-                onChange={(v) => setPowierzchniaM2(formatThousandsSpaces(v))}
+                onChange={(v) => { setPowierzchniaM2(formatThousandsSpaces(v)); clearFieldError('powierzchniaM2'); }}
                 placeholder="Np. 1 200"
                 inputMode="numeric"
                 required
+                error={fieldErrors.has('powierzchniaM2')}
               />
             </div>
 
@@ -1446,9 +1561,10 @@ export default function DzialkaForm({
                 <UnderlineField
                   label="Imię sprzedającego"
                   value={sprzedajacyImie}
-                  onChange={setSprzedajacyImie}
+                  onChange={(v) => { setSprzedajacyImie(v); clearFieldError('sprzedajacyImie'); }}
                   placeholder="Np. Daniel"
                   required
+                  error={fieldErrors.has('sprzedajacyImie')}
                 />
               </div>
             )}
@@ -1459,17 +1575,19 @@ export default function DzialkaForm({
                   <UnderlineField
                     label="Nazwa biura"
                     value={biuroNazwa}
-                    onChange={setBiuroNazwa}
+                    onChange={(v) => { setBiuroNazwa(v); clearFieldError('biuroNazwa'); }}
                     placeholder="Np. TylkoDziałki Nieruchomości"
                     required
+                    error={fieldErrors.has('biuroNazwa')}
                   />
 
                   <UnderlineField
                     label="Imię opiekuna"
                     value={biuroOpiekun}
-                    onChange={setBiuroOpiekun}
+                    onChange={(v) => { setBiuroOpiekun(v); clearFieldError('biuroOpiekun'); }}
                     placeholder="Np. Daniel"
                     required
+                    error={fieldErrors.has('biuroOpiekun')}
                   />
 
                   <UnderlineField
@@ -1545,6 +1663,10 @@ export default function DzialkaForm({
                 { value: 'SIEDLISKOWA', label: 'Siedliskowa' },
               ]}
             />
+
+            {fieldErrors.has('przeznaczenia') ? (
+              <div className="text-[12px] text-red-400/90">Wybierz minimum 1 przeznaczenie.</div>
+            ) : null}
 
             <Hr className="mt-8" />
           </div>
@@ -1794,8 +1916,12 @@ export default function DzialkaForm({
             </SectionTitle>
 
             <div className="mt-2">
-              <LocationPicker value={location ?? undefined} onChange={(v: any) => setLocation(v)} />
+              <LocationPicker value={location ?? undefined} onChange={(v: any) => { setLocation(v); clearFieldError('location'); }} />
             </div>
+
+            {fieldErrors.has('location') ? (
+              <div className="text-[12px] text-red-400/90">Wybierz lokalizację działki z listy.</div>
+            ) : null}
 
             <Hr className="mt-8" />
           </div>

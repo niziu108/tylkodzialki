@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
+import HeroSearchBar from "@/components/HeroSearchBar";
 import type { Przeznaczenie } from "@prisma/client";
 import { SEO_REGIONS } from "@/lib/seo-locations";
 
@@ -433,7 +434,11 @@ export default async function HomePage() {
       className="relative w-full overflow-hidden"
       style={{ background: PAGE_BG }}
     >
-      <section className="h-[100svh] w-full">
+      <section className="relative h-[100svh] w-full">
+        <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center px-4 md:top-10">
+          <HeroSearchBar />
+        </div>
+
         <div className="flex h-full flex-col md:flex-row">
           <Link
             href="/kup"

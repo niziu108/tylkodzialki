@@ -327,6 +327,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
 
 function PanelDzialkaCard({ d }: { d: Dzialka }) {
   const [isPending, startTransition] = useTransition();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const photos = (d.zdjecia ?? [])
     .slice()
@@ -400,6 +401,8 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
 
   async function runAction(action: () => Promise<void>, errorText: string) {
     startTransition(async () => {
+      setActionError(null);
+
       try {
         await action();
       } catch (e: any) {
@@ -409,7 +412,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           return;
         }
 
-        alert(msg || errorText);
+        setActionError(msg || errorText);
       }
     });
   }
@@ -546,6 +549,12 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
       </Link>
 
       <div className="px-5 pb-5 md:px-6 md:pb-6">
+        {actionError ? (
+          <div className="mb-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {actionError}
+          </div>
+        ) : null}
+
         <div className="rounded-[24px] border border-white/10 bg-black/20 p-4">
           <div className="flex flex-wrap gap-3">
             <ActionBtnAsLink
