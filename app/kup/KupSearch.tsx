@@ -556,7 +556,13 @@ export default function KupSearch({
 
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>(initial.filters.przezn);
   const [applied, setApplied] = useState<AppliedFilters>(initial.filters);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(
+    initial.filters.przezn.length > 0 ||
+      !!initial.filters.priceMin ||
+      !!initial.filters.priceMax ||
+      !!initial.filters.areaMin ||
+      !!initial.filters.areaMax
+  );
   const [locError, setLocError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
