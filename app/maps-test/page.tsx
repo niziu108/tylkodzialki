@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { notFound } from 'next/navigation';
 
 declare global {
   interface Window {
@@ -89,6 +90,10 @@ export default function MapsTestPage() {
       }
     }
   }, []);
+
+  if (process.env.NODE_ENV === 'production') {
+    notFound();
+  }
 
   return (
     <div style={{ padding: 16, display: 'grid', gap: 12 }}>

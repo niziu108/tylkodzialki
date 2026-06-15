@@ -133,6 +133,9 @@ export default function Footer() {
               <p>© 2026 TylkoDziałki. Wszelkie prawa zastrzeżone.</p>
               <p>Ultima Reality Sp. z o.o.</p>
             </div>
+            <div className="mt-3 text-xs text-white/35">
+              <p>NIP: 725337429 · KRS: 0001068696 · Adres: ul. Piotrkowska 44/10, 90-265 Łódź</p>
+            </div>
           </div>
 
         </div>

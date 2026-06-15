@@ -249,9 +249,11 @@ export default function LocationPicker({ value, onChange }: Props) {
       </div>
 
       {value?.lat != null && value?.lng != null && (
-        <div className="text-xs text-white/55">
-          Punkt: {value.lat.toFixed(6)}, {value.lng.toFixed(6)} | tryb: {mode}
-        </div>
+        <p className="text-xs text-white/45">
+          {mode === 'EXACT'
+            ? 'Na mapie ogłoszenia pokażemy dokładny punkt.'
+            : 'Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}
+        </p>
       )}
     </div>
   );

@@ -56,6 +56,21 @@ function formatDate(value: string | Date | null | undefined) {
   }
 }
 
+const CRM_ACTION_LABELS: Record<CrmLog["action"], string> = {
+  CREATE: "Dodano ofertę",
+  UPDATE: "Zaktualizowano ofertę",
+  DEACTIVATE: "Wyłączono ofertę",
+  REACTIVATE: "Przywrócono ofertę",
+  SKIP_NO_CREDITS: "Pominięto (brak publikacji)",
+  DELETE: "Usunięto ofertę",
+  ERROR: "Błąd",
+};
+
+const CRM_STATUS_LABELS: Record<CrmLog["status"], string> = {
+  SUCCESS: "Sukces",
+  ERROR: "Błąd",
+};
+
 export default function CrmIntegrationPanel({
   integration,
   paymentsEnabled,
@@ -384,7 +399,7 @@ export default function CrmIntegrationPanel({
                       <td className="px-4 py-3 text-white/70">
                         {formatDate(log.createdAt)}
                       </td>
-                      <td className="px-4 py-3 text-white">{log.action}</td>
+                      <td className="px-4 py-3 text-white">{CRM_ACTION_LABELS[log.action] ?? log.action}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
@@ -393,7 +408,7 @@ export default function CrmIntegrationPanel({
                               : "bg-red-500/15 text-red-300"
                           }`}
                         >
-                          {log.status}
+                          {CRM_STATUS_LABELS[log.status] ?? log.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-[#dce9bf]">

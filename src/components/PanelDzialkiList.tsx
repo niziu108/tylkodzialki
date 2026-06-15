@@ -619,7 +619,9 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
               danger
               disabled={isPending}
               onClick={() => {
-                const ok = window.confirm('Na pewno usunąć to ogłoszenie?');
+                const ok = window.confirm(
+                  'Czy na pewno chcesz trwale usunąć to ogłoszenie? Tej operacji nie można odwrócić — ogłoszenie i jego zdjęcia zostaną usunięte na zawsze.'
+                );
                 if (!ok) return;
 
                 runAction(

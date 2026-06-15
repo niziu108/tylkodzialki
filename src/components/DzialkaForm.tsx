@@ -259,8 +259,10 @@ function UnderlineField({
   placeholder,
   type = 'text',
   inputMode,
+  autoComplete,
   maxLength,
   showCounter,
+  required,
 }: {
   label: string;
   value: string;
@@ -268,13 +270,18 @@ function UnderlineField({
   placeholder: string;
   type?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  autoComplete?: string;
   maxLength?: number;
   showCounter?: boolean;
+  required?: boolean;
 }) {
   return (
     <label className="block">
       <div className="flex items-end justify-between gap-4">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">{label}</div>
+        <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+          {label}
+          {required ? <span className="text-[#9fd14b]"> *</span> : null}
+        </div>
         {showCounter && typeof maxLength === 'number' ? (
           <div className="text-[11px] tracking-[0.12em] text-white/40">
             {value.length}/{maxLength}
@@ -285,6 +292,7 @@ function UnderlineField({
       <input
         type={type}
         inputMode={inputMode}
+        autoComplete={autoComplete}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -333,6 +341,7 @@ function Tabs({
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
+            aria-pressed={active}
             className={cx('text-[15px] font-semibold tracking-tight transition', active ? 'text-white' : 'text-white/70 hover:text-white')}
             style={{
               textDecoration: active ? 'underline' : 'none',
@@ -367,6 +376,7 @@ function MultiTabs({
             key={o.value}
             type="button"
             onClick={() => toggle(o.value)}
+            aria-pressed={active}
             className={cx(
               'text-[13px] md:text-[14px] font-semibold uppercase tracking-[0.08em] transition',
               active ? 'text-white' : 'text-white/65 hover:text-white'
@@ -404,6 +414,7 @@ function ChoiceRow({
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
+            aria-pressed={active}
             className={cx('text-[14px] md:text-[15px] font-semibold tracking-tight transition', active ? 'text-white' : 'text-white/70 hover:text-white')}
             style={{
               textDecoration: active ? 'underline' : 'none',
@@ -1221,8 +1232,14 @@ export default function DzialkaForm({
 
       <div className="mx-auto max-w-5xl px-6 pb-24 pt-10 md:px-10">
         <form onSubmit={onSubmit} className="space-y-10">
+          <div className="text-xs text-white/40">
+            <span className="text-[#9fd14b]">*</span> pole wymagane
+          </div>
+
           <div className="space-y-6">
-            <SectionTitle>Tytuł ogłoszenia</SectionTitle>
+            <SectionTitle>
+              Tytuł ogłoszenia <span className="text-[#9fd14b]">*</span>
+            </SectionTitle>
 
             <UnderlineField
               label=""
@@ -1238,7 +1255,9 @@ export default function DzialkaForm({
 
           <div className="space-y-6">
             <div className="flex items-end justify-between gap-4">
-              <SectionTitle>Zdjęcia</SectionTitle>
+              <SectionTitle>
+                Zdjęcia <span className="text-[#9fd14b]">*</span>
+              </SectionTitle>
               <div className="text-[13px] font-medium text-white/55">
                 minimum 1 zdjęcie, maksymalnie {MAX_PHOTOS}
               </div>
@@ -1382,6 +1401,10 @@ export default function DzialkaForm({
                 value={telefon}
                 onChange={setTelefon}
                 placeholder="Np. 605 000 000"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                required
               />
 
               <UnderlineField
@@ -1390,6 +1413,7 @@ export default function DzialkaForm({
                 onChange={(v) => setCenaPln(formatThousandsSpaces(v))}
                 placeholder="Np. 150 000"
                 inputMode="numeric"
+                required
               />
 
               <UnderlineField
@@ -1398,6 +1422,7 @@ export default function DzialkaForm({
                 onChange={(v) => setPowierzchniaM2(formatThousandsSpaces(v))}
                 placeholder="Np. 1 200"
                 inputMode="numeric"
+                required
               />
             </div>
 
@@ -1423,6 +1448,7 @@ export default function DzialkaForm({
                   value={sprzedajacyImie}
                   onChange={setSprzedajacyImie}
                   placeholder="Np. Daniel"
+                  required
                 />
               </div>
             )}
@@ -1435,6 +1461,7 @@ export default function DzialkaForm({
                     value={biuroNazwa}
                     onChange={setBiuroNazwa}
                     placeholder="Np. TylkoDziałki Nieruchomości"
+                    required
                   />
 
                   <UnderlineField
@@ -1442,6 +1469,7 @@ export default function DzialkaForm({
                     value={biuroOpiekun}
                     onChange={setBiuroOpiekun}
                     placeholder="Np. Daniel"
+                    required
                   />
 
                   <UnderlineField
@@ -1501,7 +1529,9 @@ export default function DzialkaForm({
           </div>
 
           <div className="space-y-6">
-            <SectionTitle>Przeznaczenie</SectionTitle>
+            <SectionTitle>
+              Przeznaczenie <span className="text-[#9fd14b]">*</span>
+            </SectionTitle>
 
             <MultiTabs
               values={przeznaczenia}
@@ -1613,6 +1643,7 @@ export default function DzialkaForm({
                   key={x.key}
                   type="button"
                   onClick={() => x.set((p: boolean) => !p)}
+                  aria-pressed={x.v}
                   className={cx('text-[14px] font-semibold tracking-tight transition', x.v ? 'text-white' : 'text-white/70 hover:text-white')}
                   style={{
                     textDecoration: x.v ? 'underline' : 'none',
@@ -1758,7 +1789,9 @@ export default function DzialkaForm({
 
           <div className="space-y-6">
             <Hr className="mt-8" />
-            <SectionTitle>Lokalizacja</SectionTitle>
+            <SectionTitle>
+              Lokalizacja <span className="text-[#9fd14b]">*</span>
+            </SectionTitle>
 
             <div className="mt-2">
               <LocationPicker value={location ?? undefined} onChange={(v: any) => setLocation(v)} />
