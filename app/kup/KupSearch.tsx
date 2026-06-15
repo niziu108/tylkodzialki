@@ -73,7 +73,6 @@ const EMPTY_APPLIED: AppliedFilters = {
 
 function loadPlaces(apiKey: string) {
   return new Promise<void>((resolve, reject) => {
-    // @ts-ignore
     if (window.google?.maps?.places) return resolve();
 
     const id = 'google-places-js';
@@ -102,36 +101,42 @@ function loadPlaces(apiKey: string) {
 async function geocodeTypedLocation(
   text: string
 ): Promise<{ lat: number; lng: number } | null> {
-  // @ts-ignore
-  if (!window.google?.maps?.Geocoder) return null;
+  const q = text.trim();
+  if (!q) return null;
 
-  const query = text.trim();
-  if (!query) return null;
-
-  return new Promise((resolve) => {
-    // @ts-ignore
-    const geocoder = new window.google.maps.Geocoder();
-
-    geocoder.geocode(
-      {
-        address: `${query}, Polska`,
-        region: 'pl',
-      },
-      (results: any, status: string) => {
-        if (status !== 'OK' || !results?.[0]?.geometry?.location) {
-          resolve(null);
-          return;
+  // Primary: client-side Geocoder — requests come from the browser on tylkodzialki.pl,
+  // so they pass HTTP Referrer restrictions on the API key.
+  if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
+    const clientResult = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+      const geocoder = new window.google.maps.Geocoder();
+      const address = /polska|poland/i.test(q) ? q : `${q}, Polska`;
+      geocoder.geocode(
+        { address, region: 'pl' },
+        (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+          if (status !== 'OK' || !results?.[0]?.geometry?.location) {
+            resolve(null);
+          } else {
+            const loc = results[0].geometry.location;
+            resolve({ lat: loc.lat(), lng: loc.lng() });
+          }
         }
+      );
+    });
+    if (clientResult) return clientResult;
+  }
 
-        const loc = results[0].geometry.location;
-
-        resolve({
-          lat: loc.lat(),
-          lng: loc.lng(),
-        });
-      }
-    );
-  });
+  // Fallback: server-side — used when Maps JS API is not yet loaded on page mount
+  try {
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { lat?: unknown; lng?: unknown };
+    if (typeof data.lat === 'number' && typeof data.lng === 'number') {
+      return { lat: data.lat, lng: data.lng };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
 function digitsOnly(s: string) {
@@ -273,7 +278,7 @@ function readStateFromUrl(): StoredState {
     !(lat === 0 && lng === 0);
 
   const radiusRaw = Number(sp.get('radius') ?? '5');
-  const radiusKm = KM_OPTIONS.includes(radiusRaw as any)
+  const radiusKm = KM_OPTIONS.includes(radiusRaw as unknown as (typeof KM_OPTIONS)[number])
     ? (radiusRaw as (typeof KM_OPTIONS)[number])
     : 5;
 
@@ -551,11 +556,21 @@ export default function KupSearch({
 
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>(initial.filters.przezn);
   const [applied, setApplied] = useState<AppliedFilters>(initial.filters);
+  const [expanded, setExpanded] = useState(
+    initial.filters.przezn.length > 0 ||
+      !!initial.filters.priceMin ||
+      !!initial.filters.priceMax ||
+      !!initial.filters.areaMin ||
+      !!initial.filters.areaMax
+  );
+  const [locError, setLocError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSug, setShowSug] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchTopRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollRef = useRef(false);
-
+  const sugTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function updateBrowserUrl(filters: AppliedFilters, nextPage: number, replace = false) {
     const url = buildUrlFromState(filters, nextPage);
@@ -612,8 +627,8 @@ export default function KupSearch({
       setCount(total);
       setPage(safeNextPage);
       saveState(nextApplied, safeNextPage);
-    } catch (e: any) {
-      setErr(e?.message ?? 'Błąd pobierania');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Błąd pobierania');
       setItems([]);
       setCount(0);
       setPage(1);
@@ -675,25 +690,6 @@ export default function KupSearch({
         await loadPlaces(key).catch(() => {});
       }
 
-      // Set up autocomplete
-      if (!cancelled && inputRef.current && window.google?.maps?.places) {
-        const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
-          fields: ['geometry', 'formatted_address', 'name'],
-        });
-
-        ac.addListener('place_changed', () => {
-          const p = ac.getPlace();
-          const label = p?.formatted_address || p?.name || '';
-          const loc = p?.geometry?.location;
-
-          setLocText(label);
-
-          if (loc?.lat && loc?.lng) {
-            setCenter({ lat: loc.lat(), lng: loc.lng() });
-          }
-        });
-      }
-
       // Case B: geocode text from URL, then search
       if (needsGeocode && !cancelled) {
         const geocoded = await geocodeTypedLocation(initial.filters.locText);
@@ -746,19 +742,62 @@ export default function KupSearch({
     } catch {}
   }, [loading, page, items.length]);
 
+  function fetchSuggestions(val: string) {
+    if (!val.trim() || val.length < 2 || !window.google?.maps?.places) {
+      setSuggestions([]);
+      setShowSug(false);
+      return;
+    }
+    const svc = new window.google.maps.places.AutocompleteService();
+    svc.getPlacePredictions(
+      { input: val, componentRestrictions: { country: 'pl' }, types: ['geocode'] },
+      (
+        predictions: google.maps.places.AutocompletePrediction[] | null,
+        status: google.maps.places.PlacesServiceStatus
+      ) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
+          setSuggestions([]);
+          setShowSug(false);
+          return;
+        }
+        setSuggestions(predictions.map((p: google.maps.places.AutocompletePrediction) => p.description));
+        setShowSug(true);
+      }
+    );
+  }
+
+  async function selectSuggestion(text: string) {
+    setLocText(text);
+    setShowSug(false);
+    setSuggestions([]);
+    if (locError) setLocError(null);
+    const coords = await geocodeTypedLocation(text);
+    if (coords) setCenter(coords);
+  }
+
   async function applyAndSearch() {
+    // Fallback: browser autocomplete may fill the DOM input without triggering React onChange
+    const effectiveLocText = locText.trim() || (inputRef.current?.value?.trim() ?? '');
+
     let nextCenter = center;
 
-    if (!nextCenter && locText.trim()) {
-      nextCenter = await geocodeTypedLocation(locText);
+    if (effectiveLocText) {
+      if (!nextCenter) {
+        nextCenter = await geocodeTypedLocation(effectiveLocText);
+        if (nextCenter) setCenter(nextCenter);
+      }
 
-      if (nextCenter) {
-        setCenter(nextCenter);
+      // Homepage: require valid coordinates — if geocoding failed, block navigation
+      if (navigationMode && !nextCenter) {
+        setLocError('Wybierz lokalizację z podpowiedzi albo wpisz poprawną miejscowość.');
+        return;
       }
     }
 
+    setLocError(null);
+
     const next: AppliedFilters = {
-      locText,
+      locText: effectiveLocText,
       radiusKm,
       center: nextCenter,
       priceMin: digitsOnly(priceMin),
@@ -779,6 +818,7 @@ export default function KupSearch({
   function reset() {
     setLocText('');
     setCenter(null);
+    setLocError(null);
     setRadiusKm(5);
     setPriceMin('');
     setPriceMax('');
@@ -819,27 +859,60 @@ export default function KupSearch({
   const goTo = (p: number) => changePage(p);
 
   const filterContent = (
-    <>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_220px]">
+    <div className="text-left">
+      {/* Row 1: Lokalizacja + Zasięg — always visible */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_200px]">
         <div>
           <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
             Lokalizacja
           </label>
-          <div className="mt-3 rounded-xl border border-white/25 bg-transparent">
-            <input
-              ref={inputRef}
-              value={locText}
-              onChange={(e) => {
-                setLocText(e.target.value);
-                setCenter(null);
-              }}
-              placeholder="Wpisz lokalizację"
-              className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') applyAndSearch();
-              }}
-            />
+          <div className="relative">
+            <div className={`mt-3 rounded-xl border bg-transparent ${locError ? 'border-red-400/70' : 'border-white/25'}`}>
+              <input
+                ref={inputRef}
+                value={locText}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLocText(val);
+                  setCenter(null);
+                  if (locError) setLocError(null);
+                  setShowSug(false);
+                  if (sugTimerRef.current) clearTimeout(sugTimerRef.current);
+                  if (val.trim().length >= 2) {
+                    sugTimerRef.current = setTimeout(() => fetchSuggestions(val), 250);
+                  } else {
+                    setSuggestions([]);
+                  }
+                }}
+                onBlur={() => setTimeout(() => setShowSug(false), 150)}
+                onFocus={() => { if (suggestions.length > 0) setShowSug(true); }}
+                placeholder="Wpisz lokalizację"
+                className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setShowSug(false);
+                  if (e.key === 'Enter') { setShowSug(false); applyAndSearch(); }
+                }}
+              />
+            </div>
+
+            {showSug && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-white/15 bg-[#181818] shadow-xl">
+                {suggestions.map((text, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); void selectSuggestion(text); }}
+                    className="w-full px-4 py-3 text-left text-[13px] text-white/75 transition hover:bg-white/10 hover:text-white"
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+          {locError && (
+            <p className="mt-2 text-[11px] tracking-[0.10em] text-red-400/80">{locError}</p>
+          )}
         </div>
 
         <div>
@@ -849,7 +922,7 @@ export default function KupSearch({
           <div className="mt-3 rounded-xl border border-white/25">
             <select
               value={radiusKm}
-              onChange={(e) => setRadiusKm(Number(e.target.value) as any)}
+              onChange={(e) => setRadiusKm(Number(e.target.value) as (typeof KM_OPTIONS)[number])}
               className="w-full bg-transparent px-4 py-3 text-white/90 outline-none"
             >
               {KM_OPTIONS.map((km) => (
@@ -862,131 +935,147 @@ export default function KupSearch({
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
-            Powierzchnia
-          </label>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div className="relative rounded-xl border border-white/25">
-              <input
-                value={areaMin}
-                onChange={makeAutoPLHandler(setAreaMin)}
-                inputMode="numeric"
-                placeholder="od"
-                className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
-                m²
-              </span>
-            </div>
-
-            <div className="relative rounded-xl border border-white/25">
-              <input
-                value={areaMax}
-                onChange={makeAutoPLHandler(setAreaMax)}
-                inputMode="numeric"
-                placeholder="od"
-                className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
-                m²
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
-            Cena
-          </label>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div className="relative rounded-xl border border-white/25">
-              <input
-                value={priceMin}
-                onChange={makeAutoPLHandler(setPriceMin)}
-                inputMode="numeric"
-                placeholder="od"
-                className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
-                zł
-              </span>
-            </div>
-
-            <div className="relative rounded-xl border border-white/25">
-              <input
-                value={priceMax}
-                onChange={makeAutoPLHandler(setPriceMax)}
-                inputMode="numeric"
-                placeholder="do"
-                className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
-                zł
-              </span>
-            </div>
-          </div>
-        </div>
+      {/* Row 2: Toggle only */}
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-white/50 transition hover:text-white/80"
+        >
+          <span className="text-[8px]">{expanded ? '▲' : '▼'}</span>
+          {expanded ? 'Mniej filtrów' : 'Więcej filtrów'}
+        </button>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 items-end gap-4 md:grid-cols-[1fr_260px]">
-        <div>
-          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
-            Przeznaczenie
-          </label>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {PRZEZN.map((p) => {
-              const active = przezn.includes(p.key);
+      {/* Expanded: Powierzchnia + Cena + Przeznaczenie */}
+      {expanded && (
+        <div className="mt-5 space-y-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+                Powierzchnia
+              </label>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="relative rounded-xl border border-white/25">
+                  <input
+                    value={areaMin}
+                    onChange={makeAutoPLHandler(setAreaMin)}
+                    inputMode="numeric"
+                    placeholder="od"
+                    className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                    m²
+                  </span>
+                </div>
+                <div className="relative rounded-xl border border-white/25">
+                  <input
+                    value={areaMax}
+                    onChange={makeAutoPLHandler(setAreaMax)}
+                    inputMode="numeric"
+                    placeholder="do"
+                    className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                    m²
+                  </span>
+                </div>
+              </div>
+            </div>
 
-              return (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => togglePrzezn(p.key)}
-                  className={[
-                    'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
-                    active
-                      ? 'border-white/80 text-white'
-                      : 'border-white/25 text-white/70 hover:border-white/45',
-                  ].join(' ')}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
+            <div>
+              <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+                Cena
+              </label>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="relative rounded-xl border border-white/25">
+                  <input
+                    value={priceMin}
+                    onChange={makeAutoPLHandler(setPriceMin)}
+                    inputMode="numeric"
+                    placeholder="od"
+                    className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                    zł
+                  </span>
+                </div>
+                <div className="relative rounded-xl border border-white/25">
+                  <input
+                    value={priceMax}
+                    onChange={makeAutoPLHandler(setPriceMax)}
+                    inputMode="numeric"
+                    placeholder="do"
+                    className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                    zł
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+              Przeznaczenie
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {PRZEZN.map((p) => {
+                const active = przezn.includes(p.key);
+                return (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => togglePrzezn(p.key)}
+                    className={[
+                      'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                      active
+                        ? 'border-white/80 text-white'
+                        : 'border-white/25 text-white/70 hover:border-white/45',
+                    ].join(' ')}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={reset}
-            className="flex-1 rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
-          >
-            Wyczyść
-          </button>
-
-          <button
-            type="button"
-            onClick={applyAndSearch}
-            className="flex-1 rounded-xl bg-white px-4 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? 'Szukam…' : 'Wyszukaj'}
-          </button>
-        </div>
-      </div>
-
-      {!navigationMode && (
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+      {/* Action buttons — always at the bottom */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        {/* Results count (only on /kup) */}
+        {!navigationMode ? (
           <div className="text-[12px] uppercase tracking-[0.18em] text-white/55">
             {loading && items.length === 0 ? 'Ładowanie ofert...' : `Wyniki: ${count}`}
           </div>
-          {err && <div className="text-sm text-red-300">{err}</div>}
+        ) : (
+          <div />
+        )}
+
+        <div className="flex gap-3">
+          {!navigationMode && (
+            <button
+              type="button"
+              onClick={reset}
+              className="rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
+            >
+              Wyczyść
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={applyAndSearch}
+            className="rounded-xl bg-white px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:opacity-60"
+            disabled={loading}
+          >
+            {loading ? 'Szukam…' : 'Szukaj'}
+          </button>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 
   if (navigationMode) {
