@@ -591,9 +591,23 @@ export default function KupSearch({
   );
   const [locError, setLocError] = useState<string | null>(null);
 
+  const [sortOpen, setSortOpen] = useState(false);
+
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchTopRef = useRef<HTMLDivElement | null>(null);
+  const sortRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollRef = useRef(false);
+
+  useEffect(() => {
+    if (!sortOpen) return;
+    function onOutside(e: MouseEvent) {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onOutside);
+    return () => document.removeEventListener('mousedown', onOutside);
+  }, [sortOpen]);
 
   function updateBrowserUrl(filters: AppliedFilters, nextPage: number, replace = false) {
     const url = buildUrlFromState(filters, nextPage);
@@ -1108,28 +1122,42 @@ export default function KupSearch({
       </section>
 
       <section className="mx-auto mt-8 max-w-6xl px-3 md:px-4">
-        <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="shrink-0 text-[11px] uppercase tracking-[0.22em] text-white/35 mr-1">
-            Sortuj:
-          </span>
-          {SORT_OPTIONS.map((opt) => {
-            const active = applied.sort === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => changeSort(opt.value)}
-                className={[
-                  'shrink-0 rounded-full border px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition',
-                  active
-                    ? 'border-white/60 text-white'
-                    : 'border-white/20 text-white/50 hover:border-white/35 hover:text-white/70',
-                ].join(' ')}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+        <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
+          <span className="text-[11px] uppercase tracking-[0.22em] text-white/35">Sortuj:</span>
+          <button
+            type="button"
+            onClick={() => setSortOpen((v) => !v)}
+            className="flex items-center gap-2 rounded-xl border border-white/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-white/80 transition hover:border-white/40"
+          >
+            {SORT_OPTIONS.find((o) => o.value === applied.sort)?.label ?? 'Najnowsze'}
+            <span className="text-[8px] text-white/40">{sortOpen ? '▲' : '▼'}</span>
+          </button>
+          {sortOpen && (
+            <div className="absolute left-[5.5rem] top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-white/12 bg-[#181818] py-1.5 shadow-2xl">
+              {SORT_OPTIONS.map((opt) => {
+                const active = applied.sort === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      changeSort(opt.value);
+                      setSortOpen(false);
+                    }}
+                    className={[
+                      'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.18em] transition',
+                      active ? 'text-white' : 'text-white/50 hover:text-white/85',
+                    ].join(' ')}
+                  >
+                    <span className={active ? 'text-white/60 text-[7px]' : 'w-[0.7em]'}>
+                      {active ? '●' : ''}
+                    </span>
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <PagerResponsive
