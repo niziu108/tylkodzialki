@@ -544,33 +544,6 @@ export default function KupSearch({
   const searchTopRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollRef = useRef(false);
 
-  useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!key) return;
-
-    loadPlaces(key)
-      .then(() => {
-        if (!inputRef.current) return;
-
-        // @ts-ignore
-        const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
-          fields: ['geometry', 'formatted_address', 'name'],
-        });
-
-        ac.addListener('place_changed', () => {
-          const p = ac.getPlace();
-          const label = p?.formatted_address || p?.name || '';
-          const loc = p?.geometry?.location;
-
-          setLocText(label);
-
-          if (loc?.lat && loc?.lng) {
-            setCenter({ lat: loc.lat(), lng: loc.lng() });
-          }
-        });
-      })
-      .catch(() => {});
-  }, []);
 
   function updateBrowserUrl(filters: AppliedFilters, nextPage: number, replace = false) {
     const url = buildUrlFromState(filters, nextPage);
@@ -670,38 +643,64 @@ export default function KupSearch({
   }
 
   useEffect(() => {
-  let cancelled = false;
+    let cancelled = false;
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  async function runInitialSearch() {
-    let nextFilters = initial.filters;
+    async function initMapsAndSearch() {
+      // Load Maps first — geocoder must be ready before initial geocoding
+      if (key) {
+        await loadPlaces(key).catch(() => {});
+      }
 
-    if (nextFilters.locText.trim() && !nextFilters.center) {
-      const geocoded = await geocodeTypedLocation(nextFilters.locText);
+      // Set up autocomplete now that Maps is ready
+      if (!cancelled && inputRef.current && window.google?.maps?.places) {
+        const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
+          fields: ['geometry', 'formatted_address', 'name'],
+        });
 
-      if (!cancelled && geocoded) {
-        nextFilters = {
-          ...nextFilters,
-          center: geocoded,
-        };
+        ac.addListener('place_changed', () => {
+          const p = ac.getPlace();
+          const label = p?.formatted_address || p?.name || '';
+          const loc = p?.geometry?.location;
 
-        setCenter(geocoded);
-        setApplied(nextFilters);
+          setLocText(label);
+
+          if (loc?.lat && loc?.lng) {
+            setCenter({ lat: loc.lat(), lng: loc.lng() });
+          }
+        });
+      }
+
+      // Run initial search — geocoder is guaranteed to be available now
+      let nextFilters = initial.filters;
+
+      if (!cancelled && nextFilters.locText.trim() && !nextFilters.center) {
+        const geocoded = await geocodeTypedLocation(nextFilters.locText);
+
+        if (!cancelled && geocoded) {
+          nextFilters = {
+            ...nextFilters,
+            center: geocoded,
+          };
+
+          setCenter(geocoded);
+          setApplied(nextFilters);
+        }
+      }
+
+      if (!cancelled) {
+        fetchDataWith(nextFilters, initial.page, true);
       }
     }
 
-    if (!cancelled) {
-      fetchDataWith(nextFilters, initial.page, true);
-    }
-  }
+    initMapsAndSearch();
 
-  runInitialSearch();
+    return () => {
+      cancelled = true;
+    };
 
-  return () => {
-    cancelled = true;
-  };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (loading) return;

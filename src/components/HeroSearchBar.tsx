@@ -54,6 +54,7 @@ async function geocodeText(text: string): Promise<{ lat: number; lng: number } |
 export default function HeroSearchBar() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const mapsLoadedRef = useRef<Promise<void>>(Promise.resolve());
 
   const [locText, setLocText] = useState('');
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
@@ -65,7 +66,8 @@ export default function HeroSearchBar() {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!key) return;
 
-    loadPlaces(key)
+    // Store the promise so handleSearch can await Maps before geocoding
+    mapsLoadedRef.current = loadPlaces(key)
       .then(() => {
         if (!inputRef.current) return;
 
@@ -101,9 +103,8 @@ export default function HeroSearchBar() {
       let resolvedCenter = center;
       const loc = locText.trim();
 
-      // If user typed without selecting autocomplete, try geocoding.
-      // Maps is already loaded at this point (set up on mount).
       if (loc && !resolvedCenter) {
+        await mapsLoadedRef.current; // wait for Maps to fully load before geocoding
         resolvedCenter = await geocodeText(loc);
       }
 

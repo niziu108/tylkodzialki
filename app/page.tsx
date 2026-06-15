@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
 import HeroSearchBar from "@/components/HeroSearchBar";
+import HeroCounter from "@/components/HeroCounter";
 import type { Przeznaczenie } from "@prisma/client";
 import { SEO_REGIONS } from "@/lib/seo-locations";
 
@@ -448,10 +449,7 @@ export default async function HomePage() {
             Znajdź swoją działkę
           </h1>
 
-          <p className="mt-4 text-sm text-white/58 md:text-[17px]">
-            {listingCount > 0 ? `${formatIntPL(listingCount)}+ ofert · ` : ""}
-            działki budowlane, rolne, rekreacyjne i inwestycyjne
-          </p>
+          <HeroCounter target={listingCount} />
 
           <div className="mt-8 w-full max-w-2xl">
             <HeroSearchBar />
