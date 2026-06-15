@@ -104,6 +104,28 @@ async function geocodeTypedLocation(
   const q = text.trim();
   if (!q) return null;
 
+  // Primary: client-side Geocoder — requests come from the browser on tylkodzialki.pl,
+  // so they pass HTTP Referrer restrictions on the API key.
+  if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
+    const clientResult = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+      const geocoder = new window.google.maps.Geocoder();
+      const address = /polska|poland/i.test(q) ? q : `${q}, Polska`;
+      geocoder.geocode(
+        { address, region: 'pl' },
+        (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+          if (status !== 'OK' || !results?.[0]?.geometry?.location) {
+            resolve(null);
+          } else {
+            const loc = results[0].geometry.location;
+            resolve({ lat: loc.lat(), lng: loc.lng() });
+          }
+        }
+      );
+    });
+    if (clientResult) return clientResult;
+  }
+
+  // Fallback: server-side — used when Maps JS API is not yet loaded on page mount
   try {
     const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
     if (!res.ok) return null;
@@ -111,10 +133,10 @@ async function geocodeTypedLocation(
     if (typeof data.lat === 'number' && typeof data.lng === 'number') {
       return { lat: data.lat, lng: data.lng };
     }
-    return null;
   } catch {
-    return null;
+    // ignore
   }
+  return null;
 }
 
 function digitsOnly(s: string) {
