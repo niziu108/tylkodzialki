@@ -564,10 +564,13 @@ export default function KupSearch({
       !!initial.filters.areaMax
   );
   const [locError, setLocError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSug, setShowSug] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchTopRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollRef = useRef(false);
+  const sugTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function updateBrowserUrl(filters: AppliedFilters, nextPage: number, replace = false) {
     const url = buildUrlFromState(filters, nextPage);
@@ -687,36 +690,6 @@ export default function KupSearch({
         await loadPlaces(key).catch(() => {});
       }
 
-      // Autocomplete widget — attach after Maps loads, works in both navigationMode and /kup
-      if (!cancelled && inputRef.current && window.google?.maps?.places) {
-        const widget = new window.google.maps.places.Autocomplete(inputRef.current, {
-          componentRestrictions: { country: 'pl' },
-          types: ['geocode'],
-          fields: ['formatted_address', 'geometry', 'name'],
-        });
-
-        widget.addListener('place_changed', () => {
-          const place = widget.getPlace();
-          // Some API versions return empty formatted_address — fall back to DOM input value
-          const inputVal = inputRef.current?.value?.trim() ?? '';
-          const label = place.formatted_address || place.name || inputVal;
-
-          if (label) setLocText(label);
-
-          if (place.geometry?.location) {
-            setCenter({
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng(),
-            });
-          } else if (label) {
-            // Fallback: API returned no geometry, geocode the selected text
-            geocodeTypedLocation(label).then((coords) => {
-              if (coords && !cancelled) setCenter(coords);
-            });
-          }
-        });
-      }
-
       // Case B: geocode text from URL, then search
       if (needsGeocode && !cancelled) {
         const geocoded = await geocodeTypedLocation(initial.filters.locText);
@@ -768,6 +741,39 @@ export default function KupSearch({
       }, 80);
     } catch {}
   }, [loading, page, items.length]);
+
+  function fetchSuggestions(val: string) {
+    if (!val.trim() || val.length < 2 || !window.google?.maps?.places) {
+      setSuggestions([]);
+      setShowSug(false);
+      return;
+    }
+    const svc = new window.google.maps.places.AutocompleteService();
+    svc.getPlacePredictions(
+      { input: val, componentRestrictions: { country: 'pl' }, types: ['geocode'] },
+      (
+        predictions: google.maps.places.AutocompletePrediction[] | null,
+        status: google.maps.places.PlacesServiceStatus
+      ) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
+          setSuggestions([]);
+          setShowSug(false);
+          return;
+        }
+        setSuggestions(predictions.map((p: google.maps.places.AutocompletePrediction) => p.description));
+        setShowSug(true);
+      }
+    );
+  }
+
+  async function selectSuggestion(text: string) {
+    setLocText(text);
+    setShowSug(false);
+    setSuggestions([]);
+    if (locError) setLocError(null);
+    const coords = await geocodeTypedLocation(text);
+    if (coords) setCenter(coords);
+  }
 
   async function applyAndSearch() {
     // Fallback: browser autocomplete may fill the DOM input without triggering React onChange
@@ -860,21 +866,49 @@ export default function KupSearch({
           <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
             Lokalizacja
           </label>
-          <div className={`mt-3 rounded-xl border bg-transparent ${locError ? 'border-red-400/70' : 'border-white/25'}`}>
-            <input
-              ref={inputRef}
-              value={locText}
-              onChange={(e) => {
-                setLocText(e.target.value);
-                setCenter(null);
-                if (locError) setLocError(null);
-              }}
-              placeholder="Wpisz lokalizację"
-              className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') applyAndSearch();
-              }}
-            />
+          <div className="relative">
+            <div className={`mt-3 rounded-xl border bg-transparent ${locError ? 'border-red-400/70' : 'border-white/25'}`}>
+              <input
+                ref={inputRef}
+                value={locText}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLocText(val);
+                  setCenter(null);
+                  if (locError) setLocError(null);
+                  setShowSug(false);
+                  if (sugTimerRef.current) clearTimeout(sugTimerRef.current);
+                  if (val.trim().length >= 2) {
+                    sugTimerRef.current = setTimeout(() => fetchSuggestions(val), 250);
+                  } else {
+                    setSuggestions([]);
+                  }
+                }}
+                onBlur={() => setTimeout(() => setShowSug(false), 150)}
+                onFocus={() => { if (suggestions.length > 0) setShowSug(true); }}
+                placeholder="Wpisz lokalizację"
+                className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setShowSug(false);
+                  if (e.key === 'Enter') { setShowSug(false); applyAndSearch(); }
+                }}
+              />
+            </div>
+
+            {showSug && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-white/15 bg-[#181818] shadow-xl">
+                {suggestions.map((text, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); void selectSuggestion(text); }}
+                    className="w-full px-4 py-3 text-left text-[13px] text-white/75 transition hover:bg-white/10 hover:text-white"
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {locError && (
             <p className="mt-2 text-[11px] tracking-[0.10em] text-red-400/80">{locError}</p>
