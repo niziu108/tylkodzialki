@@ -44,6 +44,8 @@ const PAGE_SIZE = 20;
 const SCROLL_OFFSET = -450;
 const STORAGE_KEY = 'TD_KUP_STATE_V2';
 
+export type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'area_asc' | 'area_desc';
+
 type AppliedFilters = {
   locText: string;
   radiusKm: (typeof KM_OPTIONS)[number];
@@ -53,6 +55,7 @@ type AppliedFilters = {
   areaMin: string;
   areaMax: string;
   przezn: Przeznaczenie[];
+  sort: SortOption;
 };
 
 type StoredState = {
@@ -69,7 +72,19 @@ const EMPTY_APPLIED: AppliedFilters = {
   areaMin: '',
   areaMax: '',
   przezn: [],
+  sort: 'newest',
 };
+
+const VALID_SORTS: SortOption[] = ['newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'];
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'newest', label: 'Najnowsze' },
+  { value: 'oldest', label: 'Najstarsze' },
+  { value: 'price_asc', label: 'Najtańsze' },
+  { value: 'price_desc', label: 'Najdroższe' },
+  { value: 'area_asc', label: 'Pow. rosnąco' },
+  { value: 'area_desc', label: 'Pow. malejąco' },
+];
 
 function loadPlaces(apiKey: string) {
   return new Promise<void>((resolve, reject) => {
@@ -213,6 +228,7 @@ function buildUrlFromState(filters: AppliedFilters, page: number) {
   if (filters.areaMin) sp.set('areaMin', filters.areaMin);
   if (filters.areaMax) sp.set('areaMax', filters.areaMax);
   if (filters.przezn.length) sp.set('przezn', filters.przezn.join(','));
+  if (filters.sort && filters.sort !== 'newest') sp.set('sort', filters.sort);
   if (page > 1) sp.set('page', String(page));
 
   const qs = sp.toString();
@@ -240,6 +256,10 @@ function loadStoredState(): StoredState | null {
 
     const parsed = JSON.parse(raw) as StoredState;
     if (!parsed?.filters) return null;
+
+    if (!VALID_SORTS.includes(parsed.filters.sort)) {
+      parsed.filters.sort = 'newest';
+    }
 
     return parsed;
   } catch {
@@ -290,6 +310,9 @@ function readStateFromUrl(): StoredState {
 
   const pageRaw = Number(sp.get('page') ?? '1');
 
+  const sortRaw = sp.get('sort') ?? 'newest';
+  const sort: SortOption = VALID_SORTS.includes(sortRaw as SortOption) ? (sortRaw as SortOption) : 'newest';
+
   return {
     filters: {
       locText,
@@ -300,6 +323,7 @@ function readStateFromUrl(): StoredState {
       areaMin: digitsOnly(sp.get('areaMin') ?? ''),
       areaMax: digitsOnly(sp.get('areaMax') ?? ''),
       przezn,
+      sort,
     },
     page: Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1,
   };
@@ -335,7 +359,7 @@ function makeParams(filters: AppliedFilters, page: number) {
 
   sp.set('skip', String((page - 1) * PAGE_SIZE));
   sp.set('take', String(PAGE_SIZE));
-  sp.set('sort', 'newest');
+  sp.set('sort', filters.sort);
 
   return sp;
 }
@@ -801,6 +825,7 @@ export default function KupSearch({
       areaMin: digitsOnly(areaMin),
       areaMax: digitsOnly(areaMax),
       przezn,
+      sort: applied.sort,
     };
 
     if (navigationMode) {
@@ -843,6 +868,13 @@ export default function KupSearch({
       sessionStorage.removeItem('TD_KUP_RESTORE_Y');
     } catch {}
 
+    setApplied(next);
+    fetchDataWith(next, 1);
+  }
+
+  function changeSort(newSort: SortOption) {
+    if (newSort === applied.sort) return;
+    const next: AppliedFilters = { ...applied, sort: newSort };
     setApplied(next);
     fetchDataWith(next, 1);
   }
@@ -1076,6 +1108,30 @@ export default function KupSearch({
       </section>
 
       <section className="mx-auto mt-8 max-w-6xl px-3 md:px-4">
+        <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="shrink-0 text-[11px] uppercase tracking-[0.22em] text-white/35 mr-1">
+            Sortuj:
+          </span>
+          {SORT_OPTIONS.map((opt) => {
+            const active = applied.sort === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => changeSort(opt.value)}
+                className={[
+                  'shrink-0 rounded-full border px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition',
+                  active
+                    ? 'border-white/60 text-white'
+                    : 'border-white/20 text-white/50 hover:border-white/35 hover:text-white/70',
+                ].join(' ')}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
         <PagerResponsive
           page={safePage}
           totalPages={totalPages}

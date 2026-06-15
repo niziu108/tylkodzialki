@@ -355,6 +355,11 @@ export async function GET(req: Request) {
   const skipParam = url.searchParams.get('skip');
   const skip = skipParam != null ? Math.max(Number(skipParam) || 0, 0) : (page - 1) * take;
 
+  const sortParam = url.searchParams.get('sort') ?? 'newest';
+  const sort = ['newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'].includes(sortParam)
+    ? sortParam
+    : 'newest';
+
   const andFilters: Prisma.DzialkaWhereInput[] = [
     { ownerId: { not: null } },
     { status: DzialkaStatus.AKTYWNE },
@@ -420,19 +425,29 @@ export async function GET(req: Request) {
 
     const aFeatured = isFeaturedActive(a);
     const bFeatured = isFeaturedActive(b);
-
     if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
 
-    const aPhotos = hasPhotos(a);
-    const bPhotos = hasPhotos(b);
-
-    if (aPhotos !== bPhotos) return aPhotos ? -1 : 1;
-
-    if (hasRadiusSearch && aInfo.radiusDistance !== null && bInfo.radiusDistance !== null) {
-      return aInfo.radiusDistance - bInfo.radiusDistance;
+    switch (sort) {
+      case 'oldest':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case 'price_asc':
+        return a.cenaPln - b.cenaPln;
+      case 'price_desc':
+        return b.cenaPln - a.cenaPln;
+      case 'area_asc':
+        return a.powierzchniaM2 - b.powierzchniaM2;
+      case 'area_desc':
+        return b.powierzchniaM2 - a.powierzchniaM2;
+      default: {
+        const aPhotos = hasPhotos(a);
+        const bPhotos = hasPhotos(b);
+        if (aPhotos !== bPhotos) return aPhotos ? -1 : 1;
+        if (hasRadiusSearch && aInfo.radiusDistance !== null && bInfo.radiusDistance !== null) {
+          return aInfo.radiusDistance - bInfo.radiusDistance;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
     }
-
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   const total = filtered.length;

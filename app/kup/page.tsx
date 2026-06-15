@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { Przeznaczenie } from '@prisma/client';
 import KupSearch from './KupSearch';
+import type { SortOption } from './KupSearch';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +59,10 @@ export default async function KupPage({ searchParams }: KupPageProps) {
 
   const pageRaw = Number(one(sp.page) || '1');
 
+  const ALLOWED_SORTS: SortOption[] = ['newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'];
+  const sortRaw = one(sp['sort']);
+  const sort: SortOption = ALLOWED_SORTS.includes(sortRaw as SortOption) ? (sortRaw as SortOption) : 'newest';
+
   return (
     <main className="pt-10 pb-20">
       <KupSearch
@@ -71,6 +76,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
           areaMin: digitsOnly(one(sp.areaMin)),
           areaMax: digitsOnly(one(sp.areaMax)),
           przezn,
+          sort,
         }}
       />
     </main>
