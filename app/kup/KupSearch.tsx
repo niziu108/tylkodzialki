@@ -824,7 +824,6 @@ export default function KupSearch({
     setPrzezn([]);
 
     if (navigationMode) {
-      router.push('/kup');
       return;
     }
 
@@ -1025,15 +1024,13 @@ export default function KupSearch({
         )}
 
         <div className="flex gap-3">
-          {!navigationMode && (
-            <button
-              type="button"
-              onClick={reset}
-              className="rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
-            >
-              Wyczyść
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={reset}
+            className="rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
+          >
+            Wyczyść
+          </button>
           <button
             type="button"
             onClick={applyAndSearch}
