@@ -156,9 +156,9 @@ export default function GlobalNav() {
 
             <button
               onClick={() => go('/sprzedaj')}
-              className={`${navBtnBase} ${navBtnWhite}`}
+              className="relative inline-flex h-10 items-center rounded-xl border border-[#7aa333]/40 bg-[#7aa333]/12 px-5 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b] transition hover:border-[#7aa333]/65 hover:bg-[#7aa333]/22"
             >
-              WYSTAW DZIAŁKĘ
+              DODAJ OGŁOSZENIE
             </button>
 
             {!isLogged ? (
@@ -306,8 +306,9 @@ export default function GlobalNav() {
                 <button
                   onClick={() => go('/sprzedaj')}
                   className={linkMobile}
+                  style={{ color: '#9fd14b' }}
                 >
-                  WYSTAW DZIAŁKĘ
+                  DODAJ OGŁOSZENIE
                 </button>
 
                 {!isLogged ? (

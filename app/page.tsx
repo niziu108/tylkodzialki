@@ -18,7 +18,6 @@ export const metadata: Metadata = {
   },
 };
 
-const ACCENT = "#2F5E46";
 const GREEN = "#7aa333";
 const PAGE_BG = "#131313";
 
@@ -364,12 +363,14 @@ function PopularSearchesSection() {
 export default async function HomePage() {
   const now = new Date();
 
-  const [latestListings, latestArticles] = await Promise.all([
+  const activeWhere = {
+    status: "AKTYWNE" as const,
+    OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+  };
+
+  const [latestListings, latestArticles, listingCount] = await Promise.all([
     prisma.dzialka.findMany({
-      where: {
-        status: "AKTYWNE",
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      },
+      where: activeWhere,
       include: {
         zdjecia: {
           orderBy: { kolejnosc: "asc" },
@@ -384,6 +385,7 @@ export default async function HomePage() {
       orderBy: [{ createdAt: "desc" }],
       take: 6,
     }),
+    prisma.dzialka.count({ where: activeWhere }),
   ]);
 
   const latestCards: HomeListing[] =
@@ -434,63 +436,47 @@ export default async function HomePage() {
       className="relative w-full overflow-hidden"
       style={{ background: PAGE_BG }}
     >
-      <section className="relative h-[100svh] w-full">
-        <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center px-4 md:top-10">
-          <HeroSearchBar />
-        </div>
+      <section className="relative h-[100svh] w-full overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url(/kup.webp)" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/58 via-black/48 to-black/72" />
 
-        <div className="flex h-full flex-col md:flex-row">
-          <Link
-            href="/kup"
-            className="group relative flex flex-1 items-center justify-center overflow-hidden"
-          >
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: "url(/kup.webp)" }}
-            />
-            <div className="absolute inset-0 bg-black/35" />
+        <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 pb-10 text-center">
+          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-[#D8D2DB] md:text-[70px] md:leading-none">
+            Znajdź swoją działkę
+          </h1>
 
-            <div className="relative z-10 flex flex-col items-center px-6 text-center">
-              <h1 className="font-hero text-[36px] uppercase tracking-[0.08em] text-[#D8D2DB] md:text-[74px] md:leading-none">
-                SZUKAM DZIAŁKI
-              </h1>
+          <p className="mt-4 text-sm text-white/58 md:text-[17px]">
+            {listingCount > 0 ? `${formatIntPL(listingCount)}+ ofert · ` : ""}
+            działki budowlane, rolne, rekreacyjne i inwestycyjne
+          </p>
 
-              <div
-                className="mt-8 inline-flex items-center rounded-2xl border px-8 py-3 text-sm text-[#F3EFF5] transition-all duration-300 group-hover:bg-[#2F5E46]/25 md:text-base"
-                style={{ borderColor: ACCENT }}
+          <div className="mt-8 w-full max-w-2xl">
+            <HeroSearchBar />
+          </div>
+
+          <div className="mt-8">
+            <Link
+              href="/sprzedaj"
+              className="text-sm text-white/42 transition hover:text-white/72"
+            >
+              Sprzedajesz działkę?{" "}
+              <span
+                className="text-[#9fd14b]"
+                style={{
+                  textDecoration: "underline",
+                  textUnderlineOffset: "4px",
+                  textDecorationThickness: "1px",
+                  textDecorationColor: "rgba(159,209,75,0.40)",
+                }}
               >
-                PRZEJDŹ DO WYSZUKIWANIA
-              </div>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-[#2F5E46]/40 md:hidden" />
-          </Link>
-
-          <div className="hidden w-px bg-[#2F5E46]/45 md:block" />
-
-          <Link
-            href="/sprzedaj"
-            className="group relative flex flex-1 items-center justify-center overflow-hidden"
-          >
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: "url(/sprzedaj.webp)" }}
-            />
-            <div className="absolute inset-0 bg-black/35" />
-
-            <div className="relative z-10 flex flex-col items-center px-6 text-center">
-              <h2 className="font-hero text-[36px] uppercase tracking-[0.08em] text-[#D8D2DB] md:text-[74px] md:leading-none">
-                SPRZEDAJĘ DZIAŁKĘ
-              </h2>
-
-              <div
-                className="mt-8 inline-flex items-center rounded-2xl border px-8 py-3 text-sm text-[#F3EFF5] transition-all duration-300 group-hover:bg-[#2F5E46]/25 md:text-base"
-                style={{ borderColor: ACCENT }}
-              >
-                DODAJ OGŁOSZENIE
-              </div>
-            </div>
-          </Link>
+                Dodaj ogłoszenie
+              </span>{" "}
+              →
+            </Link>
+          </div>
         </div>
       </section>
 
