@@ -101,34 +101,20 @@ function loadPlaces(apiKey: string) {
 async function geocodeTypedLocation(
   text: string
 ): Promise<{ lat: number; lng: number } | null> {
-  if (!window.google?.maps?.Geocoder) return null;
+  const q = text.trim();
+  if (!q) return null;
 
-  const query = text.trim();
-  if (!query) return null;
-
-  return new Promise((resolve) => {
-    const geocoder = new window.google.maps.Geocoder();
-
-    geocoder.geocode(
-      {
-        address: `${query}, Polska`,
-        region: 'pl',
-      },
-      (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
-        if (status !== 'OK' || !results?.[0]?.geometry?.location) {
-          resolve(null);
-          return;
-        }
-
-        const loc = results[0].geometry.location;
-
-        resolve({
-          lat: loc.lat(),
-          lng: loc.lng(),
-        });
-      }
-    );
-  });
+  try {
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { lat?: unknown; lng?: unknown };
+    if (typeof data.lat === 'number' && typeof data.lng === 'number') {
+      return { lat: data.lat, lng: data.lng };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function digitsOnly(s: string) {
@@ -685,15 +671,22 @@ export default function KupSearch({
           const label = p?.formatted_address || p?.name || '';
           const loc = p?.geometry?.location;
 
-          lastAutocompleteLabel.current = label;
-          setLocText(label);
+          // For new Google Maps API customers, getPlace() returns an empty object —
+          // label will be ''. Don't overwrite the user's typed text in that case.
+          if (label) {
+            lastAutocompleteLabel.current = label;
+            setLocText(label);
+          }
 
           if (loc) {
             setCenter({ lat: loc.lat(), lng: loc.lng() });
-          } else if (label) {
-            // geometry missing (Place Details API issue) — fallback to geocoding
-            const fallback = await geocodeTypedLocation(label);
-            if (fallback) setCenter(fallback);
+          } else {
+            // Use autocomplete label if available, otherwise whatever the user typed
+            const textToGeocode = label || inputRef.current?.value || '';
+            if (textToGeocode.trim()) {
+              const fallback = await geocodeTypedLocation(textToGeocode);
+              if (fallback) setCenter(fallback);
+            }
           }
         });
       }
