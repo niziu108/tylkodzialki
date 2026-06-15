@@ -557,6 +557,7 @@ export default function KupSearch({
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>(initial.filters.przezn);
   const [applied, setApplied] = useState<AppliedFilters>(initial.filters);
   const [expanded, setExpanded] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchTopRef = useRef<HTMLDivElement | null>(null);
@@ -733,18 +734,28 @@ export default function KupSearch({
   }, [loading, page, items.length]);
 
   async function applyAndSearch() {
+    // Fallback: browser autocomplete may fill the DOM input without triggering React onChange
+    const effectiveLocText = locText.trim() || (inputRef.current?.value?.trim() ?? '');
+
     let nextCenter = center;
 
-    if (!nextCenter && locText.trim()) {
-      nextCenter = await geocodeTypedLocation(locText);
+    if (effectiveLocText) {
+      if (!nextCenter) {
+        nextCenter = await geocodeTypedLocation(effectiveLocText);
+        if (nextCenter) setCenter(nextCenter);
+      }
 
-      if (nextCenter) {
-        setCenter(nextCenter);
+      // Homepage: require valid coordinates — if geocoding failed, block navigation
+      if (navigationMode && !nextCenter) {
+        setLocError('Wybierz lokalizację z podpowiedzi albo wpisz poprawną miejscowość.');
+        return;
       }
     }
 
+    setLocError(null);
+
     const next: AppliedFilters = {
-      locText,
+      locText: effectiveLocText,
       radiusKm,
       center: nextCenter,
       priceMin: digitsOnly(priceMin),
@@ -765,6 +776,7 @@ export default function KupSearch({
   function reset() {
     setLocText('');
     setCenter(null);
+    setLocError(null);
     setRadiusKm(5);
     setPriceMin('');
     setPriceMax('');
@@ -812,13 +824,14 @@ export default function KupSearch({
           <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
             Lokalizacja
           </label>
-          <div className="mt-3 rounded-xl border border-white/25 bg-transparent">
+          <div className={`mt-3 rounded-xl border bg-transparent ${locError ? 'border-red-400/70' : 'border-white/25'}`}>
             <input
               ref={inputRef}
               value={locText}
               onChange={(e) => {
                 setLocText(e.target.value);
                 setCenter(null);
+                if (locError) setLocError(null);
               }}
               placeholder="Wpisz lokalizację"
               className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
@@ -827,6 +840,9 @@ export default function KupSearch({
               }}
             />
           </div>
+          {locError && (
+            <p className="mt-2 text-[11px] tracking-[0.10em] text-red-400/80">{locError}</p>
+          )}
         </div>
 
         <div>
