@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import KupList from './KupList';
 import type { Przeznaczenie } from '@prisma/client';
 
@@ -76,7 +77,14 @@ function loadPlaces(apiKey: string) {
     if (window.google?.maps?.places) return resolve();
 
     const id = 'google-places-js';
-    if (document.getElementById(id)) return resolve();
+    const existing = document.getElementById(id) as HTMLScriptElement | null;
+    if (existing) {
+      // Script tag exists but Maps not ready yet (Next.js client-side nav keeps DOM alive).
+      // Attach to the existing script's load/error events instead of resolving immediately.
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Google Places load failed')), { once: true });
+      return;
+    }
 
     const s = document.createElement('script');
     s.id = id;
@@ -500,9 +508,11 @@ function PagerResponsive({
 export default function KupSearch({
   initialFilters,
   seoMode = false,
+  navigationMode = false,
 }: {
   initialFilters?: Partial<AppliedFilters>;
   seoMode?: boolean;
+  navigationMode?: boolean;
 }) {
   const initial = useMemo(() => {
     const fromUrl = readStateFromUrl();
@@ -519,6 +529,8 @@ export default function KupSearch({
       },
     };
   }, [initialFilters]);
+
+  const router = useRouter();
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -647,12 +659,23 @@ export default function KupSearch({
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     async function initMapsAndSearch() {
-      // Load Maps first — geocoder must be ready before initial geocoding
+      // Case B: locText in URL but no coords — needs geocoding before first search
+      const needsGeocode =
+        !navigationMode &&
+        initial.filters.locText.trim() !== '' &&
+        initial.filters.center === null;
+
+      // Cases A (coords in URL) and C (no location): search immediately, no Maps needed yet
+      if (!navigationMode && !needsGeocode && !cancelled) {
+        fetchDataWith(initial.filters, initial.page, true);
+      }
+
+      // Load Maps — needed for autocomplete (all modes) and Case B geocoding
       if (key) {
         await loadPlaces(key).catch(() => {});
       }
 
-      // Set up autocomplete now that Maps is ready
+      // Set up autocomplete
       if (!cancelled && inputRef.current && window.google?.maps?.places) {
         const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
           fields: ['geometry', 'formatted_address', 'name'],
@@ -671,25 +694,22 @@ export default function KupSearch({
         });
       }
 
-      // Run initial search — geocoder is guaranteed to be available now
-      let nextFilters = initial.filters;
+      // Case B: geocode text from URL, then search
+      if (needsGeocode && !cancelled) {
+        const geocoded = await geocodeTypedLocation(initial.filters.locText);
 
-      if (!cancelled && nextFilters.locText.trim() && !nextFilters.center) {
-        const geocoded = await geocodeTypedLocation(nextFilters.locText);
+        if (!cancelled) {
+          const geoFilters = geocoded
+            ? { ...initial.filters, center: geocoded }
+            : initial.filters;
 
-        if (!cancelled && geocoded) {
-          nextFilters = {
-            ...nextFilters,
-            center: geocoded,
-          };
+          if (geocoded) {
+            setCenter(geocoded);
+            setApplied(geoFilters);
+          }
 
-          setCenter(geocoded);
-          setApplied(nextFilters);
+          fetchDataWith(geoFilters, initial.page, true);
         }
-      }
-
-      if (!cancelled) {
-        fetchDataWith(nextFilters, initial.page, true);
       }
     }
 
@@ -748,8 +768,12 @@ export default function KupSearch({
       przezn,
     };
 
-    setApplied(next);
-    fetchDataWith(next, 1);
+    if (navigationMode) {
+      router.push(buildUrlFromState(next, 1));
+    } else {
+      setApplied(next);
+      fetchDataWith(next, 1);
+    }
   }
 
   function reset() {
@@ -761,6 +785,11 @@ export default function KupSearch({
     setAreaMin('');
     setAreaMax('');
     setPrzezn([]);
+
+    if (navigationMode) {
+      router.push('/kup');
+      return;
+    }
 
     const next: AppliedFilters = seoMode
       ? {
@@ -789,6 +818,185 @@ export default function KupSearch({
   const goNext = () => changePage(safePage + 1);
   const goTo = (p: number) => changePage(p);
 
+  const filterContent = (
+    <>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_220px]">
+        <div>
+          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+            Lokalizacja
+          </label>
+          <div className="mt-3 rounded-xl border border-white/25 bg-transparent">
+            <input
+              ref={inputRef}
+              value={locText}
+              onChange={(e) => {
+                setLocText(e.target.value);
+                setCenter(null);
+              }}
+              placeholder="Wpisz lokalizację"
+              className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') applyAndSearch();
+              }}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+            Zasięg
+          </label>
+          <div className="mt-3 rounded-xl border border-white/25">
+            <select
+              value={radiusKm}
+              onChange={(e) => setRadiusKm(Number(e.target.value) as any)}
+              className="w-full bg-transparent px-4 py-3 text-white/90 outline-none"
+            >
+              {KM_OPTIONS.map((km) => (
+                <option key={km} value={km} className="bg-[#131313]">
+                  + {km} km
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+            Powierzchnia
+          </label>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="relative rounded-xl border border-white/25">
+              <input
+                value={areaMin}
+                onChange={makeAutoPLHandler(setAreaMin)}
+                inputMode="numeric"
+                placeholder="od"
+                className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                m²
+              </span>
+            </div>
+
+            <div className="relative rounded-xl border border-white/25">
+              <input
+                value={areaMax}
+                onChange={makeAutoPLHandler(setAreaMax)}
+                inputMode="numeric"
+                placeholder="od"
+                className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                m²
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+            Cena
+          </label>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="relative rounded-xl border border-white/25">
+              <input
+                value={priceMin}
+                onChange={makeAutoPLHandler(setPriceMin)}
+                inputMode="numeric"
+                placeholder="od"
+                className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                zł
+              </span>
+            </div>
+
+            <div className="relative rounded-xl border border-white/25">
+              <input
+                value={priceMax}
+                onChange={makeAutoPLHandler(setPriceMax)}
+                inputMode="numeric"
+                placeholder="do"
+                className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                zł
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 items-end gap-4 md:grid-cols-[1fr_260px]">
+        <div>
+          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+            Przeznaczenie
+          </label>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {PRZEZN.map((p) => {
+              const active = przezn.includes(p.key);
+
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => togglePrzezn(p.key)}
+                  className={[
+                    'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                    active
+                      ? 'border-white/80 text-white'
+                      : 'border-white/25 text-white/70 hover:border-white/45',
+                  ].join(' ')}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={reset}
+            className="flex-1 rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
+          >
+            Wyczyść
+          </button>
+
+          <button
+            type="button"
+            onClick={applyAndSearch}
+            className="flex-1 rounded-xl bg-white px-4 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:opacity-60"
+            disabled={loading}
+          >
+            {loading ? 'Szukam…' : 'Wyszukaj'}
+          </button>
+        </div>
+      </div>
+
+      {!navigationMode && (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="text-[12px] uppercase tracking-[0.18em] text-white/55">
+            {loading && items.length === 0 ? 'Ładowanie ofert...' : `Wyniki: ${count}`}
+          </div>
+          {err && <div className="text-sm text-red-300">{err}</div>}
+        </div>
+      )}
+    </>
+  );
+
+  if (navigationMode) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-[#0b0b0b]/78 p-5 backdrop-blur-sm md:p-8">
+        {filterContent}
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-x-hidden">
       <section ref={searchTopRef} className="relative w-full">
@@ -805,170 +1013,7 @@ export default function KupSearch({
 
         <div className="relative mx-auto max-w-6xl px-3 py-10 md:px-4 md:py-14">
           <div className="rounded-2xl border border-white/10 bg-[#0b0b0b]/78 p-5 backdrop-blur-sm md:p-8">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_220px]">
-              <div>
-                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
-                  Lokalizacja
-                </label>
-                <div className="mt-3 rounded-xl border border-white/25 bg-transparent">
-                  <input
-                    ref={inputRef}
-                    value={locText}
-                    onChange={(e) => {
-                      setLocText(e.target.value);
-                      setCenter(null);
-                    }}
-                    placeholder="Wpisz lokalizację"
-                    className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') applyAndSearch();
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
-                  Zasięg
-                </label>
-                <div className="mt-3 rounded-xl border border-white/25">
-                  <select
-                    value={radiusKm}
-                    onChange={(e) => setRadiusKm(Number(e.target.value) as any)}
-                    className="w-full bg-transparent px-4 py-3 text-white/90 outline-none"
-                  >
-                    {KM_OPTIONS.map((km) => (
-                      <option key={km} value={km} className="bg-[#131313]">
-                        + {km} km
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
-                  Powierzchnia
-                </label>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <div className="relative rounded-xl border border-white/25">
-                    <input
-                      value={areaMin}
-                      onChange={makeAutoPLHandler(setAreaMin)}
-                      inputMode="numeric"
-                      placeholder="od"
-                      className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
-                      m²
-                    </span>
-                  </div>
-
-                  <div className="relative rounded-xl border border-white/25">
-                    <input
-                      value={areaMax}
-                      onChange={makeAutoPLHandler(setAreaMax)}
-                      inputMode="numeric"
-                      placeholder="do"
-                      className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
-                      m²
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
-                  Cena
-                </label>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <div className="relative rounded-xl border border-white/25">
-                    <input
-                      value={priceMin}
-                      onChange={makeAutoPLHandler(setPriceMin)}
-                      inputMode="numeric"
-                      placeholder="od"
-                      className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
-                      zł
-                    </span>
-                  </div>
-
-                  <div className="relative rounded-xl border border-white/25">
-                    <input
-                      value={priceMax}
-                      onChange={makeAutoPLHandler(setPriceMax)}
-                      inputMode="numeric"
-                      placeholder="do"
-                      className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
-                      zł
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 items-end gap-4 md:grid-cols-[1fr_260px]">
-              <div>
-                <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
-                  Przeznaczenie
-                </label>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {PRZEZN.map((p) => {
-                    const active = przezn.includes(p.key);
-
-                    return (
-                      <button
-                        key={p.key}
-                        type="button"
-                        onClick={() => togglePrzezn(p.key)}
-                        className={[
-                          'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
-                          active
-                            ? 'border-white/80 text-white'
-                            : 'border-white/25 text-white/70 hover:border-white/45',
-                        ].join(' ')}
-                      >
-                        {p.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={reset}
-                  className="flex-1 rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
-                >
-                  Wyczyść
-                </button>
-
-                <button
-                  type="button"
-                  onClick={applyAndSearch}
-                  className="flex-1 rounded-xl bg-white px-4 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:opacity-60"
-                  disabled={loading}
-                >
-                  {loading ? 'Szukam…' : 'Wyszukaj'}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
-              <div className="text-[12px] uppercase tracking-[0.18em] text-white/55">
-                {loading && items.length === 0 ? 'Ładowanie ofert...' : `Wyniki: ${count}`}
-              </div>
-              {err && <div className="text-sm text-red-300">{err}</div>}
-            </div>
+            {filterContent}
           </div>
 
           <div className="h-6 md:h-10" />

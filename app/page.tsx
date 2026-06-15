@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
-import HeroSearchBar from "@/components/HeroSearchBar";
+import KupSearch from "./kup/KupSearch";
 import HeroCounter from "@/components/HeroCounter";
 import type { Przeznaczenie } from "@prisma/client";
 import { SEO_REGIONS } from "@/lib/seo-locations";
@@ -437,25 +437,25 @@ export default async function HomePage() {
       className="relative w-full overflow-hidden"
       style={{ background: PAGE_BG }}
     >
-      <section className="relative h-[100svh] w-full overflow-hidden">
+      <section className="relative min-h-[100svh] w-full">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: "url(/kup.webp)" }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/58 via-black/48 to-black/72" />
 
-        <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 pb-10 text-center">
+        <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-8 text-center">
           <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-[#D8D2DB] md:text-[70px] md:leading-none">
             Znajdź swoją działkę
           </h1>
 
           <HeroCounter target={listingCount} />
 
-          <div className="mt-8 w-full max-w-2xl">
-            <HeroSearchBar />
+          <div className="mt-6 w-full max-w-4xl">
+            <KupSearch navigationMode={true} />
           </div>
 
-          <div className="mt-8">
+          <div className="mt-6">
             <Link
               href="/sprzedaj"
               className="text-sm text-white/42 transition hover:text-white/72"
