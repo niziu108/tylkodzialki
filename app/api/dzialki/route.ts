@@ -107,6 +107,11 @@ export async function GET(req: Request) {
     ? przeznRaw.split(',').map((s) => s.trim()).filter(Boolean)
     : [];
 
+  const mediaRaw = (url.searchParams.get('media') || '').trim();
+  const media = mediaRaw
+    ? mediaRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
   const takeReq = Number(url.searchParams.get('take') || '20');
   const take = Math.min(Math.max(Number.isFinite(takeReq) ? Math.floor(takeReq) : 20, 1), 100);
 
@@ -147,6 +152,37 @@ export async function GET(req: Request) {
     andFilters.push({
       przeznaczenia: { hasSome: przeznaczenia as any },
     });
+  }
+
+  // Filtr mediów (P10): zaznaczone medium = działka faktycznie je MA.
+  // Świadomie wykluczamy „brak" i „możliwość podłączenia" (możliwość = realnie nie ma);
+  // zostaje przyłącze na działce / w drodze / studnia / szambo / oczyszczalnia / warunki wydane.
+  const MEDIA_AVAILABLE = {
+    prad: [
+      PradStatus.PRZYLACZE_NA_DZIALCE,
+      PradStatus.PRZYLACZE_W_DRODZE,
+      PradStatus.WARUNKI_PRZYLACZENIA_WYDANE,
+    ],
+    woda: [
+      WodaStatus.WODOCIAG_NA_DZIALCE,
+      WodaStatus.WODOCIAG_W_DRODZE,
+      WodaStatus.STUDNIA_GLEBINOWA,
+    ],
+    kanalizacja: [
+      KanalizacjaStatus.MIEJSKA_NA_DZIALCE,
+      KanalizacjaStatus.MIEJSKA_W_DRODZE,
+      KanalizacjaStatus.SZAMBO,
+      KanalizacjaStatus.PRZYDOMOWA_OCZYSZCZALNIA,
+    ],
+    gaz: [GazStatus.GAZ_NA_DZIALCE, GazStatus.GAZ_W_DRODZE],
+  } as const;
+
+  for (const key of media) {
+    if (key === 'prad') andFilters.push({ prad: { in: [...MEDIA_AVAILABLE.prad] } });
+    else if (key === 'woda') andFilters.push({ woda: { in: [...MEDIA_AVAILABLE.woda] } });
+    else if (key === 'kanalizacja')
+      andFilters.push({ kanalizacja: { in: [...MEDIA_AVAILABLE.kanalizacja] } });
+    else if (key === 'gaz') andFilters.push({ gaz: { in: [...MEDIA_AVAILABLE.gaz] } });
   }
 
   const where: Prisma.DzialkaWhereInput = {

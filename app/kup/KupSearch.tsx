@@ -42,6 +42,17 @@ const PRZEZN: { key: Przeznaczenie; label: string }[] = [
   { key: 'SIEDLISKOWA', label: 'SIEDLISKOWA' },
 ];
 
+export type MediaKey = 'prad' | 'woda' | 'kanalizacja' | 'gaz';
+
+const MEDIA: { key: MediaKey; label: string }[] = [
+  { key: 'prad', label: 'Prąd' },
+  { key: 'woda', label: 'Woda' },
+  { key: 'kanalizacja', label: 'Kanalizacja' },
+  { key: 'gaz', label: 'Gaz' },
+];
+
+const MEDIA_KEYS: MediaKey[] = MEDIA.map((m) => m.key);
+
 const PAGE_SIZE = 20;
 const SCROLL_OFFSET = -450;
 const STORAGE_KEY = 'TD_KUP_STATE_V2';
@@ -57,6 +68,7 @@ type AppliedFilters = {
   areaMin: string;
   areaMax: string;
   przezn: Przeznaczenie[];
+  media: MediaKey[];
   sort: SortOption;
 };
 
@@ -74,6 +86,7 @@ const EMPTY_APPLIED: AppliedFilters = {
   areaMin: '',
   areaMax: '',
   przezn: [],
+  media: [],
   sort: 'newest',
 };
 
@@ -228,6 +241,7 @@ function buildUrlFromState(filters: AppliedFilters, page: number) {
   if (filters.areaMin) sp.set('areaMin', filters.areaMin);
   if (filters.areaMax) sp.set('areaMax', filters.areaMax);
   if (filters.przezn.length) sp.set('przezn', filters.przezn.join(','));
+  if (filters.media.length) sp.set('media', filters.media.join(','));
   if (filters.sort && filters.sort !== 'newest') sp.set('sort', filters.sort);
   if (page > 1) sp.set('page', String(page));
 
@@ -308,6 +322,12 @@ function readStateFromUrl(): StoredState {
     .filter(Boolean)
     .filter((x): x is Przeznaczenie => PRZEZN.some((p) => p.key === x));
 
+  const mediaRaw = sp.get('media') ?? '';
+  const media = mediaRaw
+    .split(',')
+    .filter(Boolean)
+    .filter((x): x is MediaKey => MEDIA_KEYS.includes(x as MediaKey));
+
   const pageRaw = Number(sp.get('page') ?? '1');
 
   const sortRaw = sp.get('sort') ?? 'newest';
@@ -323,6 +343,7 @@ function readStateFromUrl(): StoredState {
       areaMin: digitsOnly(sp.get('areaMin') ?? ''),
       areaMax: digitsOnly(sp.get('areaMax') ?? ''),
       przezn,
+      media,
       sort,
     },
     page: Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1,
@@ -356,6 +377,7 @@ function makeParams(filters: AppliedFilters, page: number) {
   if (filters.areaMin) sp.set('areaMin', filters.areaMin);
   if (filters.areaMax) sp.set('areaMax', filters.areaMax);
   if (filters.przezn.length) sp.set('przeznaczenia', filters.przezn.join(','));
+  if (filters.media.length) sp.set('media', filters.media.join(','));
 
   sp.set('skip', String((page - 1) * PAGE_SIZE));
   sp.set('take', String(PAGE_SIZE));
@@ -557,6 +579,7 @@ export default function KupSearch({
         ...initialFilters,
         center: initialFilters.center ?? null,
         przezn: initialFilters.przezn ?? [],
+        media: initialFilters.media ?? [],
       },
     };
   }, [initialFilters, initialPage]);
@@ -581,9 +604,11 @@ export default function KupSearch({
   const [areaMax, setAreaMax] = useState(formatPLThousands(initial.filters.areaMax));
 
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>(initial.filters.przezn);
+  const [media, setMedia] = useState<MediaKey[]>(initial.filters.media);
   const [applied, setApplied] = useState<AppliedFilters>(initial.filters);
   const [expanded, setExpanded] = useState(
     initial.filters.przezn.length > 0 ||
+      initial.filters.media.length > 0 ||
       !!initial.filters.priceMin ||
       !!initial.filters.priceMax ||
       !!initial.filters.areaMin ||
@@ -704,6 +729,10 @@ export default function KupSearch({
 
   function togglePrzezn(k: Przeznaczenie) {
     setPrzezn((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  }
+
+  function toggleMedia(k: MediaKey) {
+    setMedia((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
   }
 
   useEffect(() => {
@@ -839,6 +868,7 @@ export default function KupSearch({
       areaMin: digitsOnly(areaMin),
       areaMax: digitsOnly(areaMax),
       przezn,
+      media,
       sort: applied.sort,
     };
 
@@ -861,6 +891,7 @@ export default function KupSearch({
     setAreaMin('');
     setAreaMax('');
     setPrzezn([]);
+    setMedia([]);
 
     if (navigationMode) {
       return;
@@ -1065,6 +1096,32 @@ export default function KupSearch({
                     ].join(' ')}
                   >
                     {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+              Media
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {MEDIA.map((m) => {
+                const active = media.includes(m.key);
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => toggleMedia(m.key)}
+                    className={[
+                      'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                      active
+                        ? 'border-white/80 text-white'
+                        : 'border-white/25 text-white/70 hover:border-white/45',
+                    ].join(' ')}
+                  >
+                    {m.label}
                   </button>
                 );
               })}
