@@ -124,7 +124,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
 
   if (state === 'ok' || state === 'exists') {
     return (
-      <div className="inline-flex items-center gap-2 text-[13px] text-[#9fd14b]">
+      <div className="flex items-center gap-2 text-[13px] text-[#9fd14b]">
         <BellIcon />
         <span>{state === 'exists' ? 'Masz już takie powiadomienie.' : 'Powiadomienia włączone.'}</span>
       </div>
@@ -133,7 +133,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
 
   return (
     <>
-      <div className="group inline-flex flex-col items-start gap-0.5">
+      <div className="group flex flex-col items-start gap-0.5">
         <button
           type="button"
           onClick={handleClick}
