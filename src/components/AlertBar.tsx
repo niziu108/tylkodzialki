@@ -133,7 +133,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
 
   return (
     <>
-      <div className="group inline-flex flex-wrap items-center gap-x-2.5 gap-y-1">
+      <div className="group inline-flex flex-col items-start gap-0.5">
         <button
           type="button"
           onClick={handleClick}
@@ -146,12 +146,13 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
           {state === 'sending' ? 'Włączam…' : 'Powiadom mnie o nowych ofertach'}
         </button>
 
-        <span className="hidden text-[12px] text-white/45 group-hover:inline">
-          wg Twoich filtrów: {label}
+        {/* Kontekst pod przyciskiem (w tym samym miejscu): na mobile zawsze, na desktopie na hover. */}
+        <span className="block pl-6 text-[12px] leading-snug text-white/45 sm:hidden sm:group-hover:block">
+          {label}
         </span>
 
         {state === 'error' && msg ? (
-          <span className="text-[12px] text-red-400/85">{msg}</span>
+          <span className="pl-6 text-[12px] text-red-400/85">{msg}</span>
         ) : null}
       </div>
 
