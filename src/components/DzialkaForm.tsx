@@ -619,6 +619,12 @@ export default function DzialkaForm({
     title: string;
   } | null>(null);
 
+  // Niezalogowany użytkownik kliknął „Opublikuj" — pokazujemy ekran z prośbą o
+  // logowanie/rejestrację zamiast nagłego przerzutu na /auth.
+  const [pendingLogin, setPendingLogin] = useState<{
+    title: string;
+  } | null>(null);
+
   const [draftHydrated, setDraftHydrated] = useState(mode === 'edit');
   const restoredDraftRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -677,6 +683,12 @@ export default function DzialkaForm({
       window.scrollTo(0, 0);
     }
   }, [pendingPublicationCheckout]);
+
+  useEffect(() => {
+    if (pendingLogin) {
+      window.scrollTo(0, 0);
+    }
+  }, [pendingLogin]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -1141,7 +1153,8 @@ export default function DzialkaForm({
 
       if (!res.ok) {
         // Niezalogowany użytkownik wypełnił publiczny formularz — logowanie DOPIERO TERAZ.
-        // Zapisujemy draft i wracamy na /sprzedaj?autopublish=1, gdzie ogłoszenie publikuje się samo.
+        // Zapisujemy draft i pokazujemy ekran „zaloguj się, aby opublikować" (bez nagłego
+        // przerzutu). Stamtąd → /auth → powrót na /sprzedaj?autopublish=1 → auto-publikacja.
         if (res.status === 401 && mode === 'create') {
           if (isAutoPublish) {
             setErr('Nie udało się potwierdzić logowania. Zaloguj się ponownie i opublikuj ogłoszenie.');
@@ -1149,7 +1162,7 @@ export default function DzialkaForm({
           }
 
           saveCreateDraft(buildDraft(uploadedSorted));
-          router.push(`/auth?callbackUrl=${encodeURIComponent('/sprzedaj?autopublish=1')}`);
+          setPendingLogin({ title: tytul.trim() || 'Twoja oferta' });
           return;
         }
 
@@ -1234,6 +1247,46 @@ export default function DzialkaForm({
 
     void submitListing(true, 0);
   }, [mode, draftHydrated, shouldAutoPublish]);
+
+  if (pendingLogin) {
+    return (
+      <main className="min-h-screen" style={{ background: BG, color: FG }}>
+        <div className="mx-auto max-w-3xl px-6 py-20">
+          <div className="rounded-[32px] border border-[#7aa333]/25 bg-white/[0.03] p-8 md:p-10">
+            <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+              Oferta gotowa
+            </div>
+
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+              Zarejestruj się, aby opublikować ofertę
+            </h1>
+
+            <p className="mt-4 text-base leading-7 text-white/65">
+              Twoja oferta <span className="text-white">{pendingLogin.title}</span> jest przygotowana i zapisana.
+              Zaloguj się lub załóż <span className="text-white">darmowe</span> konto — opublikujemy ją automatycznie, bez wypełniania formularza ponownie.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={`/auth?callbackUrl=${encodeURIComponent('/sprzedaj?autopublish=1')}`}
+                className="inline-flex items-center justify-center rounded-2xl bg-[#7aa333] px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
+              >
+                Zaloguj się / Zarejestruj
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setPendingLogin(null)}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-6 py-4 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.05]"
+              >
+                Wróć do edycji
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (pendingPublicationCheckout) {
     return (
