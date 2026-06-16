@@ -10,7 +10,7 @@ type AlertState = 'idle' | 'sending' | 'ok' | 'exists' | 'error';
 
 function BellIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
@@ -107,39 +107,51 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
     createAlert(criteria);
   }
 
-  // Dyskretna, jednolinijkowa kontrolka — nie konkuruje z ofertami.
+  // Stonowana ramka, czytelna, zieleń tylko jako akcent. Bez długich myślników.
   if (state === 'ok' || state === 'exists') {
     return (
-      <div className="inline-flex items-center gap-1.5 text-[12px] text-[#9fd14b]">
-        <BellIcon />
+      <div className="flex items-center gap-2.5 rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/[0.08] px-4 py-3 text-[13px] text-[#cfe3a6]">
+        <span className="shrink-0 text-[#9fd14b]">
+          <BellIcon />
+        </span>
         <span>{msg}</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 text-[12px]">
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={empty || state === 'sending'}
-        title={label ? `Alert: „${label}".` : undefined}
-        className="group inline-flex items-center gap-1.5 text-white/45 transition hover:text-white/80 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-white/45"
-      >
-        <span className="text-[#7aa333] transition group-hover:text-[#9fd14b]">
-          <BellIcon />
-        </span>
-        <span className="underline-offset-4 group-hover:underline">
-          {state === 'sending' ? 'Zapisuję…' : 'Powiadom mnie o nowych ofertach'}
-        </span>
-      </button>
+    <div className="rounded-xl border border-white/12 bg-white/[0.05] px-4 py-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#7aa333]/15 text-[#9fd14b]">
+            <BellIcon />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[14px] font-medium leading-snug text-white">
+              Powiadomienia o nowych ofertach
+            </div>
+            <div className="mt-0.5 truncate text-[12px] leading-snug text-white/60">
+              {empty
+                ? 'Ustaw filtry, a wyślemy e-mail o nowej pasującej ofercie.'
+                : label
+                  ? `Wyślemy e-mail, gdy pojawi się: „${label}".`
+                  : 'Wyślemy e-mail, gdy pojawi się pasująca oferta.'}
+            </div>
+            {state === 'error' && msg ? (
+              <div className="mt-1 text-[12px] text-red-400/85">{msg}</div>
+            ) : null}
+          </div>
+        </div>
 
-      {empty ? (
-        <span className="text-[11px] text-white/25">— ustaw filtry</span>
-      ) : null}
-      {state === 'error' && msg ? (
-        <span className="text-[11px] text-red-400/80">{msg}</span>
-      ) : null}
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={empty || state === 'sending'}
+          className="shrink-0 self-start rounded-lg border border-[#7aa333]/45 bg-[#7aa333]/15 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#9fd14b] transition hover:border-[#7aa333] hover:bg-[#7aa333]/25 disabled:cursor-not-allowed disabled:opacity-45 sm:self-auto"
+        >
+          {state === 'sending' ? 'Zapisuję…' : 'Włącz'}
+        </button>
+      </div>
     </div>
   );
 }
