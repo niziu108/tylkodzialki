@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { buildAlertLabel, criteriaIsEmpty, type AlertCriteria } from '@/lib/alertCriteria';
+import {
+  buildAlertLabel,
+  criteriaIsEmpty,
+  criteriaFingerprint,
+  type AlertCriteria,
+} from '@/lib/alertCriteria';
 
 const PENDING_KEY = 'TD_PENDING_ALERT';
 
@@ -29,6 +34,17 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
   const empty = criteriaIsEmpty(criteria);
   const label = empty ? '' : buildAlertLabel(criteria);
 
+  // Reset przy zmianie filtrów: nowa lokalizacja/filtry = nowy alert, więc przycisk wraca
+  // (można mieć kilka alertów). Wzorzec „adjust state on prop change" (setState w renderze, guard).
+  const fingerprint = criteriaFingerprint(criteria);
+  const [lastFingerprint, setLastFingerprint] = useState(fingerprint);
+  if (fingerprint !== lastFingerprint) {
+    setLastFingerprint(fingerprint);
+    if (state !== 'idle') setState('idle');
+    if (msg !== null) setMsg(null);
+    if (loginPromptOpen) setLoginPromptOpen(false);
+  }
+
   async function createAlert(c: AlertCriteria) {
     setState('sending');
     setMsg(null);
@@ -45,13 +61,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
         setMsg(data?.message ?? 'Nie udało się włączyć powiadomień.');
         return;
       }
-      if (data?.alreadyExists) {
-        setState('exists');
-        setMsg('Masz już takie powiadomienie.');
-        return;
-      }
-      setState('ok');
-      setMsg('Gotowe. Powiadomimy Cię mailem, gdy pojawi się nowa działka wg tych filtrów.');
+      setState(data?.alreadyExists ? 'exists' : 'ok');
     } catch {
       setState('error');
       setMsg('Nie udało się włączyć powiadomień. Spróbuj ponownie.');
@@ -96,7 +106,6 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
 
     if (pending && !criteriaIsEmpty(pending)) {
       const c = pending;
-      // Defer poza ciało efektu — unika synchronicznego setState w efekcie (kaskadowe rendery).
       queueMicrotask(() => createAlert(c));
     }
   }, [status]);
@@ -115,29 +124,29 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
 
   if (state === 'ok' || state === 'exists') {
     return (
-      <div className="flex items-center gap-2.5 rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/[0.08] px-4 py-3 text-[13px] text-[#cfe3a6]">
-        <span className="shrink-0 text-[#9fd14b]">
-          <BellIcon />
-        </span>
-        <span>{msg}</span>
+      <div className="inline-flex items-center gap-2 text-[13px] text-[#9fd14b]">
+        <BellIcon />
+        <span>{state === 'exists' ? 'Masz już takie powiadomienie.' : 'Powiadomienia włączone.'}</span>
       </div>
     );
   }
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="group inline-flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <button
           type="button"
           onClick={handleClick}
           disabled={state === 'sending'}
-          className="inline-flex shrink-0 items-center gap-2 rounded-[10px] border border-[#7aa333]/50 bg-[#7aa333]/15 px-3.5 py-2.5 text-[13px] font-medium text-[#9fd14b] transition hover:border-[#7aa333] hover:bg-[#7aa333]/25 disabled:opacity-60"
+          className="inline-flex items-center gap-2 text-[13px] font-medium text-white/75 transition hover:text-white disabled:opacity-60"
         >
-          <BellIcon />
+          <span className="text-[#9fd14b]">
+            <BellIcon />
+          </span>
           {state === 'sending' ? 'Włączam…' : 'Powiadom mnie o nowych ofertach'}
         </button>
 
-        <span className="text-[12.5px] leading-snug text-white/60">
+        <span className="hidden text-[12px] text-white/45 group-hover:inline">
           wg Twoich filtrów: {label}
         </span>
 
