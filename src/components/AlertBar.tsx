@@ -143,7 +143,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
           <span className="text-[#9fd14b]">
             <BellIcon />
           </span>
-          {state === 'sending' ? 'Włączam…' : 'Naciśnij, aby dostawać powiadomienia o nowych ofertach'}
+          {state === 'sending' ? 'Włączam…' : 'Powiadom mnie o nowych ofertach'}
         </button>
 
         {/* Kontekst pod przyciskiem (w tym samym miejscu): na mobile zawsze, na desktopie na hover. */}
