@@ -154,27 +154,19 @@ export async function GET(req: Request) {
     });
   }
 
-  // Filtr mediów (P10): zaznaczone medium = działka faktycznie je MA.
-  // Świadomie wykluczamy „brak" i „możliwość podłączenia" (możliwość = realnie nie ma);
-  // zostaje przyłącze na działce / w drodze / studnia / szambo / oczyszczalnia / warunki wydane.
+  // Filtr mediów (P10): zaznaczone medium = działka faktycznie je MA, fizycznie NA DZIAŁCE.
+  // Świadomie wykluczamy „brak", „możliwość podłączenia", „w drodze" i „warunki wydane" —
+  // to wszystko znaczy, że medium na działce jeszcze NIE MA (decyzja właściciela: „w drodze" się nie liczy).
+  // Studnia/szambo/oczyszczalnia liczą się — to woda/ścieki fizycznie rozwiązane na działce.
   const MEDIA_AVAILABLE = {
-    prad: [
-      PradStatus.PRZYLACZE_NA_DZIALCE,
-      PradStatus.PRZYLACZE_W_DRODZE,
-      PradStatus.WARUNKI_PRZYLACZENIA_WYDANE,
-    ],
-    woda: [
-      WodaStatus.WODOCIAG_NA_DZIALCE,
-      WodaStatus.WODOCIAG_W_DRODZE,
-      WodaStatus.STUDNIA_GLEBINOWA,
-    ],
+    prad: [PradStatus.PRZYLACZE_NA_DZIALCE],
+    woda: [WodaStatus.WODOCIAG_NA_DZIALCE, WodaStatus.STUDNIA_GLEBINOWA],
     kanalizacja: [
       KanalizacjaStatus.MIEJSKA_NA_DZIALCE,
-      KanalizacjaStatus.MIEJSKA_W_DRODZE,
       KanalizacjaStatus.SZAMBO,
       KanalizacjaStatus.PRZYDOMOWA_OCZYSZCZALNIA,
     ],
-    gaz: [GazStatus.GAZ_NA_DZIALCE, GazStatus.GAZ_W_DRODZE],
+    gaz: [GazStatus.GAZ_NA_DZIALCE],
   } as const;
 
   for (const key of media) {
