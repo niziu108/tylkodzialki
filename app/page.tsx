@@ -214,84 +214,6 @@ function HomeListingCard({ d }: { d: HomeListing }) {
   );
 }
 
-function AboutSection() {
-  return (
-    <section className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.22),transparent_32%)]" />
-      <div className="pointer-events-none absolute left-[-120px] top-20 z-0 h-[360px] w-[360px] rounded-full bg-[#7aa333]/10 blur-[100px]" />
-
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
-        <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-          <div>
-            <div className="text-[12px] uppercase tracking-[0.22em] text-[#9fd14b]">
-              O nas
-            </div>
-
-            <h2 className="mt-5 max-w-2xl text-[34px] font-semibold tracking-tight text-white md:text-[56px] md:leading-[1.02]">
-              Portal stworzony pod sprzedaż działek.
-            </h2>
-
-            <p className="mt-7 max-w-xl text-base leading-8 text-white/68 md:text-lg">
-              tylkodzialki.pl to miejsce dla właścicieli, biur nieruchomości
-              i osób szukających gruntu w całej Polsce.
-            </p>
-          </div>
-
-          <div className="grid gap-5">
-            <div className="rounded-[34px] border border-white/12 bg-[#0d0d0d]/72 p-7 shadow-[0_0_60px_rgba(0,0,0,0.25)] backdrop-blur transition hover:border-[#7aa333]/35 md:p-8">
-              <div className="flex items-start justify-between gap-6">
-                <div>
-                  <div className="text-[12px] uppercase tracking-[0.2em] text-[#9fd14b]">
-                    Dla prywatnych
-                  </div>
-
-                  <h3 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
-                    Proste wystawianie ofert.
-                  </h3>
-
-                  <p className="mt-4 max-w-2xl text-sm leading-7 text-white/62 md:text-base">
-                    Zapewniamy szybkie dodawanie ogłoszeń, czytelną prezentację
-                    działki i wygodne zarządzanie ofertą.
-                  </p>
-                </div>
-
-                <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#7aa333]/25 bg-[#7aa333]/10 text-xl font-semibold text-[#9fd14b] md:flex">
-                  01
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[34px] border border-[#7aa333]/25 bg-gradient-to-br from-[#7aa333]/12 via-[#0d0d0d]/82 to-[#0d0d0d]/72 p-7 shadow-[0_0_80px_rgba(122,163,51,0.08)] backdrop-blur transition hover:border-[#7aa333]/45 md:p-8">
-              <div className="flex items-start justify-between gap-6">
-                <div>
-                  <div className="text-[12px] uppercase tracking-[0.2em] text-[#9fd14b]">
-                    Dla biur nieruchomości
-                  </div>
-
-                  <h3 className="mt-4 text-2xl font-semibold text-white md:text-3xl">
-                    CRM, importy i większa skala.
-                  </h3>
-
-                  <p className="mt-4 max-w-2xl text-sm leading-7 text-white/62 md:text-base">
-                    Zapewniamy obsługę większej liczby ofert, automatyzację
-                    publikacji i kompatybilność z systemami CRM.
-                    Chcesz dodać import? Napisz do Nas: biuro@tylkodzialki.pl
-                  </p>
-                </div>
-
-                <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/12 text-xl font-semibold text-[#9fd14b] md:flex">
-                  02
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function PopularSearchesSection() {
   return (
     <section className="relative overflow-hidden border-t border-white/10 bg-[#0b0b0b]">
@@ -369,25 +291,40 @@ export default async function HomePage() {
     OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
   };
 
-  const [latestListings, latestArticles, listingCount] = await Promise.all([
-    prisma.dzialka.findMany({
-      where: activeWhere,
-      include: {
-        zdjecia: {
-          orderBy: { kolejnosc: "asc" },
-          take: 1,
+  const [latestListings, featuredListings, latestArticles, listingCount] =
+    await Promise.all([
+      prisma.dzialka.findMany({
+        where: activeWhere,
+        include: {
+          zdjecia: {
+            orderBy: { kolejnosc: "asc" },
+            take: 1,
+          },
         },
-      },
-      orderBy: [{ publishedAt: "desc" }],
-      take: 6,
-    }),
-    prisma.article.findMany({
-      where: { isPublished: true },
-      orderBy: [{ createdAt: "desc" }],
-      take: 6,
-    }),
-    prisma.dzialka.count({ where: activeWhere }),
-  ]);
+        orderBy: [{ publishedAt: "desc" }],
+        take: 6,
+      }),
+      // Wyróżnione: najpierw faktycznie wyróżnione (isFeatured), a gdy ich brak
+      // (nikt jeszcze nie wykupił), dobiera najstarsze aktywne — sekcja nigdy
+      // nie świeci pustką, nie powiela też najnowszych.
+      prisma.dzialka.findMany({
+        where: activeWhere,
+        include: {
+          zdjecia: {
+            orderBy: { kolejnosc: "asc" },
+            take: 1,
+          },
+        },
+        orderBy: [{ isFeatured: "desc" }, { publishedAt: "asc" }],
+        take: 8,
+      }),
+      prisma.article.findMany({
+        where: { isPublished: true },
+        orderBy: [{ createdAt: "desc" }],
+        take: 6,
+      }),
+      prisma.dzialka.count({ where: activeWhere }),
+    ]);
 
   const latestCards: HomeListing[] =
     latestListings.length > 0
@@ -402,6 +339,8 @@ export default async function HomePage() {
           zdjecia: [],
           isPlaceholder: true,
         }));
+
+  const featuredCards = featuredListings as HomeListing[];
 
   const articleCards =
     latestArticles.length > 0
@@ -479,25 +418,12 @@ export default async function HomePage() {
       </section>
 
       <section>
-        <div className="mx-auto max-w-7xl px-6 pt-8 pb-6 md:px-10">
+        <div className="mx-auto max-w-7xl px-6 pt-10 pb-10 md:px-10">
           <h2 className="text-[22px] font-semibold text-white md:text-[28px]">
-            Działki na sprzedaż w całej Polsce.
+            Najnowsze oferty
           </h2>
 
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/60 md:text-[17px]">
-            Szukaj działek, przeglądaj oferty i dodawaj ogłoszenia w prosty i
-            wygodny sposób.
-          </p>
-        </div>
-      </section>
-
-      <section>
-        <div className="mx-auto max-w-7xl px-6 pt-4 pb-10 md:px-10">
-          <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-            Najnowsze oferty
-          </div>
-
-          <div className="mt-4 [touch-action:pan-x_pan-y]">
+          <div className="mt-6 [touch-action:pan-x_pan-y]">
             <HomeHorizontalSlider>
               {latestCards.map((item) => (
                 <HomeListingCard key={item.id} d={item} />
@@ -516,7 +442,23 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <AboutSection />
+      {featuredCards.length > 0 ? (
+        <section>
+          <div className="mx-auto max-w-7xl px-6 pt-4 pb-12 md:px-10">
+            <h2 className="text-[22px] font-semibold text-white md:text-[28px]">
+              Wyróżnione oferty
+            </h2>
+
+            <div className="mt-6 [touch-action:pan-x_pan-y]">
+              <HomeHorizontalSlider>
+                {featuredCards.map((item) => (
+                  <HomeListingCard key={item.id} d={item} />
+                ))}
+              </HomeHorizontalSlider>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section>
         <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">

@@ -27,6 +27,7 @@ export async function sendMail(opts: {
   subject: string;
   html: string;
   text?: string;
+  replyTo?: string;
   attachments?: {
     filename: string;
     path?: string;
@@ -41,6 +42,7 @@ export async function sendMail(opts: {
     subject: opts.subject,
     html: opts.html,
     text: opts.text,
+    replyTo: opts.replyTo,
     attachments: opts.attachments,
   });
 }

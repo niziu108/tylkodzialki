@@ -8,7 +8,6 @@ import { signOut, useSession } from 'next-auth/react';
 
 const BG = '#131313';
 const FG = '#d9d9d9';
-const GREEN = '#7aa333';
 
 function BurgerIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -111,7 +110,10 @@ export default function GlobalNav() {
     'text-[#7aa333] hover:text-[#9fd14b] after:absolute after:left-0 after:right-0 after:bottom-[18px] after:h-px after:origin-center after:scale-x-0 after:bg-[#7aa333] after:transition-transform after:duration-200 hover:after:scale-x-100';
 
   const linkMobile =
-    'font-display uppercase tracking-wide text-white text-[clamp(34px,9vw,60px)] hover:opacity-90 transition-opacity';
+    'w-full py-5 font-display uppercase tracking-[0.18em] text-[clamp(19px,5.5vw,28px)] leading-none text-white transition-colors hover:text-[#9fd14b]';
+
+  const linkMobileGreen =
+    'w-full py-5 font-display uppercase tracking-[0.18em] text-[clamp(19px,5.5vw,28px)] leading-none text-[#9fd14b] transition-colors hover:text-white';
 
   return (
     <>
@@ -159,6 +161,13 @@ export default function GlobalNav() {
               className={`${navBtnBase} ${navBtnWhite}`}
             >
               DODAJ OGŁOSZENIE
+            </button>
+
+            <button
+              onClick={() => go('/dla-biur')}
+              className={`${navBtnBase} ${navBtnWhite}`}
+            >
+              DLA BIUR
             </button>
 
             {!isLogged ? (
@@ -291,39 +300,32 @@ export default function GlobalNav() {
                 className="h-16 w-auto"
               />
 
-              <div className="flex flex-col gap-8">
+              <div className="flex w-full max-w-sm flex-col divide-y divide-white/10">
                 <button onClick={() => go('/')} className={linkMobile}>
                   START
                 </button>
 
-                <button
-                  onClick={() => go('/kup')}
-                  className={linkMobile}
-                >
+                <button onClick={() => go('/kup')} className={linkMobile}>
                   SZUKAJ DZIAŁKI
                 </button>
 
-                <button
-                  onClick={() => go('/sprzedaj')}
-                  className={linkMobile}
-                >
+                <button onClick={() => go('/sprzedaj')} className={linkMobile}>
                   DODAJ OGŁOSZENIE
                 </button>
 
+                <button onClick={() => go('/dla-biur')} className={linkMobile}>
+                  DLA BIUR
+                </button>
+
                 {!isLogged ? (
-                  <button
-                    onClick={goAuth}
-                    className={linkMobile}
-                    style={{ color: GREEN }}
-                  >
+                  <button onClick={goAuth} className={linkMobileGreen}>
                     LOGOWANIE / REJESTRACJA
                   </button>
                 ) : (
                   <>
                     <button
                       onClick={() => go('/panel')}
-                      className={linkMobile}
-                      style={{ color: GREEN }}
+                      className={linkMobileGreen}
                     >
                       PANEL KLIENTA
                     </button>
@@ -333,8 +335,7 @@ export default function GlobalNav() {
                         setOpen(false);
                         signOut({ callbackUrl: '/' });
                       }}
-                      className={linkMobile}
-                      style={{ color: GREEN }}
+                      className={linkMobileGreen}
                     >
                       WYLOGUJ
                     </button>

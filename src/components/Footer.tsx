@@ -77,6 +77,9 @@ export default function Footer() {
                 <Link href="/kup" className="transition hover:text-white">
                   Szukaj działki
                 </Link>
+                <Link href="/dla-biur" className="transition hover:text-white">
+                  Dla biur
+                </Link>
               </nav>
             </div>
 
