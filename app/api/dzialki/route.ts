@@ -210,8 +210,7 @@ function coordsInBBox(d: any, bbox: BBox) {
   return hasCoords(d) && d.lat! >= bbox.minLat && d.lat! <= bbox.maxLat && d.lng! >= bbox.minLng && d.lng! <= bbox.maxLng;
 }
 
-function matchesLocationText(d: any, query: string) {
-  const terms = cleanSearchQuery(query);
+function matchesLocationText(d: any, terms: string[]) {
   if (!terms.length) return false;
 
   const haystack = getLocationHaystack(d);
@@ -236,22 +235,29 @@ function matchesLocationText(d: any, query: string) {
   });
 }
 
-function getSearchMatchInfo(
-  d: any,
+type SearchContext = {
+  query: string;
+  terms: string[];
+  city: SearchArea | null;
+  voivodeship: SearchArea | null;
+  cityBBox: BBox | null;
+  latParam: number;
+  lngParam: number;
+  radiusParam: number;
+  hasRadiusSearch: boolean;
+};
+
+// Liczone RAZ na zapytanie (nie zależy od pojedynczej oferty): wykrycie miasta/województwa,
+// rozszerzony bbox miasta i oczyszczone frazy. Wcześniej te same skany leciały dla każdej oferty.
+function buildSearchContext(
   query: string,
   latParam: number,
   lngParam: number,
   radiusParam: number,
   hasRadiusSearch: boolean
-) {
+): SearchContext {
   const city = query ? detectCity(query) : null;
   const voivodeship = query ? detectVoivodeship(query) : null;
-
-  const radiusDistance = hasRadiusSearch && hasCoords(d)
-    ? haversineKm(latParam, lngParam, d.lat!, d.lng!)
-    : null;
-
-  const pointRadiusMatch = radiusDistance !== null && radiusDistance <= radiusParam;
 
   const cityBBox =
     city && hasRadiusSearch
@@ -260,10 +266,42 @@ function getSearchMatchInfo(
         ? city.bbox
         : null;
 
+  return {
+    query,
+    terms: query ? cleanSearchQuery(query) : [],
+    city,
+    voivodeship,
+    cityBBox,
+    latParam,
+    lngParam,
+    radiusParam,
+    hasRadiusSearch,
+  };
+}
+
+function getSearchMatchInfo(d: any, ctx: SearchContext) {
+  const {
+    query,
+    terms,
+    city,
+    voivodeship,
+    cityBBox,
+    latParam,
+    lngParam,
+    radiusParam,
+    hasRadiusSearch,
+  } = ctx;
+
+  const radiusDistance = hasRadiusSearch && hasCoords(d)
+    ? haversineKm(latParam, lngParam, d.lat!, d.lng!)
+    : null;
+
+  const pointRadiusMatch = radiusDistance !== null && radiusDistance <= radiusParam;
+
   const cityAreaMatch = cityBBox ? coordsInBBox(d, cityBBox) : false;
   const voivodeshipAreaMatch = voivodeship ? coordsInBBox(d, voivodeship.bbox) : false;
 
-  const textMatch = query ? matchesLocationText(d, query) : false;
+  const textMatch = query ? matchesLocationText(d, terms) : false;
   const textFallbackMatch = query && (!hasRadiusSearch || !hasCoords(d)) ? textMatch : false;
 
   const anyMatch =
@@ -402,56 +440,59 @@ export async function GET(req: Request) {
     },
   });
 
-  let filtered = allMatching;
+  const searchContext = buildSearchContext(searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
+  const needsMatchInfo = hasRadiusSearch || Boolean(searchText);
 
-  if (hasRadiusSearch || searchText) {
-    filtered = allMatching.filter((d) =>
-      getSearchMatchInfo(
-        d,
-        searchText,
-        latParam,
-        lngParam,
-        radiusParam,
-        hasRadiusSearch
-      ).anyMatch
-    );
-  }
+  // P3: „match info" (dystans/dopasowanie) liczone RAZ na ofertę — jeden przebieg O(n).
+  // Wcześniej leciało wielokrotnie w pętli sortowania (≈2·n·log n razy na żądanie).
+  const withInfo = allMatching.map((item) => ({
+    item,
+    info: needsMatchInfo ? getSearchMatchInfo(item, searchContext) : null,
+  }));
 
-  filtered.sort((a, b) => {
-    const aInfo = getSearchMatchInfo(a, searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
-    const bInfo = getSearchMatchInfo(b, searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
+  const ranked = needsMatchInfo ? withInfo.filter((x) => x.info!.anyMatch) : withInfo;
 
-    if (aInfo.group !== bInfo.group) return aInfo.group - bInfo.group;
+  ranked.sort((a, b) => {
+    const aInfo = a.info;
+    const bInfo = b.info;
 
-    const aFeatured = isFeaturedActive(a);
-    const bFeatured = isFeaturedActive(b);
+    if (aInfo && bInfo && aInfo.group !== bInfo.group) return aInfo.group - bInfo.group;
+
+    const aFeatured = isFeaturedActive(a.item);
+    const bFeatured = isFeaturedActive(b.item);
     if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
 
     switch (sort) {
       case 'oldest':
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return new Date(a.item.createdAt).getTime() - new Date(b.item.createdAt).getTime();
       case 'price_asc':
-        return a.cenaPln - b.cenaPln;
+        return a.item.cenaPln - b.item.cenaPln;
       case 'price_desc':
-        return b.cenaPln - a.cenaPln;
+        return b.item.cenaPln - a.item.cenaPln;
       case 'area_asc':
-        return a.powierzchniaM2 - b.powierzchniaM2;
+        return a.item.powierzchniaM2 - b.item.powierzchniaM2;
       case 'area_desc':
-        return b.powierzchniaM2 - a.powierzchniaM2;
+        return b.item.powierzchniaM2 - a.item.powierzchniaM2;
       default: {
-        const aPhotos = hasPhotos(a);
-        const bPhotos = hasPhotos(b);
+        const aPhotos = hasPhotos(a.item);
+        const bPhotos = hasPhotos(b.item);
         if (aPhotos !== bPhotos) return aPhotos ? -1 : 1;
-        if (hasRadiusSearch && aInfo.radiusDistance !== null && bInfo.radiusDistance !== null) {
+        if (
+          hasRadiusSearch &&
+          aInfo &&
+          bInfo &&
+          aInfo.radiusDistance !== null &&
+          bInfo.radiusDistance !== null
+        ) {
           return aInfo.radiusDistance - bInfo.radiusDistance;
         }
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return new Date(b.item.createdAt).getTime() - new Date(a.item.createdAt).getTime();
       }
     }
   });
 
-  const total = filtered.length;
-  const items = filtered.slice(skip, skip + take);
+  const total = ranked.length;
+  const items = ranked.slice(skip, skip + take).map((x) => x.item);
 
   const currentPage = Math.floor(skip / take) + 1;
   const totalPages = Math.max(1, Math.ceil(total / take));
