@@ -37,6 +37,7 @@ model User {
   emailSendLogs      EmailSendLog[]
   invoices           Invoice[]
   listingOrders      ListingOrder[]
+  offerAlerts        OfferAlert[]
   sessions           Session[]
 }
 
@@ -173,6 +174,32 @@ model FavoriteDzialka {
   @@unique([userId, dzialkaId])
   @@index([userId])
   @@index([dzialkaId])
+}
+
+model OfferAlert {
+  id               String          @id @default(cuid())
+  userId           String
+  label            String
+  query            String?
+  priceMin         Int?
+  priceMax         Int?
+  areaMin          Int?
+  areaMax          Int?
+  przeznaczenia    Przeznaczenie[]
+  lat              Float?
+  lng              Float?
+  radiusKm         Int?
+  isActive         Boolean         @default(true)
+  unsubscribeToken String          @unique
+  lastCheckedAt    DateTime        @default(now())
+  lastNotifiedAt   DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
 }
 
 model PasswordResetToken {
@@ -623,6 +650,7 @@ enum InvoiceSource {
 
 enum EmailSendType {
   REMINDER
+  ALERT
 }
 
 enum CrmProvider {

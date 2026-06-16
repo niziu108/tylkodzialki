@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import KupList from './KupList';
+import AlertBar from '@/components/AlertBar';
+import type { AlertCriteria } from '@/lib/alertCriteria';
 import type { Przeznaczenie } from '@prisma/client';
 
 type ApiPhoto = { id?: string; url: string; publicId?: string; kolejnosc?: number };
@@ -898,6 +900,21 @@ export default function KupSearch({
   const goNext = () => changePage(safePage + 1);
   const goTo = (p: number) => changePage(p);
 
+  const alertCriteria: AlertCriteria = useMemo(
+    () => ({
+      query: applied.locText.trim() || null,
+      lat: applied.center?.lat ?? null,
+      lng: applied.center?.lng ?? null,
+      radiusKm: applied.center ? applied.radiusKm : null,
+      priceMin: applied.priceMin ? Number(applied.priceMin) : null,
+      priceMax: applied.priceMax ? Number(applied.priceMax) : null,
+      areaMin: applied.areaMin ? Number(applied.areaMin) : null,
+      areaMax: applied.areaMax ? Number(applied.areaMax) : null,
+      przeznaczenia: applied.przezn,
+    }),
+    [applied]
+  );
+
   const filterContent = (
     <div className="text-left">
       {/* Row 1: Lokalizacja + Zasięg — always visible */}
@@ -1158,13 +1175,15 @@ export default function KupSearch({
           )}
         </div>
 
+        <AlertBar criteria={alertCriteria} />
+
         <PagerResponsive
           page={safePage}
           totalPages={totalPages}
           onPrev={goPrev}
           onNext={goNext}
           onGo={goTo}
-          className="mb-6"
+          className="mb-6 mt-6"
         />
 
         <KupList items={items} loading={loading} error={err} />

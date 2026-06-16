@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import PanelDzialkiList from "@/components/PanelDzialkiList";
 import AutoFeaturedAfterPurchase from "@/components/AutoFeaturedAfterPurchase";
 import CrmIntegrationPanel from "@/components/CrmIntegrationPanel";
+import PanelAlertsList from "@/components/PanelAlertsList";
 
 type PanelPageProps = {
   searchParams?: Promise<{
@@ -30,6 +31,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
       ? "faktury"
       : params?.tab === "crm"
       ? "crm"
+      : params?.tab === "alerty"
+      ? "alerty"
       : "ogloszenia";
 
   const shouldAutoFeature =
@@ -92,7 +95,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
     createdAt: rawUser.createdAt,
   };
 
-  const [rawItems, invoices, crmIntegration] = await Promise.all([
+  const [rawItems, invoices, crmIntegration, alertsRaw] = await Promise.all([
     activeTab === "ogloszenia"
       ? prisma.dzialka.findMany({
           where: { ownerId: user.id },
@@ -157,7 +160,31 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           },
         })
       : Promise.resolve(null),
+    activeTab === "alerty"
+      ? prisma.offerAlert.findMany({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            label: true,
+            isActive: true,
+            createdAt: true,
+            lastNotifiedAt: true,
+          },
+        })
+      : Promise.resolve([]),
   ]);
+
+  const alerts =
+    activeTab === "alerty"
+      ? alertsRaw.map((a) => ({
+          id: a.id,
+          label: a.label,
+          isActive: a.isActive,
+          createdAt: a.createdAt.toISOString(),
+          lastNotifiedAt: a.lastNotifiedAt ? a.lastNotifiedAt.toISOString() : null,
+        }))
+      : [];
 
   const now = Date.now();
 
@@ -410,6 +437,17 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               >
                 Integracje CRM
               </Link>
+
+              <Link
+                href="/panel?tab=alerty"
+                className={`pb-4 transition ${
+                  activeTab === "alerty"
+                    ? "border-b-2 border-[#7aa333] text-white"
+                    : "text-white/68 hover:text-white"
+                }`}
+              >
+                Alerty
+              </Link>
             </div>
 
             {activeTab === "ogloszenia" ? (
@@ -552,7 +590,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               </div>
             )}
           </>
-        ) : (
+        ) : activeTab === "crm" ? (
           <>
             <div className="mb-5 text-[19px] font-medium text-white">
               Integracje CRM
@@ -562,6 +600,14 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               integration={crmIntegration}
               paymentsEnabled={paymentsEnabled}
             />
+          </>
+        ) : (
+          <>
+            <div className="mb-5 text-[19px] font-medium text-white">
+              Moje alerty
+            </div>
+
+            <PanelAlertsList initialAlerts={alerts} />
           </>
         )}
       </div>

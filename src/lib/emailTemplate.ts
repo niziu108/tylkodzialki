@@ -13,6 +13,7 @@ export function buildMailTemplate({
   buttonLabel,
   buttonUrl,
   note,
+  unsubscribeUrl,
 }: {
   preheader: string;
   title: string;
@@ -20,6 +21,7 @@ export function buildMailTemplate({
   buttonLabel: string;
   buttonUrl: string;
   note?: string;
+  unsubscribeUrl?: string;
 }) {
   const safePreheader = escapeHtml(preheader);
   const safeTitle = escapeHtml(title);
@@ -27,6 +29,7 @@ export function buildMailTemplate({
   const safeButtonLabel = escapeHtml(buttonLabel);
   const safeButtonUrl = escapeHtml(buttonUrl);
   const safeNote = note ? escapeHtml(note) : "";
+  const safeUnsubscribeUrl = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : "";
 
   return `
 <!DOCTYPE html>
@@ -131,7 +134,15 @@ style="display:block;width:160px;max-width:100%;height:auto;border:0;"
 <table width="100%" style="max-width:640px;">
 <tr>
 <td style="padding:16px 18px 0 18px;text-align:center;color:#8b8b8b;font-size:12px;line-height:1.6;">
-Ta wiadomość została wysłana automatycznie z systemu TylkoDziałki.
+Ta wiadomość została wysłana automatycznie z systemu TylkoDziałki.${
+  safeUnsubscribeUrl
+    ? `
+<br />
+<a href="${safeUnsubscribeUrl}" style="color:#8b8b8b;text-decoration:underline;">
+Wypisz się z tego alertu
+</a>`
+    : ""
+}
 </td>
 </tr>
 </table>
