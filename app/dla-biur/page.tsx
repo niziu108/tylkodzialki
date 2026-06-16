@@ -69,43 +69,45 @@ export default async function DlaBiurPage() {
       className="relative w-full overflow-hidden"
       style={{ background: PAGE_BG }}
     >
-      {/* HERO */}
+      {/* HERO — 2 kolumny na desktopie: lewo wielki licznik, prawo teksty */}
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.22),transparent_34%)]" />
         <div className="pointer-events-none absolute left-[-140px] top-24 z-0 h-[420px] w-[420px] rounded-full bg-[#7aa333]/10 blur-[120px]" />
 
-        <div className="relative z-10 mx-auto max-w-5xl px-6 py-24 text-center md:px-10 md:py-32">
+        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 text-center md:px-10 md:py-28 lg:grid-cols-2 lg:gap-16 lg:text-left">
           {agencyCount > 0 ? (
-            <div className="mb-10">
+            <div className="flex justify-center lg:justify-start">
               <AgencyCounter target={agencyCount} />
             </div>
           ) : null}
 
-          <h1 className="mx-auto max-w-3xl text-[26px] font-semibold leading-[1.12] tracking-tight text-white md:text-[40px]">
-            Wystawiaj oferty działek automatycznie przez integrację z CRM.
-          </h1>
+          <div className={agencyCount > 0 ? '' : 'lg:col-span-2 lg:mx-auto lg:text-center'}>
+            <h1 className="text-[26px] font-semibold leading-[1.12] tracking-tight text-white md:text-[40px] lg:text-[44px]">
+              Wystawiaj oferty działek automatycznie przez integrację z CRM.
+            </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-7 text-white/68 md:text-base">
-            Łączymy się z Twoim systemem i codziennie synchronizujemy oferty.
-            Zero ręcznego dodawania. Ty sprzedajesz, my dbamy o widoczność
-            Twoich gruntów w całej Polsce.
-          </p>
+            <p className="mx-auto mt-6 max-w-xl text-[15px] leading-7 text-white/68 md:text-base lg:mx-0">
+              Łączymy się z Twoim systemem i codziennie synchronizujemy oferty.
+              Zero ręcznego dodawania. Ty sprzedajesz, my dbamy o widoczność
+              Twoich gruntów w całej Polsce.
+            </p>
 
-          <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="#kontakt"
-              className="inline-flex h-13 items-center justify-center rounded-2xl bg-[#7aa333] px-8 py-4 text-[15px] font-semibold text-[#0d0d0d] transition hover:bg-[#9fd14b]"
-            >
-              Połącz swoje CRM
-            </Link>
+            <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:items-start lg:justify-start">
+              <Link
+                href="#kontakt"
+                className="inline-flex h-13 items-center justify-center rounded-2xl bg-[#7aa333] px-8 py-4 text-[15px] font-semibold text-[#0d0d0d] transition hover:bg-[#9fd14b]"
+              >
+                Połącz swoje CRM
+              </Link>
 
-            <Link
-              href="#jak-to-dziala"
-              className="inline-flex h-13 items-center justify-center rounded-2xl border border-white/15 px-8 py-4 text-[15px] font-medium text-white/85 transition hover:border-white/30 hover:text-white"
-            >
-              Jak to działa
-            </Link>
+              <Link
+                href="#jak-to-dziala"
+                className="inline-flex h-13 items-center justify-center rounded-2xl border border-white/15 px-8 py-4 text-[15px] font-medium text-white/85 transition hover:border-white/30 hover:text-white"
+              >
+                Jak to działa
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -188,15 +190,12 @@ export default async function DlaBiurPage() {
         </div>
       </section>
 
-      {/* KONTAKT */}
-      <section
-        id="kontakt"
-        className="relative scroll-mt-24 overflow-hidden"
-      >
+      {/* KONTAKT — 2 kolumny na desktopie: lewo tekst, prawo formularz */}
+      <section id="kontakt" className="relative scroll-mt-24 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(122,163,51,0.14),transparent_34%)]" />
 
         <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 md:px-10 md:py-28">
-          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-14">
+          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-14">
             <div>
               <div className="text-[12px] uppercase tracking-[0.22em] text-[#9fd14b]">
                 Kontakt
@@ -207,8 +206,9 @@ export default async function DlaBiurPage() {
               </h2>
 
               <p className="mt-5 max-w-md text-base leading-8 text-white/65">
-                Zostaw kontakt i napisz, czego potrzebujesz. Odezwiemy się na
-                podany adres e-mail.
+                Podłączymy Twój system, skonfigurujemy import po naszej stronie
+                i zadbamy, żeby Twoje działki były widoczne w całej Polsce. Bez
+                instalacji, bez przepisywania, bez pracy po Twojej stronie.
               </p>
 
               <p className="mt-6 text-sm text-white/45">

@@ -75,6 +75,15 @@ input[type="checkbox"] {
   border-bottom: 1px solid var(--line-strong);
 }
 
+/* Pola formularza „Dla biur" — luksusowa linia (przebija reset input{border:none}) */
+.field-line {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  transition: border-color 0.2s ease;
+}
+.field-line:focus {
+  border-bottom-color: #7aa333;
+}
+
 input::placeholder { text-decoration: none !important; }
 textarea::placeholder { text-decoration: none !important; }
 
