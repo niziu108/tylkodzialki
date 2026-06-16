@@ -1011,6 +1011,40 @@ export default function DzialkaForm({
     };
   }
 
+  // Jedno źródło prawdy dla draftu zapisywanego w localStorage (autosave + zapis przed
+  // odejściem na logowanie / zakup pakietu). Po powrocie na /sprzedaj?autopublish=1 draft
+  // hydratuje formularz i ogłoszenie publikuje się automatycznie.
+  function buildDraft(uploadedForDraft: UploadedPhoto[]): DzialkaDraft {
+    return {
+      tytul,
+      telefon,
+      cenaPln,
+      powierzchniaM2,
+      sprzedajacyTyp,
+      sprzedajacyImie,
+      biuroNazwa,
+      biuroOpiekun,
+      biuroLogoUrl,
+      numerOferty,
+      przeznaczenia,
+      location,
+      opis,
+      prad,
+      woda,
+      kanalizacja,
+      gaz,
+      swiatlowod,
+      wzWydane,
+      mpzp,
+      projektDomu,
+      klasaZiemi,
+      wymiary,
+      ksiegaWieczysta,
+      uploaded: uploadedForDraft,
+      activeIdx,
+    };
+  }
+
   async function submitListing(isAutoPublish = false, attempt = 0): Promise<void> {
     setErr(null);
     setOk(null);
@@ -1106,36 +1140,22 @@ export default function DzialkaForm({
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
+        // Niezalogowany użytkownik wypełnił publiczny formularz — logowanie DOPIERO TERAZ.
+        // Zapisujemy draft i wracamy na /sprzedaj?autopublish=1, gdzie ogłoszenie publikuje się samo.
+        if (res.status === 401 && mode === 'create') {
+          if (isAutoPublish) {
+            setErr('Nie udało się potwierdzić logowania. Zaloguj się ponownie i opublikuj ogłoszenie.');
+            return;
+          }
+
+          saveCreateDraft(buildDraft(uploadedSorted));
+          router.push(`/auth?callbackUrl=${encodeURIComponent('/sprzedaj?autopublish=1')}`);
+          return;
+        }
+
         if (data?.error === 'NO_LISTING_CREDITS') {
           if (mode === 'create') {
-            saveCreateDraft({
-              tytul,
-              telefon,
-              cenaPln,
-              powierzchniaM2,
-              sprzedajacyTyp,
-              sprzedajacyImie,
-              biuroNazwa,
-              biuroOpiekun,
-              biuroLogoUrl,
-              numerOferty,
-              przeznaczenia,
-              location,
-              opis,
-              prad,
-              woda,
-              kanalizacja,
-              gaz,
-              swiatlowod,
-              wzWydane,
-              mpzp,
-              projektDomu,
-              klasaZiemi,
-              wymiary,
-              ksiegaWieczysta,
-              uploaded: uploadedSorted,
-              activeIdx,
-            });
+            saveCreateDraft(buildDraft(uploadedSorted));
           }
 
           if (isAutoPublish) {

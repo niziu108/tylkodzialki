@@ -51,8 +51,8 @@ Po polsku. Przed większą lub nieodwracalną zmianą — najpierw zapytaj.
 - [x] **P1. `<h1>` na stronie oferty.** ✅ Tytuł oferty to teraz `<h1>` (dokładnie jeden na stronie, w treści renderowanej przez serwer).
   Gdzie: `app/dzialka/[id]/DzialkaClient.tsx`.
   Sortowanie po cenie — **świadomie pominięte**: usunięte celowo dzień wcześniej (commit `44f511a`) i czysto kosmetyczne; nie przywracamy.
-- [ ] **P2. Zdejmij login-wall z `/sprzedaj`.** Formularz publiczny, logowanie/rejestracja dopiero przy „Opublikuj".
-  Gdzie: `app/sprzedaj/page.tsx` (teraz `redirect("/auth")`); `src/components/DzialkaForm.tsx`; POST w `app/api/dzialki/route.ts`.
+- [x] **P2. Zdejmij login-wall z `/sprzedaj`.** ✅ Formularz jest publiczny; logowanie/rejestracja dopiero przy „Opublikuj" (POST → 401 → zapis draftu → `/auth` → powrót na `/sprzedaj?autopublish=1` → auto-publikacja).
+  **Uwaga z realizacji:** prawdziwy login-wall siedział w `app/sprzedaj/layout.tsx` (nie w `page.tsx`, jak zakładała roadmapa) — usunięty. `src/middleware.ts` jest martwy (Next nie ładuje middleware z `src/`, gdy `app/` jest w roocie) → patrz nowy punkt P15.
 - [ ] **P3. Napraw komparator wyszukiwarki** — policz „match info" (dystans/dopasowanie) raz na ofertę, potem sortuj. Teraz liczone wielokrotnie w pętli sortowania.
   Gdzie: `app/api/dzialki/route.ts` (funkcja `GET`, sekcja `filtered.sort(...)`).
 - [ ] **P4. Artykuły bloga do sitemap.**
@@ -71,6 +71,7 @@ Po polsku. Przed większą lub nieodwracalną zmianą — najpierw zapytaj.
 - [ ] **P12. Przepisanie silnika wyszukiwarki na bazę** + indeksy / PostGIS + cache (warunek skali 50k ofert).
 - [ ] **P13. Huby SEO** (województwa → miasta, unikalna treść per miasto).
 - [ ] **P14. Kreator dodawania ofert** zamiast monolitu (~1967 linii w `DzialkaForm.tsx`).
+- [ ] **P15. Martwy `src/middleware.ts`** (znalezione przy P2). Next nie ładuje middleware z `src/`, gdy `app/` jest w roocie → ochrona tras (allowlist admina, redirecty `/panel`/`/admin`) **nie jest egzekwowana przez middleware**, tylko przez strażników w stronach/layoutach. Zweryfikować, że `/panel` i `/admin` realnie się bronią (w teście anonim dostał `/panel` → 200, `/admin` → redirect `/`), potem albo przenieść middleware do roota (świadomie włączyć), albo usunąć jako mylący martwy kod. **Potencjalna luka bezpieczeństwa — do przejrzenia.**
 
 ### ⚪ ODŁOŻONE (świadomie, nie teraz)
 Monetyzacja/abonamenty B2B (po boomie) · profile biur · jasny motyw (kiedyś A/B) · recenzje · historia cen · programatyczne SEO.
@@ -79,9 +80,13 @@ Monetyzacja/abonamenty B2B (po boomie) · profile biur · jasny motyw (kiedyś A
 
 ## 4. DZIENNIK (status i decyzje)
 
-- **AKTUALNY PUNKT: P2** (zdejmij login-wall z `/sprzedaj` — bezpośrednio zwiększa podaż ofert)
+- **AKTUALNY PUNKT: P3** (napraw komparator wyszukiwarki — policz „match info" raz na ofertę zamiast w pętli `sort`; szybkość działania przy rosnącej liczbie ofert)
 - 2026-06-16 — Powstał plan. Roadmapa ustalona i przedyskutowana (audyt + uwagi właściciela). Start od P1.
 - 2026-06-16 — **SPRINT 1 ukończony (P1 + P7).** Strona oferty renderowana po stronie serwera — Google dostaje pełny HTML, nie pustą ramkę.
   - **Pliki:** `src/lib/dzialki.ts` (nowy helper `getDzialkaById`: Prisma + `cache()`, jedno źródło prawdy), `app/api/dzialki/[id]/route.ts` (używa helpera, odpowiedź bez zmian), `app/dzialka/[id]/page.tsx` (SSR przez Prisma, JSON-LD w HTML serwera, `initial` → klient, `revalidate=60`), `app/dzialka/[id]/DzialkaClient.tsx` (przyjmuje `initial`, koniec podwójnego fetchu, tytuł `<div>`→`<h1>`).
   - **Decyzje:** (1) ISR `revalidate=60` zamiast „force-dynamic" — szybkość dla użytkownika i Googlebota, dane świeże do 60 s. (2) Sortowanie po cenie z litery P1 świadomie pominięte (usunięte celowo `44f511a`, kosmetyka). (3) `key={id}` na kliencie — czysty remount przy zmianie oferty, bez stale state.
   - **Weryfikacja:** `tsc --noEmit` = 0 błędów; realny render z serwera (curl na żywej bazie): `<h1>` = 1 z tytułem oferty, JSON-LD `Product` w źródle, brak skeletonu, treść (Cena/Powierzchnia) w HTML.
+- 2026-06-16 — **SPRINT 2 ukończony (P2 — login-wall zdjęty z `/sprzedaj`).** Formularz dodawania działki jest publiczny; konto zakłada się dopiero przy „Opublikuj". (W promptcie właściciel nazwał to „SPRINT 3".)
+  - **Pliki:** `app/sprzedaj/layout.tsx` (**USUNIĘTY** — to on był aktywnym login-wallem: `getServerSession` + `redirect('/auth')`; roadmapa błędnie wskazywała `page.tsx`), `app/sprzedaj/page.tsx` (zdjęty redundantny `redirect`, publiczny render + `metadata` SEO „Dodaj ogłoszenie za darmo"), `src/components/DzialkaForm.tsx` (nowy helper `buildDraft`; w `submitListing` obsługa `401`: zapis draftu + `router.push('/auth?callbackUrl=/sprzedaj?autopublish=1')`; deduplikacja zapisu draftu w ścieżce `NO_LISTING_CREDITS`), `src/middleware.ts` (zdjęto `/sprzedaj` z `isProtectedPath` i `matcher`).
+  - **Decyzje:** (1) **Reużycie istniejącego mechanizmu `?autopublish=1`** (tego samego, którego używa `panel/pakiety/sukces`) zamiast budowy nowego — draft w localStorage przeżywa round-trip logowania i po powrocie ogłoszenie publikuje się samo. (2) Guard `isAutoPublish` w handlerze 401 — żadnej pętli redirectów, gdy sesja faktycznie nie wstała (pokazujemy komunikat). (3) Layout **usunięty**, nie zneutralizowany — pełnił wyłącznie rolę strażnika. (4) `src/middleware.ts` okazał się **martwy** (Next nie ładuje middleware z `src/`, gdy `app/` jest w roocie) → zgłoszone jako **P15**; edit zostawiony, bo poprawnie wyraża intencję.
+  - **Weryfikacja:** `tsc --noEmit` = 0 błędów; ESLint zmienionych plików = 0 **nowych** zgłoszeń (`page.tsx` czysty). Dev (Turbopack, czysty `.next`): anonim `GET /sprzedaj` → **200** z formularzem i `<h1>` (przedtem 307 → `/auth`); `/panel`/`/admin`/`/auth` bez zmian; anonim `POST /api/dzialki` → **401** `Brak autoryzacji.` (kontrakt, na którym opiera się handler 401).

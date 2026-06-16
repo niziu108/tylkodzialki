@@ -3,7 +3,9 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 function isProtectedPath(pathname: string) {
-  return pathname.startsWith('/sprzedaj') || pathname.startsWith('/panel') || pathname.startsWith('/admin');
+  // /sprzedaj jest celowo PUBLICZNE — formularz wypełnia się bez logowania,
+  // a konto zakłada się dopiero przy publikacji (patrz DzialkaForm: 401 -> /auth -> autopublish).
+  return pathname.startsWith('/panel') || pathname.startsWith('/admin');
 }
 
 function isAdminPath(pathname: string) {
@@ -49,5 +51,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/sprzedaj/:path*', '/panel/:path*', '/admin/:path*'],
+  matcher: ['/panel/:path*', '/admin/:path*'],
 };
