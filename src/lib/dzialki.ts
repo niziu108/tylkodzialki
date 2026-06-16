@@ -220,7 +220,8 @@ export async function getSimilarDzialki(
  *  zestaw zmienia się „codziennie", a nie przy każdym odświeżeniu strony.
  * ──────────────────────────────────────────────────────────────────────────── */
 const HOME_PHOTO_INCLUDE = {
-  zdjecia: { orderBy: { kolejnosc: 'asc' as const }, take: 1 },
+  // kilka zdjęć — karuzela na karcie (jak na /kup), nie tylko okładka
+  zdjecia: { orderBy: { kolejnosc: 'asc' as const }, take: 12 },
 } as const;
 
 export async function getFeaturedListings(limit = 8) {

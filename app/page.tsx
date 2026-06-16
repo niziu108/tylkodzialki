@@ -1,11 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
 import KupSearch from "./kup/KupSearch";
 import HeroCounter from "@/components/HeroCounter";
-import type { Przeznaczenie } from "@prisma/client";
+import FeaturedRail from "@/components/FeaturedRail";
+import type { OfferData } from "@/components/OfferCard";
 import { SEO_REGIONS } from "@/lib/seo-locations";
 import { getFeaturedListings } from "@/lib/dzialki";
 
@@ -20,200 +20,7 @@ export const metadata: Metadata = {
   },
 };
 
-const GREEN = "#7aa333";
 const PAGE_BG = "#131313";
-
-function formatPLN(value: number) {
-  return new Intl.NumberFormat("pl-PL", {
-    style: "currency",
-    currency: "PLN",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatIntPL(value: number) {
-  return new Intl.NumberFormat("pl-PL", {
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function labelPrzeznaczenie(p: Przeznaczenie) {
-  return String(p)
-    .replace("USLUGOWA", "Usługowa")
-    .replace("LESNA", "Leśna")
-    .replace("INWESTYCYJNA", "Inwestycyjna")
-    .replace("ROLNA", "Rolna")
-    .replace("BUDOWLANA", "Budowlana")
-    .replace("REKREACYJNA", "Rekreacyjna")
-    .replace("SIEDLISKOWA", "Siedliskowa");
-}
-
-type HomePhoto = {
-  id?: string;
-  url: string;
-  publicId?: string;
-  kolejnosc?: number;
-};
-
-type HomeListing = {
-  id: string;
-  tytul: string;
-  cenaPln: number;
-  powierzchniaM2: number;
-  locationLabel?: string | null;
-  przeznaczenia?: Przeznaczenie[];
-  zdjecia?: HomePhoto[];
-  isPlaceholder?: boolean;
-};
-
-function HomeListingCarousel({
-  photos,
-  coverFallback,
-  title,
-}: {
-  photos: { url: string }[];
-  coverFallback: string | null;
-  title: string;
-}) {
-  const list = photos.length
-    ? photos.map((p) => p.url)
-    : coverFallback
-      ? [coverFallback]
-      : [];
-
-  const has = list.length > 0;
-
-  return (
-    <div className="relative aspect-video bg-white/5">
-      {has ? (
-        <>
-          <img
-            src={list[0]}
-            alt={title}
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
-        </>
-      ) : (
-        <div className="flex h-full items-center justify-center text-white/50">
-          Brak zdjęć
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MetricBlock({
-  label,
-  value,
-  subValue,
-}: {
-  label: string;
-  value: ReactNode;
-  subValue?: ReactNode;
-}) {
-  return (
-    <div className="min-w-0 flex flex-col items-center text-center">
-      <div className="text-[11px] uppercase tracking-[0.16em] text-white/35">
-        {label}
-      </div>
-      <div className="mt-2 min-w-0">{value}</div>
-      {subValue ? <div className="min-w-0">{subValue}</div> : null}
-    </div>
-  );
-}
-
-function HomeListingCard({ d }: { d: HomeListing }) {
-  const photos = (d.zdjecia ?? [])
-    .slice()
-    .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
-
-  const coverFallback = photos[0]?.url ?? null;
-  const loc = d.locationLabel?.trim() || "Lokalizacja niepodana";
-  const area = d.powierzchniaM2 ?? 0;
-  const zlZaM2 = area ? Math.round(d.cenaPln / area) : 0;
-  const przezn = d.przeznaczenia?.length
-    ? d.przeznaczenia.map(labelPrzeznaczenie).join(", ")
-    : "—";
-
-  const href = d.isPlaceholder ? "/kup" : `/dzialka/${d.id}`;
-
-  return (
-    <Link
-      href={href}
-      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/40 transition hover:border-white/30 md:min-w-[360px] xl:min-w-[380px]"
-    >
-      <HomeListingCarousel
-        photos={photos}
-        coverFallback={coverFallback}
-        title={d.tytul}
-      />
-
-      <div className="p-5 md:p-6">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <MetricBlock
-            label="Cena"
-            value={
-              <div
-                className="text-[22px] font-semibold leading-none md:text-[24px]"
-                style={{ color: GREEN }}
-              >
-                {d.isPlaceholder ? "Wkrótce" : formatPLN(d.cenaPln)}
-              </div>
-            }
-            subValue={
-              !d.isPlaceholder && zlZaM2 ? (
-                <div className="mt-1 text-[12px] text-white/45">
-                  {formatIntPL(zlZaM2)} zł/m²
-                </div>
-              ) : null
-            }
-          />
-
-          <div className="h-14 w-px bg-white/10" />
-
-          <MetricBlock
-            label="Powierzchnia"
-            value={
-              <div className="text-[20px] font-medium leading-none text-white/95 md:text-[22px]">
-                {d.isPlaceholder ? "—" : `${formatIntPL(area)} m²`}
-              </div>
-            }
-          />
-        </div>
-
-        <div className="mt-6">
-          <div className="mx-auto max-w-[92%] text-center text-[16px] font-medium leading-[1.35] text-white/92 md:text-[17px]">
-            {d.tytul}
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <MetricBlock
-            label="Lokalizacja"
-            value={
-              <div className="break-words text-[14px] leading-[1.4] text-white/90">
-                {d.isPlaceholder ? "TylkoDziałki" : loc}
-              </div>
-            }
-          />
-
-          <div className="h-14 w-px bg-white/10" />
-
-          <MetricBlock
-            label="Przeznaczenie"
-            value={
-              <div className="break-words text-[14px] leading-[1.4] text-white/90">
-                {d.isPlaceholder ? "—" : przezn}
-              </div>
-            }
-          />
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 function PopularSearchesSection() {
   return (
@@ -302,7 +109,19 @@ export default async function HomePage() {
     prisma.dzialka.count({ where: activeWhere }),
   ]);
 
-  const featuredCards = featuredListings as unknown as HomeListing[];
+  // Mapujemy tylko bezpieczne pola (bez editToken/telefon itp.), bo lecą do
+  // komponentu klienckiego FeaturedRail.
+  const featuredCards: OfferData[] = featuredListings.map((d) => ({
+    id: d.id,
+    tytul: d.tytul,
+    cenaPln: d.cenaPln,
+    powierzchniaM2: d.powierzchniaM2,
+    locationLabel: d.locationLabel,
+    przeznaczenia: d.przeznaczenia,
+    zdjecia: (d.zdjecia ?? []).map((z) => ({ url: z.url, kolejnosc: z.kolejnosc })),
+    isFeatured: d.isFeatured,
+    featuredUntil: d.featuredUntil,
+  }));
 
   const articleCards =
     latestArticles.length > 0
@@ -390,12 +209,8 @@ export default async function HomePage() {
               Wyróżnione oferty
             </h2>
 
-            <div className="mt-6 [touch-action:pan-x_pan-y]">
-              <HomeHorizontalSlider>
-                {featuredCards.map((item) => (
-                  <HomeListingCard key={item.id} d={item} />
-                ))}
-              </HomeHorizontalSlider>
+            <div className="mt-6">
+              <FeaturedRail items={featuredCards} />
             </div>
 
             <div className="mt-6 flex justify-center md:justify-start">
