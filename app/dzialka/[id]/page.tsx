@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import DzialkaClient from './DzialkaClient';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { getDzialkaById } from '@/lib/dzialki';
+import SimilarOffers from '@/components/SimilarOffers';
+import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
 
 // Oferta renderowana po stronie serwera (ISR): Google dostaje pełny HTML,
 // użytkownik gotową treść, a baza jest odpytywana najwyżej raz na 60 s per oferta.
@@ -168,6 +169,9 @@ export default async function Page({ params }: PageProps) {
   const { id } = await params;
   const dzialka = await getDzialkaById(id);
 
+  // Podobne oferty (P8): rail na dole strony — leady + SEO (wewnętrzne linkowanie) + czas na stronie.
+  const similar = dzialka ? await getSimilarDzialki(dzialka) : [];
+
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
   const title = dzialka?.tytul?.trim() || 'Działka na sprzedaż';
@@ -223,6 +227,8 @@ export default async function Page({ params }: PageProps) {
       </div>
 
       <DzialkaClient key={id} initial={dzialka} />
+
+      <SimilarOffers items={similar} />
     </>
   );
 }

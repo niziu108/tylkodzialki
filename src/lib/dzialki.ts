@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import type { Przeznaczenie } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -37,3 +38,177 @@ export const getDzialkaById = cache(async (id: string) => {
 });
 
 export type DzialkaFull = NonNullable<Awaited<ReturnType<typeof getDzialkaById>>>;
+
+/* ────────────────────────────────────────────────────────────────────────────
+ *  Podobne oferty (P8)
+ *  Zwraca aktywne działki najbardziej zbliżone do bieżącej: najpierw geograficznie
+ *  (bounding box po zaindeksowanych lat/lng), z premią za zgodne przeznaczenie.
+ *  Jeśli geo brak lub kandydatów za mało — dobiera najnowsze (najpierw o tym samym
+ *  przeznaczeniu, w ostateczności dowolne), tak by sekcja nigdy nie świeciła pustką.
+ *  SSR: linki trafiają do HTML serwera → wewnętrzne linkowanie między ofertami (SEO).
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export type SimilarDzialka = {
+  id: string;
+  tytul: string;
+  cenaPln: number;
+  powierzchniaM2: number;
+  locationLabel: string | null;
+  przeznaczenia: Przeznaczenie[];
+  zdjecia: { url: string }[];
+  /** Odległość od bieżącej oferty w km (null, gdy dobrane spoza geo). */
+  distanceKm: number | null;
+};
+
+type SimilarSeed = {
+  id: string;
+  lat?: number | null;
+  lng?: number | null;
+  przeznaczenia?: Przeznaczenie[] | null;
+};
+
+const EARTH_RADIUS_KM = 6371;
+
+function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const lat1 = (aLat * Math.PI) / 180;
+  const lat2 = (bLat * Math.PI) / 180;
+
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+const SIMILAR_PHOTO_INCLUDE = {
+  zdjecia: { orderBy: { kolejnosc: 'asc' as const }, take: 1 },
+} as const;
+
+type SimilarRow = {
+  id: string;
+  tytul: string;
+  cenaPln: number;
+  powierzchniaM2: number;
+  locationLabel: string | null;
+  przeznaczenia: Przeznaczenie[];
+  lat: number | null;
+  lng: number | null;
+  zdjecia: { url: string }[];
+};
+
+function toSimilar(row: SimilarRow, distanceKm: number | null): SimilarDzialka {
+  return {
+    id: row.id,
+    tytul: row.tytul,
+    cenaPln: row.cenaPln,
+    powierzchniaM2: row.powierzchniaM2,
+    locationLabel: row.locationLabel,
+    przeznaczenia: row.przeznaczenia ?? [],
+    zdjecia: (row.zdjecia ?? []).map((z) => ({ url: z.url })),
+    distanceKm,
+  };
+}
+
+/**
+ * Najbliższe/najbardziej podobne aktywne oferty do `seed` (bez samej `seed`).
+ * Co najwyżej 3 lekkie zapytania do bazy; zwykle 1 (geo) lub 1–2 (dobór najnowszych).
+ */
+export async function getSimilarDzialki(
+  seed: SimilarSeed,
+  limit = 8
+): Promise<SimilarDzialka[]> {
+  const now = new Date();
+  const activeWhere = {
+    status: 'AKTYWNE' as const,
+    OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+  };
+
+  const purposes = seed.przeznaczenia ?? [];
+  const hasGeo =
+    typeof seed.lat === 'number' &&
+    typeof seed.lng === 'number' &&
+    Number.isFinite(seed.lat) &&
+    Number.isFinite(seed.lng);
+
+  // Premia za zgodne przeznaczenie ≈ „8 km bliżej" — podbija dopasowane działki,
+  // nie wywracając silnego sygnału geograficznego.
+  const PURPOSE_BONUS_KM = 8;
+  const score = (d: SimilarDzialka) => {
+    const base = d.distanceKm ?? Number.MAX_SAFE_INTEGER;
+    const sharesPurpose =
+      purposes.length > 0 && d.przeznaczenia.some((p) => purposes.includes(p));
+    return base - (sharesPurpose ? PURPOSE_BONUS_KM : 0);
+  };
+
+  let result: SimilarDzialka[] = [];
+
+  if (hasGeo) {
+    const lat = seed.lat as number;
+    const lng = seed.lng as number;
+    // ~0.9° szerokości ≈ ~100 km; długość skalowana cos(lat), by „pudełko" było
+    // mniej więcej kwadratowe w terenie (zapytanie korzysta z @@index([lat, lng])).
+    const dLat = 0.9;
+    const lngScale = Math.max(0.3, Math.cos((lat * Math.PI) / 180));
+    const dLng = dLat / lngScale;
+
+    const candidates = await prisma.dzialka.findMany({
+      where: {
+        ...activeWhere,
+        id: { not: seed.id },
+        lat: { gte: lat - dLat, lte: lat + dLat },
+        lng: { gte: lng - dLng, lte: lng + dLng },
+      },
+      include: SIMILAR_PHOTO_INCLUDE,
+      take: 200,
+    });
+
+    result = candidates
+      .map((d) =>
+        toSimilar(
+          d as SimilarRow,
+          typeof d.lat === 'number' && typeof d.lng === 'number'
+            ? haversineKm(lat, lng, d.lat, d.lng)
+            : null
+        )
+      )
+      .sort((a, b) => score(a) - score(b))
+      .slice(0, limit);
+  }
+
+  // Dobór, gdy geo nie wystarczyło: najpierw o tym samym przeznaczeniu, najnowsze.
+  if (result.length < limit) {
+    const excludeIds = [seed.id, ...result.map((d) => d.id)];
+
+    const samePurpose =
+      purposes.length > 0
+        ? await prisma.dzialka.findMany({
+            where: {
+              ...activeWhere,
+              id: { notIn: excludeIds },
+              przeznaczenia: { hasSome: purposes },
+            },
+            include: SIMILAR_PHOTO_INCLUDE,
+            orderBy: [{ publishedAt: 'desc' }],
+            take: limit - result.length,
+          })
+        : [];
+
+    result = [...result, ...samePurpose.map((d) => toSimilar(d as SimilarRow, null))];
+
+    // Ostatnia deska: dowolne najnowsze, by rail był pełny (więcej linków/odsłon).
+    if (result.length < limit) {
+      const excludeIds2 = [seed.id, ...result.map((d) => d.id)];
+      const newest = await prisma.dzialka.findMany({
+        where: { ...activeWhere, id: { notIn: excludeIds2 } },
+        include: SIMILAR_PHOTO_INCLUDE,
+        orderBy: [{ publishedAt: 'desc' }],
+        take: limit - result.length,
+      });
+      result = [...result, ...newest.map((d) => toSimilar(d as SimilarRow, null))];
+    }
+  }
+
+  return result.slice(0, limit);
+}
