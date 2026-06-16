@@ -43,7 +43,7 @@ export default function AgencyCounter({ target }: { target: number }) {
   }, [target]);
 
   return (
-    <div className="flex flex-col items-center leading-none lg:items-start">
+    <div className="flex flex-col items-start leading-none">
       <span className="text-[18px] font-medium text-white/90 [text-shadow:0_2px_10px_rgba(0,0,0,0.45)] md:text-[22px] lg:text-[26px]">
         Zaufało nam
       </span>

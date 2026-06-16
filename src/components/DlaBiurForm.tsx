@@ -197,7 +197,7 @@ export default function DlaBiurForm() {
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row-reverse sm:items-center sm:justify-between">
         <button
           type="submit"
           disabled={status === 'sending'}
@@ -206,7 +206,7 @@ export default function DlaBiurForm() {
           {status === 'sending' ? 'Wysyłanie…' : 'Wyślij zapytanie'}
         </button>
 
-        <p className="text-[12px] leading-relaxed text-white/40 sm:max-w-xs sm:text-right">
+        <p className="text-[12px] leading-relaxed text-white/40 sm:max-w-xs">
           Wysyłając formularz, zgadzasz się na kontakt w sprawie współpracy.
         </p>
       </div>

@@ -69,31 +69,31 @@ export default async function DlaBiurPage() {
       className="relative w-full overflow-hidden"
       style={{ background: PAGE_BG }}
     >
-      {/* HERO — 2 kolumny na desktopie: lewo wielki licznik, prawo teksty */}
-      <section className="relative overflow-hidden border-b border-white/10">
+      {/* HERO — pełna wysokość; 2 kolumny na desktopie (lewo wielki licznik, prawo teksty), od lewej też na mobile */}
+      <section className="relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/10">
         <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.22),transparent_34%)]" />
         <div className="pointer-events-none absolute left-[-140px] top-24 z-0 h-[420px] w-[420px] rounded-full bg-[#7aa333]/10 blur-[120px]" />
 
-        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 text-center md:px-10 md:py-28 lg:grid-cols-2 lg:gap-16 lg:text-left">
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-16 text-left md:px-10 md:py-20 lg:grid-cols-2 lg:gap-16">
           {agencyCount > 0 ? (
-            <div className="flex justify-center lg:justify-start">
+            <div className="flex justify-start">
               <AgencyCounter target={agencyCount} />
             </div>
           ) : null}
 
-          <div className={agencyCount > 0 ? '' : 'lg:col-span-2 lg:mx-auto lg:text-center'}>
+          <div className={agencyCount > 0 ? '' : 'lg:col-span-2'}>
             <h1 className="text-[26px] font-semibold leading-[1.12] tracking-tight text-white md:text-[40px] lg:text-[44px]">
               Wystawiaj oferty działek automatycznie przez integrację z CRM.
             </h1>
 
-            <p className="mx-auto mt-6 max-w-xl text-[15px] leading-7 text-white/68 md:text-base lg:mx-0">
+            <p className="mt-6 max-w-xl text-[15px] leading-7 text-white/68 md:text-base">
               Łączymy się z Twoim systemem i codziennie synchronizujemy oferty.
               Zero ręcznego dodawania. Ty sprzedajesz, my dbamy o widoczność
               Twoich gruntów w całej Polsce.
             </p>
 
-            <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:items-start lg:justify-start">
+            <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row">
               <Link
                 href="#kontakt"
                 className="inline-flex h-13 items-center justify-center rounded-2xl bg-[#7aa333] px-8 py-4 text-[15px] font-semibold text-[#0d0d0d] transition hover:bg-[#9fd14b]"
@@ -195,13 +195,13 @@ export default async function DlaBiurPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(122,163,51,0.14),transparent_34%)]" />
 
         <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 md:px-10 md:py-28">
-          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-14">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
             <div>
               <div className="text-[12px] uppercase tracking-[0.22em] text-[#9fd14b]">
                 Kontakt
               </div>
 
-              <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-white md:text-[36px] md:leading-[1.08]">
+              <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-white md:text-[30px] md:leading-[1.08] lg:whitespace-nowrap">
                 Porozmawiajmy o integracji.
               </h2>
 
