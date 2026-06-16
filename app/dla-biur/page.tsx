@@ -54,7 +54,7 @@ const STEPS = [
   },
   {
     n: '03',
-    title: 'Oferty żyją same',
+    title: 'Oferty zawsze aktualne',
     body: 'Działki importują się i synchronizują automatycznie. Ty zajmujesz się sprzedażą.',
   },
 ];
@@ -82,11 +82,11 @@ export default async function DlaBiurPage() {
             </div>
           ) : null}
 
-          <h1 className="mx-auto max-w-4xl text-[34px] font-semibold leading-[1.06] tracking-tight text-white md:text-[60px]">
+          <h1 className="mx-auto max-w-3xl text-[26px] font-semibold leading-[1.12] tracking-tight text-white md:text-[40px]">
             Wystawiaj oferty działek automatycznie przez integrację z CRM.
           </h1>
 
-          <p className="mx-auto mt-7 max-w-2xl text-base leading-8 text-white/68 md:text-lg">
+          <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-7 text-white/68 md:text-base">
             Łączymy się z Twoim systemem i codziennie synchronizujemy oferty.
             Zero ręcznego dodawania. Ty sprzedajesz, my dbamy o widoczność
             Twoich gruntów w całej Polsce.
@@ -118,7 +118,7 @@ export default async function DlaBiurPage() {
               Integracje
             </div>
 
-            <h2 className="mt-5 text-[30px] font-semibold tracking-tight text-white md:text-[46px] md:leading-[1.05]">
+            <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-white md:text-[34px] md:leading-[1.1]">
               Łączymy się z każdym systemem CRM.
             </h2>
 
@@ -163,7 +163,7 @@ export default async function DlaBiurPage() {
             Jak to działa
           </div>
 
-          <h2 className="mt-5 max-w-3xl text-[30px] font-semibold tracking-tight text-white md:text-[46px] md:leading-[1.05]">
+          <h2 className="mt-4 max-w-3xl text-[24px] font-semibold tracking-tight text-white md:text-[34px] md:leading-[1.1]">
             Trzy kroki. Resztę robimy my.
           </h2>
 
@@ -195,35 +195,37 @@ export default async function DlaBiurPage() {
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(122,163,51,0.14),transparent_34%)]" />
 
-        <div className="relative z-10 mx-auto max-w-3xl px-6 py-20 md:px-10 md:py-28">
-          <div className="text-center">
-            <div className="text-[12px] uppercase tracking-[0.22em] text-[#9fd14b]">
-              Kontakt
+        <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 md:px-10 md:py-28">
+          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-14">
+            <div>
+              <div className="text-[12px] uppercase tracking-[0.22em] text-[#9fd14b]">
+                Kontakt
+              </div>
+
+              <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-white md:text-[36px] md:leading-[1.08]">
+                Porozmawiajmy o integracji.
+              </h2>
+
+              <p className="mt-5 max-w-md text-base leading-8 text-white/65">
+                Zostaw kontakt i napisz, czego potrzebujesz. Odezwiemy się na
+                podany adres e-mail.
+              </p>
+
+              <p className="mt-6 text-sm text-white/45">
+                Wolisz e-mail? Napisz na{' '}
+                <a
+                  href="mailto:biuro@tylkodzialki.pl"
+                  className="text-[#9fd14b] transition hover:opacity-80"
+                >
+                  biuro@tylkodzialki.pl
+                </a>
+              </p>
             </div>
 
-            <h2 className="mt-5 text-[30px] font-semibold tracking-tight text-white md:text-[44px] md:leading-[1.05]">
-              Porozmawiajmy o integracji.
-            </h2>
-
-            <p className="mx-auto mt-5 max-w-xl text-base leading-8 text-white/65">
-              Zostaw kontakt i napisz, czego potrzebujesz. Odezwiemy się na
-              podany adres e-mail.
-            </p>
+            <div className="rounded-[32px] border border-white/12 bg-[#0d0d0d]/60 p-6 backdrop-blur md:p-8">
+              <DlaBiurForm />
+            </div>
           </div>
-
-          <div className="mt-12 rounded-[32px] border border-white/12 bg-[#0d0d0d]/60 p-6 backdrop-blur md:p-10">
-            <DlaBiurForm />
-          </div>
-
-          <p className="mt-6 text-center text-sm text-white/45">
-            Wolisz e-mail? Napisz na{' '}
-            <a
-              href="mailto:biuro@tylkodzialki.pl"
-              className="text-[#9fd14b] transition hover:opacity-80"
-            >
-              biuro@tylkodzialki.pl
-            </a>
-          </p>
         </div>
       </section>
     </main>

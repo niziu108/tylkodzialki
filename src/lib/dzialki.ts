@@ -212,3 +212,55 @@ export async function getSimilarDzialki(
 
   return result.slice(0, limit);
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ *  Wyróżnione oferty (homepage)
+ *  Najpierw faktycznie wyróżnione (isFeatured, aktywne). Dopóki nikt nie wykupił
+ *  wyróżnienia — dobiera LOSOWO, ale stabilnie w obrębie doby (seed z daty), więc
+ *  zestaw zmienia się „codziennie", a nie przy każdym odświeżeniu strony.
+ * ──────────────────────────────────────────────────────────────────────────── */
+const HOME_PHOTO_INCLUDE = {
+  zdjecia: { orderBy: { kolejnosc: 'asc' as const }, take: 1 },
+} as const;
+
+export async function getFeaturedListings(limit = 8) {
+  const now = new Date();
+  const activeWhere = {
+    status: 'AKTYWNE' as const,
+    OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+  };
+
+  const featured = await prisma.dzialka.findMany({
+    where: { ...activeWhere, isFeatured: true },
+    include: HOME_PHOTO_INCLUDE,
+    orderBy: [{ featuredUntil: 'desc' }, { publishedAt: 'desc' }],
+    take: limit,
+  });
+
+  if (featured.length >= limit) return featured;
+
+  // Losowy, ale stały w obrębie doby dobór spośród niewyróżnionych aktywnych ofert.
+  const fillCount = limit - featured.length;
+  const seed = now.toISOString().slice(0, 10); // YYYY-MM-DD → „codziennie inne"
+
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT id FROM "Dzialka"
+    WHERE status::text = 'AKTYWNE'
+      AND ("expiresAt" IS NULL OR "expiresAt" > NOW())
+      AND "isFeatured" = false
+    ORDER BY md5(id || ${seed})
+    LIMIT ${fillCount}
+  `;
+
+  const ids = rows.map((r) => r.id);
+  if (ids.length === 0) return featured;
+
+  const fill = await prisma.dzialka.findMany({
+    where: { id: { in: ids } },
+    include: HOME_PHOTO_INCLUDE,
+  });
+  const byId = new Map(fill.map((d) => [d.id, d]));
+  const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as typeof fill;
+
+  return [...featured, ...ordered];
+}

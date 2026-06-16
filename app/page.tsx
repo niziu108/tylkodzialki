@@ -7,6 +7,7 @@ import KupSearch from "./kup/KupSearch";
 import HeroCounter from "@/components/HeroCounter";
 import type { Przeznaczenie } from "@prisma/client";
 import { SEO_REGIONS } from "@/lib/seo-locations";
+import { getFeaturedListings } from "@/lib/dzialki";
 
 export const dynamic = "force-dynamic";
 
@@ -291,56 +292,17 @@ export default async function HomePage() {
     OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
   };
 
-  const [latestListings, featuredListings, latestArticles, listingCount] =
-    await Promise.all([
-      prisma.dzialka.findMany({
-        where: activeWhere,
-        include: {
-          zdjecia: {
-            orderBy: { kolejnosc: "asc" },
-            take: 1,
-          },
-        },
-        orderBy: [{ publishedAt: "desc" }],
-        take: 6,
-      }),
-      // Wyróżnione: najpierw faktycznie wyróżnione (isFeatured), a gdy ich brak
-      // (nikt jeszcze nie wykupił), dobiera najstarsze aktywne — sekcja nigdy
-      // nie świeci pustką, nie powiela też najnowszych.
-      prisma.dzialka.findMany({
-        where: activeWhere,
-        include: {
-          zdjecia: {
-            orderBy: { kolejnosc: "asc" },
-            take: 1,
-          },
-        },
-        orderBy: [{ isFeatured: "desc" }, { publishedAt: "asc" }],
-        take: 8,
-      }),
-      prisma.article.findMany({
-        where: { isPublished: true },
-        orderBy: [{ createdAt: "desc" }],
-        take: 6,
-      }),
-      prisma.dzialka.count({ where: activeWhere }),
-    ]);
+  const [featuredListings, latestArticles, listingCount] = await Promise.all([
+    getFeaturedListings(8),
+    prisma.article.findMany({
+      where: { isPublished: true },
+      orderBy: [{ createdAt: "desc" }],
+      take: 6,
+    }),
+    prisma.dzialka.count({ where: activeWhere }),
+  ]);
 
-  const latestCards: HomeListing[] =
-    latestListings.length > 0
-      ? (latestListings as HomeListing[])
-      : Array.from({ length: 6 }, (_, i) => ({
-          id: `placeholder-latest-${i}`,
-          tytul: "Nowa oferta wkrótce",
-          cenaPln: 0,
-          powierzchniaM2: 0,
-          locationLabel: "TylkoDziałki",
-          przeznaczenia: [],
-          zdjecia: [],
-          isPlaceholder: true,
-        }));
-
-  const featuredCards = featuredListings as HomeListing[];
+  const featuredCards = featuredListings as unknown as HomeListing[];
 
   const articleCards =
     latestArticles.length > 0
@@ -417,34 +379,13 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section>
-        <div className="mx-auto max-w-7xl px-6 pt-10 pb-10 md:px-10">
-          <h2 className="text-[22px] font-semibold text-white md:text-[28px]">
-            Najnowsze oferty
-          </h2>
-
-          <div className="mt-6 [touch-action:pan-x_pan-y]">
-            <HomeHorizontalSlider>
-              {latestCards.map((item) => (
-                <HomeListingCard key={item.id} d={item} />
-              ))}
-            </HomeHorizontalSlider>
-          </div>
-
-          <div className="mt-6 flex justify-center md:justify-start">
-            <Link
-              href="/kup"
-              className="inline-flex text-sm text-white/60 transition hover:text-white"
-            >
-              Przeglądaj wszystkie oferty →
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {featuredCards.length > 0 ? (
-        <section>
-          <div className="mx-auto max-w-7xl px-6 pt-4 pb-12 md:px-10">
+        <section className="relative overflow-hidden">
+          {/* zielona „siateczka" — żeby sekcja nie była monolitem */}
+          <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
+          <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.22),transparent_32%)]" />
+
+          <div className="relative z-10 mx-auto max-w-7xl px-6 pt-14 pb-14 md:px-10 md:pt-16 md:pb-16">
             <h2 className="text-[22px] font-semibold text-white md:text-[28px]">
               Wyróżnione oferty
             </h2>
@@ -455,6 +396,15 @@ export default async function HomePage() {
                   <HomeListingCard key={item.id} d={item} />
                 ))}
               </HomeHorizontalSlider>
+            </div>
+
+            <div className="mt-6 flex justify-center md:justify-start">
+              <Link
+                href="/kup"
+                className="inline-flex text-sm text-white/60 transition hover:text-white"
+              >
+                Przeglądaj wszystkie oferty →
+              </Link>
             </div>
           </div>
         </section>
