@@ -8,16 +8,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://tylkodzialki.pl';
   const now = new Date();
 
-  const dzialki = await prisma.dzialka.findMany({
-    select: {
-      id: true,
-      updatedAt: true,
-    },
-    orderBy: {
-      updatedAt: 'desc',
-    },
-    take: 45000,
-  });
+  const [dzialki, articles] = await Promise.all([
+    prisma.dzialka.findMany({
+      select: {
+        id: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      take: 45000,
+    }),
+    prisma.article.findMany({
+      where: { isPublished: true },
+      select: {
+        slug: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      take: 5000,
+    }),
+  ]);
 
   return [
     {
@@ -44,6 +57,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.8,
     },
+
+    ...articles.map((article) => ({
+      url: `${baseUrl}/blog/${article.slug}`,
+      lastModified: article.updatedAt ?? now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    })),
 
     ...SEO_CITIES.map((city) => ({
       url: `${baseUrl}/dzialki/${city.slug}/budowlane`,
