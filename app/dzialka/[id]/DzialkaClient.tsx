@@ -204,14 +204,14 @@ function FieldBlock({
   );
 }
 
-export default function DzialkaPage() {
+export default function DzialkaPage({ initial }: { initial?: Dzialka | null }) {
   const params = useParams();
   const router = useRouter();
-  const id = params?.id as string | undefined;
+  const id = (params?.id as string | undefined) ?? initial?.id;
 
-  const [d, setD] = useState<Dzialka | null>(null);
+  const [d, setD] = useState<Dzialka | null>(initial ?? null);
   const [err, setErr] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(!initial);
 
   const [idx, setIdx] = useState(0);
   const [open, setOpen] = useState(false);
@@ -229,6 +229,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
+    if (initial) return; // dane przyszły z SSR — koniec podwójnego pobierania
 
     let alive = true;
 
@@ -255,7 +256,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, initial]);
 
   useEffect(() => {
     if (!id) return;
@@ -675,9 +676,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   </span>
                 </button>
 
-                <div className="text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
+                <h1 className="text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
                   {d.tytul}
-                </div>
+                </h1>
               </div>
 
 

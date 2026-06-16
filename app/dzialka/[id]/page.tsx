@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import DzialkaClient from './DzialkaClient';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { getDzialkaById } from '@/lib/dzialki';
+
+// Oferta renderowana po stronie serwera (ISR): Google dostaje pełny HTML,
+// użytkownik gotową treść, a baza jest odpytywana najwyżej raz na 60 s per oferta.
+export const revalidate = 60;
 
 const SITE_URL = 'https://tylkodzialki.pl';
 const SITE_NAME = 'TylkoDziałki.pl';
@@ -71,23 +75,9 @@ function getMainImage(dzialka: DzialkaSeo) {
   return photos[0] || `${SITE_URL}/logo.png`;
 }
 
-async function getDzialka(id: string): Promise<DzialkaSeo | null> {
-  try {
-    const res = await fetch(`${SITE_URL}/api/dzialki/${id}`, {
-      next: { revalidate: 3600 },
-    });
-
-    if (!res.ok) return null;
-
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const dzialka = await getDzialka(id);
+  const dzialka = await getDzialkaById(id);
 
   const canonical = `/dzialka/${id}`;
 
@@ -176,7 +166,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
-  const dzialka = await getDzialka(id);
+  const dzialka = await getDzialkaById(id);
 
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
@@ -214,9 +204,12 @@ export default async function Page({ params }: PageProps) {
   return (
     <>
       {productJsonLd ? (
-        <Script id="td-product-schema" type="application/ld+json" strategy="afterInteractive">
-          {JSON.stringify(productJsonLd)}
-        </Script>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(productJsonLd).replace(/</g, '\\u003c'),
+          }}
+        />
       ) : null}
 
       <div className="mx-auto max-w-7xl px-6 pt-6 md:px-10">
@@ -229,7 +222,7 @@ export default async function Page({ params }: PageProps) {
         />
       </div>
 
-      <DzialkaClient />
+      <DzialkaClient key={id} initial={dzialka} />
     </>
   );
 }
