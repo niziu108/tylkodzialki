@@ -1,0 +1,501 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { MarkerClusterer, type Renderer } from '@googlemaps/markerclusterer';
+import { loadGoogleMaps } from '@/lib/googleMaps';
+
+/* ────────────────────────────────────────────────────────────────────────────
+ *  Mapa wyników na /kup (P11). Dark theme spójny z portalem (#131313 / zieleń
+ *  #7aa333). Piny pokazują cenę, gęstość zbijana w klastry, klik na pin otwiera
+ *  popup z ofertą. „Szukaj w tym obszarze" przeszukuje prostokąt z widoku mapy.
+ *  Mapa jest osobnym, lekkim kanałem danych (payload pinów), więc nie spowalnia
+ *  listy ani jej nie dubluje.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export type MapPoint = {
+  id: string;
+  lat: number | null;
+  lng: number | null;
+  cena: number;
+  area: number;
+  tytul: string;
+  przezn?: string[];
+  featured?: boolean;
+  thumb?: string | null;
+  loc?: string | null;
+};
+
+type Bounds = { n: number; s: number; e: number; w: number };
+
+type Props = {
+  points: MapPoint[];
+  loading?: boolean;
+  /** Środek wyszukiwania (po wpisaniu lokalizacji) — mapa centruje się tutaj. */
+  center?: { lat: number; lng: number } | null;
+  radiusKm?: number;
+  /** Zmiana = nowe wyszukiwanie → mapa dopasowuje kadr do wyników. */
+  focusKey?: string;
+  /** Podświetlany pin (np. najazd na kartę listy). */
+  activeId?: string | null;
+  onActiveChange?: (id: string | null) => void;
+  onSearchArea?: (b: Bounds) => void;
+  onClose?: () => void;
+  className?: string;
+};
+
+const POLAND_CENTER = { lat: 52.07, lng: 19.48 };
+
+const PRZEZN_LABEL: Record<string, string> = {
+  INWESTYCYJNA: 'Inwestycyjna',
+  BUDOWLANA: 'Budowlana',
+  ROLNA: 'Rolna',
+  LESNA: 'Leśna',
+  REKREACYJNA: 'Rekreacyjna',
+  SIEDLISKOWA: 'Siedliskowa',
+};
+
+// Ciemny, stonowany styl mapy pod motyw portalu. Teren lekko zazieleniony (działki).
+const DARK_STYLE: google.maps.MapTypeStyle[] = [
+  { elementType: 'geometry', stylers: [{ color: '#161616' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8a8a8a' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#0c0c0c' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#2a2a2a' }] },
+  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#3a3a3a' }] },
+  { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#2f2f2f' }] },
+  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#16271a' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#18211a' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#272727' }] },
+  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3a3a30' }] },
+  { featureType: 'road.local', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1512' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d4f45' }] },
+];
+
+function zoomForRadius(km?: number) {
+  if (!km) return 12;
+  if (km <= 5) return 12;
+  if (km <= 10) return 11;
+  if (km <= 20) return 10;
+  return 9;
+}
+
+function formatShortPLN(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return '—';
+  if (value >= 1_000_000) {
+    const mln = value / 1_000_000;
+    const txt = mln >= 10 ? Math.round(mln).toString() : mln.toFixed(1).replace('.', ',').replace(',0', '');
+    return `${txt} mln`;
+  }
+  if (value >= 1000) return `${Math.round(value / 1000)} tys.`;
+  return `${value} zł`;
+}
+
+function formatPLN(value: number) {
+  return new Intl.NumberFormat('pl-PL', {
+    style: 'currency',
+    currency: 'PLN',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatIntPL(value: number) {
+  return new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 }).format(value);
+}
+
+type PinState = 'normal' | 'featured' | 'active';
+
+function pinIcon(text: string, state: PinState): google.maps.Icon {
+  const palette =
+    state === 'active'
+      ? { bg: '#9fd14b', fg: '#0c0c0c', border: '#ffffff' }
+      : state === 'featured'
+        ? { bg: '#7aa333', fg: '#0c0c0c', border: '#8dbb3a' }
+        : { bg: '#1b1b1b', fg: '#ffffff', border: '#5f7d2a' };
+
+  const w = Math.max(46, Math.ceil(text.length * 7.4) + 22);
+  const h = 26;
+  const total = h + 7;
+  const cx = w / 2;
+
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${total}" viewBox="0 0 ${w} ${total}">` +
+    `<rect x="0.75" y="0.75" rx="13" ry="13" width="${w - 1.5}" height="${h - 1.5}" fill="${palette.bg}" stroke="${palette.border}" stroke-width="1.5"/>` +
+    `<path d="M${cx - 6},${h - 1} L${cx},${total - 1} L${cx + 6},${h - 1} Z" fill="${palette.bg}" stroke="${palette.border}" stroke-width="1.5" stroke-linejoin="round"/>` +
+    `<rect x="${cx - 7}" y="${h - 2.5}" width="14" height="3" fill="${palette.bg}"/>` +
+    `<text x="${cx}" y="${h / 2}" dominant-baseline="central" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="${palette.fg}">${text}</text>` +
+    `</svg>`;
+
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    size: new google.maps.Size(w, total),
+    scaledSize: new google.maps.Size(w, total),
+    anchor: new google.maps.Point(cx, total),
+  };
+}
+
+function clusterRenderer(): Renderer {
+  return {
+    render: ({ count, position }) => {
+      const size = count < 10 ? 42 : count < 50 ? 50 : count < 200 ? 58 : 66;
+      const r = size / 2;
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">` +
+        `<circle cx="${r}" cy="${r}" r="${r - 5}" fill="rgba(122,163,51,0.20)"/>` +
+        `<circle cx="${r}" cy="${r}" r="${r - 9}" fill="#7aa333" stroke="#cde38f" stroke-width="1.5"/>` +
+        `</svg>`;
+      return new google.maps.Marker({
+        position,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+          size: new google.maps.Size(size, size),
+          scaledSize: new google.maps.Size(size, size),
+          anchor: new google.maps.Point(r, r),
+          labelOrigin: new google.maps.Point(r, r),
+        },
+        label: {
+          text: String(count),
+          color: '#0c0c0c',
+          fontSize: count < 100 ? '13px' : '12px',
+          fontWeight: '800',
+        },
+        zIndex: 1_000_000 + count,
+      });
+    },
+  };
+}
+
+function popupHtml(p: MapPoint) {
+  const zlM2 = p.area > 0 ? Math.round(p.cena / p.area) : 0;
+  const przezn = (p.przezn ?? []).map((x) => PRZEZN_LABEL[x] ?? x).filter(Boolean).join(', ');
+  const meta = [przezn, `${formatIntPL(p.area)} m²`].filter(Boolean).join(' · ');
+  const loc = (p.loc ?? '').trim();
+
+  const thumb = p.thumb
+    ? `<div style="position:relative;height:130px;background:#0d0d0d">` +
+      `<img src="${p.thumb}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"/>` +
+      (p.featured
+        ? `<span style="position:absolute;left:10px;top:10px;background:rgba(122,163,51,0.92);color:#0c0c0c;font-size:9px;font-weight:700;letter-spacing:.14em;padding:3px 8px;border-radius:999px">WYRÓŻNIONE</span>`
+        : '') +
+      `</div>`
+    : `<div style="height:84px;background:#0d0d0d;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.4);font-size:12px">Brak zdjęć</div>`;
+
+  return (
+    `<a href="/dzialka/${p.id}" style="display:block;text-decoration:none;color:#fff;width:236px">` +
+    thumb +
+    `<div style="padding:11px 13px 13px">` +
+    `<div style="display:flex;align-items:baseline;gap:7px;flex-wrap:wrap">` +
+    `<span style="font-size:18px;font-weight:700;color:#fff;line-height:1">${formatPLN(p.cena)}</span>` +
+    (zlM2 ? `<span style="font-size:11px;color:rgba(255,255,255,0.55)">${formatIntPL(zlM2)} zł/m²</span>` : '') +
+    `</div>` +
+    (meta ? `<div style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.82)">${meta}</div>` : '') +
+    (loc ? `<div style="margin-top:3px;font-size:12px;color:rgba(255,255,255,0.55)">${loc}</div>` : '') +
+    `<div style="margin-top:10px;display:inline-block;background:#7aa333;color:#0c0c0c;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;border-radius:10px">Zobacz ofertę</div>` +
+    `</div>` +
+    `</a>`
+  );
+}
+
+// Ciemny styl dymka InfoWindow (Google domyślnie renderuje białą bańkę).
+const INFOWINDOW_CSS = `
+.gm-style .gm-style-iw-c{background:#131313!important;border:1px solid rgba(255,255,255,0.12)!important;border-radius:16px!important;padding:0!important;box-shadow:0 18px 60px rgba(0,0,0,0.6)!important;overflow:hidden!important}
+.gm-style .gm-style-iw-d{overflow:hidden!important;padding:0!important}
+.gm-style .gm-style-iw-tc::after{background:#131313!important}
+.gm-style .gm-style-iw-c button.gm-ui-hover-effect{top:2px!important;right:2px!important}
+.gm-style .gm-style-iw-c button.gm-ui-hover-effect>span{background-color:rgba(255,255,255,0.85)!important}
+`;
+
+function ensureInfoWindowCss() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('td-infowindow-css')) return;
+  const style = document.createElement('style');
+  style.id = 'td-infowindow-css';
+  style.textContent = INFOWINDOW_CSS;
+  document.head.appendChild(style);
+}
+
+export default function KupMap({
+  points,
+  loading = false,
+  center,
+  radiusKm,
+  focusKey,
+  activeId,
+  onActiveChange,
+  onSearchArea,
+  onClose,
+  className,
+}: Props) {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const infoRef = useRef<google.maps.InfoWindow | null>(null);
+  const clustererRef = useRef<MarkerClusterer | null>(null);
+  const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const labelsRef = useRef<Map<string, string>>(new Map());
+
+  const styledActiveRef = useRef<string | null>(null);
+  const needsFitRef = useRef(false);
+  const skipFitRef = useRef(false);
+  const lastFocusRef = useRef<string | undefined>(undefined);
+
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  const setActive = useCallback(
+    (id: string | null) => {
+      const prev = styledActiveRef.current;
+      if (prev && prev !== id) {
+        const m = markersRef.current.get(prev);
+        const label = labelsRef.current.get(prev);
+        if (m && label != null) {
+          const featured = m.get('td_featured') as boolean;
+          m.setIcon(pinIcon(label, featured ? 'featured' : 'normal'));
+          m.setZIndex(featured ? 200 : 100);
+        }
+      }
+      if (id) {
+        const m = markersRef.current.get(id);
+        const label = labelsRef.current.get(id);
+        if (m && label != null) {
+          m.setIcon(pinIcon(label, 'active'));
+          m.setZIndex(999_999);
+        }
+      }
+      styledActiveRef.current = id;
+    },
+    []
+  );
+
+  // Init mapy — raz, po załadowaniu Google Maps.
+  useEffect(() => {
+    let cancelled = false;
+    ensureInfoWindowCss();
+
+    loadGoogleMaps()
+      .then(() => {
+        if (cancelled || !hostRef.current || mapRef.current) return;
+
+        const map = new google.maps.Map(hostRef.current, {
+          center: center ?? POLAND_CENTER,
+          zoom: center ? zoomForRadius(radiusKm) : 6,
+          backgroundColor: '#131313',
+          styles: DARK_STYLE,
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: 'greedy',
+          clickableIcons: false,
+          maxZoom: 18,
+          minZoom: 5,
+        });
+        mapRef.current = map;
+
+        infoRef.current = new google.maps.InfoWindow({ maxWidth: 240 });
+
+        clustererRef.current = new MarkerClusterer({
+          map,
+          renderer: clusterRenderer(),
+        });
+
+        map.addListener('click', () => {
+          infoRef.current?.close();
+          onActiveChange?.(null);
+          setActive(null);
+        });
+
+        // „Szukaj w tym obszarze" pojawia się po ręcznej zmianie kadru.
+        map.addListener('dragend', () => setDirty(true));
+        map.addListener('zoom_changed', () => setDirty(true));
+
+        needsFitRef.current = true;
+        setReady(true);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e?.message ?? 'Nie udało się załadować mapy.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reakcja na pojawienie się kontenera (mobile: mapa otwierana z ukrycia) — resize + dopasowanie.
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host || typeof ResizeObserver === 'undefined') return;
+
+    let prevW = host.clientWidth;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      const map = mapRef.current;
+      if (w > 0 && map) {
+        google.maps.event.trigger(map, 'resize');
+        if (prevW === 0) {
+          needsFitRef.current = true;
+          fitToData();
+        }
+      }
+      prevW = w;
+    });
+    ro.observe(host);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  const fitToData = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !needsFitRef.current) return;
+    if (skipFitRef.current) {
+      skipFitRef.current = false;
+      needsFitRef.current = false;
+      return;
+    }
+
+    if (center) {
+      map.setCenter(center);
+      map.setZoom(zoomForRadius(radiusKm));
+      needsFitRef.current = false;
+      return;
+    }
+
+    const coords = points.filter((p) => p.lat != null && p.lng != null);
+    if (!coords.length) {
+      map.setCenter(POLAND_CENTER);
+      map.setZoom(6);
+      needsFitRef.current = false;
+      return;
+    }
+
+    if (coords.length === 1) {
+      map.setCenter({ lat: coords[0].lat!, lng: coords[0].lng! });
+      map.setZoom(13);
+      needsFitRef.current = false;
+      return;
+    }
+
+    const b = new google.maps.LatLngBounds();
+    coords.forEach((p) => b.extend({ lat: p.lat!, lng: p.lng! }));
+    map.fitBounds(b, 64);
+    needsFitRef.current = false;
+  }, [center, radiusKm, points]);
+
+  // Nowe wyszukiwanie (focusKey) → zaplanuj dopasowanie kadru.
+  useEffect(() => {
+    if (focusKey === lastFocusRef.current) return;
+    lastFocusRef.current = focusKey;
+    needsFitRef.current = true;
+    setDirty(false);
+  }, [focusKey]);
+
+  // Przebudowa pinów przy zmianie danych.
+  useEffect(() => {
+    if (!ready || !clustererRef.current) return;
+
+    const clusterer = clustererRef.current;
+    clusterer.clearMarkers();
+    markersRef.current.clear();
+    labelsRef.current.clear();
+    styledActiveRef.current = null;
+
+    const markers: google.maps.Marker[] = [];
+
+    for (const p of points) {
+      if (p.lat == null || p.lng == null) continue;
+
+      const label = formatShortPLN(p.cena);
+      const featured = !!p.featured;
+
+      const marker = new google.maps.Marker({
+        position: { lat: p.lat, lng: p.lng },
+        icon: pinIcon(label, featured ? 'featured' : 'normal'),
+        zIndex: featured ? 200 : 100,
+        optimized: false,
+      });
+      marker.set('td_featured', featured);
+
+      marker.addListener('click', () => {
+        infoRef.current?.setContent(popupHtml(p));
+        infoRef.current?.open({ map: mapRef.current!, anchor: marker });
+        onActiveChange?.(p.id);
+        setActive(p.id);
+      });
+
+      markersRef.current.set(p.id, marker);
+      labelsRef.current.set(p.id, label);
+      markers.push(marker);
+    }
+
+    clusterer.addMarkers(markers);
+    fitToData();
+
+    // Odśwież podświetlenie aktywnego po przebudowie.
+    if (activeId) setActive(activeId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, ready]);
+
+  // Podświetlanie pinu z zewnątrz (najazd na kartę listy).
+  useEffect(() => {
+    if (!ready) return;
+    setActive(activeId ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, ready]);
+
+  const handleSearchArea = () => {
+    const map = mapRef.current;
+    if (!map || !onSearchArea) return;
+    const b = map.getBounds();
+    if (!b) return;
+    const ne = b.getNorthEast();
+    const sw = b.getSouthWest();
+    skipFitRef.current = true; // nie przeskakuj kadru — użytkownik sam go ustawił
+    setDirty(false);
+    onSearchArea({ n: ne.lat(), s: sw.lat(), e: ne.lng(), w: sw.lng() });
+  };
+
+  return (
+    <div className={`relative h-full w-full overflow-hidden ${className ?? ''}`}>
+      <div ref={hostRef} className="h-full w-full bg-[#131313]" />
+
+      {/* Szukaj w tym obszarze */}
+      {ready && dirty && onSearchArea && (
+        <div className="pointer-events-none absolute left-1/2 top-4 z-[5] -translate-x-1/2">
+          <button
+            type="button"
+            onClick={handleSearchArea}
+            className="pointer-events-auto rounded-full border border-[#7aa333]/60 bg-[#131313]/95 px-5 py-2.5 text-[12px] font-medium uppercase tracking-[0.14em] text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur transition hover:border-[#7aa333] hover:bg-[#1b1b1b]"
+          >
+            Szukaj w tym obszarze
+          </button>
+        </div>
+      )}
+
+      {/* Licznik pinów */}
+      {ready && !error && (
+        <div className="pointer-events-none absolute bottom-3 left-3 z-[5] rounded-full bg-[#131313]/90 px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-white/70 backdrop-blur">
+          {loading ? 'Ładowanie…' : `${formatIntPL(points.length)} na mapie`}
+        </div>
+      )}
+
+      {/* Zamknij (mobile) */}
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-3 top-3 z-[6] flex items-center gap-2 rounded-full border border-white/20 bg-[#131313]/95 px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.16em] text-white shadow-lg backdrop-blur transition hover:border-white/40 lg:hidden"
+        >
+          <span className="text-[15px] leading-none">×</span> Lista
+        </button>
+      )}
+
+      {error && (
+        <div className="absolute inset-0 z-[7] flex items-center justify-center bg-[#131313] p-6 text-center text-sm text-white/60">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}

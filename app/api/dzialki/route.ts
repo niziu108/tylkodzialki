@@ -112,6 +112,23 @@ export async function GET(req: Request) {
     ? mediaRaw.split(',').map((s) => s.trim()).filter(Boolean)
     : [];
 
+  // Tryb mapy (P11): lekki payload wszystkich pasujących pinów zamiast stronicowanej listy.
+  const mapMode = url.searchParams.get('mode') === 'map';
+
+  // BBox „szukaj w tym obszarze" (P11): prostokąt z widoku mapy. Filtr w bazie na indeksie
+  // @@index([lat,lng]) — wspólny dla listy i mapy, więc wyniki się nie rozjeżdżają.
+  const bboxN = Number(url.searchParams.get('n'));
+  const bboxS = Number(url.searchParams.get('s'));
+  const bboxE = Number(url.searchParams.get('e'));
+  const bboxW = Number(url.searchParams.get('w'));
+  const hasBBox =
+    Number.isFinite(bboxN) &&
+    Number.isFinite(bboxS) &&
+    Number.isFinite(bboxE) &&
+    Number.isFinite(bboxW) &&
+    bboxN > bboxS &&
+    bboxE > bboxW;
+
   const takeReq = Number(url.searchParams.get('take') || '20');
   const take = Math.min(Math.max(Number.isFinite(takeReq) ? Math.floor(takeReq) : 20, 1), 100);
 
@@ -177,9 +194,84 @@ export async function GET(req: Request) {
     else if (key === 'gaz') andFilters.push({ gaz: { in: [...MEDIA_AVAILABLE.gaz] } });
   }
 
+  if (hasBBox) {
+    andFilters.push({
+      lat: { gte: bboxS, lte: bboxN },
+      lng: { gte: bboxW, lte: bboxE },
+    });
+  }
+
   const where: Prisma.DzialkaWhereInput = {
     AND: andFilters,
   };
+
+  // Tryb mapy: osobne, odchudzone zapytanie (jedno zdjęcie, tylko pola pod pin i popup).
+  // Ta sama logika filtrów (andFilters) + ten sam kontekst dopasowania geo/tekst co lista
+  // → piny na mapie pokrywają się 1:1 z wynikami listy. Bez stronicowania (wszystkie piny).
+  if (mapMode) {
+    const ctx = buildSearchContext(searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
+    const needsInfo = hasRadiusSearch || Boolean(searchText);
+
+    const rows = await prisma.dzialka.findMany({
+      where: {
+        AND: [...andFilters, { lat: { not: null } }, { lng: { not: null } }],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        lat: true,
+        lng: true,
+        cenaPln: true,
+        powierzchniaM2: true,
+        tytul: true,
+        przeznaczenia: true,
+        isFeatured: true,
+        featuredUntil: true,
+        createdAt: true,
+        locationLabel: true,
+        locationFull: true,
+        parcelText: true,
+        zdjecia: {
+          take: 1,
+          orderBy: { kolejnosc: 'asc' },
+          select: { url: true },
+        },
+      },
+    });
+
+    const matched = needsInfo
+      ? rows.filter((r) => getSearchMatchInfo(r, ctx).anyMatch)
+      : rows;
+
+    // Wyróżnione piny pierwsze (renderują się na wierzchu), reszta od najnowszych.
+    matched.sort((a, b) => {
+      const af = isFeaturedActive(a);
+      const bf = isFeaturedActive(b);
+      if (af !== bf) return af ? -1 : 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    const CAP = 4000;
+    const points = matched.slice(0, CAP).map((r) => ({
+      id: r.id,
+      lat: r.lat,
+      lng: r.lng,
+      cena: r.cenaPln,
+      area: r.powierzchniaM2,
+      tytul: r.tytul,
+      przezn: r.przeznaczenia,
+      featured: isFeaturedActive(r),
+      thumb: r.zdjecia[0]?.url ?? null,
+      loc: r.locationLabel ?? null,
+    }));
+
+    return NextResponse.json({
+      ok: true,
+      total: matched.length,
+      capped: matched.length > CAP,
+      points,
+    });
+  }
 
   const allMatching = await prisma.dzialka.findMany({
     where,

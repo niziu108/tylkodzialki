@@ -57,6 +57,27 @@ export default async function KupPage({ searchParams }: KupPageProps) {
       ALLOWED_PRZEZN.includes(x as Przeznaczenie)
     );
 
+  // BBox „szukaj w tym obszarze" (P11) — zastępuje lokalizację tekstową/promień.
+  const rawN = one(sp.n);
+  const rawS = one(sp.s);
+  const rawE = one(sp.e);
+  const rawW = one(sp.w);
+  const bn = Number(rawN);
+  const bs = Number(rawS);
+  const be = Number(rawE);
+  const bw = Number(rawW);
+  const hasBBox =
+    !!rawN &&
+    !!rawS &&
+    !!rawE &&
+    !!rawW &&
+    Number.isFinite(bn) &&
+    Number.isFinite(bs) &&
+    Number.isFinite(be) &&
+    Number.isFinite(bw) &&
+    bn > bs &&
+    be > bw;
+
   const pageRaw = Number(one(sp.page) || '1');
 
   const ALLOWED_SORTS: SortOption[] = ['newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'];
@@ -68,14 +89,15 @@ export default async function KupPage({ searchParams }: KupPageProps) {
       <KupSearch
         initialPage={Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1}
         initialFilters={{
-          locText: one(sp.loc),
+          locText: hasBBox ? '' : one(sp.loc),
           radiusKm,
-          center: hasCenter ? { lat, lng } : null,
+          center: hasBBox ? null : hasCenter ? { lat, lng } : null,
           priceMin: digitsOnly(one(sp.priceMin)),
           priceMax: digitsOnly(one(sp.priceMax)),
           areaMin: digitsOnly(one(sp.areaMin)),
           areaMax: digitsOnly(one(sp.areaMax)),
           przezn,
+          bbox: hasBBox ? { n: bn, s: bs, e: be, w: bw } : null,
           sort,
         }}
       />

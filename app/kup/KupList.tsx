@@ -9,13 +9,23 @@ export default function KupList({
   items,
   loading,
   error,
+  singleColumn = false,
+  onItemHover,
 }: {
   items: OfferData[];
   loading: boolean;
   error: string | null;
+  /** Split lista+mapa: lista w węższej kolumnie → jedna kolumna kart. */
+  singleColumn?: boolean;
+  /** Najazd na kartę → podświetlenie pinu na mapie. */
+  onItemHover?: (id: string | null) => void;
 }) {
   const { favoriteIds, toggleFavorite, loginPromptOpen, setLoginPromptOpen } =
     useOfferFavorites(items);
+
+  const gridClass = singleColumn
+    ? 'grid grid-cols-1 gap-5'
+    : 'grid grid-cols-1 gap-5 lg:grid-cols-2';
 
   // Zapis pozycji scrolla — przywracanie widoku przy powrocie na /kup.
   useEffect(() => {
@@ -48,7 +58,7 @@ export default function KupList({
   const content = useMemo(() => {
     if (loading) {
       return (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className={gridClass}>
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
@@ -98,29 +108,35 @@ export default function KupList({
     }
 
     return (
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className={gridClass}>
         {items.map((d, index) => (
-          <OfferCard
+          <div
             key={d.id}
-            d={d}
-            eagerImage={index < 2}
-            isFavorite={favoriteIds.has(d.id)}
-            onToggleFavorite={toggleFavorite}
-            scroll={false}
-            onClick={() => {
-              try {
-                sessionStorage.setItem('TD_KUP_SCROLL_Y', String(window.scrollY || 0));
-                sessionStorage.setItem(
-                  'TD_KUP_URL',
-                  window.location.pathname + window.location.search
-                );
-              } catch {}
-            }}
-          />
+            className="min-w-0"
+            onMouseEnter={onItemHover ? () => onItemHover(d.id) : undefined}
+            onMouseLeave={onItemHover ? () => onItemHover(null) : undefined}
+          >
+            <OfferCard
+              d={d}
+              eagerImage={index < 2}
+              isFavorite={favoriteIds.has(d.id)}
+              onToggleFavorite={toggleFavorite}
+              scroll={false}
+              onClick={() => {
+                try {
+                  sessionStorage.setItem('TD_KUP_SCROLL_Y', String(window.scrollY || 0));
+                  sessionStorage.setItem(
+                    'TD_KUP_URL',
+                    window.location.pathname + window.location.search
+                  );
+                } catch {}
+              }}
+            />
+          </div>
         ))}
       </div>
     );
-  }, [items, loading, error, favoriteIds, toggleFavorite]);
+  }, [items, loading, error, favoriteIds, toggleFavorite, gridClass, onItemHover]);
 
   return (
     <>

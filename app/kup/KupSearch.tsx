@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
+import KupMap, { type MapPoint } from '@/components/KupMap';
 import type { AlertCriteria } from '@/lib/alertCriteria';
 import type { Przeznaczenie } from '@prisma/client';
+
+type BBox = { n: number; s: number; e: number; w: number };
 
 type ApiPhoto = { id?: string; url: string; publicId?: string; kolejnosc?: number };
 
@@ -69,6 +72,7 @@ type AppliedFilters = {
   areaMax: string;
   przezn: Przeznaczenie[];
   media: MediaKey[];
+  bbox: BBox | null;
   sort: SortOption;
 };
 
@@ -87,6 +91,7 @@ const EMPTY_APPLIED: AppliedFilters = {
   areaMax: '',
   przezn: [],
   media: [],
+  bbox: null,
   sort: 'newest',
 };
 
@@ -228,14 +233,22 @@ function buildMobilePages(page: number, total: number): Array<number | '…'> {
 function buildUrlFromState(filters: AppliedFilters, page: number) {
   const sp = new URLSearchParams();
 
-  if (filters.locText.trim()) sp.set('loc', filters.locText.trim());
+  if (filters.bbox) {
+    // „Szukaj w tym obszarze" — prostokąt z mapy zastępuje lokalizację tekstową/promień.
+    sp.set('n', filters.bbox.n.toFixed(5));
+    sp.set('s', filters.bbox.s.toFixed(5));
+    sp.set('e', filters.bbox.e.toFixed(5));
+    sp.set('w', filters.bbox.w.toFixed(5));
+  } else {
+    if (filters.locText.trim()) sp.set('loc', filters.locText.trim());
 
-  if (filters.center) {
-    sp.set('lat', String(filters.center.lat));
-    sp.set('lng', String(filters.center.lng));
+    if (filters.center) {
+      sp.set('lat', String(filters.center.lat));
+      sp.set('lng', String(filters.center.lng));
+    }
+
+    if (filters.radiusKm !== 5) sp.set('radius', String(filters.radiusKm));
   }
-
-  if (filters.radiusKm !== 5) sp.set('radius', String(filters.radiusKm));
   if (filters.priceMin) sp.set('priceMin', filters.priceMin);
   if (filters.priceMax) sp.set('priceMax', filters.priceMax);
   if (filters.areaMin) sp.set('areaMin', filters.areaMin);
@@ -275,6 +288,9 @@ function loadStoredState(): StoredState | null {
       parsed.filters.sort = 'newest';
     }
 
+    // Sesje sprzed P11 nie mają pola bbox.
+    if (parsed.filters.bbox === undefined) parsed.filters.bbox = null;
+
     return parsed;
   } catch {
     return null;
@@ -294,7 +310,29 @@ function readStateFromUrl(): StoredState {
     if (stored) return stored;
   }
 
-  const locText = sp.get('loc') ?? '';
+  const nRaw = sp.get('n');
+  const sRaw = sp.get('s');
+  const eRaw = sp.get('e');
+  const wRaw = sp.get('w');
+  const bn = Number(nRaw);
+  const bs = Number(sRaw);
+  const be = Number(eRaw);
+  const bw = Number(wRaw);
+  const bbox: BBox | null =
+    nRaw !== null &&
+    sRaw !== null &&
+    eRaw !== null &&
+    wRaw !== null &&
+    Number.isFinite(bn) &&
+    Number.isFinite(bs) &&
+    Number.isFinite(be) &&
+    Number.isFinite(bw) &&
+    bn > bs &&
+    be > bw
+      ? { n: bn, s: bs, e: be, w: bw }
+      : null;
+
+  const locText = bbox ? '' : sp.get('loc') ?? '';
 
   const latRaw = sp.get('lat');
   const lngRaw = sp.get('lng');
@@ -337,13 +375,14 @@ function readStateFromUrl(): StoredState {
     filters: {
       locText,
       radiusKm,
-      center: hasRealCenter ? { lat, lng } : null,
+      center: bbox ? null : hasRealCenter ? { lat, lng } : null,
       priceMin: digitsOnly(sp.get('priceMin') ?? ''),
       priceMax: digitsOnly(sp.get('priceMax') ?? ''),
       areaMin: digitsOnly(sp.get('areaMin') ?? ''),
       areaMax: digitsOnly(sp.get('areaMax') ?? ''),
       przezn,
       media,
+      bbox,
       sort,
     },
     page: Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1,
@@ -360,16 +399,24 @@ async function fetchDzialki(params: URLSearchParams): Promise<ApiResponse> {
 function makeParams(filters: AppliedFilters, page: number) {
   const sp = new URLSearchParams();
 
-  const cleanedTextQuery = cleanSearchQuery(filters.locText);
-  const rawTextQuery = filters.locText.trim();
+  if (filters.bbox) {
+    // Tryb „szukaj w tym obszarze" — prostokąt wyklucza wyszukiwanie tekstowe/promieniem.
+    sp.set('n', String(filters.bbox.n));
+    sp.set('s', String(filters.bbox.s));
+    sp.set('e', String(filters.bbox.e));
+    sp.set('w', String(filters.bbox.w));
+  } else {
+    const cleanedTextQuery = cleanSearchQuery(filters.locText);
+    const rawTextQuery = filters.locText.trim();
 
-  if (cleanedTextQuery) sp.set('q', cleanedTextQuery);
-  if (rawTextQuery) sp.set('qRaw', rawTextQuery);
+    if (cleanedTextQuery) sp.set('q', cleanedTextQuery);
+    if (rawTextQuery) sp.set('qRaw', rawTextQuery);
 
-  if (filters.center) {
-    sp.set('lat', String(filters.center.lat));
-    sp.set('lng', String(filters.center.lng));
-    sp.set('radius', String(filters.radiusKm));
+    if (filters.center) {
+      sp.set('lat', String(filters.center.lat));
+      sp.set('lng', String(filters.center.lng));
+      sp.set('radius', String(filters.radiusKm));
+    }
   }
 
   if (filters.priceMin) sp.set('priceMin', filters.priceMin);
@@ -556,6 +603,24 @@ function PagerResponsive({
   );
 }
 
+function MapGlyph({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 3 3 5v16l6-2 6 2 6-2V3l-6 2-6-2Z" />
+      <path d="M9 3v16M15 5v16" />
+    </svg>
+  );
+}
+
 export default function KupSearch({
   initialFilters,
   initialPage = 1,
@@ -617,6 +682,14 @@ export default function KupSearch({
   const [locError, setLocError] = useState<string | null>(null);
 
   const [sortOpen, setSortOpen] = useState(false);
+
+  // Mapa (P11)
+  const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [showMapDesktop, setShowMapDesktop] = useState(true);
+  const [mobileMapOpen, setMobileMapOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchTopRef = useRef<HTMLDivElement | null>(null);
@@ -859,16 +932,21 @@ export default function KupSearch({
 
     setLocError(null);
 
+    // Jeśli użytkownik nie zmienił lokalizacji, a ma aktywny obszar z mapy — zachowaj obszar
+    // (dopracowuje filtry w ramach „szukaj w tym obszarze"). Wpisanie lokalizacji kasuje obszar.
+    const keepBBox = !effectiveLocText && applied.bbox ? applied.bbox : null;
+
     const next: AppliedFilters = {
       locText: effectiveLocText,
       radiusKm,
-      center: nextCenter,
+      center: keepBBox ? null : nextCenter,
       priceMin: digitsOnly(priceMin),
       priceMax: digitsOnly(priceMax),
       areaMin: digitsOnly(areaMin),
       areaMax: digitsOnly(areaMax),
       przezn,
       media,
+      bbox: keepBBox,
       sort: applied.sort,
     };
 
@@ -945,6 +1023,100 @@ export default function KupSearch({
     }),
     [applied]
   );
+
+  // Preferencja „pokaż mapę" + detekcja desktopu (mapa montowana tylko gdy widoczna).
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('TD_KUP_SHOWMAP') === '0') setShowMapDesktop(false);
+    } catch {}
+
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  const toggleMapDesktop = useCallback(() => {
+    setShowMapDesktop((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem('TD_KUP_SHOWMAP', next ? '1' : '0');
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  // Klucz filtrów (bez sortowania/strony) — zmienia się tylko gdy zmieniają się wyniki na mapie.
+  const filterKey = useMemo(
+    () =>
+      JSON.stringify({
+        q: applied.locText.trim(),
+        c: applied.center,
+        r: applied.center ? applied.radiusKm : null,
+        pmin: applied.priceMin,
+        pmax: applied.priceMax,
+        amin: applied.areaMin,
+        amax: applied.areaMax,
+        pz: applied.przezn,
+        md: applied.media,
+        bb: applied.bbox,
+      }),
+    [applied]
+  );
+
+  const mapColumns = isDesktop && showMapDesktop;
+  const mapEnabled = mobileMapOpen || mapColumns;
+
+  // Pobranie pinów — lekki payload, tylko gdy mapa jest widoczna, niezależnie od stronicowania.
+  useEffect(() => {
+    if (!mapEnabled) return;
+
+    let cancelled = false;
+    setMapLoading(true);
+
+    const params = makeParams(applied, 1);
+    params.set('mode', 'map');
+    params.delete('skip');
+    params.delete('take');
+    params.delete('sort');
+
+    fetch(`/api/dzialki?${params.toString()}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && Array.isArray(d?.points)) setMapPoints(d.points as MapPoint[]);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setMapLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey, mapEnabled]);
+
+  const onSearchArea = useCallback(
+    (b: BBox) => {
+      const next: AppliedFilters = { ...applied, locText: '', center: null, bbox: b };
+      setLocText('');
+      setCenter(null);
+      setApplied(next);
+      fetchDataWith(next, 1);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [applied]
+  );
+
+  const onItemHover = useCallback((id: string | null) => setActiveId(id), []);
+
+  const mapAsideClass = [
+    mobileMapOpen ? 'fixed inset-0 z-[120] bg-[#131313]' : 'hidden',
+    showMapDesktop
+      ? 'lg:sticky lg:top-3 lg:inset-auto lg:z-auto lg:block lg:h-[calc(100vh-1.5rem)] lg:overflow-hidden lg:rounded-2xl lg:border lg:border-white/10 lg:bg-[#131313]'
+      : 'lg:hidden',
+  ].join(' ');
 
   const filterContent = (
     <div className="text-left">
@@ -1193,66 +1365,121 @@ export default function KupSearch({
         </div>
       </section>
 
-      <section className="mx-auto mt-8 max-w-6xl px-3 md:px-4">
-        <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
-          <span className="text-[11px] uppercase tracking-[0.22em] text-white/35">Sortuj:</span>
+      <section className={`mx-auto mt-8 px-3 md:px-4 ${mapColumns ? 'max-w-[1500px]' : 'max-w-6xl'}`}>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div ref={sortRef} className="relative inline-flex items-center gap-3">
+            <span className="text-[11px] uppercase tracking-[0.22em] text-white/35">Sortuj:</span>
+            <button
+              type="button"
+              onClick={() => setSortOpen((v) => !v)}
+              className="flex items-center gap-2 rounded-xl border border-white/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-white/80 transition hover:border-white/40"
+            >
+              {SORT_OPTIONS.find((o) => o.value === applied.sort)?.label ?? 'Najnowsze'}
+              <span className="text-[8px] text-white/40">{sortOpen ? '▲' : '▼'}</span>
+            </button>
+            {sortOpen && (
+              <div className="absolute left-[5.5rem] top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-white/12 bg-[#181818] py-1.5 shadow-2xl">
+                {SORT_OPTIONS.map((opt) => {
+                  const active = applied.sort === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        changeSort(opt.value);
+                        setSortOpen(false);
+                      }}
+                      className={[
+                        'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.18em] transition',
+                        active ? 'text-white' : 'text-white/50 hover:text-white/85',
+                      ].join(' ')}
+                    >
+                      <span className={active ? 'text-white/60 text-[7px]' : 'w-[0.7em]'}>
+                        {active ? '●' : ''}
+                      </span>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
-            onClick={() => setSortOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-xl border border-white/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-white/80 transition hover:border-white/40"
+            onClick={toggleMapDesktop}
+            aria-pressed={showMapDesktop}
+            className="hidden items-center gap-2 rounded-xl border border-white/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-white/80 transition hover:border-white/40 lg:inline-flex"
           >
-            {SORT_OPTIONS.find((o) => o.value === applied.sort)?.label ?? 'Najnowsze'}
-            <span className="text-[8px] text-white/40">{sortOpen ? '▲' : '▼'}</span>
+            <MapGlyph />
+            {showMapDesktop ? 'Ukryj mapę' : 'Pokaż mapę'}
           </button>
-          {sortOpen && (
-            <div className="absolute left-[5.5rem] top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-white/12 bg-[#181818] py-1.5 shadow-2xl">
-              {SORT_OPTIONS.map((opt) => {
-                const active = applied.sort === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      changeSort(opt.value);
-                      setSortOpen(false);
-                    }}
-                    className={[
-                      'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.18em] transition',
-                      active ? 'text-white' : 'text-white/50 hover:text-white/85',
-                    ].join(' ')}
-                  >
-                    <span className={active ? 'text-white/60 text-[7px]' : 'w-[0.7em]'}>
-                      {active ? '●' : ''}
-                    </span>
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         <AlertBar criteria={alertCriteria} />
 
-        <PagerResponsive
-          page={safePage}
-          totalPages={totalPages}
-          onPrev={goPrev}
-          onNext={goNext}
-          onGo={goTo}
-          className="mb-6 mt-6"
-        />
+        <div
+          className={
+            mapColumns
+              ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,40%)] lg:items-start lg:gap-6'
+              : ''
+          }
+        >
+          <div className="min-w-0">
+            <PagerResponsive
+              page={safePage}
+              totalPages={totalPages}
+              onPrev={goPrev}
+              onNext={goNext}
+              onGo={goTo}
+              className="mb-6 mt-6"
+            />
 
-        <KupList items={items} loading={loading} error={err} />
+            <KupList
+              items={items}
+              loading={loading}
+              error={err}
+              singleColumn={mapColumns}
+              onItemHover={onItemHover}
+            />
 
-        <PagerResponsive
-          page={safePage}
-          totalPages={totalPages}
-          onPrev={goPrev}
-          onNext={goNext}
-          onGo={goTo}
-          className="mt-10"
-        />
+            <PagerResponsive
+              page={safePage}
+              totalPages={totalPages}
+              onPrev={goPrev}
+              onNext={goNext}
+              onGo={goTo}
+              className="mt-10"
+            />
+          </div>
+
+          {mapEnabled && (
+            <aside className={mapAsideClass}>
+              <KupMap
+                points={mapPoints}
+                loading={mapLoading}
+                center={applied.center}
+                radiusKm={applied.radiusKm}
+                focusKey={filterKey}
+                activeId={activeId}
+                onActiveChange={setActiveId}
+                onSearchArea={onSearchArea}
+                onClose={() => setMobileMapOpen(false)}
+              />
+            </aside>
+          )}
+        </div>
+
+        {!mobileMapOpen && (
+          <button
+            type="button"
+            onClick={() => setMobileMapOpen(true)}
+            className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#7aa333]/60 bg-[#131313]/95 px-6 py-3 text-[13px] font-medium uppercase tracking-[0.16em] text-white shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur lg:hidden"
+          >
+            <MapGlyph />
+            Mapa
+          </button>
+        )}
       </section>
     </div>
   );
