@@ -1315,11 +1315,10 @@ export default function DzialkaForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (step < LAST_STEP) {
-      goNext();
-      return;
-    }
-    await submitListing(false, 0);
+    // Enter / submit formularza NIGDY nie publikuje — tylko przechodzi dalej
+    // (na ostatnim kroku jedynie waliduje). Publikacja wyłącznie przez jawne
+    // kliknięcie „Opublikuj".
+    goNext();
   }
 
   useEffect(() => {
@@ -1464,7 +1463,7 @@ export default function DzialkaForm({
 
   return (
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
-      <header className="sticky top-[72px] z-30 border-b border-white/10 bg-[#131313]/90 backdrop-blur">
+      <header className="border-b border-white/10">
         <div className="mx-auto max-w-5xl px-6 pb-5 pt-7 md:px-10">
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
@@ -2181,7 +2180,7 @@ export default function DzialkaForm({
           )}
 
           {/* Nawigacja kreatora — przyklejona do dołu ekranu */}
-          <div className="sticky bottom-0 z-20 -mx-6 mt-2 border-t border-white/10 bg-[#131313]/95 px-6 py-4 backdrop-blur md:-mx-10 md:px-10">
+          <div className="-mx-6 border-t border-white/10 px-6 pt-6 md:-mx-10 md:px-10">
             <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
@@ -2203,6 +2202,7 @@ export default function DzialkaForm({
 
               {step < LAST_STEP ? (
                 <button
+                  key="wizard-next"
                   type="button"
                   onClick={goNext}
                   className="inline-flex items-center gap-2 rounded-2xl bg-[#7aa333] px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90"
@@ -2211,7 +2211,9 @@ export default function DzialkaForm({
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  key="wizard-submit"
+                  type="button"
+                  onClick={() => void submitListing(false, 0)}
                   disabled={loading || uploadingPhotos || uploadingLogo}
                   className="inline-flex items-center gap-2 rounded-2xl bg-[#7aa333] px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
                 >
