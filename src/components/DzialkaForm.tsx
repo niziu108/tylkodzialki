@@ -634,7 +634,6 @@ export default function DzialkaForm({
 
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -661,6 +660,9 @@ export default function DzialkaForm({
   const restoredDraftRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  const dragIdRef = useRef<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   function syncOpisEditorHeight() {
     const wrap = opisWrapRef.current;
@@ -909,30 +911,70 @@ export default function DzialkaForm({
     return uploaded.map((u) => ({ url: u.url, uploaded: true }));
   }, [uploaded]);
 
-  const previewUrl = currentImages.length
-    ? currentImages[Math.min(activeIdx, currentImages.length - 1)]?.url ?? null
-    : null;
+  // Duży podgląd zawsze pokazuje zdjęcie główne (pierwsze na liście).
+  const previewUrl = currentImages.length ? currentImages[0]?.url ?? null : null;
 
   function normalizeUploadedOrder(arr: UploadedPhoto[]) {
     return arr.map((x, i) => ({ ...x, kolejnosc: i }));
   }
 
-  function movePhoto(from: number, to: number) {
-    if (to < 0 || to >= uploaded.length) return;
+  // Stabilny identyfikator miniatury (do śledzenia przeciąganego zdjęcia).
+  function photoKey(p: UploadedPhoto) {
+    return p.publicId || p.url;
+  }
 
+  // Przeciąganie miniatur na Pointer Events — jeden kod dla myszy i dotyku.
+  // Pozycję docelową liczymy z punktów środkowych sąsiednich miniatur.
+  function reorderDraggedTo(targetIdx: number) {
     setUploaded((prev) => {
-      const a = [...prev].sort((x, y) => (x.kolejnosc ?? 0) - (y.kolejnosc ?? 0));
-      const [it] = a.splice(from, 1);
-      a.splice(to, 0, it);
-      return normalizeUploadedOrder(a);
+      const curIdx = prev.findIndex((u) => photoKey(u) === dragIdRef.current);
+      if (curIdx === -1 || curIdx === targetIdx) return prev;
+      const arr = [...prev];
+      const [moved] = arr.splice(curIdx, 1);
+      arr.splice(Math.max(0, Math.min(targetIdx, arr.length)), 0, moved);
+      return normalizeUploadedOrder(arr);
     });
+  }
 
-    setActiveIdx((prev) => {
-      if (prev === from) return to;
-      if (from < prev && to >= prev) return prev - 1;
-      if (from > prev && to <= prev) return prev + 1;
-      return prev;
-    });
+  function onThumbPointerDown(e: React.PointerEvent<HTMLDivElement>, item: UploadedPhoto) {
+    if (e.button > 0) return;
+    dragIdRef.current = photoKey(item);
+    setDraggingId(photoKey(item));
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // brak realnego wskaźnika (np. testy) — ignorujemy
+    }
+  }
+
+  function onThumbPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (dragIdRef.current == null) return;
+    const strip = stripRef.current;
+    if (!strip) return;
+
+    const els = Array.from(strip.querySelectorAll<HTMLElement>('[data-thumb]'));
+    if (!els.length) return;
+
+    let target = els.length - 1;
+    for (let i = 0; i < els.length; i++) {
+      const r = els[i].getBoundingClientRect();
+      if (e.clientX < r.left + r.width / 2) {
+        target = i;
+        break;
+      }
+    }
+
+    reorderDraggedTo(target);
+  }
+
+  function endThumbDrag(e: React.PointerEvent<HTMLDivElement>) {
+    dragIdRef.current = null;
+    setDraggingId(null);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignorujemy
+    }
   }
 
   function removePhoto(index: number) {
@@ -1656,73 +1698,66 @@ export default function DzialkaForm({
                 ) : null}
               </div>
 
-              {currentImages.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto p-3">
-                  {currentImages.map((item, idx) => {
-                    const active = idx === activeIdx;
+              {uploaded.length > 0 && (
+                <>
+                  <div className="px-3 pt-2 text-[12px] leading-relaxed text-white/55">
+                    Przeciągnij miniatury, aby zmienić kolejność.{' '}
+                    <span className="text-[#9fd14b]">Pierwsze zdjęcie będzie zdjęciem głównym.</span>
+                  </div>
 
-                    return (
-                      <div
-                        key={idx}
-                        className="shrink-0"
-                        draggable
-                        onDragStart={() => setDragIdx(idx)}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          if (dragIdx === null || dragIdx === idx) return;
-                          movePhoto(dragIdx, idx);
-                          setDragIdx(idx);
-                        }}
-                        onDragEnd={() => setDragIdx(null)}
-                        title="Przeciągnij aby zmienić kolejność"
-                      >
+                  <div ref={stripRef} className="flex gap-3 overflow-x-auto p-3">
+                    {uploaded.map((item, idx) => {
+                      const isMain = idx === 0;
+                      const dragging = draggingId === photoKey(item);
+
+                      return (
                         <div
+                          key={photoKey(item)}
+                          data-thumb="1"
+                          onPointerDown={(e) => onThumbPointerDown(e, item)}
+                          onPointerMove={onThumbPointerMove}
+                          onPointerUp={endThumbDrag}
+                          onPointerCancel={endThumbDrag}
                           className={cx(
-                            'relative overflow-hidden rounded-2xl border',
-                            active ? 'border-white/60' : 'border-white/10 opacity-85 hover:opacity-100'
+                            'relative shrink-0 cursor-grab touch-pan-y select-none transition-transform active:cursor-grabbing',
+                            dragging ? 'scale-105' : ''
                           )}
                         >
-                          <button
-                            type="button"
-                            onClick={() => setActiveIdx(idx)}
-                            className="block"
+                          <div
+                            className={cx(
+                              'relative overflow-hidden rounded-2xl border-2',
+                              isMain ? 'border-[#9fd14b]' : 'border-white/10',
+                              dragging ? 'ring-2 ring-white/40' : ''
+                            )}
                           >
-                            <img src={item.url} alt="" className="h-16 w-28 object-cover" />
-                          </button>
+                            <img
+                              src={item.url}
+                              alt=""
+                              draggable={false}
+                              className="pointer-events-none h-20 w-32 object-cover"
+                            />
 
-                          <button
-                            type="button"
-                            onClick={() => removePhoto(idx)}
-                            className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-white transition hover:bg-black"
-                            title="Usuń zdjęcie"
-                          >
-                            ×
-                          </button>
-                        </div>
+                            {isMain ? (
+                              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[#7aa333] py-[3px] text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-black">
+                                Zdjęcie główne
+                              </div>
+                            ) : null}
 
-                        <div className="mt-1 flex items-center justify-between px-1">
-                          <button
-                            type="button"
-                            onClick={() => movePhoto(idx, idx - 1)}
-                            className="text-[11px] text-white/55 transition hover:text-white/85"
-                            title="W lewo"
-                          >
-                            ↑
-                          </button>
-                          <div className="text-[11px] text-white/35">{idx + 1}</div>
-                          <button
-                            type="button"
-                            onClick={() => movePhoto(idx, idx + 1)}
-                            className="text-[11px] text-white/55 transition hover:text-white/85"
-                            title="W prawo"
-                          >
-                            ↓
-                          </button>
+                            <button
+                              type="button"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={() => removePhoto(idx)}
+                              className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-white transition hover:bg-black"
+                              title="Usuń zdjęcie"
+                            >
+                              ×
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
 
