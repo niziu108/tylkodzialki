@@ -30,10 +30,17 @@ const EMPTY = {
   website: '', // honeypot
 };
 
-export default function DlaBiurForm() {
+type DlaBiurFormProps = {
+  // wstępne wypełnienie pól (np. e-mail zalogowanego biura w panelu)
+  initialValues?: Partial<typeof EMPTY>;
+  // wywoływane po udanym wysłaniu (panel używa tego, by przełączyć na ekran statusu)
+  onSuccess?: () => void;
+};
+
+export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormProps) {
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
-  const [form, setForm] = useState({ ...EMPTY });
+  const [form, setForm] = useState({ ...EMPTY, ...initialValues });
 
   const set = (key: keyof typeof form) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -61,7 +68,8 @@ export default function DlaBiurForm() {
 
       if (res.ok && data?.ok) {
         setStatus('ok');
-        setForm({ ...EMPTY }); // formularz zostaje, ale czysty pod kolejne zapytanie
+        setForm({ ...EMPTY, ...initialValues }); // czysty pod kolejne zapytanie (zachowuje wartości startowe)
+        onSuccess?.();
       } else {
         setStatus('error');
         setErrorMsg(data?.message || 'Nie udało się wysłać. Spróbuj ponownie.');

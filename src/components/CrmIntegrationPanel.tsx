@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DlaBiurForm from "./DlaBiurForm";
 
 type Integration = {
   id: string;
@@ -44,7 +45,45 @@ type CrmLog = {
 type Props = {
   integration: Integration;
   paymentsEnabled: boolean;
+  userId: string;
+  userEmail?: string | null;
 };
+
+// Kroki "jak podłączyć CRM" pokazywane biuru bez integracji (lokalne dane tekstowe,
+// nie komponent — współdzielony pozostaje sam formularz DlaBiurForm).
+const CONNECT_STEPS = [
+  {
+    n: "01",
+    title: "Zgłoś się do nas",
+    body: "Wypełnij formularz poniżej. Dopytamy o Twój system CRM i liczbę ofert działek.",
+  },
+  {
+    n: "02",
+    title: "Podłączamy Twój CRM",
+    body: "Konfigurujemy integrację po naszej stronie. Nie musisz nic instalować ani programować.",
+  },
+  {
+    n: "03",
+    title: "Oferty zawsze aktualne",
+    body: "Działki importują się i synchronizują automatycznie. Ty zajmujesz się sprzedażą.",
+  },
+];
+
+// Trzy stany statusu z briefu: Oczekuje na konfigurację / Aktywna / Błąd synchronizacji.
+// "Błąd synchronizacji" opieramy na lastErrorMessage — przy udanej synchronizacji
+// worker czyści to pole do null, więc sygnał jest aktualny, nie zaległy.
+function getStatusBadge(integration: NonNullable<Integration>): {
+  label: string;
+  cls: string;
+} {
+  if (integration.lastErrorMessage) {
+    return { label: "Błąd synchronizacji", cls: "text-red-300" };
+  }
+  if (integration.isActive) {
+    return { label: "Aktywna", cls: "text-[#9fd14b]" };
+  }
+  return { label: "Nieaktywna", cls: "text-white/70" };
+}
 
 function formatDate(value: string | Date | null | undefined) {
   if (!value) return "—";
@@ -74,6 +113,8 @@ const CRM_STATUS_LABELS: Record<CrmLog["status"], string> = {
 export default function CrmIntegrationPanel({
   integration,
   paymentsEnabled,
+  userId,
+  userEmail,
 }: Props) {
   const router = useRouter();
 
@@ -83,6 +124,32 @@ export default function CrmIntegrationPanel({
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState<string | null>(null);
   const [logs, setLogs] = useState<CrmLog[]>([]);
+
+  // Pamięć "zgłoszenie wysłane" trzymamy lokalnie (tylko UX, per użytkownik).
+  // Gdy admin podłączy integrację, status i tak przejmuje wiersz CrmIntegration.
+  const requestStorageKey = `td:crm-request:${userId}`;
+  const [mounted, setMounted] = useState(false);
+  const [requested, setRequested] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      if (window.localStorage.getItem(requestStorageKey) === "1") {
+        setRequested(true);
+      }
+    } catch {
+      // localStorage niedostępny (tryb prywatny itp.) — pokażemy formularz
+    }
+  }, [requestStorageKey]);
+
+  function markRequested() {
+    try {
+      window.localStorage.setItem(requestStorageKey, "1");
+    } catch {
+      // brak zapisu nie blokuje — i tak przełączamy widok w pamięci
+    }
+    setRequested(true);
+  }
 
   useEffect(() => {
     async function loadLogs() {
@@ -168,26 +235,103 @@ export default function CrmIntegrationPanel({
   }
 
   if (!integration) {
+    // Do czasu odczytu localStorage nie pokazujemy formularza — inaczej osobie,
+    // która już wysłała zgłoszenie, mignąłby on przed przełączeniem na status.
+    if (!mounted) {
+      return (
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 md:p-10">
+          <div className="h-5 w-44 animate-pulse rounded-full bg-white/10" />
+          <div className="mt-5 h-7 w-72 animate-pulse rounded bg-white/[0.07]" />
+          <div className="mt-4 h-4 w-full max-w-md animate-pulse rounded bg-white/5" />
+        </div>
+      );
+    }
+
+    // Zgłoszenie wysłane: zamiast formularza ekran statusu.
+    if (requested) {
+      return (
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 md:p-10">
+          <div className="max-w-3xl">
+            <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+              Integracja CRM
+            </div>
+
+            <h2 className="mt-4 text-2xl font-semibold text-white">
+              Integracja CRM została zgłoszona
+            </h2>
+
+            <p className="mt-3 leading-7 text-white/65">
+              Dziękujemy za przesłanie formularza. Nasz zespół przygotowuje
+              konfigurację integracji. Po jej zakończeniu oferty będą
+              automatycznie synchronizowane z TylkoDziałki.pl.
+            </p>
+
+            <div className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-yellow-500/25 bg-yellow-500/10 px-4 py-2.5 text-sm font-semibold text-yellow-200">
+              <span className="h-2 w-2 rounded-full bg-yellow-300" />
+              Status: Oczekuje na konfigurację
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Brak integracji i brak zgłoszenia: jak podłączyć + współdzielony formularz.
     return (
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 md:p-10">
-        <div className="max-w-3xl">
-          <div className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
-            Integracja CRM
+        <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-2xl">
+            <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+              Integracja CRM
+            </div>
+
+            <h2 className="mt-4 text-2xl font-semibold text-white">
+              Podłącz swój CRM
+            </h2>
+
+            <p className="mt-3 leading-7 text-white/65">
+              Łączymy się z Twoim systemem po naszej stronie. Nie musisz nic
+              instalować ani programować. Wypełnij formularz, a zajmiemy się
+              resztą: Twoje działki będą się importować i codziennie
+              synchronizować automatycznie.
+            </p>
           </div>
 
-          <h2 className="mt-4 text-2xl font-semibold text-white">
-            Integracja nie została jeszcze skonfigurowana
-          </h2>
+          <div className="shrink-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
+            <div className="text-white/45">Status</div>
+            <div className="mt-1 font-semibold text-white/70">
+              Brak integracji
+            </div>
+          </div>
+        </div>
 
-          <p className="mt-3 leading-7 text-white/65">
-            Konfigurację FTP i importu przygotowuje administrator. Gdy integracja
-            zostanie podłączona, zobaczysz tutaj jej status i możliwość ręcznej
-            synchronizacji.
-          </p>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {CONNECT_STEPS.map((s) => (
+            <div
+              key={s.n}
+              className="rounded-2xl border border-white/10 bg-black/20 p-5"
+            >
+              <div className="text-2xl font-bold leading-none text-[#7aa333]/50">
+                {s.n}
+              </div>
+              <h3 className="mt-3 text-base font-semibold text-white">
+                {s.title}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-white/55">{s.body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 rounded-[24px] border border-white/12 bg-[#0d0d0d]/60 p-6 md:p-8">
+          <DlaBiurForm
+            initialValues={{ email: userEmail ?? "" }}
+            onSuccess={markRequested}
+          />
         </div>
       </div>
     );
   }
+
+  const statusBadge = getStatusBadge(integration);
 
   return (
     <div className="space-y-6">
@@ -223,12 +367,8 @@ export default function CrmIntegrationPanel({
 
           <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
             <div className="text-white/45">Status</div>
-            <div
-              className={`mt-1 font-semibold ${
-                integration.isActive ? "text-[#9fd14b]" : "text-red-300"
-              }`}
-            >
-              {integration.isActive ? "Aktywna" : "Nieaktywna"}
+            <div className={`mt-1 font-semibold ${statusBadge.cls}`}>
+              {statusBadge.label}
             </div>
           </div>
         </div>

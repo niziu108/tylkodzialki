@@ -599,6 +599,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             <CrmIntegrationPanel
               integration={crmIntegration}
               paymentsEnabled={paymentsEnabled}
+              userId={user.id}
+              userEmail={user.email}
             />
           </>
         ) : (
