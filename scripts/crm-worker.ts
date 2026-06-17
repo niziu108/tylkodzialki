@@ -4,7 +4,7 @@ dotenv.config({ path: ".env.local" });
 dotenv.config({ path: ".env" });
 
 const LOOP_MODE = process.argv.includes("--loop");
-const POLL_INTERVAL_MS = 10_000;
+const POLL_INTERVAL_MS = 60_000;
 
 async function runSingleJob(jobId: string) {
   const { prisma } = await import("../src/lib/prisma");
