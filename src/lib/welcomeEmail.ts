@@ -1,6 +1,5 @@
-import path from "path";
 import { sendMail } from "@/lib/mailer";
-import { buildMailTemplate } from "@/lib/emailTemplate";
+import { buildMailTemplate, mailLogoAttachment } from "@/lib/emailTemplate";
 
 function baseUrl() {
   // 👇 NA PRODUKCJI ustawiasz NEXTAUTH_URL i samo się zmieni
@@ -14,36 +13,33 @@ export async function sendWelcomeEmail(params: {
   const email = params.email.toLowerCase().trim();
   const firstName = params.name?.trim()?.split(" ")[0];
 
-  const intro = firstName
-    ? `${firstName}, dziękujemy za rejestrację.
+  const title = firstName ? `Witaj, ${firstName}` : "Witaj w tylkodzialki.pl";
 
-Twoje konto jest już gotowe. Możesz teraz dodać swoje ogłoszenie, zarządzać ofertami i korzystać z panelu użytkownika.`
-    : `Dziękujemy za rejestrację.
+  const intro = `Cieszymy się, że jesteś z nami. Twoje konto jest już gotowe.
 
-Twoje konto jest już gotowe. Możesz teraz dodać swoje ogłoszenie, zarządzać ofertami i korzystać z panelu użytkownika.`;
+tylkodzialki.pl to portal poświęcony wyłącznie działkom. Czy szukasz działki, czy chcesz wystawić własną, wszystko masz w jednym miejscu.`;
 
   const buttonUrl = `${baseUrl()}/panel`;
 
   const html = buildMailTemplate({
-    preheader: "Witamy w TylkoDziałki.",
-    title: "Witamy w TylkoDziałki",
+    preheader: "Twoje konto jest już gotowe.",
+    title,
     intro,
+    bullets: [
+      "Przeglądaj działki z całej Polski i zapisuj ulubione",
+      "Wystaw własną działkę, kiedy tylko zechcesz",
+      "Ustaw alerty i jako pierwszy poznaj nowe oferty",
+    ],
     buttonLabel: "Przejdź do panelu",
     buttonUrl,
-    note: "Dziękujemy za dołączenie do TylkoDziałki. Życzymy skutecznej sprzedaży.",
+    note: "Masz pytania? Napisz na kontakt@tylkodzialki.pl, chętnie pomożemy.",
   });
 
   await sendMail({
     to: email,
-    subject: "TylkoDziałki — witamy",
+    subject: "Witamy w tylkodzialki.pl",
     html,
-    text: `Witamy w TylkoDziałki. ${buttonUrl}`,
-    attachments: [
-      {
-        filename: "logomail.png",
-        path: path.join(process.cwd(), "public", "logomail.png"),
-        cid: "logomail",
-      },
-    ],
+    text: `Witaj w tylkodzialki.pl. Twoje konto jest już gotowe: ${buttonUrl}`,
+    attachments: [mailLogoAttachment()],
   });
 }

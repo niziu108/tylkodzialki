@@ -15,7 +15,7 @@ export default function Footer() {
             {/* LOGO + OPIS */}
             <div className="space-y-6">
               <Link href="/" className="inline-flex items-center">
-                <Image src="/logo1.png" alt="TylkoDziałki" width={180} height={46} className="object-contain" />
+                <Image src="/logo1.png" alt="tylkodzialki.pl" width={180} height={46} className="object-contain" />
               </Link>
 
               <p className="max-w-sm text-[15px] leading-7 text-white/65">
@@ -136,7 +136,7 @@ export default function Footer() {
           {/* DÓŁ */}
           <div className="mt-16 border-t border-white/10 pt-6">
             <div className="flex flex-col gap-3 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between">
-              <p>© 2026 TylkoDziałki. Wszelkie prawa zastrzeżone.</p>
+              <p>© 2026 tylkodzialki.pl. Wszelkie prawa zastrzeżone.</p>
               <p>Ultima Reality Sp. z o.o.</p>
             </div>
             <div className="mt-3 text-xs text-white/35">

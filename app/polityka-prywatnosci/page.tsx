@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Polityka prywatności | TylkoDziałki',
-  description: 'Polityka prywatności serwisu TylkoDziałki.',
+  title: 'Polityka prywatności | tylkodzialki.pl',
+  description: 'Polityka prywatności serwisu tylkodzialki.pl.',
 };
 
 function Section({

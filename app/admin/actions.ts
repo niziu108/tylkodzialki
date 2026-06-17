@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { sendMail } from "@/lib/mailer";
+import { buildMailTemplate, mailLogoAttachment } from "@/lib/emailTemplate";
 import { deleteUserCompletely } from "@/lib/delete-user-completely";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 
@@ -51,51 +52,15 @@ async function getAppConfig() {
   return config;
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function bodyToHtml(body: string) {
-  return body
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => `<p style="margin:0 0 16px;">${escapeHtml(line)}</p>`)
-    .join("");
-}
-
-function buildMailHtml(subject: string, body: string) {
-  return `
-    <div style="margin:0;padding:24px;background:#f5f5f5;">
-      <div style="max-width:700px;margin:0 auto;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e8e8e8;">
-        <div style="padding:28px 28px 18px;background:#131313;color:#ffffff;">
-          <div style="font-size:12px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#9fd14b;">
-            TylkoDziałki
-          </div>
-          <h1 style="margin:14px 0 0;font-size:28px;line-height:1.2;font-weight:700;color:#ffffff;">
-            ${escapeHtml(subject)}
-          </h1>
-        </div>
-
-        <div style="padding:28px;color:#111111;font-family:Arial,sans-serif;font-size:15px;line-height:1.7;">
-          ${bodyToHtml(body)}
-          <div style="margin-top:28px;">
-            <a href="${LOGIN_URL}" style="display:inline-block;background:#7aa333;color:#111111;text-decoration:none;padding:12px 20px;border-radius:12px;font-weight:700;">
-              Zaloguj się do konta
-            </a>
-          </div>
-          <p style="margin:24px 0 0;font-size:12px;color:#666666;">
-            Jeśli nie planujesz teraz żadnych działań, możesz po prostu zignorować tę wiadomość.
-          </p>
-        </div>
-      </div>
-    </div>
-  `;
+function buildAdminMailHtml(subject: string, body: string) {
+  return buildMailTemplate({
+    preheader: subject,
+    title: subject,
+    intro: body,
+    buttonLabel: "Zaloguj się do konta",
+    buttonUrl: LOGIN_URL,
+    note: "Jeśli nie planujesz teraz żadnych działań, możesz zignorować tę wiadomość.",
+  });
 }
 
 function buildMailText(body: string) {
@@ -394,8 +359,9 @@ export async function sendAdminMailTestAction(formData: FormData) {
   await sendMail({
     to: adminUser.email,
     subject: `[TEST] ${subject}`,
-    html: buildMailHtml(subject, body),
+    html: buildAdminMailHtml(subject, body),
     text: buildMailText(body),
+    attachments: [mailLogoAttachment()],
   });
 
   revalidatePath("/admin");
@@ -439,8 +405,9 @@ export async function sendAdminMailAction(formData: FormData) {
       await sendMail({
         to: user.email,
         subject,
-        html: buildMailHtml(subject, body),
+        html: buildAdminMailHtml(subject, body),
         text: buildMailText(body),
+        attachments: [mailLogoAttachment()],
       });
 
       sent += 1;

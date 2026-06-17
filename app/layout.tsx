@@ -21,16 +21,16 @@ const bebas = Bebas_Neue({
 });
 
 const siteUrl = 'https://tylkodzialki.pl';
-const siteName = 'TylkoDziałki';
+const siteName = 'tylkodzialki.pl';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'TylkoDziałki.pl – działki na sprzedaż w całej Polsce',
-    template: '%s | TylkoDziałki.pl',
+    default: 'tylkodzialki.pl – działki na sprzedaż w całej Polsce',
+    template: '%s | tylkodzialki.pl',
   },
   description:
-    'TylkoDziałki.pl to portal ogłoszeń poświęcony wyłącznie działkom. Szukaj działek na sprzedaż, przeglądaj oferty i dodawaj własne ogłoszenia w całej Polsce.',
+    'tylkodzialki.pl to portal ogłoszeń poświęcony wyłącznie działkom. Szukaj działek na sprzedaż, przeglądaj oferty i dodawaj własne ogłoszenia w całej Polsce.',
   applicationName: siteName,
   keywords: [
     'działki',
@@ -42,17 +42,17 @@ export const metadata: Metadata = {
     'działki budowlane',
     'działki rolne',
     'działki inwestycyjne',
-    'TylkoDziałki',
+    'tylkodzialki.pl',
   ],
-  authors: [{ name: 'TylkoDziałki' }],
-  creator: 'TylkoDziałki',
-  publisher: 'TylkoDziałki',
+  authors: [{ name: 'tylkodzialki.pl' }],
+  creator: 'tylkodzialki.pl',
+  publisher: 'tylkodzialki.pl',
   manifest: '/site.webmanifest',
   openGraph: {
     type: 'website',
     url: siteUrl,
     siteName,
-    title: 'TylkoDziałki.pl – działki na sprzedaż w całej Polsce',
+    title: 'tylkodzialki.pl – działki na sprzedaż w całej Polsce',
     description:
       'Portal poświęcony wyłącznie działkom. Szukaj działek, przeglądaj oferty i dodawaj ogłoszenia w całej Polsce.',
     locale: 'pl_PL',
@@ -61,13 +61,13 @@ export const metadata: Metadata = {
         url: '/logo.png',
         width: 1200,
         height: 630,
-        alt: 'TylkoDziałki.pl',
+        alt: 'tylkodzialki.pl',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TylkoDziałki.pl – działki na sprzedaż w całej Polsce',
+    title: 'tylkodzialki.pl – działki na sprzedaż w całej Polsce',
     description:
       'Portal poświęcony wyłącznie działkom. Szukaj działek i dodawaj ogłoszenia w całej Polsce.',
     images: ['/logo.png'],
@@ -113,7 +113,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'WebSite',
-              name: 'TylkoDziałki.pl',
+              name: 'tylkodzialki.pl',
               url: 'https://tylkodzialki.pl',
               potentialAction: {
                 '@type': 'SearchAction',
@@ -127,7 +127,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'Organization',
-              name: 'TylkoDziałki.pl',
+              name: 'tylkodzialki.pl',
               url: 'https://tylkodzialki.pl',
               logo: 'https://tylkodzialki.pl/logo.png',
             })}

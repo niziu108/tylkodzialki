@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Polityka cookies | TylkoDziałki',
-  description: 'Polityka cookies serwisu TylkoDziałki.',
+  title: 'Polityka cookies | tylkodzialki.pl',
+  description: 'Polityka cookies serwisu tylkodzialki.pl.',
 };
 
 function Section({

@@ -12,7 +12,7 @@ import { getFeaturedListings } from "@/lib/dzialki";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "TylkoDziałki.pl – szukaj, kupuj i sprzedawaj działki",
+  title: "tylkodzialki.pl – szukaj, kupuj i sprzedawaj działki",
   description:
     "Portal ogłoszeń poświęcony wyłącznie działkom. Szukaj działek na sprzedaż, przeglądaj oferty i dodawaj własne ogłoszenia w całej Polsce.",
   alternates: {

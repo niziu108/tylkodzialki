@@ -1,8 +1,7 @@
-import path from 'path';
 import { Prisma, DzialkaStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { sendMail } from '@/lib/mailer';
-import { buildMailTemplate } from '@/lib/emailTemplate';
+import { buildMailTemplate, mailLogoAttachment } from '@/lib/emailTemplate';
 import { buildSearchContext, getSearchMatchInfo } from '@/lib/dzialkiSearch';
 import { buildKupPathFromCriteria, type AlertCriteria } from '@/lib/alertCriteria';
 
@@ -80,21 +79,23 @@ function buildAlertEmail(params: {
       : `${n} ${dzialkaWord(n)} pasujące do alertu: ${label}`;
 
   const shown = matches.slice(0, MAX_OFFERS_IN_EMAIL);
-  const lines = shown.map((d) => {
+  const bullets = shown.map((d) => {
     const loc = d.locationLabel?.trim();
     const bits = [`${intFmt.format(d.powierzchniaM2)} m²`, formatPLN(d.cenaPln)];
     if (loc) bits.push(loc);
-    return `• ${bits.join(' · ')}`;
+    return bits.join(' · ');
   });
 
   const more = n - shown.length;
-  const moreLine = more > 0 ? `\n\n...i ${more} ${dzialkaWord(more)} więcej.` : '';
 
   const intro = `${hello}
 
-${countText} pasujące do Twojego alertu „${label}":
+${countText} pasujące do Twojego alertu „${label}":`;
 
-${lines.join('\n')}${moreLine}`;
+  const note =
+    more > 0
+      ? `Pokazujemy pierwsze ${shown.length}. Pozostałe ${more} ${dzialkaWord(more)} zobaczysz w wyszukiwarce.`
+      : 'Dostajesz tę wiadomość, bo masz włączony alert o nowych działkach w tylkodzialki.pl.';
 
   // 1 oferta → prosto na nią (najszybsza droga do kontaktu); więcej → wyszukiwarka z kryteriami.
   const buttonUrl =
@@ -107,9 +108,10 @@ ${lines.join('\n')}${moreLine}`;
     preheader: `${countText} pasujące do Twojego alertu.`,
     title: countText,
     intro,
+    bullets,
     buttonLabel,
     buttonUrl,
-    note: 'Dostajesz tę wiadomość, bo włączyłeś alert o nowych działkach w TylkoDziałki.',
+    note,
     unsubscribeUrl,
   });
 
@@ -239,13 +241,7 @@ export async function runOfferAlerts() {
         subject,
         html,
         text,
-        attachments: [
-          {
-            filename: 'logomail.png',
-            path: path.join(process.cwd(), 'public', 'logomail.png'),
-            cid: 'logomail',
-          },
-        ],
+        attachments: [mailLogoAttachment()],
       });
 
       await prisma.emailSendLog.create({

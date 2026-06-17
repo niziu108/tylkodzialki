@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Regulamin | TylkoDziałki',
-  description: 'Regulamin serwisu TylkoDziałki.',
+  title: 'Regulamin | tylkodzialki.pl',
+  description: 'Regulamin serwisu tylkodzialki.pl.',
 };
 
 function Section({

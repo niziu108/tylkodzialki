@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import BlogSearchSection from "@/components/BlogSearchSection";
 
 export const metadata = {
-  title: "Blog o działkach | TylkoDziałki",
+  title: "Blog o działkach | tylkodzialki.pl",
   description:
     "Poradniki, wskazówki i artykuły o działkach: MPZP, wycena działki, zakup, sprzedaż i formalności.",
 };

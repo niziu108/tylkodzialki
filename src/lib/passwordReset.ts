@@ -1,9 +1,8 @@
 import crypto from "crypto";
-import path from "path";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mailer";
-import { buildMailTemplate } from "@/lib/emailTemplate";
+import { buildMailTemplate, mailLogoAttachment } from "@/lib/emailTemplate";
 
 function baseUrl() {
   return (process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -39,26 +38,21 @@ export async function requestPasswordReset(email: string) {
   const url = `${baseUrl()}/auth/reset?token=${token}`;
 
   const html = buildMailTemplate({
-    preheader: "Ustaw nowe hasło do konta TylkoDziałki.",
+    preheader: "Ustaw nowe hasło do konta tylkodzialki.pl.",
     title: "Reset hasła",
-    intro: `Otrzymaliśmy prośbę o ustawienie nowego hasła do konta powiązanego z adresem ${normalizedEmail}. Kliknij poniższy przycisk, aby przejść do bezpiecznej zmiany hasła.`,
+    intro: `Otrzymaliśmy prośbę o ustawienie nowego hasła do konta ${normalizedEmail}. Kliknij przycisk poniżej, aby bezpiecznie ustawić nowe hasło.`,
     buttonLabel: "Ustaw nowe hasło",
     buttonUrl: url,
-    note: "Link do resetu hasła wygaśnie za 60 minut. Jeśli to nie Ty wysłałeś tę prośbę, po prostu zignoruj tę wiadomość.",
+    showLinkFallback: true,
+    note: "Link wygaśnie po 60 minutach. Jeśli to nie Ty wysyłałeś tę prośbę, zignoruj tę wiadomość, a hasło pozostanie bez zmian.",
   });
 
   await sendMail({
     to: normalizedEmail,
-    subject: "TylkoDziałki — reset hasła",
+    subject: "Reset hasła do konta tylkodzialki.pl",
     html,
-    text: `Reset hasła: ${url}`,
-    attachments: [
-      {
-        filename: "logomail.png",
-        path: path.join(process.cwd(), "public", "logomail.png"),
-        cid: "logomail",
-      },
-    ],
+    text: `Ustaw nowe hasło: ${url}`,
+    attachments: [mailLogoAttachment()],
   });
 }
 

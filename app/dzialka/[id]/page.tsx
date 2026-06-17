@@ -9,7 +9,7 @@ import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
 export const revalidate = 60;
 
 const SITE_URL = 'https://tylkodzialki.pl';
-const SITE_NAME = 'TylkoDziałki.pl';
+const SITE_NAME = 'tylkodzialki.pl';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -86,7 +86,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title: 'Działka na sprzedaż',
       description:
-        'Sprawdź aktualną ofertę działki na sprzedaż w serwisie TylkoDziałki.pl.',
+        'Sprawdź aktualną ofertę działki na sprzedaż w serwisie tylkodzialki.pl.',
       alternates: {
         canonical,
       },
@@ -115,7 +115,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     area ? `Działka ${purpose} o powierzchni ${area} m²` : `Działka ${purpose}`,
     `lokalizacja: ${location}`,
     price ? `cena: ${price} zł` : null,
-    'sprawdź zdjęcia, opis i kontakt do ogłoszeniodawcy na TylkoDziałki.pl',
+    'sprawdź zdjęcia, opis i kontakt do ogłoszeniodawcy na tylkodzialki.pl',
   ].filter(Boolean);
 
   const description = descriptionParts.join(', ').slice(0, 155);

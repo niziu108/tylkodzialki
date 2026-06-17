@@ -99,12 +99,12 @@ export async function generateMetadata({ params }: BlogArticlePageProps) {
 
   if (!article || !article.isPublished) {
     return {
-      title: "Artykuł | TylkoDziałki",
+      title: "Artykuł | tylkodzialki.pl",
     };
   }
 
   return {
-    title: `${article.title} | TylkoDziałki`,
+    title: `${article.title} | tylkodzialki.pl`,
     description:
       article.excerpt ||
       "Artykuł poradnikowy o działkach, sprzedaży, zakupie i formalnościach.",

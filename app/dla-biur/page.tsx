@@ -9,10 +9,10 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Dla biur nieruchomości: integracja z CRM i import ofert działek',
   description:
-    'Łączymy TylkoDziałki.pl z każdym systemem CRM. Automatyczny import i codzienna synchronizacja Twoich ofert działek bez ręcznego przepisywania. Dołącz do biur, które już nam zaufały.',
+    'Łączymy tylkodzialki.pl z każdym systemem CRM. Automatyczny import i codzienna synchronizacja Twoich ofert działek bez ręcznego przepisywania. Dołącz do biur, które już nam zaufały.',
   alternates: { canonical: '/dla-biur' },
   openGraph: {
-    title: 'Dla biur nieruchomości | TylkoDziałki.pl',
+    title: 'Dla biur nieruchomości | tylkodzialki.pl',
     description:
       'Integracja z każdym CRM, automatyczny import i synchronizacja ofert działek. Portal wyłącznie o działkach.',
     url: '/dla-biur',

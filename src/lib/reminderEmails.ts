@@ -1,7 +1,6 @@
-import path from "path";
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mailer";
-import { buildMailTemplate } from "@/lib/emailTemplate";
+import { buildMailTemplate, mailLogoAttachment } from "@/lib/emailTemplate";
 
 function baseUrl() {
   return (process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -24,25 +23,25 @@ function buildReminderContent(params: {
 
   if (params.listingsCount > 0) {
     return {
-      subject: "TylkoDziałki — sprawdź swoje ogłoszenia",
+      subject: "Sprawdź swoje ogłoszenia w tylkodzialki.pl",
       title: "Sprawdź swoje ogłoszenia",
       intro: `${hello}
 
-Przypominamy o Twoim koncie w TylkoDziałki.
+Przypominamy o Twoim koncie w tylkodzialki.pl.
 
 Masz obecnie ${params.listingsCount} ogłoszenie(a/ń) w systemie. Warto zajrzeć do panelu, sprawdzić swoje oferty i upewnić się, że wszystko jest aktualne.`,
       buttonLabel: "Przejdź do panelu",
       buttonUrl: `${baseUrl()}/panel`,
-      note: "To lekka wiadomość przypominająca o Twoim koncie i ogłoszeniach w TylkoDziałki.",
+      note: "To lekka wiadomość przypominająca o Twoim koncie i ogłoszeniach w tylkodzialki.pl.",
     };
   }
 
   return {
-    subject: "TylkoDziałki — pamiętaj o swoim koncie",
+    subject: "Pamiętaj o swoim koncie w tylkodzialki.pl",
     title: "Pamiętaj o swoim koncie",
     intro: `${hello}
 
-Przypominamy o TylkoDziałki.
+Przypominamy o tylkodzialki.pl.
 
 Jeśli planujesz sprzedaż działki, możesz w każdej chwili wrócić do serwisu, dodać ogłoszenie i zacząć działać.`,
     buttonLabel: "Przejdź na stronę",
@@ -121,13 +120,7 @@ export async function sendMonthlyReminders() {
         subject: content.subject,
         html,
         text: `${content.title}\n\n${content.buttonUrl}`,
-        attachments: [
-          {
-            filename: "logomail.png",
-            path: path.join(process.cwd(), "public", "logomail.png"),
-            cid: "logomail",
-          },
-        ],
+        attachments: [mailLogoAttachment()],
       });
 
       await prisma.emailSendLog.create({

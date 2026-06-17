@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendMail } from '@/lib/mailer';
+import { buildMailTemplate, mailLogoAttachment } from '@/lib/emailTemplate';
 
 const TO = process.env.CONTACT_BIURO_TO || 'biuro@tylkodzialki.pl';
 
@@ -79,16 +80,14 @@ export async function POST(req: Request) {
         )}</div>`
       : '';
 
-    const html = `<!DOCTYPE html><html lang="pl"><head><meta charSet="UTF-8" /></head>
-<body style="margin:0;padding:24px;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e9e9e9;overflow:hidden;">
-<tr><td style="padding:28px 32px;">
-<h1 style="margin:0 0 6px 0;font-size:22px;color:#131313;">Nowe zapytanie od biura</h1>
-<p style="margin:0 0 18px 0;font-size:13px;color:#8b8b8b;">Formularz „Dla biur", tylkodzialki.pl</p>
-<table cellpadding="0" cellspacing="0" style="font-size:14px;">${rowsHtml}</table>
-${messageHtml}
-</td></tr></table>
-</body></html>`;
+    const bodyHtml = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 0 0;font-size:14px;line-height:1.7;">${rowsHtml}</table>${messageHtml}`;
+
+    const html = buildMailTemplate({
+      preheader: `Nowe zapytanie z formularza „Dla biur"${agency ? `: ${agency}` : ''}`,
+      title: 'Nowe zapytanie od biura',
+      intro: 'Ktoś wypełnił formularz „Dla biur" na tylkodzialki.pl. Szczegóły poniżej.',
+      bodyHtml,
+    });
 
     const textLines = [
       ...rows.map(([label, value]) => `${label}: ${value}`),
@@ -101,6 +100,7 @@ ${messageHtml}
       html,
       text: textLines.join('\n'),
       replyTo: email,
+      attachments: [mailLogoAttachment()],
     });
 
     return NextResponse.json({ ok: true });
