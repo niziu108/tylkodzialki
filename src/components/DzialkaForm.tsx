@@ -955,12 +955,17 @@ export default function DzialkaForm({
     const els = Array.from(strip.querySelectorAll<HTMLElement>('[data-thumb]'));
     if (!els.length) return;
 
-    let target = els.length - 1;
+    // Siatka 2D — celujemy w miniaturę, której środek jest najbliżej kursora/palca.
+    let target = 0;
+    let best = Infinity;
     for (let i = 0; i < els.length; i++) {
       const r = els[i].getBoundingClientRect();
-      if (e.clientX < r.left + r.width / 2) {
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dist = (e.clientX - cx) ** 2 + (e.clientY - cy) ** 2;
+      if (dist < best) {
+        best = dist;
         target = i;
-        break;
       }
     }
 
@@ -1705,7 +1710,7 @@ export default function DzialkaForm({
                     <span className="text-[#9fd14b]">Pierwsze zdjęcie będzie zdjęciem głównym.</span>
                   </div>
 
-                  <div ref={stripRef} className="flex gap-3 overflow-x-auto p-3">
+                  <div ref={stripRef} className="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 md:grid-cols-6">
                     {uploaded.map((item, idx) => {
                       const isMain = idx === 0;
                       const dragging = draggingId === photoKey(item);
@@ -1719,13 +1724,13 @@ export default function DzialkaForm({
                           onPointerUp={endThumbDrag}
                           onPointerCancel={endThumbDrag}
                           className={cx(
-                            'relative shrink-0 cursor-grab touch-pan-y select-none transition-transform active:cursor-grabbing',
-                            dragging ? 'scale-105' : ''
+                            'relative cursor-grab touch-none select-none transition-transform active:cursor-grabbing',
+                            dragging ? 'z-10 scale-105' : ''
                           )}
                         >
                           <div
                             className={cx(
-                              'relative overflow-hidden rounded-2xl border-2',
+                              'relative overflow-hidden rounded-xl border-2',
                               isMain ? 'border-[#9fd14b]' : 'border-white/10',
                               dragging ? 'ring-2 ring-white/40' : ''
                             )}
@@ -1734,12 +1739,12 @@ export default function DzialkaForm({
                               src={item.url}
                               alt=""
                               draggable={false}
-                              className="pointer-events-none h-20 w-32 object-cover"
+                              className="pointer-events-none aspect-[4/3] w-full object-cover"
                             />
 
                             {isMain ? (
-                              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[#7aa333] py-[3px] text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-black">
-                                Zdjęcie główne
+                              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[#7aa333] py-[2px] text-center text-[9px] font-semibold uppercase tracking-[0.1em] text-black">
+                                Główne
                               </div>
                             ) : null}
 
