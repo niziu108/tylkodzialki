@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LocationPicker from '@/components/LocationPicker';
 import MarkdownOpis from '@/components/MarkdownOpis';
+import { MAX_PHOTOS_PER_OFFER } from '@/lib/photoLimits';
 
 type Przeznaczenie =
   | 'INWESTYCYJNA'
@@ -176,7 +177,7 @@ const MAX_TITLE_CHARS = 90;
 const MAX_OPIS_CHARS = 5000;
 const AUTO_PUBLISH_MAX_RETRIES = 8;
 const AUTO_PUBLISH_RETRY_DELAY_MS = 1500;
-const MAX_PHOTOS = 12; // limit zdjęć na ofertę (backend: src/lib/photoLimits.ts)
+const MAX_PHOTOS = MAX_PHOTOS_PER_OFFER; // limit zdjęć na ofertę — jedno źródło prawdy: src/lib/photoLimits.ts
 
 type WizardStep = { title: string; short: string };
 
