@@ -1,7 +1,7 @@
 # ROADMAP CRM V2
 
-> **Status na 2026-06-17:** Sprint 1 (Audyt) ukończony. Następny: **Sprint 2 - Automatyczna synchronizacja (strategia C)**.
-> Raport z audytu: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md)
+> **Status na 2026-06-17:** Sprint 2 (Auto-sync, strategia C) - **implementacja gotowa i bezpiecznie wdrożona** (flaga `crmAutoSyncEnabled` domyślnie OFF, zero zmian zachowania na produkcji). Pozostaje **aktywacja produkcyjna** (flaga + cron na VPS, Faza 1/2). Po niej: Sprint 3.
+> Raport z audytu: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md) · Instrukcja auto-sync: [docs/CRM_AUTOSYNC.md](docs/CRM_AUTOSYNC.md)
 
 ## Jak prowadzimy sprinty
 
@@ -12,8 +12,8 @@ i wpisz w niej numer aktualnego sprintu.
 ## Status sprintów
 
 - [x] **Sprint 1 - Audyt obecnych integracji** (ukończony 2026-06-17, raport: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md))
-- [ ] **Sprint 2 - Automatyczna synchronizacja CRM** (NASTĘPNY, strategia C)
-- [ ] Sprint 3 - Monitoring synchronizacji
+- [~] **Sprint 2 - Automatyczna synchronizacja CRM** (strategia C; implementacja + migracja gotowe i wdrożone z flagą OFF, pozostaje rollout produkcyjny: flaga + cron - patrz sekcja Sprint 2)
+- [ ] Sprint 3 - Monitoring synchronizacji (NASTĘPNY po rollout Sprintu 2)
 - [ ] Sprint 4 - Alerty awarii CRM
 - [ ] Sprint 5 - Ujednolicenie architektury CRM
 - [ ] Sprint 6 - IMO CRM (analiza)
@@ -72,9 +72,24 @@ Najważniejsze ustalenia:
 
 ---
 
-## CRM SPRINT 2 - Automatyczna synchronizacja CRM [NASTĘPNY]
+## CRM SPRINT 2 - Automatyczna synchronizacja CRM [IMPLEMENTACJA GOTOWA, ROLLOUT PENDING]
 
 Najważniejszy sprint. Obecnie synchronizacja wykonywana jest ręcznie.
+
+### Stan realizacji (2026-06-17)
+
+**Zrobione i wdrożone (bezpiecznie, flaga OFF):**
+- Flaga `AppConfig.crmAutoSyncEnabled` (domyślnie `false`) - migracja `20260617130000_add_crm_autosync_flag` zastosowana na żywej bazie.
+- Funkcja `enqueueAutoSyncJobs` (`src/lib/crm/enqueueAutoSyncJobs.ts`): kolejkuje PENDING `CrmImportJob` dla aktywnych integracji, z guardem R2 (pomija PENDING/RUNNING). Nie dotyka silników ani route'a admina.
+- Skrypt CLI dla crona `scripts/crm-enqueue-autosync.ts` (`npm run crm:enqueue`), z opcjonalnym argumentem `integrationId` do testu na jednej integracji.
+- Instrukcja operacyjna: [docs/CRM_AUTOSYNC.md](docs/CRM_AUTOSYNC.md).
+- Przetestowane: typecheck OK; dry-run przy fladze OFF = no-op (0 jobów), co potwierdza odczyt nowej kolumny z bazy.
+
+**Rollout produkcyjny - do wykonania przez Daniela (DoD #7, #8):**
+- [ ] Faza 1: włączyć flagę, odpalić `npm run crm:enqueue -- <integrationId>` dla JEDNEJ integracji, sprawdzić przebieg workera (brak duplikatów, brak masowej dezaktywacji).
+- [ ] Faza 2: dodać wpis crontab 2x dziennie (06:00, 18:00) na VPS, obserwować pierwsze automatyczne przebiegi na wszystkich aktywnych.
+- [ ] Po potwierdzeniu na produkcji: oznaczyć Sprint 2 jako ukończony, ustawić Sprint 3 jako następny.
+- Rollback w każdej chwili: `crmAutoSyncEnabled = false` (bez deployu).
 
 **Cel:** automatyczne uruchamianie synchronizacji wszystkich aktywnych integracji,
 bez ręcznej obsługi Daniela.
@@ -159,6 +174,13 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Gdzie:** `src/lib/crm/deleteCrmIntegration.ts` + `app/api/admin/crm/integrations/[id]/route.ts`, `app/api/crm/integrations/[id]/route.ts`, `src/components/AdminCrmIntegrationEditor.tsx`.
 - **Co:** usunięcie integracji robi soft delete (`ZAKONCZONE`) powiązanych ofert zamiast zostawiać je aktywne.
 - **Status:** zacommitowane (`a07bc5e`), drzewo robocze czyste. Pozycja informacyjna, nie blokuje sprintów.
+
+### P-D: `CrmFeedFormat.ESTICRM_XML` jest w schemacie, ale nie ma jej w bazie (dryf)
+- **Gdzie:** `prisma/schema.prisma` (enum `CrmFeedFormat`, wartość `ESTICRM_XML` dodana w commicie `9f73338`) bez odpowiadającej migracji.
+- **Co:** żywa baza Neon nie zawiera wartości `ESTICRM_XML` w enumie `CrmFeedFormat`. Wykryte przez `prisma migrate diff` podczas Sprintu 2.
+- **Skutek:** routing EstiCRM działa dziś wyłącznie dzięki `provider === "ESTI_CRM"` (ta wartość JEST w bazie). Gałąź `feedFormat === "ESTICRM_XML"` w `run-crm-job.ts` w praktyce nigdy nie zadziała, a próba zapisania integracji z `feedFormat = ESTICRM_XML` zostanie odrzucona przez Postgres (nieprawidłowa wartość enuma).
+- **Wpływ biznesowy:** dziś utajony, EstiCRM działa przez provider. Ryzyko ujawnia się, gdy ktoś zechce ustawić `feedFormat = ESTICRM_XML` (nowa konfiguracja / panel) - wtedy zapis padnie.
+- **Priorytet:** średni. Naprawa to addytywna, bezpieczna migracja `ALTER TYPE "CrmFeedFormat" ADD VALUE 'ESTICRM_XML'`, ale świadomie poza zakresem Sprintu 2.
 
 ---
 

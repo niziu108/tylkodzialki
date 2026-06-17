@@ -230,6 +230,10 @@ model AppConfig {
   featuredSinglePriceGrossPln Int @default(1900)
   featuredPack3PriceGrossPln  Int @default(3900)
 
+  // CRM Sprint 2: globalny wyłącznik automatycznej synchronizacji.
+  // OFF = bezpiecznie (nic się nie kolejkuje samo); włączenie/wyłączenie bez deployu.
+  crmAutoSyncEnabled Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

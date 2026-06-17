@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "crm:sync": "tsx scripts/crm-worker.ts"
+    "crm:sync": "tsx scripts/crm-worker.ts",
+    "crm:enqueue": "tsx scripts/crm-enqueue-autosync.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
