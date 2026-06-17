@@ -57,7 +57,7 @@ export type GeoOffer = {
   parcelText?: string | null;
 };
 
-type SearchArea = {
+export type SearchArea = {
   type: 'city' | 'voivodeship';
   key: string;
   label: string;
@@ -65,7 +65,7 @@ type SearchArea = {
   bbox: BBox;
 };
 
-const VOIVODESHIPS: SearchArea[] = [
+export const VOIVODESHIPS: SearchArea[] = [
   { type: 'voivodeship', key: 'dolnoslaskie', label: 'dolnośląskie', aliases: ['dolnoslask', 'dolnoslaskie'], bbox: { minLat: 50.05, maxLat: 51.85, minLng: 14.75, maxLng: 17.85 } },
   { type: 'voivodeship', key: 'kujawsko-pomorskie', label: 'kujawsko-pomorskie', aliases: ['kujawsko', 'kujawsko pomorsk', 'kujawsko-pomorsk', 'pomorskie kujaw'], bbox: { minLat: 52.25, maxLat: 53.85, minLng: 17.20, maxLng: 19.75 } },
   { type: 'voivodeship', key: 'lubelskie', label: 'lubelskie', aliases: ['lubelsk', 'lubelskie'], bbox: { minLat: 50.15, maxLat: 52.35, minLng: 21.60, maxLng: 24.20 } },
@@ -125,6 +125,13 @@ export function detectCity(query: string) {
   return CITY_AREAS.find((area) =>
     area.aliases.some((alias) => normalized.includes(normalizeText(alias)))
   ) ?? null;
+}
+
+// Hub SEO (P13): odczyt bboxa województwa po kluczu (slug) — ta sama prostokątna definicja,
+// której używa wyszukiwarka (voivodeshipAreaMatch), więc liczba ofert na stronie województwa
+// pokrywa się 1:1 z listą.
+export function getVoivodeshipByKey(key: string): SearchArea | null {
+  return VOIVODESHIPS.find((area) => area.key === key) ?? null;
 }
 
 function kmToLatDegrees(km: number) {
