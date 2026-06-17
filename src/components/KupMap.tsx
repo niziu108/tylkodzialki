@@ -1,8 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { MarkerClusterer, type Renderer } from '@googlemaps/markerclusterer';
 import { loadGoogleMaps } from '@/lib/googleMaps';
+import MapOfferCard from './MapOfferCard';
 
 /* ────────────────────────────────────────────────────────────────────────────
  *  Mapa wyników na /kup (P11). Dark theme spójny z portalem (#131313 / zieleń
@@ -46,15 +49,6 @@ type Props = {
 
 const POLAND_CENTER = { lat: 52.07, lng: 19.48 };
 
-const PRZEZN_LABEL: Record<string, string> = {
-  INWESTYCYJNA: 'Inwestycyjna',
-  BUDOWLANA: 'Budowlana',
-  ROLNA: 'Rolna',
-  LESNA: 'Leśna',
-  REKREACYJNA: 'Rekreacyjna',
-  SIEDLISKOWA: 'Siedliskowa',
-};
-
 function zoomForRadius(km?: number) {
   if (!km) return 12;
   if (km <= 5) return 12;
@@ -72,14 +66,6 @@ function formatShortPLN(value: number) {
   }
   if (value >= 1000) return `${Math.round(value / 1000)} tys.`;
   return `${value} zł`;
-}
-
-function formatPLN(value: number) {
-  return new Intl.NumberFormat('pl-PL', {
-    style: 'currency',
-    currency: 'PLN',
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 function formatIntPL(value: number) {
@@ -148,41 +134,8 @@ function clusterRenderer(): Renderer {
   };
 }
 
-function popupHtml(p: MapPoint) {
-  const zlM2 = p.area > 0 ? Math.round(p.cena / p.area) : 0;
-  const przezn = (p.przezn ?? []).map((x) => PRZEZN_LABEL[x] ?? x).filter(Boolean).join(', ');
-  const meta = [przezn, `${formatIntPL(p.area)} m²`].filter(Boolean).join(' · ');
-  const loc = (p.loc ?? '').trim();
-
-  const thumb = p.thumb
-    ? `<div style="position:relative;height:130px;background:#0d0d0d">` +
-      `<img src="${p.thumb}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"/>` +
-      (p.featured
-        ? `<span style="position:absolute;left:10px;top:10px;background:rgba(122,163,51,0.92);color:#0c0c0c;font-size:9px;font-weight:700;letter-spacing:.14em;padding:3px 8px;border-radius:999px">WYRÓŻNIONE</span>`
-        : '') +
-      `</div>`
-    : `<div style="height:84px;background:#0d0d0d;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.4);font-size:12px">Brak zdjęć</div>`;
-
-  return (
-    `<a href="/dzialka/${p.id}" style="display:block;text-decoration:none;color:#fff;width:236px">` +
-    thumb +
-    `<div style="padding:11px 13px 13px">` +
-    `<div style="display:flex;align-items:baseline;gap:7px;flex-wrap:wrap">` +
-    `<span style="font-size:18px;font-weight:700;color:#fff;line-height:1">${formatPLN(p.cena)}</span>` +
-    (zlM2 ? `<span style="font-size:11px;color:rgba(255,255,255,0.55)">${formatIntPL(zlM2)} zł/m²</span>` : '') +
-    `</div>` +
-    (meta ? `<div style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.82)">${meta}</div>` : '') +
-    (loc ? `<div style="margin-top:3px;font-size:12px;color:rgba(255,255,255,0.55)">${loc}</div>` : '') +
-    (p.approx
-      ? `<div style="margin-top:7px"><span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#9fd14b;background:rgba(122,163,51,0.12);border:1px solid rgba(122,163,51,0.30);padding:3px 9px;border-radius:999px">◎ Lokalizacja przybliżona</span></div>`
-      : '') +
-    `<div style="margin-top:10px;display:inline-block;background:#7aa333;color:#0c0c0c;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;border-radius:10px">Zobacz ofertę</div>` +
-    `</div>` +
-    `</a>`
-  );
-}
-
 // Ciemny styl dymka InfoWindow (Google domyślnie renderuje białą bańkę).
+// Dymek daje samo tło/zaokrąglenie — treść (MapOfferCard) jest przezroczysta.
 const INFOWINDOW_CSS = `
 .gm-style .gm-style-iw-c{background:#131313!important;border:1px solid rgba(255,255,255,0.12)!important;border-radius:16px!important;padding:0!important;box-shadow:0 18px 60px rgba(0,0,0,0.6)!important;overflow:hidden!important}
 .gm-style .gm-style-iw-d{overflow:hidden!important;padding:0!important}
@@ -219,6 +172,8 @@ export default function KupMap({
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const labelsRef = useRef<Map<string, string>>(new Map());
   const circleRef = useRef<google.maps.Circle | null>(null);
+  const popupContainerRef = useRef<HTMLDivElement | null>(null);
+  const popupRootRef = useRef<Root | null>(null);
 
   const styledActiveRef = useRef<string | null>(null);
   const needsFitRef = useRef(false);
@@ -279,7 +234,7 @@ export default function KupMap({
         });
         mapRef.current = map;
 
-        infoRef.current = new google.maps.InfoWindow({ maxWidth: 240 });
+        infoRef.current = new google.maps.InfoWindow({ maxWidth: 320 });
 
         // Okrąg „obszaru" pokazywany po kliknięciu pinu z przybliżoną lokalizacją.
         circleRef.current = new google.maps.Circle({
@@ -426,7 +381,13 @@ export default function KupMap({
       marker.set('td_featured', featured);
 
       marker.addListener('click', () => {
-        infoRef.current?.setContent(popupHtml(p));
+        if (!popupContainerRef.current) {
+          popupContainerRef.current = document.createElement('div');
+          popupRootRef.current = createRoot(popupContainerRef.current);
+        }
+        // flushSync → treść jest w DOM zanim InfoWindow zmierzy rozmiar (key=id resetuje karuzelę/fetch).
+        flushSync(() => popupRootRef.current!.render(<MapOfferCard key={p.id} point={p} />));
+        infoRef.current?.setContent(popupContainerRef.current);
         infoRef.current?.open({ map: mapRef.current!, anchor: marker });
 
         const c = circleRef.current;
@@ -462,6 +423,15 @@ export default function KupMap({
     setActive(activeId ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, ready]);
+
+  // Sprzątanie reactowego korzenia popupu przy odmontowaniu mapy (deferred, by nie kolidować z renderem).
+  useEffect(() => {
+    return () => {
+      const root = popupRootRef.current;
+      popupRootRef.current = null;
+      if (root) setTimeout(() => root.unmount(), 0);
+    };
+  }, []);
 
   const handleSearchArea = () => {
     const map = mapRef.current;
