@@ -16,6 +16,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/auth-options';
 import { buildSearchContext, getSearchMatchInfo } from '@/lib/dzialkiSearch';
+import { listDzialkiPaginated, PAGE_INCLUDE, type ListSort } from '@/lib/dzialkiQuery';
 
 const MAX_PHOTOS = 7;
 
@@ -70,10 +71,6 @@ async function getAppConfig() {
   }
 
   return config;
-}
-
-function hasPhotos(d: any) {
-  return Array.isArray(d.zdjecia) && d.zdjecia.length > 0;
 }
 
 function isFeaturedActive(d: any) {
@@ -275,37 +272,70 @@ export async function GET(req: Request) {
     });
   }
 
-  const allMatching = await prisma.dzialka.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      zdjecia: {
-        orderBy: { kolejnosc: 'asc' },
-      },
-    },
-  });
-
   const searchContext = buildSearchContext(searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
   const needsMatchInfo = hasRadiusSearch || Boolean(searchText);
 
-  // P3: „match info" (dystans/dopasowanie) liczone RAZ na ofertę — jeden przebieg O(n).
-  // Wcześniej leciało wielokrotnie w pętli sortowania (≈2·n·log n razy na żądanie).
-  const withInfo = allMatching.map((item) => ({
+  const buildMeta = (total: number) => {
+    const currentPage = Math.floor(skip / take) + 1;
+    const totalPages = Math.max(1, Math.ceil(total / take));
+    return { page: currentPage, skip, take, totalPages, hasPrev: skip > 0, hasNext: skip + take < total };
+  };
+
+  // ŚCIEŻKA BEZ WYSZUKIWANIA (przeglądanie /kup: same filtry + sort, też bbox „w tym obszarze").
+  // Dominujący ruch. Całość w bazie — filtr + sort + paginacja + count (P12) — do Node ląduje
+  // tylko jedna strona, niezależnie od liczby ofert. Kolejność 1:1 z dawnym sortem JS, patrz
+  // src/lib/dzialkiQuery.ts (wyróżnione-aktywne pierwsze, dla „newest" ze zdjęciami przed bez).
+  if (!needsMatchInfo) {
+    const { items, total } = await listDzialkiPaginated({
+      andFilters,
+      sort: sort as ListSort,
+      skip,
+      take,
+    });
+
+    return NextResponse.json({ ok: true, total, count: total, items, meta: buildMeta(total) });
+  }
+
+  // ŚCIEŻKA Z WYSZUKIWANIEM (tekst/promień): dopasowanie geo/tekst jest w JS (wspólna logika
+  // src/lib/dzialkiSearch.ts — jedno źródło prawdy z alertami), więc kandydatów trzeba przejrzeć
+  // w Node. ALE pobieramy tylko LEKKIE pola (bez zdjęć), rankujemy, a pełne dane + zdjęcia
+  // dociągamy WYŁĄCZNIE dla zwróconej strony (≤ take). Koniec pobierania wszystkich zdjęć na raz.
+  const lightRows = await prisma.dzialka.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      lat: true,
+      lng: true,
+      locationLabel: true,
+      locationFull: true,
+      parcelText: true,
+      createdAt: true,
+      cenaPln: true,
+      powierzchniaM2: true,
+      isFeatured: true,
+      featuredUntil: true,
+      _count: { select: { zdjecia: true } },
+    },
+  });
+
+  // P3: „match info" liczone RAZ na ofertę (jeden przebieg O(n)), wyróżnione/zdjęcia policzone tu raz.
+  const withInfo = lightRows.map((item) => ({
     item,
-    info: needsMatchInfo ? getSearchMatchInfo(item, searchContext) : null,
+    info: getSearchMatchInfo(item, searchContext),
+    featured: isFeaturedActive(item),
+    photos: item._count.zdjecia > 0,
   }));
 
-  const ranked = needsMatchInfo ? withInfo.filter((x) => x.info!.anyMatch) : withInfo;
+  const ranked = withInfo.filter((x) => x.info.anyMatch);
 
   ranked.sort((a, b) => {
     const aInfo = a.info;
     const bInfo = b.info;
 
-    if (aInfo && bInfo && aInfo.group !== bInfo.group) return aInfo.group - bInfo.group;
+    if (aInfo.group !== bInfo.group) return aInfo.group - bInfo.group;
 
-    const aFeatured = isFeaturedActive(a.item);
-    const bFeatured = isFeaturedActive(b.item);
-    if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
 
     switch (sort) {
       case 'oldest':
@@ -319,13 +349,9 @@ export async function GET(req: Request) {
       case 'area_desc':
         return b.item.powierzchniaM2 - a.item.powierzchniaM2;
       default: {
-        const aPhotos = hasPhotos(a.item);
-        const bPhotos = hasPhotos(b.item);
-        if (aPhotos !== bPhotos) return aPhotos ? -1 : 1;
+        if (a.photos !== b.photos) return a.photos ? -1 : 1;
         if (
           hasRadiusSearch &&
-          aInfo &&
-          bInfo &&
           aInfo.radiusDistance !== null &&
           bInfo.radiusDistance !== null
         ) {
@@ -337,25 +363,16 @@ export async function GET(req: Request) {
   });
 
   const total = ranked.length;
-  const items = ranked.slice(skip, skip + take).map((x) => x.item);
+  const pageIds = ranked.slice(skip, skip + take).map((x) => x.item.id);
 
-  const currentPage = Math.floor(skip / take) + 1;
-  const totalPages = Math.max(1, Math.ceil(total / take));
+  // Dociągamy pełne rekordy + zdjęcia tylko dla ID z bieżącej strony, w ustalonej kolejności.
+  const hydrated = pageIds.length
+    ? await prisma.dzialka.findMany({ where: { id: { in: pageIds } }, include: PAGE_INCLUDE })
+    : [];
+  const byId = new Map(hydrated.map((d) => [d.id, d]));
+  const items = pageIds.map((id) => byId.get(id)).filter(Boolean);
 
-  return NextResponse.json({
-    ok: true,
-    total,
-    count: total,
-    items,
-    meta: {
-      page: currentPage,
-      skip,
-      take,
-      totalPages,
-      hasPrev: skip > 0,
-      hasNext: skip + take < total,
-    },
-  });
+  return NextResponse.json({ ok: true, total, count: total, items, meta: buildMeta(total) });
 }
 
 export async function POST(req: Request) {

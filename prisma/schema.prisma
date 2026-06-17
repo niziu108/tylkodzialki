@@ -147,6 +147,11 @@ model Dzialka {
   @@index([featuredUntil])
   @@index([sourceType])
   @@index([crmLastSyncedAt])
+  // P12 (skalowanie): złożone indeksy pod dominujące zapytania listy /kup — filtr status=AKTYWNE
+  // + sort/paginacja po dacie/cenie/powierzchni. Wspierają count i ORDER BY ... LIMIT przy 50k+.
+  @@index([status, createdAt])
+  @@index([status, cenaPln])
+  @@index([status, powierzchniaM2])
 }
 
 model Zdjecie {
