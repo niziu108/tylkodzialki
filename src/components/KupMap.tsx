@@ -1,8 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
-import { flushSync } from 'react-dom';
 import { MarkerClusterer, type Renderer } from '@googlemaps/markerclusterer';
 import { loadGoogleMaps } from '@/lib/googleMaps';
 import MapOfferCard from './MapOfferCard';
@@ -134,25 +132,6 @@ function clusterRenderer(): Renderer {
   };
 }
 
-// Ciemny styl dymka InfoWindow (Google domyślnie renderuje białą bańkę).
-// Dymek daje samo tło/zaokrąglenie — treść (MapOfferCard) jest przezroczysta.
-const INFOWINDOW_CSS = `
-.gm-style .gm-style-iw-c{background:#131313!important;border:1px solid rgba(255,255,255,0.12)!important;border-radius:16px!important;padding:0!important;box-shadow:0 18px 60px rgba(0,0,0,0.6)!important;overflow:hidden!important}
-.gm-style .gm-style-iw-d{overflow:hidden!important;padding:0!important}
-.gm-style .gm-style-iw-tc::after{background:#131313!important}
-.gm-style .gm-style-iw-c button.gm-ui-hover-effect{top:2px!important;right:2px!important}
-.gm-style .gm-style-iw-c button.gm-ui-hover-effect>span{background-color:rgba(255,255,255,0.85)!important}
-`;
-
-function ensureInfoWindowCss() {
-  if (typeof document === 'undefined') return;
-  if (document.getElementById('td-infowindow-css')) return;
-  const style = document.createElement('style');
-  style.id = 'td-infowindow-css';
-  style.textContent = INFOWINDOW_CSS;
-  document.head.appendChild(style);
-}
-
 export default function KupMap({
   points,
   loading = false,
@@ -167,13 +146,10 @@ export default function KupMap({
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const clustererRef = useRef<MarkerClusterer | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const labelsRef = useRef<Map<string, string>>(new Map());
   const circleRef = useRef<google.maps.Circle | null>(null);
-  const popupContainerRef = useRef<HTMLDivElement | null>(null);
-  const popupRootRef = useRef<Root | null>(null);
 
   const styledActiveRef = useRef<string | null>(null);
   const needsFitRef = useRef(false);
@@ -183,6 +159,7 @@ export default function KupMap({
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [selectedPoint, setSelectedPoint] = useState<MapPoint | null>(null);
 
   const setActive = useCallback(
     (id: string | null) => {
@@ -212,7 +189,6 @@ export default function KupMap({
   // Init mapy — raz, po załadowaniu Google Maps.
   useEffect(() => {
     let cancelled = false;
-    ensureInfoWindowCss();
 
     loadGoogleMaps()
       .then(() => {
@@ -234,8 +210,6 @@ export default function KupMap({
         });
         mapRef.current = map;
 
-        infoRef.current = new google.maps.InfoWindow({ maxWidth: 320 });
-
         // Okrąg „obszaru" pokazywany po kliknięciu pinu z przybliżoną lokalizacją.
         circleRef.current = new google.maps.Circle({
           map,
@@ -256,14 +230,8 @@ export default function KupMap({
           renderer: clusterRenderer(),
         });
 
-        infoRef.current.addListener('closeclick', () => {
-          circleRef.current?.setVisible(false);
-          onActiveChange?.(null);
-          setActive(null);
-        });
-
         map.addListener('click', () => {
-          infoRef.current?.close();
+          setSelectedPoint(null);
           circleRef.current?.setVisible(false);
           onActiveChange?.(null);
           setActive(null);
@@ -352,6 +320,7 @@ export default function KupMap({
     lastFocusRef.current = focusKey;
     needsFitRef.current = true;
     setDirty(false);
+    setSelectedPoint(null);
   }, [focusKey]);
 
   // Przebudowa pinów przy zmianie danych.
@@ -381,14 +350,8 @@ export default function KupMap({
       marker.set('td_featured', featured);
 
       marker.addListener('click', () => {
-        if (!popupContainerRef.current) {
-          popupContainerRef.current = document.createElement('div');
-          popupRootRef.current = createRoot(popupContainerRef.current);
-        }
-        // flushSync → treść jest w DOM zanim InfoWindow zmierzy rozmiar (key=id resetuje karuzelę/fetch).
-        flushSync(() => popupRootRef.current!.render(<MapOfferCard key={p.id} point={p} />));
-        infoRef.current?.setContent(popupContainerRef.current);
-        infoRef.current?.open({ map: mapRef.current!, anchor: marker });
+        setSelectedPoint(p);
+        if (p.lat != null && p.lng != null) mapRef.current?.panTo({ lat: p.lat, lng: p.lng });
 
         const c = circleRef.current;
         if (c) {
@@ -424,15 +387,6 @@ export default function KupMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, ready]);
 
-  // Sprzątanie reactowego korzenia popupu przy odmontowaniu mapy (deferred, by nie kolidować z renderem).
-  useEffect(() => {
-    return () => {
-      const root = popupRootRef.current;
-      popupRootRef.current = null;
-      if (root) setTimeout(() => root.unmount(), 0);
-    };
-  }, []);
-
   const handleSearchArea = () => {
     const map = mapRef.current;
     if (!map || !onSearchArea) return;
@@ -462,10 +416,27 @@ export default function KupMap({
         </div>
       )}
 
-      {/* Licznik pinów */}
-      {ready && !error && (
+      {/* Licznik pinów (chowany, gdy otwarta karta) */}
+      {ready && !error && !selectedPoint && (
         <div className="pointer-events-none absolute bottom-3 left-3 z-[5] rounded-full bg-[#131313]/90 px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-white/70 backdrop-blur">
           {loading ? 'Ładowanie…' : `${formatIntPL(points.length)} na mapie`}
+        </div>
+      )}
+
+      {/* Karta oferty po kliknięciu pinu — własny panel u dołu (nie dymek Google). */}
+      {selectedPoint && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[8] flex justify-center px-3 pb-3">
+          <div className="pointer-events-auto w-full max-w-[360px]">
+            <MapOfferCard
+              point={selectedPoint}
+              onClose={() => {
+                setSelectedPoint(null);
+                circleRef.current?.setVisible(false);
+                onActiveChange?.(null);
+                setActive(null);
+              }}
+            />
+          </div>
         </div>
       )}
 
