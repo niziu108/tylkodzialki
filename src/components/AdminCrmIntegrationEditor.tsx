@@ -306,7 +306,7 @@ export default function AdminCrmIntegrationEditor({
     if (!currentIntegration?.id) return;
 
     const confirmed = window.confirm(
-      "Czy na pewno chcesz usunąć integrację CRM? Oferty pozostaną w serwisie, ale integracja, logi i powiązania CRM zostaną usunięte."
+      "Czy na pewno chcesz usunąć integrację CRM? Spowoduje to usunięcie integracji oraz wyłączenie wszystkich ofert powiązanych z tym eksportem CRM (znikną z wyszukiwarki). Oferty innych biur nie zostaną ruszone."
     );
 
     if (!confirmed) return;

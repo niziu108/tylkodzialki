@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
+import { deleteCrmIntegrationAndDeactivateOffers } from "@/lib/crm/deleteCrmIntegration";
 
 type RouteContext = {
   params: Promise<{
@@ -206,15 +207,17 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
       );
     }
 
-    await prisma.crmIntegration.delete({
-      where: {
-        id: integration.id,
-      },
-    });
+    const { deactivatedOffers } = await deleteCrmIntegrationAndDeactivateOffers(
+      integration.id
+    );
 
     return NextResponse.json({
       success: true,
-      message: "Integracja CRM została usunięta.",
+      deactivatedOffers,
+      message:
+        deactivatedOffers > 0
+          ? `Integracja CRM została usunięta. Wyłączono ${deactivatedOffers} ofert powiązanych z tym eksportem.`
+          : "Integracja CRM została usunięta.",
     });
   } catch (error) {
     console.error("DELETE /api/admin/crm/integrations/[id] error:", error);
