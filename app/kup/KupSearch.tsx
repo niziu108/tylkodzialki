@@ -297,7 +297,7 @@ function loadStoredState(): StoredState | null {
   }
 }
 
-function readStateFromUrl(): StoredState {
+function readStateFromUrl(useStorageFallback = true): StoredState {
   if (typeof window === 'undefined') {
     return { filters: EMPTY_APPLIED, page: 1 };
   }
@@ -305,7 +305,10 @@ function readStateFromUrl(): StoredState {
   const sp = new URLSearchParams(window.location.search);
   const hasQuery = Array.from(sp.keys()).length > 0;
 
-  if (!hasQuery) {
+  // Brak parametrów = wejście na „czyste" /kup. Na starcie przywracamy ostatnią
+  // sesję ze sessionStorage, ale przy cofnięciu (popstate) chcemy dokładnie tego,
+  // co jest w adresie — wtedy fallback jest wyłączony.
+  if (!hasQuery && useStorageFallback) {
     const stored = loadStoredState();
     if (stored) return stored;
   }
@@ -717,6 +720,29 @@ export default function KupSearch({
     } catch {}
   }
 
+  // Ustawia pola wyszukiwarki na podstawie stanu z adresu URL — używane przy montażu
+  // oraz po cofnij/dalej w przeglądarce, żeby filtry i pager zgadzały się z adresem.
+  function applyStateToInputs(f: AppliedFilters) {
+    setLocText(f.locText);
+    setRadiusKm(f.radiusKm);
+    setCenter(f.center);
+    setPriceMin(formatPLThousands(f.priceMin));
+    setPriceMax(formatPLThousands(f.priceMax));
+    setAreaMin(formatPLThousands(f.areaMin));
+    setAreaMax(formatPLThousands(f.areaMax));
+    setPrzezn(f.przezn);
+    setMedia(f.media);
+    setApplied(f);
+    setExpanded(
+      f.przezn.length > 0 ||
+        f.media.length > 0 ||
+        !!f.priceMin ||
+        !!f.priceMax ||
+        !!f.areaMin ||
+        !!f.areaMax
+    );
+  }
+
   function scrollToSearchTop() {
     const el = searchTopRef.current;
     if (!el) return;
@@ -812,15 +838,26 @@ export default function KupSearch({
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     async function initMapsAndSearch() {
+      // Stan startowy bierzemy ze ŚWIEŻEGO adresu URL (po stronie klienta), a nie
+      // z propsów serwera. Po cofnięciu z oferty Next przywraca zcache'owany render
+      // strony (zwykle 1), ale w pasku adresu jest właściwy numer strony i filtry.
+      const startState = navigationMode ? initial : readStateFromUrl();
+      const startFilters = startState.filters;
+      const startPage = startState.page;
+
+      if (!navigationMode) {
+        applyStateToInputs(startFilters);
+      }
+
       // Case B: locText in URL but no coords — needs geocoding before first search
       const needsGeocode =
         !navigationMode &&
-        initial.filters.locText.trim() !== '' &&
-        initial.filters.center === null;
+        startFilters.locText.trim() !== '' &&
+        startFilters.center === null;
 
       // Cases A (coords in URL) and C (no location): search immediately, no Maps needed yet
       if (!navigationMode && !needsGeocode && !cancelled) {
-        fetchDataWith(initial.filters, initial.page, true);
+        fetchDataWith(startFilters, startPage, true);
       }
 
       // Load Maps — needed for autocomplete (all modes) and Case B geocoding
@@ -860,19 +897,19 @@ export default function KupSearch({
 
       // Case B: geocode text from URL, then search
       if (needsGeocode && !cancelled) {
-        const geocoded = await geocodeTypedLocation(initial.filters.locText);
+        const geocoded = await geocodeTypedLocation(startFilters.locText);
 
         if (!cancelled) {
           const geoFilters = geocoded
-            ? { ...initial.filters, center: geocoded }
-            : initial.filters;
+            ? { ...startFilters, center: geocoded }
+            : startFilters;
 
           if (geocoded) {
             setCenter(geocoded);
             setApplied(geoFilters);
           }
 
-          fetchDataWith(geoFilters, initial.page, true);
+          fetchDataWith(geoFilters, startPage, true);
         }
       }
     }
@@ -885,6 +922,35 @@ export default function KupSearch({
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Cofnij/Dalej w przeglądarce: zsynchronizuj wyszukiwarkę i wyniki z adresem URL.
+  // Bez tego numer strony (i filtry) „gubią się" przy strzałkach przeglądarki —
+  // np. cofnięcie ze strony 3 wracało zawsze na stronę 1.
+  useEffect(() => {
+    if (navigationMode) return;
+
+    function onPopState() {
+      const s = readStateFromUrl(false);
+      applyStateToInputs(s.filters);
+
+      const needsGeo =
+        s.filters.locText.trim() !== '' && s.filters.center === null;
+
+      if (needsGeo) {
+        geocodeTypedLocation(s.filters.locText).then((c) => {
+          const f = c ? { ...s.filters, center: c } : s.filters;
+          if (c) setCenter(c);
+          fetchDataWith(f, s.page, true);
+        });
+      } else {
+        fetchDataWith(s.filters, s.page, true);
+      }
+    }
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigationMode]);
 
   useEffect(() => {
     if (loading) return;
