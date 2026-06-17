@@ -1,6 +1,6 @@
 # ROADMAP CRM V2
 
-> **Status na 2026-06-17:** Sprint 2 (Auto-sync, strategia C) - **implementacja gotowa i bezpiecznie wdrożona** (flaga `crmAutoSyncEnabled` domyślnie OFF, zero zmian zachowania na produkcji). Pozostaje **aktywacja produkcyjna** (flaga + cron na VPS, Faza 1/2). Po niej: Sprint 3.
+> **Status na 2026-06-17:** Sprint 2 (Auto-sync, strategia C) - **UKOŃCZONY i na produkcji**. Cron na VPS (06:00 i 18:00 UTC) kolejkuje import wszystkich aktywnych integracji przez istniejącą kolejkę + worker. Przetestowane na jednej integracji, potem pełny przebieg 50 integracji (same SUCCESS plus spodziewane „brak pliku" dla biur bez feedu). **Następny: Sprint 3 - Monitoring.**
 > Raport z audytu: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md) · Instrukcja auto-sync: [docs/CRM_AUTOSYNC.md](docs/CRM_AUTOSYNC.md)
 
 ## Jak prowadzimy sprinty
@@ -12,8 +12,8 @@ i wpisz w niej numer aktualnego sprintu.
 ## Status sprintów
 
 - [x] **Sprint 1 - Audyt obecnych integracji** (ukończony 2026-06-17, raport: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md))
-- [~] **Sprint 2 - Automatyczna synchronizacja CRM** (strategia C; implementacja + migracja gotowe i wdrożone z flagą OFF, pozostaje rollout produkcyjny: flaga + cron - patrz sekcja Sprint 2)
-- [ ] Sprint 3 - Monitoring synchronizacji (NASTĘPNY po rollout Sprintu 2)
+- [x] **Sprint 2 - Automatyczna synchronizacja CRM** (ukończony 2026-06-17, strategia C; cron na VPS 2x dziennie kolejkuje aktywne integracje przez kolejkę + worker)
+- [ ] **Sprint 3 - Monitoring synchronizacji** (NASTĘPNY)
 - [ ] Sprint 4 - Alerty awarii CRM
 - [ ] Sprint 5 - Ujednolicenie architektury CRM
 - [ ] Sprint 6 - IMO CRM (analiza)
@@ -72,27 +72,26 @@ Najważniejsze ustalenia:
 
 ---
 
-## CRM SPRINT 2 - Automatyczna synchronizacja CRM [IMPLEMENTACJA GOTOWA, ROLLOUT PENDING]
+## CRM SPRINT 2 - Automatyczna synchronizacja CRM [UKOŃCZONY 2026-06-17]
 
-Najważniejszy sprint. Obecnie synchronizacja wykonywana jest ręcznie.
+Najważniejszy sprint. Wcześniej synchronizacja była w 100% ręczna. Teraz działa automatycznie.
 
-### Stan realizacji (2026-06-17)
+### Stan realizacji (UKOŃCZONY 2026-06-17, na produkcji)
 
-**Zrobione i wdrożone (bezpiecznie, flaga OFF):**
+**Co powstało:**
 - Flaga `AppConfig.crmAutoSyncEnabled` (domyślnie `false`) - migracja `20260617130000_add_crm_autosync_flag` zastosowana na żywej bazie.
 - Funkcja `enqueueAutoSyncJobs` (`src/lib/crm/enqueueAutoSyncJobs.ts`): kolejkuje PENDING `CrmImportJob` dla aktywnych integracji, z guardem R2 (pomija PENDING/RUNNING). Nie dotyka silników ani route'a admina.
 - Skrypt CLI dla crona `scripts/crm-enqueue-autosync.ts` (`npm run crm:enqueue`), z opcjonalnym argumentem `integrationId` do testu na jednej integracji.
+- Wersjonowany kill-switch `scripts/crm-autosync-flag.ts` (`npm run crm:autosync:on|off|status`).
 - Instrukcja operacyjna: [docs/CRM_AUTOSYNC.md](docs/CRM_AUTOSYNC.md).
-- Przetestowane: typecheck OK; dry-run przy fladze OFF = no-op (0 jobów), co potwierdza odczyt nowej kolumny z bazy.
 
-**Rollout produkcyjny - do wykonania przez Daniela (DoD #7, #8):**
-- [ ] Faza 1: włączyć flagę, odpalić `npm run crm:enqueue -- <integrationId>` dla JEDNEJ integracji, sprawdzić przebieg workera (brak duplikatów, brak masowej dezaktywacji).
-- [ ] Faza 2: dodać wpis crontab 2x dziennie (06:00, 18:00) na VPS, obserwować pierwsze automatyczne przebiegi na wszystkich aktywnych.
-- [ ] Po potwierdzeniu na produkcji: oznaczyć Sprint 2 jako ukończony, ustawić Sprint 3 jako następny.
-- Rollback w każdej chwili: `crmAutoSyncEnabled = false` (bez deployu).
+**Rollout produkcyjny (wykonany):**
+- Faza 1: test na jednej integracji (EstiCRM, 9 ofert) - job `SUCCESS`, `upd 9 / new 0` (idempotencja), `deact 0`, `err 0`. Guard R2 potwierdzony (drugie odpalenie = `pominięto: 1`).
+- Faza 2: pełny przebieg 50 integracji - same `SUCCESS` plus jeden spodziewany `ERROR` „brak pliku" (biuro bez wgranego feedu).
+- Cron na VPS (root): `0 6,18 * * *` (06:00 i 18:00 UTC), kolejkuje przez `npm run crm:enqueue`, worker przetwarza.
+- Rollback w każdej chwili bez deployu: `npm run crm:autosync:off`.
 
-**Cel:** automatyczne uruchamianie synchronizacji wszystkich aktywnych integracji,
-bez ręcznej obsługi Daniela.
+**Cel osiągnięty:** synchronizacja wszystkich aktywnych integracji uruchamia się sama, bez ręcznej obsługi Daniela.
 
 **DECYZJA (wybrana strategia): C - hybryda.**
 - Harmonogram bazowy (np. 2x dziennie) automatycznie kolejkuje import wszystkich aktywnych integracji.
@@ -181,6 +180,13 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Skutek:** routing EstiCRM działa dziś wyłącznie dzięki `provider === "ESTI_CRM"` (ta wartość JEST w bazie). Gałąź `feedFormat === "ESTICRM_XML"` w `run-crm-job.ts` w praktyce nigdy nie zadziała, a próba zapisania integracji z `feedFormat = ESTICRM_XML` zostanie odrzucona przez Postgres (nieprawidłowa wartość enuma).
 - **Wpływ biznesowy:** dziś utajony, EstiCRM działa przez provider. Ryzyko ujawnia się, gdy ktoś zechce ustawić `feedFormat = ESTICRM_XML` (nowa konfiguracja / panel) - wtedy zapis padnie.
 - **Priorytet:** średni. Naprawa to addytywna, bezpieczna migracja `ALTER TYPE "CrmFeedFormat" ADD VALUE 'ESTICRM_XML'`, ale świadomie poza zakresem Sprintu 2.
+
+### P-E: Historyczny błąd `prisma.crmProcessedFile.upsert()` w workerze (Galactica)
+- **Gdzie:** worker / silnik domypl-sync, zapis `CrmProcessedFile` (ślad przetworzonego pliku feedu).
+- **Co:** w logach `CrmImportJob` widoczne błędy `Invalid prisma.crmProcessedFile.upsert() invocation` z 2 czerwca 2026 (kilka jobów Galactica).
+- **Skutek/Status:** pełny przebieg 50 integracji w Sprincie 2 (17 czerwca) NIE odtworzył tego błędu, więc albo już naprawiony jednym z 63 commitów, albo zależny od konkretnego pliku/feedu. Do weryfikacji, nie blokuje.
+- **Wpływ biznesowy:** potencjalnie pojedynczy import Galactica mógł się nie zapisać; dziś nieobserwowany.
+- **Priorytet:** niski. Zweryfikować przy Sprincie 3 (monitoring) - tam i tak będziemy patrzeć na błędy importu.
 
 ---
 

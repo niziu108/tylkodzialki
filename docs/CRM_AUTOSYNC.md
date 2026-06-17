@@ -1,5 +1,7 @@
 # Auto-sync CRM (Sprint 2, strategia C)
 
+> **Status: na produkcji od 2026-06-17.** Cron na VPS (root) `0 6,18 * * *` (06:00 i 18:00 UTC).
+
 Automatyczna synchronizacja kolejkuje import wszystkich aktywnych integracji CRM
 o stałych godzinach, bez ręcznej obsługi. Ciężką pracę wykonuje istniejący worker na VPS.
 
@@ -20,12 +22,16 @@ Nie dotyka silników importu ani bezpiecznika masowej dezaktywacji.
 
 ## Wyłącznik (bez deployu)
 
-Sterowane flagą `AppConfig.crmAutoSyncEnabled` (domyślnie `false`).
+Sterowane flagą `AppConfig.crmAutoSyncEnabled` (domyślnie `false`). Na VPS, w katalogu projektu:
 
-- **Włącz:** ustaw `crmAutoSyncEnabled = true` w rekordzie `AppConfig` (jeden wiersz).
-- **Wyłącz / rollback:** ustaw `crmAutoSyncEnabled = false`. Cron może dalej chodzić, skrypt po prostu nic nie zrobi.
+```bash
+npm run crm:autosync:off     # STOP: kolejka przestaje rosnąć (rollback bez deployu)
+npm run crm:autosync:on      # włącz auto-sync
+npm run crm:autosync:status  # sprawdź bieżący stan flagi
+```
 
-Dopóki flaga jest `false`, `npm run crm:enqueue` jest no-opem (loguje „Auto-sync wyłączony").
+Cron może dalej chodzić, przy fladze `off` skrypt `crm:enqueue` jest no-opem (loguje „Auto-sync wyłączony").
+Joby już zakolejkowane worker dokończy (to bezpieczne importy); flaga blokuje tylko tworzenie nowych.
 
 ## Test na jednej integracji (faza 1 rolloutu)
 
@@ -38,20 +44,21 @@ npm run crm:enqueue -- <integrationId>
 Zakolejkuje job tylko dla tej jednej integracji. Obserwuj log workera i statystyki joba
 (`CrmImportJob`): czy wykonał się bez błędu, bez duplikatów, bez masowej dezaktywacji.
 
-## Pełny rollout (faza 2): cron na VPS
+## Cron na VPS (zainstalowany)
 
-Po teście dodaj wpis do crontab użytkownika, pod którym działa worker.
-Godziny: 06:00 i 18:00 czasu serwera (dostosuj w razie potrzeby).
+Wpis w crontab roota na VPS (`crontab -l`):
 
 ```cron
-# Auto-sync CRM: kolejkowanie aktywnych integracji 2x dziennie.
-# Dostosuj ścieżki: katalog aplikacji oraz lokalizację npm (w cronie PATH jest minimalny).
-0 6,18 * * * cd /sciezka/do/tylkodzialki && /usr/bin/npm run crm:enqueue >> /var/log/crm-enqueue.log 2>&1
+0 6,18 * * * cd /var/www/tylkodzialki && PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/npm run crm:enqueue >> /var/log/crm-enqueue.log 2>&1
 ```
 
+Godziny: 06:00 i 18:00 **UTC** (serwer jest na UTC), czyli ok. 08:00 i 20:00 czasu polskiego.
+Podgląd logu kolejkowania: `tail -n 20 /var/log/crm-enqueue.log`.
+
 Uwagi:
-- W cronie używaj **ścieżek bezwzględnych** do `npm`/`node` (sprawdź przez `which npm`).
-- Skrypt tylko kolejkuje (lekki, szybki). Faktyczny import robi worker, który musi działać w trybie `--loop`.
+- W cronie PATH jest okrojony, stąd `PATH=...` inline i bezwzględna ścieżka `/usr/bin/npm`.
+- `cd` do katalogu projektu jest potrzebne, by skrypt złapał `.env.local` (tam jest `DATABASE_URL`).
+- Skrypt tylko kolejkuje (lekki, szybki). Faktyczny import robi worker, który musi działać w trybie `--loop` (na VPS pod pm2 jako `crm-worker`).
 - Worker przetwarza joby sekwencyjnie, więc nawet zakolejkowanie wszystkich naraz nie uderza równolegle w FTP biur.
 
 ## Bezpieczeństwo (mapowanie na ryzyka z audytu)
