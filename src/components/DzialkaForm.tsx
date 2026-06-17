@@ -2211,7 +2211,7 @@ export default function DzialkaForm({
 
           {step === LAST_STEP && mode === 'create' && (
             <div className="text-xs text-white/35">
-              Jeśli nie masz już dostępnych publikacji, po kliknięciu zapiszesz ofertę i przejdziesz do zakupu pakietu.
+              Po kliknięciu zapiszesz ofertę.
             </div>
           )}
 
