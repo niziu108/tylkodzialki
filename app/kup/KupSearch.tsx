@@ -683,13 +683,12 @@ export default function KupSearch({
 
   const [sortOpen, setSortOpen] = useState(false);
 
-  // Mapa (P11)
+  // Mapa (P11) — przycisk „Mapa" → pełnoekranowy overlay (desktop i mobile tak samo).
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
   const [mapLoading, setMapLoading] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [showMapDesktop, setShowMapDesktop] = useState(true);
-  const [mobileMapOpen, setMobileMapOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapMounted, setMapMounted] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchTopRef = useRef<HTMLDivElement | null>(null);
@@ -1024,27 +1023,9 @@ export default function KupSearch({
     [applied]
   );
 
-  // Preferencja „pokaż mapę" + detekcja desktopu (mapa montowana tylko gdy widoczna).
-  useEffect(() => {
-    try {
-      if (localStorage.getItem('TD_KUP_SHOWMAP') === '0') setShowMapDesktop(false);
-    } catch {}
-
-    const mq = window.matchMedia('(min-width: 1024px)');
-    const apply = () => setIsDesktop(mq.matches);
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
-
-  const toggleMapDesktop = useCallback(() => {
-    setShowMapDesktop((v) => {
-      const next = !v;
-      try {
-        localStorage.setItem('TD_KUP_SHOWMAP', next ? '1' : '0');
-      } catch {}
-      return next;
-    });
+  const openMap = useCallback(() => {
+    setMapMounted(true);
+    setMapOpen(true);
   }, []);
 
   // Klucz filtrów (bez sortowania/strony) — zmienia się tylko gdy zmieniają się wyniki na mapie.
@@ -1065,8 +1046,7 @@ export default function KupSearch({
     [applied]
   );
 
-  const mapColumns = isDesktop && showMapDesktop;
-  const mapEnabled = mobileMapOpen || mapColumns;
+  const mapEnabled = mapOpen;
 
   // Pobranie pinów — lekki payload, tylko gdy mapa jest widoczna, niezależnie od stronicowania.
   useEffect(() => {
@@ -1109,14 +1089,7 @@ export default function KupSearch({
     [applied]
   );
 
-  const onItemHover = useCallback((id: string | null) => setActiveId(id), []);
-
-  const mapAsideClass = [
-    mobileMapOpen ? 'fixed inset-0 z-[120] bg-[#131313]' : 'hidden',
-    showMapDesktop
-      ? 'lg:sticky lg:top-3 lg:inset-auto lg:z-auto lg:block lg:h-[calc(100vh-1.5rem)] lg:overflow-hidden lg:rounded-2xl lg:border lg:border-white/10 lg:bg-[#131313]'
-      : 'lg:hidden',
-  ].join(' ');
+  const mapAsideClass = mapOpen ? 'fixed inset-0 z-[120] bg-[#e8eaed]' : 'hidden';
 
   const filterContent = (
     <div className="text-left">
@@ -1365,116 +1338,89 @@ export default function KupSearch({
         </div>
       </section>
 
-      <section className={`mx-auto mt-8 px-3 md:px-4 ${mapColumns ? 'max-w-[1500px]' : 'max-w-6xl'}`}>
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div ref={sortRef} className="relative inline-flex items-center gap-3">
-            <span className="text-[11px] uppercase tracking-[0.22em] text-white/35">Sortuj:</span>
-            <button
-              type="button"
-              onClick={() => setSortOpen((v) => !v)}
-              className="flex items-center gap-2 rounded-xl border border-white/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-white/80 transition hover:border-white/40"
-            >
-              {SORT_OPTIONS.find((o) => o.value === applied.sort)?.label ?? 'Najnowsze'}
-              <span className="text-[8px] text-white/40">{sortOpen ? '▲' : '▼'}</span>
-            </button>
-            {sortOpen && (
-              <div className="absolute left-[5.5rem] top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-white/12 bg-[#181818] py-1.5 shadow-2xl">
-                {SORT_OPTIONS.map((opt) => {
-                  const active = applied.sort === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => {
-                        changeSort(opt.value);
-                        setSortOpen(false);
-                      }}
-                      className={[
-                        'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.18em] transition',
-                        active ? 'text-white' : 'text-white/50 hover:text-white/85',
-                      ].join(' ')}
-                    >
-                      <span className={active ? 'text-white/60 text-[7px]' : 'w-[0.7em]'}>
-                        {active ? '●' : ''}
-                      </span>
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
+      <section className="mx-auto mt-8 max-w-6xl px-3 md:px-4">
+        <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
+          <span className="text-[11px] uppercase tracking-[0.22em] text-white/35">Sortuj:</span>
           <button
             type="button"
-            onClick={toggleMapDesktop}
-            aria-pressed={showMapDesktop}
-            className="hidden items-center gap-2 rounded-xl border border-white/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-white/80 transition hover:border-white/40 lg:inline-flex"
+            onClick={() => setSortOpen((v) => !v)}
+            className="flex items-center gap-2 rounded-xl border border-white/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-white/80 transition hover:border-white/40"
           >
-            <MapGlyph />
-            {showMapDesktop ? 'Ukryj mapę' : 'Pokaż mapę'}
+            {SORT_OPTIONS.find((o) => o.value === applied.sort)?.label ?? 'Najnowsze'}
+            <span className="text-[8px] text-white/40">{sortOpen ? '▲' : '▼'}</span>
           </button>
+          {sortOpen && (
+            <div className="absolute left-[5.5rem] top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-white/12 bg-[#181818] py-1.5 shadow-2xl">
+              {SORT_OPTIONS.map((opt) => {
+                const active = applied.sort === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      changeSort(opt.value);
+                      setSortOpen(false);
+                    }}
+                    className={[
+                      'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.18em] transition',
+                      active ? 'text-white' : 'text-white/50 hover:text-white/85',
+                    ].join(' ')}
+                  >
+                    <span className={active ? 'text-white/60 text-[7px]' : 'w-[0.7em]'}>
+                      {active ? '●' : ''}
+                    </span>
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <AlertBar criteria={alertCriteria} />
 
-        <div
-          className={
-            mapColumns
-              ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,40%)] lg:items-start lg:gap-6'
-              : ''
-          }
-        >
-          <div className="min-w-0">
-            <PagerResponsive
-              page={safePage}
-              totalPages={totalPages}
-              onPrev={goPrev}
-              onNext={goNext}
-              onGo={goTo}
-              className="mb-6 mt-6"
+        <PagerResponsive
+          page={safePage}
+          totalPages={totalPages}
+          onPrev={goPrev}
+          onNext={goNext}
+          onGo={goTo}
+          className="mb-6 mt-6"
+        />
+
+        <KupList items={items} loading={loading} error={err} />
+
+        <PagerResponsive
+          page={safePage}
+          totalPages={totalPages}
+          onPrev={goPrev}
+          onNext={goNext}
+          onGo={goTo}
+          className="mt-10"
+        />
+
+        {/* Mapa: przycisk → pełnoekranowy overlay (desktop i mobile tak samo). */}
+        {mapMounted && (
+          <aside className={mapAsideClass}>
+            <KupMap
+              points={mapPoints}
+              loading={mapLoading}
+              center={applied.center}
+              radiusKm={applied.radiusKm}
+              focusKey={filterKey}
+              activeId={activeId}
+              onActiveChange={setActiveId}
+              onSearchArea={onSearchArea}
+              onClose={() => setMapOpen(false)}
             />
+          </aside>
+        )}
 
-            <KupList
-              items={items}
-              loading={loading}
-              error={err}
-              singleColumn={mapColumns}
-              onItemHover={onItemHover}
-            />
-
-            <PagerResponsive
-              page={safePage}
-              totalPages={totalPages}
-              onPrev={goPrev}
-              onNext={goNext}
-              onGo={goTo}
-              className="mt-10"
-            />
-          </div>
-
-          {mapEnabled && (
-            <aside className={mapAsideClass}>
-              <KupMap
-                points={mapPoints}
-                loading={mapLoading}
-                center={applied.center}
-                radiusKm={applied.radiusKm}
-                focusKey={filterKey}
-                activeId={activeId}
-                onActiveChange={setActiveId}
-                onSearchArea={onSearchArea}
-                onClose={() => setMobileMapOpen(false)}
-              />
-            </aside>
-          )}
-        </div>
-
-        {!mobileMapOpen && (
+        {!mapOpen && (
           <button
             type="button"
-            onClick={() => setMobileMapOpen(true)}
-            className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#7aa333]/60 bg-[#131313]/95 px-6 py-3 text-[13px] font-medium uppercase tracking-[0.16em] text-white shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur lg:hidden"
+            onClick={openMap}
+            className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#7aa333]/60 bg-[#131313]/95 px-6 py-3 text-[13px] font-medium uppercase tracking-[0.16em] text-white shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur transition hover:border-[#7aa333] hover:bg-[#1b1b1b]"
           >
             <MapGlyph />
             Mapa

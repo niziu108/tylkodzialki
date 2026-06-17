@@ -54,27 +54,6 @@ const PRZEZN_LABEL: Record<string, string> = {
   SIEDLISKOWA: 'Siedliskowa',
 };
 
-// Ciemny, stonowany styl mapy pod motyw portalu. Teren lekko zazieleniony (działki).
-const DARK_STYLE: google.maps.MapTypeStyle[] = [
-  { elementType: 'geometry', stylers: [{ color: '#161616' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8a8a8a' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#0c0c0c' }] },
-  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#2a2a2a' }] },
-  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#3a3a3a' }] },
-  { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#2f2f2f' }] },
-  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#16271a' }] },
-  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#18211a' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#272727' }] },
-  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3a3a30' }] },
-  { featureType: 'road.local', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1512' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d4f45' }] },
-];
-
 function zoomForRadius(km?: number) {
   if (!km) return 12;
   if (km <= 5) return 12;
@@ -282,13 +261,15 @@ export default function KupMap({
         const map = new google.maps.Map(hostRef.current, {
           center: center ?? POLAND_CENTER,
           zoom: center ? zoomForRadius(radiusKm) : 6,
-          backgroundColor: '#131313',
-          styles: DARK_STYLE,
+          backgroundColor: '#e5e3df',
+          // Oryginalna mapa Google (bez własnego stylu), z przełącznikiem Mapa/Satelita
+          // — satelita jest świetna do oglądania działek.
           disableDefaultUI: true,
           zoomControl: true,
+          mapTypeControl: true,
           gestureHandling: 'greedy',
           clickableIcons: false,
-          maxZoom: 18,
+          maxZoom: 19,
           minZoom: 5,
         });
         mapRef.current = map;
@@ -458,7 +439,7 @@ export default function KupMap({
 
   return (
     <div className={`relative h-full w-full overflow-hidden ${className ?? ''}`}>
-      <div ref={hostRef} className="h-full w-full bg-[#131313]" />
+      <div ref={hostRef} className="h-full w-full bg-[#e8eaed]" />
 
       {/* Szukaj w tym obszarze */}
       {ready && dirty && onSearchArea && (
@@ -485,7 +466,7 @@ export default function KupMap({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-[6] flex items-center gap-2 rounded-full border border-white/20 bg-[#131313]/95 px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.16em] text-white shadow-lg backdrop-blur transition hover:border-white/40 lg:hidden"
+          className="absolute right-3 top-3 z-[6] flex items-center gap-2 rounded-full border border-white/20 bg-[#131313]/95 px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.16em] text-white shadow-lg backdrop-blur transition hover:border-white/40"
         >
           <span className="text-[15px] leading-none">×</span> Lista
         </button>
