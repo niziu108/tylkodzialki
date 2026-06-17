@@ -9,28 +9,28 @@ import {
 const LOGIN_URL = "https://tylkodzialki.pl/auth";
 
 const TEMPLATE_EXPIRED_SUBJECT =
-  "Sprawdź swoje ogłoszenia na TylkoDziałki";
+  "Sprawdź swoje ogłoszenia na tylkodzialki.pl";
 const TEMPLATE_EXPIRED_BODY = `Cześć,
 
-sprawdź proszę, czy Twoje ogłoszenia na TylkoDziałki są nadal aktualne.
+sprawdź proszę, czy Twoje ogłoszenia na tylkodzialki.pl są nadal aktualne.
 
 Jeśli któraś oferta wygasła albo wymaga odświeżenia, zaloguj się do swojego konta i sprawdź status ogłoszeń. Warto też od czasu do czasu poprawić opis, zdjęcia i cenę, żeby oferta nadal dobrze się prezentowała.
 
 Zaloguj się do konta i przejdź do swojego panelu, aby sprawdzić swoje oferty.`;
 
 const TEMPLATE_RULES_SUBJECT =
-  "Ważna informacja — zmiana regulaminu TylkoDziałki";
+  "Ważna informacja — zmiana regulaminu tylkodzialki.pl";
 const TEMPLATE_RULES_BODY = `Cześć,
 
-chcemy poinformować Cię, że na TylkoDziałki wprowadziliśmy zmianę regulaminu.
+chcemy poinformować Cię, że na tylkodzialki.pl wprowadziliśmy zmianę regulaminu.
 
 Prosimy, abyś po zalogowaniu do swojego konta zapoznał się z aktualnymi zasadami korzystania z portalu.`;
 
 const TEMPLATE_BACK_SUBJECT =
-  "Wracaj na TylkoDziałki — nowe oferty już czekają";
+  "Wracaj na tylkodzialki.pl — nowe oferty już czekają";
 const TEMPLATE_BACK_BODY = `Cześć,
 
-na TylkoDziałki pojawiają się nowe oferty i warto regularnie zaglądać na portal.
+na tylkodzialki.pl pojawiają się nowe oferty i warto regularnie zaglądać na portal.
 
 Jeśli szukasz działki albo chcesz sprawdzić, co nowego pojawiło się na rynku, zaloguj się do swojego konta i zobacz najnowsze ogłoszenia.`;
 
@@ -131,7 +131,7 @@ export default function AdminMailComposer() {
               name="subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="Np. Sprawdź swoje ogłoszenia na TylkoDziałki"
+              placeholder="Np. Sprawdź swoje ogłoszenia na tylkodzialki.pl"
               className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
               required
             />
@@ -189,7 +189,7 @@ export default function AdminMailComposer() {
         <div className="rounded-3xl border border-white/10 bg-white p-5 text-[#111] shadow-sm">
           <div className="mb-4 border-b border-black/10 pb-4">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7aa333]">
-              TylkoDziałki
+              tylkodzialki.pl
             </div>
             <h4 className="mt-2 text-2xl font-semibold">{subject || "Brak tematu"}</h4>
           </div>

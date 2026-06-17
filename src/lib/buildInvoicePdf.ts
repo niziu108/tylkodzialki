@@ -489,7 +489,7 @@ export async function buildInvoicePdf(invoice: InvoicePdfInput) {
   drawLine(y);
   y -= 24;
 
-  drawText('Dziękujemy za zakup w TylkoDziałki.', marginX, y, {
+  drawText('Dziękujemy za zakup w tylkodzialki.pl.', marginX, y, {
     size: 10,
     color: colorMuted,
   });

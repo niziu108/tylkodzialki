@@ -38,7 +38,7 @@ export default function PrivacyPolicyPage() {
 
           <p className="max-w-3xl text-[15px] leading-8 text-white/65">
             Niniejsza Polityka prywatności określa zasady przetwarzania danych osobowych
-            użytkowników serwisu TylkoDziałki, w tym osób odwiedzających stronę, zakładających
+            użytkowników serwisu tylkodzialki.pl, w tym osób odwiedzających stronę, zakładających
             konto, publikujących ogłoszenia, kontaktujących się z operatorem oraz korzystających
             z usług płatnych.
           </p>

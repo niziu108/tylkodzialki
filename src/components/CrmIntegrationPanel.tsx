@@ -263,7 +263,7 @@ export default function CrmIntegrationPanel({
             <p className="mt-3 leading-7 text-white/65">
               Dziękujemy za przesłanie formularza. Nasz zespół przygotowuje
               konfigurację integracji. Po jej zakończeniu oferty będą
-              automatycznie synchronizowane z TylkoDziałki.pl.
+              automatycznie synchronizowane z tylkodzialki.pl.
             </p>
 
             <div className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-yellow-500/25 bg-yellow-500/10 px-4 py-2.5 text-sm font-semibold text-yellow-200">

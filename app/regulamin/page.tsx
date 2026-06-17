@@ -33,12 +33,12 @@ export default function RegulaminPage() {
           </p>
 
           <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            Regulamin serwisu TylkoDziałki
+            Regulamin serwisu tylkodzialki.pl
           </h1>
 
           <p className="max-w-3xl text-[15px] leading-8 text-white/65">
             Niniejszy regulamin określa zasady korzystania z serwisu internetowego
-            TylkoDziałki, w szczególności zasady tworzenia kont, publikowania ogłoszeń,
+            tylkodzialki.pl, w szczególności zasady tworzenia kont, publikowania ogłoszeń,
             korzystania z usług bezpłatnych i płatnych oraz zasady odpowiedzialności
             użytkowników i operatora serwisu.
           </p>
@@ -104,7 +104,7 @@ export default function RegulaminPage() {
         <div className="space-y-12">
           <Section id="postanowienia-ogolne" title="§1. Postanowienia ogólne">
             <p>
-              1. Serwis internetowy TylkoDziałki jest platformą ogłoszeniową przeznaczoną do
+              1. Serwis internetowy tylkodzialki.pl jest platformą ogłoszeniową przeznaczoną do
               publikowania i przeglądania ogłoszeń dotyczących nieruchomości gruntowych.
             </p>
             <p>
@@ -124,7 +124,7 @@ export default function RegulaminPage() {
           </Section>
 
           <Section id="definicje" title="§2. Definicje">
-            <p>1. Serwis – serwis internetowy TylkoDziałki.</p>
+            <p>1. Serwis – serwis internetowy tylkodzialki.pl.</p>
             <p>2. Operator – Ultima Reality Sp. z o.o.</p>
             <p>
               3. Użytkownik – osoba fizyczna, osoba prawna lub jednostka organizacyjna
@@ -196,7 +196,7 @@ export default function RegulaminPage() {
             <p>
               5. Przekazanie danych ofert do serwisu, w tym poprzez integrację CRM, eksport XML
               lub inną formę techniczną, jest równoznaczne ze zgodą na ich publikację w serwisie
-              TylkoDziałki w zakresie niezbędnym do prezentacji ogłoszeń.
+              tylkodzialki.pl w zakresie niezbędnym do prezentacji ogłoszeń.
             </p>
             <p>
               6. Operator ma prawo odmówić publikacji, usunąć ogłoszenie albo zakończyć jego

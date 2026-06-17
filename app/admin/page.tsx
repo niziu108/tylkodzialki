@@ -252,7 +252,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               Panel admina
             </h1>
             <p className="mt-2 text-sm text-[#bdbdbd]">
-              Zarządzanie użytkownikami, sprzedażą i treściami TylkoDziałki
+              Zarządzanie użytkownikami, sprzedażą i treściami tylkodzialki.pl
             </p>
           </div>
 

@@ -58,7 +58,7 @@ export default function BlogSearchSection({
             <div className="rounded-[30px] border border-white/10 bg-black/20 p-6 backdrop-blur-sm md:p-8">
               <div className="flex flex-col items-center text-center">
                 <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
-                  Blog TylkoDziałki
+                  Blog tylkodzialki.pl
                 </div>
 
                 <h1 className="mt-5 max-w-1xl text-2xl font-semibold tracking-tight text-white md:text-5xl">
@@ -153,7 +153,7 @@ export default function BlogSearchSection({
                       />
                     ) : (
                       <div className="flex aspect-[16/10] items-center justify-center text-sm text-white/35">
-                        TylkoDziałki
+                        tylkodzialki.pl
                       </div>
                     )}
                   </div>

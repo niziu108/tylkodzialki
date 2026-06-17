@@ -94,8 +94,10 @@ export async function generateInvoicePdf(invoice: InvoiceData) {
 
   y -= 16;
   drawText("Sprzedawca", left, 13, true);
-  drawText("TylkoDzialki", left);
-  drawText("Polska", left);
+  drawText("Ultima Reality Sp. z o.o.", left);
+  drawText("ul. Piotrkowska 44/10", left);
+  drawText("90-265 Łódź", left);
+  drawText("NIP: 7252337429", left);
 
   y -= 16;
   drawText("Nabywca", left, 13, true);

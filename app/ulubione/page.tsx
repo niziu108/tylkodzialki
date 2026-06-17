@@ -36,7 +36,7 @@ export default async function UlubionePage() {
       <section className="mx-auto max-w-6xl">
         <div className="mb-8">
           <p className="text-[11px] uppercase tracking-[0.22em] text-[#7aa333]">
-            TylkoDziałki.pl
+            tylkodzialki.pl
           </p>
 
           <h1 className="mt-3 font-display text-[34px] uppercase tracking-[0.08em] text-white md:text-[54px]">

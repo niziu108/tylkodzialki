@@ -347,8 +347,8 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const telefonHref = telefon ? telefon.replace(/[^\d+]/g, '') : null;
   const numerOferty = (d?.numerOferty ?? '').trim() || null;
   const smsText = numerOferty
-  ? `Dzień dobry, piszę w sprawie oferty nr ${numerOferty} z TylkoDziałki.pl.`
-  : `Dzień dobry, piszę w sprawie działki z TylkoDziałki.pl.`;
+  ? `Dzień dobry, piszę w sprawie oferty nr ${numerOferty} z tylkodzialki.pl.`
+  : `Dzień dobry, piszę w sprawie działki z tylkodzialki.pl.`;
 
   const smsHref = telefonHref
   ? `sms:${telefonHref}?&body=${encodeURIComponent(smsText)}`

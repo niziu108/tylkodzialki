@@ -230,7 +230,7 @@ export default async function HomePage() {
           <div className="flex items-end justify-between">
             <div>
               <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">
-                Blog TylkoDziałki
+                Blog tylkodzialki.pl
               </div>
 
               <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
@@ -262,7 +262,7 @@ export default async function HomePage() {
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center text-white/35">
-                            TylkoDziałki
+                            tylkodzialki.pl
                           </div>
                         )}
                       </div>

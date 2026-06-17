@@ -40,7 +40,7 @@ export default async function NewArticlePage() {
           </h1>
           <p className="mt-2 text-sm text-[#bdbdbd]">
             Twórz eksperckie treści pod SEO i buduj ruch organiczny dla
-            TylkoDziałki.
+            tylkodzialki.pl.
           </p>
         </div>
 

@@ -38,7 +38,7 @@ export default async function BlogPage() {
               </div>
 
               <h2 className="mt-5 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                Dodaj ogłoszenie w TylkoDziałki
+                Dodaj ogłoszenie w tylkodzialki.pl
               </h2>
 
               <p className="mt-4 text-base leading-8 text-white/65">

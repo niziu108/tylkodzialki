@@ -122,7 +122,7 @@ export default function GlobalNav() {
           <button onClick={() => go('/')} className="flex items-center">
             <Image
               src="/logo1.png"
-              alt="TylkoDziałki"
+              alt="tylkodzialki.pl"
               width={1024}
               height={253}
               priority
@@ -293,7 +293,7 @@ export default function GlobalNav() {
             <div className="flex flex-1 flex-col items-center justify-center gap-10 px-6 text-center">
               <Image
                 src="/logo.png"
-                alt="TylkoDziałki"
+                alt="tylkodzialki.pl"
                 width={1024}
                 height={253}
                 priority

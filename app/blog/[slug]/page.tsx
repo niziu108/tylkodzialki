@@ -199,7 +199,7 @@ export default async function BlogArticlePage({
           </div>
 
           <h2 className="mt-5 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-            Dodaj ogłoszenie w TylkoDziałki
+            Dodaj ogłoszenie w tylkodzialki.pl
           </h2>
 
           <p className="mt-4 max-w-3xl text-base leading-8 text-white/65">
@@ -248,7 +248,7 @@ export default async function BlogArticlePage({
                         />
                       ) : (
                         <div className="flex aspect-[16/10] items-center justify-center text-sm text-white/35">
-                          TylkoDziałki
+                          tylkodzialki.pl
                         </div>
                       )}
                     </div>

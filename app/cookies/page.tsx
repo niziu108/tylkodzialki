@@ -38,7 +38,7 @@ export default function CookiesPage() {
 
           <p className="max-w-3xl text-[15px] leading-8 text-white/65">
             Niniejsza Polityka cookies wyjaśnia, czym są pliki cookies i podobne technologie,
-            w jakim celu są stosowane w serwisie TylkoDziałki oraz w jaki sposób użytkownik
+            w jakim celu są stosowane w serwisie tylkodzialki.pl oraz w jaki sposób użytkownik
             może zarządzać swoimi preferencjami.
           </p>
 
