@@ -642,19 +642,64 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
       .filter((item) => item.name.toLowerCase().endsWith(".zip"))
       .sort((a, b) => (b.modifiedAt?.getTime() ?? 0) - (a.modifiedAt?.getTime() ?? 0));
 
-    const extractedDir = path.join(tempDir, "extracted");
+    const extractedRoot = path.join(tempDir, "extracted");
 
-    if (zipFiles[0]) {
-      remoteFileName = zipFiles[0].name;
-      const zipLocalPath = path.join(tempDir, zipFiles[0].remotePath);
-      await downloadFile(client, zipFiles[0].remotePath, zipLocalPath);
-      await extractZip(zipLocalPath, extractedDir);
+    // Wybór plików (naprawa P-F): bierzemy najnowszy PEŁNY eksport (export="full")
+    // oraz wszystkie przyrostowe NOWSZE od niego. Idziemy od najnowszego pliku i
+    // zatrzymujemy się na pierwszym pełnym eksporcie. Wcześniej brany był tylko
+    // najnowszy ZIP, więc świeży przyrostowy zasłaniał pełny eksport (biuro dawało
+    // o 14:00 całość, o 16:00 zmiany i całość nigdy nie była czytana).
+    //
+    // Bezpieczeństwo: dla biur publikujących tylko pełne eksporty najnowszy plik jest
+    // pełny, więc pętla kończy się na pierwszym (idx 0), zachowanie identyczne jak dotąd.
+    // Tryb nieznany (brak atrybutu export) też zatrzymuje pętlę konserwatywnie, żeby
+    // nie wciągać starych plików.
+    for (let idx = 0; idx < zipFiles.length; idx++) {
+      const zip = zipFiles[idx];
+      if (idx === 0) remoteFileName = zip.name;
 
-      const extractedFiles = await walkFiles(extractedDir);
+      const zipLocalPath = path.join(tempDir, zip.remotePath);
+      await downloadFile(client, zip.remotePath, zipLocalPath);
 
-      for (const file of extractedFiles) {
-        localFileByBasename.set(safeBasename(file), file);
+      const zipExtractDir = path.join(extractedRoot, String(idx));
+      await extractZip(zipLocalPath, zipExtractDir);
+
+      let zipExportMode: string | null = null;
+      for (const file of await walkFiles(zipExtractDir)) {
+        const base = safeBasename(file);
+        // Najnowszy wygrywa: starszy plik nie nadpisuje nowszego o tej samej nazwie.
+        if (!localFileByBasename.has(base)) localFileByBasename.set(base, file);
+
+        if (
+          zipExportMode === null &&
+          base.toLowerCase().endsWith(".xml") &&
+          base.toLowerCase() !== "definitions.xml"
+        ) {
+          const head = (await fsp.readFile(file, "utf8")).slice(0, 4096);
+          const match = head.match(/<offers[^>]*\bexport\s*=\s*["']?\s*([a-zA-Z]+)/);
+          zipExportMode = match ? match[1].toLowerCase() : "";
+        }
       }
+
+      const isFullZip = !!zipExportMode && /full|complete|calosc/.test(zipExportMode);
+      const isKnownIncremental = !!zipExportMode && !isFullZip;
+
+      console.log(
+        "[ESTICRM DEBUG] Plik ZIP:",
+        zip.name,
+        "| export:",
+        zipExportMode || "(nieznany)",
+        "|",
+        isFullZip
+          ? "PEŁNY, kończę wybór"
+          : isKnownIncremental
+            ? "przyrostowy, szukam pełnego"
+            : "nieznany, kończę wybór"
+      );
+
+      // Stop na pełnym eksporcie albo na nierozpoznanym trybie. Przyrostowe (nowsze
+      // od pełnego) zbieramy po drodze i lecimy dalej, aż trafimy na pełny.
+      if (isFullZip || !isKnownIncremental) break;
     }
 
     const directXmlFiles = files.filter((item) => item.name.toLowerCase().endsWith(".xml"));
