@@ -132,6 +132,8 @@ liczba ofert nagle spadnie, import nie wykona się o czasie.
 Sprawdzić: wspólne mechanizmy, wspólne mapowanie, wspólny importer.
 Cel: łatwiejsze dodawanie kolejnych CRM.
 
+W zakresie tego sprintu: **optymalizacja zdjęć (P-B)** - wykrywanie zmian zamiast pełnego re-uploadu przy każdym imporcie, żeby koszt skalował się ze zmianami, nie z całym katalogiem. Szczegóły i kierunek w sekcji "Znalezione problemy / P-B". Warunek konieczny przed wariantem B ("sync przy każdej zmianie").
+
 ## CRM SPRINT 6 - IMO CRM (analiza)
 Analiza dokumentacji. Bez kodowania.
 
@@ -163,11 +165,16 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Wpływ biznesowy:** biuro EstiCRM klikające "synchronizuj" z panelu usera trafia w zły silnik. Duży feed grozi timeoutem funkcji Vercel.
 - **Priorytet:** średni. Auto-sync (Sprint 2) i tak ma iść wyłącznie przez kolejkę + worker, więc ten route jest pobocznym długiem do uprzątnięcia.
 
-### P-B: Pełny re-upload zdjęć przy każdej aktualizacji oferty
+### P-B: Pełny re-upload zdjęć przy każdej aktualizacji oferty [DO SPRINTU 5]
 - **Gdzie:** `processOffer` w silnikach (widoczne w `esticrm-sync.ts`: `removeExistingR2Photos` + ponowny upload wszystkich zdjęć na każdym UPDATE).
-- **Co:** każda aktualizacja oferty kasuje i wgrywa od nowa wszystkie zdjęcia do R2.
-- **Wpływ biznesowy:** koszt R2 i czas importu rosną z częstotliwością synchronizacji.
-- **Priorytet:** średni. Trzeba rozważyć **zanim** włączymy wariant "sync przy każdej zmianie" (B).
+- **Co:** każda aktualizacja oferty kasuje i wgrywa od nowa wszystkie zdjęcia do R2, nawet jeśli oferta i zdjęcia się nie zmieniły. Koszt skaluje się z CAŁYM katalogiem biura, nie ze zmianami.
+- **Realny ślad (Sprint 2, 2026-06-17):** w pełnym przebiegu 50 integracji jedno biuro ASARI z dużą liczbą zdjęć mieliło ~18+ minut na samym pobieraniu/wgrywaniu zdjęć i, przez sekwencyjny worker, blokowało resztę kolejki.
+- **Wpływ biznesowy:** koszt R2 i czas importu rosną z częstotliwością synchronizacji; pojedyncze ciężkie biuro spowalnia całą kolejkę.
+- **Kierunek usprawnienia (do Sprintu 5):**
+  1. Wykrywanie zmian: pomijać oferty niezmienione od ostatniego importu (zaczep już w schemacie: `CrmOfferLink.externalUpdatedAt`, `lastImportedAt`) - to ~80% korzyści, koszt skaluje się ze zmianami. Ostrożnie per provider, bo każdy CRM raportuje zmiany inaczej.
+  2. Różnicowanie zdjęć: wgrywać tylko nowe, kasować tylko usunięte.
+  3. Opcjonalnie równoległe pobieranie zdjęć w obrębie joba.
+- **Priorytet:** średni. Najpierw dane z monitoringu (Sprint 3) pokażą, jak pilne. Konieczne **zanim** włączymy wariant "sync przy każdej zmianie" (B). Realizacja: w ramach Sprintu 5 (ujednolicenie architektury) albo jako osobny mini-sprint optymalizacji.
 
 ### P-C: Usuwanie integracji robi soft delete ofert [ZACOMMITOWANE a07bc5e]
 - **Gdzie:** `src/lib/crm/deleteCrmIntegration.ts` + `app/api/admin/crm/integrations/[id]/route.ts`, `app/api/crm/integrations/[id]/route.ts`, `src/components/AdminCrmIntegrationEditor.tsx`.
