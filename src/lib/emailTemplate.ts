@@ -153,7 +153,7 @@ ${noteHtml}
 &nbsp;·&nbsp;
 <a href="mailto:${CONTACT_EMAIL}" style="color:#8a8a8a;text-decoration:none;">Kontakt</a>
 <br />
-Ultima Reality Sp. z o.o. · NIP 725337429 · ul. Piotrkowska 44/10, 90-265 Łódź
+Ultima Reality Sp. z o.o. · NIP 7252337429 · ul. Piotrkowska 44/10, 90-265 Łódź
 <br />
 Ta wiadomość została wysłana automatycznie.${unsubscribeHtml}
 </td>

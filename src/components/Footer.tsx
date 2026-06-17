@@ -140,7 +140,7 @@ export default function Footer() {
               <p>Ultima Reality Sp. z o.o.</p>
             </div>
             <div className="mt-3 text-xs text-white/35">
-              <p>NIP: 725337429 · KRS: 0001068696 · Adres: ul. Piotrkowska 44/10, 90-265 Łódź</p>
+              <p>NIP: 7252337429 · KRS: 0001068696 · Adres: ul. Piotrkowska 44/10, 90-265 Łódź</p>
             </div>
           </div>
 
