@@ -99,6 +99,7 @@ type DzialkaDraft = {
   ksiegaWieczysta: string;
   uploaded: UploadedPhoto[];
   activeIdx: number;
+  step?: number;
 };
 
 const CREATE_DRAFT_KEY = 'tylkodzialki:create-dzialka-draft:v2';
@@ -175,7 +176,34 @@ const MAX_TITLE_CHARS = 90;
 const MAX_OPIS_CHARS = 5000;
 const AUTO_PUBLISH_MAX_RETRIES = 8;
 const AUTO_PUBLISH_RETRY_DELAY_MS = 1500;
-const MAX_PHOTOS = 7;
+const MAX_PHOTOS = 12; // limit zdjęć na ofertę (backend: src/lib/photoLimits.ts)
+
+type WizardStep = { title: string; short: string };
+
+const STEPS: WizardStep[] = [
+  { title: 'Podstawowe informacje', short: 'Podstawy' },
+  { title: 'Zdjęcia', short: 'Zdjęcia' },
+  { title: 'Lokalizacja', short: 'Lokalizacja' },
+  { title: 'Szczegóły i uzbrojenie', short: 'Szczegóły' },
+  { title: 'Kto sprzedaje', short: 'Sprzedający' },
+];
+const LAST_STEP = STEPS.length - 1;
+
+// Każde pole wymagane mapujemy na krok, w którym się znajduje. Dzięki temu „Dalej"
+// waliduje tylko bieżący krok, a „Opublikuj" potrafi przeskoczyć do najwcześniejszego
+// kroku, w którym czegoś brakuje.
+const FIELD_STEP: Record<FieldKey, number> = {
+  tytul: 0,
+  cenaPln: 0,
+  powierzchniaM2: 0,
+  telefon: 0,
+  przeznaczenia: 0,
+  photos: 1,
+  location: 2,
+  sprzedajacyImie: 4,
+  biuroNazwa: 4,
+  biuroOpiekun: 4,
+};
 
 function saveCreateDraft(draft: DzialkaDraft) {
   if (typeof window === 'undefined') return;
@@ -592,6 +620,9 @@ export default function DzialkaForm({
   const [wymiary, setWymiary] = useState(initialData?.wymiary ?? '');
   const [ksiegaWieczysta, setKsiegaWieczysta] = useState(initialData?.ksiegaWieczysta ?? '');
 
+  const [step, setStep] = useState(0);
+  const [maxStep, setMaxStep] = useState(mode === 'edit' ? STEPS.length - 1 : 0);
+
   const [activeIdx, setActiveIdx] = useState(0);
   const [uploaded, setUploaded] = useState<UploadedPhoto[]>(
     (initialData?.zdjecia ?? [])
@@ -690,6 +721,13 @@ export default function DzialkaForm({
     }
   }, [pendingLogin]);
 
+  // Przy zmianie kroku przewijamy na górę, żeby nowy krok zaczynał się od nagłówka.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [step]);
+
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       syncOpisEditorHeight();
@@ -769,6 +807,12 @@ export default function DzialkaForm({
     setUploaded(Array.isArray(draft.uploaded) ? draft.uploaded.slice(0, MAX_PHOTOS) : []);
     setActiveIdx(typeof draft.activeIdx === 'number' ? draft.activeIdx : 0);
 
+    if (typeof draft.step === 'number') {
+      const restoredStep = Math.min(Math.max(draft.step, 0), STEPS.length - 1);
+      setStep(restoredStep);
+      setMaxStep((m) => Math.max(m, restoredStep));
+    }
+
     setDraftHydrated(true);
   }, [mode]);
 
@@ -803,6 +847,7 @@ export default function DzialkaForm({
       ksiegaWieczysta,
       uploaded,
       activeIdx,
+      step,
     });
   }, [
     mode,
@@ -833,6 +878,7 @@ export default function DzialkaForm({
     ksiegaWieczysta,
     uploaded,
     activeIdx,
+    step,
   ]);
 
   useEffect(() => {
@@ -1054,75 +1100,117 @@ export default function DzialkaForm({
       ksiegaWieczysta,
       uploaded: uploadedForDraft,
       activeIdx,
+      step,
     };
   }
 
-  async function submitListing(isAutoPublish = false, attempt = 0): Promise<void> {
-    setErr(null);
-    setOk(null);
-
-    const errs: string[] = [];
-    const fields = new Set<FieldKey>();
+  // Jedna lista braków dla całego formularza. Walidacja kroku to po prostu filtr po
+  // FIELD_STEP, a publikacja używa pełnej listy.
+  function collectContentIssues(): Array<{ field: FieldKey; message: string }> {
+    const issues: Array<{ field: FieldKey; message: string }> = [];
 
     if (!tytul.trim()) {
-      errs.push('Podaj tytuł ogłoszenia.');
-      fields.add('tytul');
+      issues.push({ field: 'tytul', message: 'Podaj tytuł ogłoszenia.' });
     } else if (tytul.trim().length > MAX_TITLE_CHARS) {
-      errs.push(`Tytuł jest za długi (max ${MAX_TITLE_CHARS} znaków).`);
-      fields.add('tytul');
+      issues.push({ field: 'tytul', message: `Tytuł jest za długi (max ${MAX_TITLE_CHARS} znaków).` });
     }
 
     const pm2 = parseFormattedNumber(powierzchniaM2);
     const cena = parseFormattedNumber(cenaPln);
 
     if (!Number.isFinite(pm2) || pm2 <= 0) {
-      errs.push('Podaj poprawną powierzchnię (m²).');
-      fields.add('powierzchniaM2');
+      issues.push({ field: 'powierzchniaM2', message: 'Podaj poprawną powierzchnię (m²).' });
     }
     if (!Number.isFinite(cena) || cena <= 0) {
-      errs.push('Podaj poprawną cenę (PLN).');
-      fields.add('cenaPln');
+      issues.push({ field: 'cenaPln', message: 'Podaj poprawną cenę (PLN).' });
     }
     if (!telefon.trim()) {
-      errs.push('Podaj numer telefonu.');
-      fields.add('telefon');
+      issues.push({ field: 'telefon', message: 'Podaj numer telefonu.' });
     }
     if (przeznaczenia.length < 1) {
-      errs.push('Wybierz minimum 1 przeznaczenie.');
-      fields.add('przeznaczenia');
+      issues.push({ field: 'przeznaczenia', message: 'Wybierz minimum 1 przeznaczenie.' });
     }
     if (!location) {
-      errs.push('Wybierz lokalizację działki.');
-      fields.add('location');
+      issues.push({ field: 'location', message: 'Wybierz lokalizację działki.' });
     }
     if (uploaded.length < 1) {
-      errs.push('Dodaj minimum 1 zdjęcie.');
-      fields.add('photos');
+      issues.push({ field: 'photos', message: 'Dodaj minimum 1 zdjęcie.' });
     }
+    if (sprzedajacyTyp === 'PRYWATNIE' && !sprzedajacyImie.trim()) {
+      issues.push({ field: 'sprzedajacyImie', message: 'Podaj imię sprzedającego.' });
+    }
+    if (sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI') {
+      if (!biuroNazwa.trim()) {
+        issues.push({ field: 'biuroNazwa', message: 'Podaj nazwę biura nieruchomości.' });
+      }
+      if (!biuroOpiekun.trim()) {
+        issues.push({ field: 'biuroOpiekun', message: 'Podaj imię opiekuna biura.' });
+      }
+    }
+
+    return issues;
+  }
+
+  function validateStep(targetStep: number): boolean {
+    const issues = collectContentIssues().filter((i) => FIELD_STEP[i.field] === targetStep);
+
+    if (issues.length > 0) {
+      setValidationErrors(issues.map((i) => i.message));
+      setFieldErrors(new Set(issues.map((i) => i.field)));
+      requestAnimationFrame(() => {
+        errSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  function goNext() {
+    if (!validateStep(step)) return;
+    setValidationErrors([]);
+    setFieldErrors(new Set());
+    const next = Math.min(step + 1, LAST_STEP);
+    setStep(next);
+    setMaxStep((m) => Math.max(m, next));
+  }
+
+  function goBack() {
+    setValidationErrors([]);
+    setStep((s) => Math.max(0, s - 1));
+  }
+
+  function goToStep(target: number) {
+    if (target < 0 || target > LAST_STEP) return;
+    if (target > maxStep) return;
+    setValidationErrors([]);
+    setStep(target);
+  }
+
+  async function submitListing(isAutoPublish = false, attempt = 0): Promise<void> {
+    setErr(null);
+    setOk(null);
+
+    const issues = collectContentIssues();
+    const errs = issues.map((i) => i.message);
+    const fields = new Set<FieldKey>(issues.map((i) => i.field));
+
     if (uploadingPhotos) {
       errs.push('Poczekaj aż zdjęcia się wgrają.');
     }
     if (uploadingLogo) {
       errs.push('Poczekaj aż logo biura się wgra.');
     }
-    if (sprzedajacyTyp === 'PRYWATNIE' && !sprzedajacyImie.trim()) {
-      errs.push('Podaj imię sprzedającego.');
-      fields.add('sprzedajacyImie');
-    }
-    if (sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI') {
-      if (!biuroNazwa.trim()) {
-        errs.push('Podaj nazwę biura nieruchomości.');
-        fields.add('biuroNazwa');
-      }
-      if (!biuroOpiekun.trim()) {
-        errs.push('Podaj imię opiekuna biura.');
-        fields.add('biuroOpiekun');
-      }
-    }
 
     if (errs.length > 0) {
       setValidationErrors(errs);
       setFieldErrors(fields);
+
+      // Przeskocz do najwcześniejszego kroku, w którym brakuje danych.
+      if (issues.length > 0) {
+        setStep(Math.min(...issues.map((i) => FIELD_STEP[i.field])));
+      }
+
       requestAnimationFrame(() => {
         errSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
@@ -1227,6 +1315,10 @@ export default function DzialkaForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (step < LAST_STEP) {
+      goNext();
+      return;
+    }
     await submitListing(false, 0);
   }
 
@@ -1245,6 +1337,7 @@ export default function DzialkaForm({
       return;
     }
 
+    setStep(LAST_STEP);
     void submitListing(true, 0);
   }, [mode, draftHydrated, shouldAutoPublish]);
 
@@ -1371,28 +1464,83 @@ export default function DzialkaForm({
 
   return (
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
-      <section className="relative mt-6 w-full">
-        <div
-          className="absolute inset-4"
-          style={{
-            backgroundImage: `url(/kup.webp)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center 65%',
-          }}
-        />
-        <div className="absolute inset-4 bg-black/30" />
+      <header className="sticky top-[72px] z-30 border-b border-white/10 bg-[#131313]/90 backdrop-blur">
+        <div className="mx-auto max-w-5xl px-6 pb-5 pt-7 md:px-10">
+          <div className="flex items-end justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">
+                {mode === 'edit' ? 'Edycja ogłoszenia' : 'Dodaj działkę'}
+              </div>
+              <h1 className="mt-1.5 truncate text-[24px] font-semibold leading-tight tracking-tight text-white md:text-[30px]">
+                {STEPS[step].title}
+              </h1>
+            </div>
+            <div className="hidden shrink-0 text-right text-[13px] font-medium text-white/45 sm:block">
+              Krok {step + 1} / {STEPS.length}
+            </div>
+          </div>
 
-        <div className="relative mx-auto flex min-h-[320px] max-w-6xl items-center justify-center px-4 sm:min-h-[360px]">
-          <div className="max-w-3xl px-2 text-center">
-            <h1 className="text-[30px] font-semibold leading-[1.12] tracking-tight text-white sm:text-[38px] md:text-[46px]">
-              {mode === 'edit' ? 'Edytuj ogłoszenie' : 'Dodaj działkę w dwie minuty'}
-            </h1>
-            <p className="mt-5 text-[16px] font-medium text-white/95 sm:text-[18px] md:text-[20px]">
-              {mode === 'edit' ? 'Wprowadź zmiany i zapisz ofertę.' : 'i zacznij otrzymywać zapytania.'}
-            </p>
+          {/* Pasek kroków — desktop */}
+          <ol className="mt-6 hidden items-center md:flex">
+            {STEPS.map((s, i) => {
+              const done = i < step;
+              const active = i === step;
+              const reachable = i <= maxStep;
+
+              return (
+                <li key={i} className="flex flex-1 items-center last:flex-none">
+                  <button
+                    type="button"
+                    onClick={() => goToStep(i)}
+                    disabled={!reachable}
+                    aria-current={active ? 'step' : undefined}
+                    className={cx('group flex items-center gap-3', reachable ? 'cursor-pointer' : 'cursor-default')}
+                  >
+                    <span
+                      className={cx(
+                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[14px] font-semibold transition',
+                        active
+                          ? 'border-[#9fd14b] bg-[#7aa333] text-black'
+                          : done
+                          ? 'border-[#7aa333]/60 bg-[#7aa333]/15 text-[#9fd14b]'
+                          : 'border-white/20 bg-white/[0.03] text-white/50 group-hover:border-white/35'
+                      )}
+                    >
+                      {done ? '✓' : i + 1}
+                    </span>
+                    <span
+                      className={cx(
+                        'whitespace-nowrap text-[13px] font-semibold tracking-tight transition',
+                        active ? 'text-white' : done ? 'text-white/70 group-hover:text-white' : 'text-white/40 group-hover:text-white/70'
+                      )}
+                    >
+                      {s.short}
+                    </span>
+                  </button>
+
+                  {i < STEPS.length - 1 ? (
+                    <span className={cx('mx-3 h-px flex-1 transition', i < step ? 'bg-[#7aa333]/50' : 'bg-white/10')} />
+                  ) : null}
+                </li>
+              );
+            })}
+          </ol>
+
+          {/* Pasek postępu — mobile */}
+          <div className="mt-5 md:hidden">
+            <div className="flex items-center justify-between text-[12px] font-medium">
+              <span className="text-white/75">{STEPS[step].short}</span>
+              <span className="text-white/45">{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
+            </div>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-[#7aa333] transition-all duration-300"
+                style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+              />
+            </div>
           </div>
         </div>
-      </section>
+      </header>
 
       <div className="mx-auto max-w-5xl px-6 pb-24 pt-10 md:px-10">
         <form onSubmit={onSubmit} className="space-y-10">
@@ -1417,6 +1565,7 @@ export default function DzialkaForm({
             </div>
           ) : null}
 
+          {step === 0 && (
           <div className="space-y-6">
             <SectionTitle>
               Tytuł ogłoszenia <span className="text-[#9fd14b]">*</span>
@@ -1435,6 +1584,9 @@ export default function DzialkaForm({
             <Hr className="mt-8" />
           </div>
 
+          )}
+
+          {step === 1 && (
           <div className="space-y-6">
             <div className="flex items-end justify-between gap-4">
               <SectionTitle>
@@ -1577,6 +1729,9 @@ export default function DzialkaForm({
             <Hr className="mt-8" />
           </div>
 
+          )}
+
+          {step === 0 && (
           <div className="space-y-8">
             <SectionTitle>Podstawowe informacje</SectionTitle>
 
@@ -1617,6 +1772,9 @@ export default function DzialkaForm({
             <Hr className="mt-8" />
           </div>
 
+          )}
+
+          {step === 4 && (
           <div className="space-y-6">
             <SectionTitle>Kto sprzedaje?</SectionTitle>
 
@@ -1719,6 +1877,9 @@ export default function DzialkaForm({
             <Hr className="mt-8" />
           </div>
 
+          )}
+
+          {step === 0 && (
           <div className="space-y-6">
             <SectionTitle>
               Przeznaczenie <span className="text-[#9fd14b]">*</span>
@@ -1744,6 +1905,9 @@ export default function DzialkaForm({
             <Hr className="mt-8" />
           </div>
 
+          )}
+
+          {step === 3 && (
           <div className="space-y-10">
             <div className="space-y-6">
               <SectionTitle>Prąd</SectionTitle>
@@ -1825,6 +1989,9 @@ export default function DzialkaForm({
             </div>
           </div>
 
+          )}
+
+          {step === 3 && (
           <div className="space-y-8">
             <SectionTitle>Opcjonalne informacje</SectionTitle>
 
@@ -1982,6 +2149,9 @@ export default function DzialkaForm({
             `}</style>
           </div>
 
+          )}
+
+          {step === 2 && (
           <div className="space-y-6">
             <Hr className="mt-8" />
             <SectionTitle>
@@ -1999,41 +2169,69 @@ export default function DzialkaForm({
             <Hr className="mt-8" />
           </div>
 
+          )}
+
           {err && <div className="text-sm font-medium text-red-300">{err}</div>}
           {ok && <div className="text-sm font-medium text-white/85 underline decoration-white/40 underline-offset-8">{ok}</div>}
 
-          {mode === 'create' && (
+          {step === LAST_STEP && mode === 'create' && (
             <div className="text-xs text-white/35">
               Jeśli nie masz już dostępnych publikacji, po kliknięciu zapiszesz ofertę i przejdziesz do zakupu pakietu.
             </div>
           )}
 
-          <button
-            disabled={loading || uploadingPhotos || uploadingLogo}
-            className={cx('w-full py-5 text-[16px] md:text-[17px] font-semibold tracking-tight', 'disabled:opacity-60 transition')}
-            style={{
-              background: 'transparent',
-              color: 'white',
-              textDecoration: 'underline',
-              textUnderlineOffset: '12px',
-              textDecorationThickness: '1px',
-              textDecorationColor: 'rgba(243,239,245,0.65)',
-            }}
-          >
-            {uploadingPhotos
-              ? 'Wgrywam zdjęcia…'
-              : uploadingLogo
-              ? 'Wgrywam logo…'
-              : loading
-              ? shouldAutoPublish
-                ? 'Publikowanie przygotowanego ogłoszenia…'
-                : mode === 'edit'
-                ? 'Zapisywanie zmian…'
-                : 'Zapisywanie…'
-              : mode === 'edit'
-              ? 'Potwierdź zmiany'
-              : 'Dodaj ogłoszenie'}
-          </button>
+          {/* Nawigacja kreatora — przyklejona do dołu ekranu */}
+          <div className="sticky bottom-0 z-20 -mx-6 mt-2 border-t border-white/10 bg-[#131313]/95 px-6 py-4 backdrop-blur md:-mx-10 md:px-10">
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={goBack}
+                disabled={step === 0 || loading}
+                className={cx(
+                  'inline-flex items-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold transition',
+                  step === 0
+                    ? 'cursor-not-allowed border-white/10 text-white/30'
+                    : 'border-white/15 bg-white/[0.03] text-white hover:border-white/30 hover:bg-white/[0.05]'
+                )}
+              >
+                ← Wstecz
+              </button>
+
+              <div className="hidden text-[13px] font-medium text-white/40 sm:block">
+                Krok {step + 1} z {STEPS.length}
+              </div>
+
+              {step < LAST_STEP ? (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-[#7aa333] px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+                >
+                  Dalej →
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={loading || uploadingPhotos || uploadingLogo}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-[#7aa333] px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {uploadingPhotos
+                    ? 'Wgrywam zdjęcia…'
+                    : uploadingLogo
+                    ? 'Wgrywam logo…'
+                    : loading
+                    ? shouldAutoPublish
+                      ? 'Publikowanie…'
+                      : mode === 'edit'
+                      ? 'Zapisywanie zmian…'
+                      : 'Zapisywanie…'
+                    : mode === 'edit'
+                    ? 'Potwierdź zmiany'
+                    : 'Opublikuj ogłoszenie'}
+                </button>
+              )}
+            </div>
+          </div>
         </form>
       </div>
     </main>
