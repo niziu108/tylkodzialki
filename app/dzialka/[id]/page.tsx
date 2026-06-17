@@ -216,15 +216,17 @@ export default async function Page({ params }: PageProps) {
         />
       ) : null}
 
-      <div className="mx-auto max-w-7xl px-6 pt-6 md:px-10">
-        <Breadcrumbs
-          items={[
-            { label: 'Strona główna', href: '/' },
-            { label: 'Działki na sprzedaż', href: '/kup' },
-            { label: title },
-          ]}
-        />
-      </div>
+      {/* Breadcrumb tylko jako dane strukturalne (BreadcrumbList) — bez widocznej
+          nawigacji. Oferta startuje wyżej, a nawigację w górę zapewnia przycisk
+          „Wróć do listy" w DzialkaClient. */}
+      <Breadcrumbs
+        jsonLdOnly
+        items={[
+          { label: 'Strona główna', href: '/' },
+          { label: 'Działki na sprzedaż', href: '/kup' },
+          { label: title },
+        ]}
+      />
 
       <DzialkaClient key={id} initial={dzialka} />
 

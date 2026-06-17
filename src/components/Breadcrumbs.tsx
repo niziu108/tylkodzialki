@@ -8,7 +8,16 @@ export type BreadcrumbItem = {
   href?: string;
 };
 
-export default function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
+export default function Breadcrumbs({
+  items,
+  // jsonLdOnly: emituj wyłącznie dane strukturalne BreadcrumbList, bez widocznej
+  // nawigacji. Używane na stronie oferty (/dzialka/[id]), gdzie nawigację w górę
+  // zapewnia przycisk „Wróć do listy", a breadcrumb ma sens tylko SEO-wo.
+  jsonLdOnly = false,
+}: {
+  items: BreadcrumbItem[];
+  jsonLdOnly?: boolean;
+}) {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -22,6 +31,7 @@ export default function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
 
   return (
     <>
+      {jsonLdOnly ? null : (
       <nav aria-label="Breadcrumb" className="text-[13px] text-white/50">
         <ol className="flex flex-wrap items-center gap-2">
           {items.map((item, index) => (
@@ -39,6 +49,7 @@ export default function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
           ))}
         </ol>
       </nav>
+      )}
 
       <Script id="td-breadcrumb-schema" type="application/ld+json" strategy="afterInteractive">
         {JSON.stringify(jsonLd)}
