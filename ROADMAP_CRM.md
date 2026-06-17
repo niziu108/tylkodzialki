@@ -195,6 +195,14 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Wpływ biznesowy:** potencjalnie pojedynczy import Galactica mógł się nie zapisać; dziś nieobserwowany.
 - **Priorytet:** niski. Zweryfikować przy Sprincie 3 (monitoring) - tam i tak będziemy patrzeć na błędy importu.
 
+### P-F: EstiCRM brał tylko najnowszy ZIP, przyrostowy zasłaniał pełny eksport [NAPRAWIONE fb851eb]
+- **Gdzie:** `src/lib/crm/esticrm-sync.ts`, funkcja `downloadEstiFeedFromFtp` (wybór plików).
+- **Co:** silnik przetwarzał tylko najnowszy plik ZIP. Gdy biuro wrzuciło pełny eksport, a potem nowszy przyrostowy (`export="incremental"`), pełny był ignorowany i import dawał 0.
+- **Realny przypadek:** RGN Lublin (biuro@rgn.com.pl) - 50+ działek w pełnym eksporcie (459 MB), niewidocznych pod nowszym małym przyrostowym z 1 ofertą nie-działką. Import 0 mimo dobrej konfiguracji (`provider=ESTI_CRM`, `pattern=*.xml`).
+- **Naprawa (commit `fb851eb`):** silnik idzie od najnowszego pliku, zbiera przyrostowe i zatrzymuje się na pierwszym pełnym eksporcie (czyli najnowszy pełny + nowsze przyrostowe). Dla biur z samymi pełnymi eksportami zachowanie identyczne (pętla kończy się na idx 0), tryb nieznany też kończy pętlę konserwatywnie.
+- **Weryfikacja na produkcji (17.06):** RGN 0 → 51 działek; dsilodz dalej 9; pawlowskipolkowice dalej 12; wszystkie `SUCCESS`, 0 błędów. Wymagało restartu workera (`pm2 restart crm-worker`), który przy okazji zaktualizował workera do bieżącego kodu.
+- **Status:** naprawione i wdrożone. Pozostały dług powiązany: P-A (route usera `sync-now` nadal bez EstiCRM, idzie przez kolejkę/worker).
+
 ---
 
 ## CEL KOŃCOWY
