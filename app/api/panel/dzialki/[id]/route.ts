@@ -13,10 +13,11 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/auth-options';
 import { deleteFromR2 } from '@/lib/r2';
+import { MAX_PHOTOS_PER_OFFER } from '@/lib/photoLimits';
 
 export const runtime = 'nodejs';
 
-const MAX_PHOTOS = 7;
+const MAX_PHOTOS = MAX_PHOTOS_PER_OFFER;
 
 function badRequest(message: string, details?: any) {
   return NextResponse.json({ ok: false, message, details }, { status: 400 });
