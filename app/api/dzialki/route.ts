@@ -231,6 +231,7 @@ export async function GET(req: Request) {
         locationLabel: true,
         locationFull: true,
         parcelText: true,
+        locationMode: true,
         zdjecia: {
           take: 1,
           orderBy: { kolejnosc: 'asc' },
@@ -263,6 +264,7 @@ export async function GET(req: Request) {
       featured: isFeaturedActive(r),
       thumb: r.zdjecia[0]?.url ?? null,
       loc: r.locationLabel ?? null,
+      approx: r.locationMode === LocationMode.APPROX,
     }));
 
     return NextResponse.json({

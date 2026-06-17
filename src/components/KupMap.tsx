@@ -23,6 +23,7 @@ export type MapPoint = {
   featured?: boolean;
   thumb?: string | null;
   loc?: string | null;
+  approx?: boolean;
 };
 
 type Bounds = { n: number; s: number; e: number; w: number };
@@ -172,6 +173,9 @@ function popupHtml(p: MapPoint) {
     `</div>` +
     (meta ? `<div style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.82)">${meta}</div>` : '') +
     (loc ? `<div style="margin-top:3px;font-size:12px;color:rgba(255,255,255,0.55)">${loc}</div>` : '') +
+    (p.approx
+      ? `<div style="margin-top:7px"><span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#9fd14b;background:rgba(122,163,51,0.12);border:1px solid rgba(122,163,51,0.30);padding:3px 9px;border-radius:999px">◎ Lokalizacja przybliżona</span></div>`
+      : '') +
     `<div style="margin-top:10px;display:inline-block;background:#7aa333;color:#0c0c0c;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;border-radius:10px">Zobacz ofertę</div>` +
     `</div>` +
     `</a>`
@@ -214,6 +218,7 @@ export default function KupMap({
   const clustererRef = useRef<MarkerClusterer | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const labelsRef = useRef<Map<string, string>>(new Map());
+  const circleRef = useRef<google.maps.Circle | null>(null);
 
   const styledActiveRef = useRef<string | null>(null);
   const needsFitRef = useRef(false);
@@ -276,13 +281,35 @@ export default function KupMap({
 
         infoRef.current = new google.maps.InfoWindow({ maxWidth: 240 });
 
+        // Okrąg „obszaru" pokazywany po kliknięciu pinu z przybliżoną lokalizacją.
+        circleRef.current = new google.maps.Circle({
+          map,
+          center: POLAND_CENTER,
+          radius: 1200,
+          fillColor: '#7aa333',
+          fillOpacity: 0.12,
+          strokeColor: '#7aa333',
+          strokeOpacity: 0.5,
+          strokeWeight: 1,
+          clickable: false,
+          visible: false,
+          zIndex: 1,
+        });
+
         clustererRef.current = new MarkerClusterer({
           map,
           renderer: clusterRenderer(),
         });
 
+        infoRef.current.addListener('closeclick', () => {
+          circleRef.current?.setVisible(false);
+          onActiveChange?.(null);
+          setActive(null);
+        });
+
         map.addListener('click', () => {
           infoRef.current?.close();
+          circleRef.current?.setVisible(false);
           onActiveChange?.(null);
           setActive(null);
         });
@@ -401,6 +428,17 @@ export default function KupMap({
       marker.addListener('click', () => {
         infoRef.current?.setContent(popupHtml(p));
         infoRef.current?.open({ map: mapRef.current!, anchor: marker });
+
+        const c = circleRef.current;
+        if (c) {
+          if (p.approx && p.lat != null && p.lng != null) {
+            c.setCenter({ lat: p.lat, lng: p.lng });
+            c.setVisible(true);
+          } else {
+            c.setVisible(false);
+          }
+        }
+
         onActiveChange?.(p.id);
         setActive(p.id);
       });
@@ -443,11 +481,11 @@ export default function KupMap({
 
       {/* Szukaj w tym obszarze */}
       {ready && dirty && onSearchArea && (
-        <div className="pointer-events-none absolute left-1/2 top-4 z-[5] -translate-x-1/2">
+        <div className="pointer-events-none absolute left-1/2 top-16 z-[5] -translate-x-1/2 sm:top-4">
           <button
             type="button"
             onClick={handleSearchArea}
-            className="pointer-events-auto rounded-full border border-[#7aa333]/60 bg-[#131313]/95 px-5 py-2.5 text-[12px] font-medium uppercase tracking-[0.14em] text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur transition hover:border-[#7aa333] hover:bg-[#1b1b1b]"
+            className="pointer-events-auto rounded-full border border-[#7aa333]/60 bg-[#131313]/95 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur transition hover:border-[#7aa333] hover:bg-[#1b1b1b] sm:px-5 sm:py-2.5 sm:text-[12px]"
           >
             Szukaj w tym obszarze
           </button>
