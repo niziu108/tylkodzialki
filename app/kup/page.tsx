@@ -23,6 +23,8 @@ const ALLOWED_PRZEZN: Przeznaczenie[] = [
   'SIEDLISKOWA',
 ];
 
+const ALLOWED_MEDIA = ['prad', 'woda', 'kanalizacja', 'gaz'] as const;
+
 function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value ?? '';
 }
@@ -55,6 +57,13 @@ export default async function KupPage({ searchParams }: KupPageProps) {
     .split(',')
     .filter((x): x is Przeznaczenie =>
       ALLOWED_PRZEZN.includes(x as Przeznaczenie)
+    );
+
+  const media = one(sp.media)
+    .split(',')
+    .map((s) => s.trim())
+    .filter((x): x is (typeof ALLOWED_MEDIA)[number] =>
+      (ALLOWED_MEDIA as readonly string[]).includes(x)
     );
 
   // BBox „szukaj w tym obszarze" (P11) — zastępuje lokalizację tekstową/promień.
@@ -97,6 +106,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
           areaMin: digitsOnly(one(sp.areaMin)),
           areaMax: digitsOnly(one(sp.areaMax)),
           przezn,
+          media,
           bbox: hasBBox ? { n: bn, s: bs, e: be, w: bw } : null,
           sort,
         }}
