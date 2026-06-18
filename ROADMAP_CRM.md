@@ -1,6 +1,7 @@
 # ROADMAP CRM V2
 
-> **Status na 2026-06-17:** Sprint 2 (Auto-sync, strategia C) - **UKOŃCZONY i na produkcji**. Cron na VPS (06:00 i 18:00 UTC) kolejkuje import wszystkich aktywnych integracji przez istniejącą kolejkę + worker. Przetestowane na jednej integracji, potem pełny przebieg 50 integracji (same SUCCESS plus spodziewane „brak pliku" dla biur bez feedu). **Następny: Sprint 3 - Monitoring.**
+> **Status na 2026-06-18:** Sprint 3 (Monitoring synchronizacji) - **zaimplementowany i zweryfikowany lokalnie** (typecheck, lint, testy logiki statusu). Nowa read-only strona `/admin/crm` pokazuje wszystkie integracje w jednym miejscu (status zdrowia, ostatnia synchronizacja, liczba ofert, nowe, zaktualizowane, błędy), problemy na górze. Czeka na deploy (push na main → Vercel) i potwierdzenie na produkcji. **Następny: Sprint 4 - Alerty awarii CRM.**
+> Poprzednio: Sprint 2 (Auto-sync, strategia C) ukończony i na produkcji - cron na VPS (06:00 i 18:00 UTC) kolejkuje import wszystkich aktywnych integracji przez kolejkę + worker.
 > Raport z audytu: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md) · Instrukcja auto-sync: [docs/CRM_AUTOSYNC.md](docs/CRM_AUTOSYNC.md)
 
 ## Jak prowadzimy sprinty
@@ -13,8 +14,8 @@ i wpisz w niej numer aktualnego sprintu.
 
 - [x] **Sprint 1 - Audyt obecnych integracji** (ukończony 2026-06-17, raport: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md))
 - [x] **Sprint 2 - Automatyczna synchronizacja CRM** (ukończony 2026-06-17, strategia C; cron na VPS 2x dziennie kolejkuje aktywne integracje przez kolejkę + worker)
-- [ ] **Sprint 3 - Monitoring synchronizacji** (NASTĘPNY)
-- [ ] Sprint 4 - Alerty awarii CRM
+- [x] **Sprint 3 - Monitoring synchronizacji** (kod gotowy 2026-06-18, zweryfikowany lokalnie; do potwierdzenia na produkcji po deployu)
+- [ ] **Sprint 4 - Alerty awarii CRM** (NASTĘPNY)
 - [ ] Sprint 5 - Ujednolicenie architektury CRM
 - [ ] Sprint 6 - IMO CRM (analiza)
 - [ ] Sprint 7 - IMO CRM (implementacja)
@@ -116,11 +117,46 @@ Najważniejszy sprint. Wcześniej synchronizacja była w 100% ręczna. Teraz dzi
 
 ---
 
-## CRM SPRINT 3 - Monitoring synchronizacji
+## CRM SPRINT 3 - Monitoring synchronizacji [KOD GOTOWY 2026-06-18, do potwierdzenia na produkcji]
 
 Dla każdego CRM pokazywać: ostatnia synchronizacja, liczba ofert, liczba nowych ofert,
 liczba zaktualizowanych ofert, liczba błędów.
 Cel: szybkie wykrywanie problemów.
+
+### Stan realizacji
+
+**Kluczowe ustalenie analizy:** wszystkie potrzebne dane już istnieją na `CrmIntegration`
+(`lastSyncAt`, `lastSuccessAt`, `lastErrorAt`, `lastErrorMessage`, `lastImportedOffers`,
+`lastCreatedCount`, `lastUpdatedCount`, `lastErrorCount`) i są zapisywane przez wszystkie trzy
+silniki po każdym imporcie. Sprint 3 to więc **czysty odczyt**, bez zbierania nowych danych
+i bez migracji bazy.
+
+**Co powstało:**
+- Nowa, read-only strona serwerowa `app/admin/crm/page.tsx` (route `/admin/crm`): zbiorczy
+  monitoring wszystkich integracji w jednej tabeli. Kolumny: status zdrowia, biuro/integracja
+  (link do `/admin/crm/{userId}`), system CRM, ostatnia synchronizacja (+ czas względny i data
+  ostatniego sukcesu), liczba ofert (`lastImportedOffers`), nowe, zaktualizowane, błędy
+  (+ `lastErrorMessage`). Sortowanie: problemy na górze.
+- Pasek podsumowania: liczniki ogólne (Błędy / Nieświeże / OK / Wyłączone) oraz rozbicie
+  per system CRM (Galactica / Asari / EstiCRM / ...).
+- Status zdrowia liczony zgodnie z semantyką silników: **Błąd** (`lastErrorCount > 0` albo
+  ostatni przebieg padł: `lastErrorAt` nowszy od `lastSuccessAt`), **Nieświeże** (brak udanego
+  importu > 48 h; cron leci co 12 h), **OK**, **Wyłączona** (`isActive = false`).
+- Link „Monitoring CRM" w nagłówku panelu admina (`app/admin/page.tsx`), zmiana addytywna.
+
+**Bezpieczeństwo (zasada nadrzędna):** zero zmian w silnikach, workerze, kolejce `CrmImportJob`,
+`run-crm-job.ts`, `enqueueAutoSyncJobs` i route'ach `sync-now`. Brak zapisów do bazy, brak
+migracji, dostęp tylko dla admina (ten sam guard co reszta `/admin`). Ryzyko dla działających
+integracji: praktycznie zerowe (czysta nakładka odczytująca).
+
+**Jak zweryfikowane (lokalnie):** `tsc --noEmit` bez błędów, `eslint` czysty, test logiki statusu
+(9/9 przypadków: pełna awaria, błędy cząstkowe, 0 ofert, nieświeże, nigdy nie synchronizowana,
+świeże tuż przed progiem). Podgląd w przeglądarce wymaga sesji admina i żywej bazy, więc finalne
+potwierdzenie na produkcji po deployu (build wykonuje Vercel).
+
+**Do potwierdzenia na produkcji po deployu:** wejść na `/admin/crm`, sprawdzić że widać wszystkie
+integracje, że biuro bez pliku (znany błąd) jest oznaczone i na górze, oraz że liczby zgadzają się
+z edytorem per user.
 
 ## CRM SPRINT 4 - Alerty awarii CRM
 
