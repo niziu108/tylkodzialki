@@ -1,6 +1,6 @@
 # ROADMAP CRM V2
 
-> **Status na 2026-06-18:** Sprint 3 (Monitoring synchronizacji) - **zaimplementowany i zweryfikowany lokalnie** (typecheck, lint, testy logiki statusu). Nowa read-only strona `/admin/crm` pokazuje wszystkie integracje w jednym miejscu (status zdrowia, ostatnia synchronizacja, liczba ofert, nowe, zaktualizowane, błędy), problemy na górze. Czeka na deploy (push na main → Vercel) i potwierdzenie na produkcji. **Następny: Sprint 4 - Alerty awarii CRM.**
+> **Status na 2026-06-18:** Sprint 3 (Monitoring synchronizacji) - **UKOŃCZONY i na produkcji** (potwierdzone przez Daniela). Nowa read-only strona `/admin/crm` pokazuje wszystkie integracje w jednym miejscu (status zdrowia, ostatnia synchronizacja, liczba ofert, nowe, zaktualizowane, błędy), problemy na górze. Czysty odczyt pól `CrmIntegration.last*`, bez zmian w silnikach/workerze/kolejce i bez migracji. **Następny: Sprint 4 - Alerty awarii CRM.**
 > Poprzednio: Sprint 2 (Auto-sync, strategia C) ukończony i na produkcji - cron na VPS (06:00 i 18:00 UTC) kolejkuje import wszystkich aktywnych integracji przez kolejkę + worker.
 > Raport z audytu: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md) · Instrukcja auto-sync: [docs/CRM_AUTOSYNC.md](docs/CRM_AUTOSYNC.md)
 
@@ -14,7 +14,7 @@ i wpisz w niej numer aktualnego sprintu.
 
 - [x] **Sprint 1 - Audyt obecnych integracji** (ukończony 2026-06-17, raport: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md))
 - [x] **Sprint 2 - Automatyczna synchronizacja CRM** (ukończony 2026-06-17, strategia C; cron na VPS 2x dziennie kolejkuje aktywne integracje przez kolejkę + worker)
-- [x] **Sprint 3 - Monitoring synchronizacji** (kod gotowy 2026-06-18, zweryfikowany lokalnie; do potwierdzenia na produkcji po deployu)
+- [x] **Sprint 3 - Monitoring synchronizacji** (ukończony 2026-06-18, na produkcji; read-only strona `/admin/crm`)
 - [ ] **Sprint 4 - Alerty awarii CRM** (NASTĘPNY)
 - [ ] Sprint 5 - Ujednolicenie architektury CRM
 - [ ] Sprint 6 - IMO CRM (analiza)
@@ -117,7 +117,7 @@ Najważniejszy sprint. Wcześniej synchronizacja była w 100% ręczna. Teraz dzi
 
 ---
 
-## CRM SPRINT 3 - Monitoring synchronizacji [KOD GOTOWY 2026-06-18, do potwierdzenia na produkcji]
+## CRM SPRINT 3 - Monitoring synchronizacji [UKOŃCZONY 2026-06-18, na produkcji]
 
 Dla każdego CRM pokazywać: ostatnia synchronizacja, liczba ofert, liczba nowych ofert,
 liczba zaktualizowanych ofert, liczba błędów.
@@ -154,9 +154,8 @@ integracji: praktycznie zerowe (czysta nakładka odczytująca).
 świeże tuż przed progiem). Podgląd w przeglądarce wymaga sesji admina i żywej bazy, więc finalne
 potwierdzenie na produkcji po deployu (build wykonuje Vercel).
 
-**Do potwierdzenia na produkcji po deployu:** wejść na `/admin/crm`, sprawdzić że widać wszystkie
-integracje, że biuro bez pliku (znany błąd) jest oznaczone i na górze, oraz że liczby zgadzają się
-z edytorem per user.
+**Potwierdzone na produkcji (2026-06-18):** Daniel zweryfikował działanie strony `/admin/crm`
+na żywym portalu. Sprint zamknięty.
 
 ## CRM SPRINT 4 - Alerty awarii CRM
 
