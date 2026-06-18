@@ -1,6 +1,6 @@
 # ROADMAP CRM V2
 
-> **Status na 2026-06-18:** Sprint 6 (IMO CRM, analiza) - **UKOŃCZONY**. Kluczowe ustalenie: IMO eksportuje w formacie domy.pl/Oferty.net/Melog, który już parsuje silnik `src/lib/crm/domypl-sync.ts`; provider `IMOX` jest w enumie, panelu admina i routingu (kieruje do silnika domypl). Integracja to domknięcie różnic, nie nowy silnik: klasyfikacja działki i transakcji z atrybutów `<dzial tab/typ>` (dziś po prefiksie ID GS/GW pod Galacticę), opcjonalnie `<oferta_usun>`, oraz FTP na VPS (IMO wgrywa push, worker czyta pull). Decyzje Daniela 2026-06-18: architektura przez parametryzację wspólnego silnika bez kopii (ścieżka Galactiki bez zmian), FTP na VPS z kontem per biuro, wariant płatny IMO (1500 PLN netto). **Następny: Sprint 7 - IMO CRM (implementacja).** Sprint 3 (Monitoring) ukończony i na produkcji; Sprint 4 (Alerty) i Sprint 5 (Ujednolicenie) świadomie odłożone, nie porzucone.
+> **Status na 2026-06-18:** Sprint 6 (IMO CRM, analiza) - **UKOŃCZONY**. Kluczowe ustalenie: IMO eksportuje w formacie domy.pl/Oferty.net/Melog, który już parsuje silnik `src/lib/crm/domypl-sync.ts`; provider `IMOX` jest w enumie, panelu admina i routingu (kieruje do silnika domypl). Integracja to domknięcie różnic, nie nowy silnik: klasyfikacja działki i transakcji z atrybutów `<dzial tab/typ>` (dziś po prefiksie ID GS/GW pod Galacticę), opcjonalnie `<oferta_usun>`, oraz FTP na VPS (IMO wgrywa push, worker czyta pull). Decyzje Daniela 2026-06-18: architektura przez parametryzację wspólnego silnika bez kopii (ścieżka Galactiki bez zmian), FTP na VPS z kontem per biuro, wariant płatny IMO (1500 PLN netto). Odpowiedzi IMO (2026-06-18) potwierdziły plan; obsługa `<oferta_usun>` jest wymagana, bo pełny eksport idzie tylko raz na 30 dni (codziennie różnicowe). **Następny: Sprint 7 - IMO CRM (implementacja).** Sprint 3 (Monitoring) ukończony i na produkcji; Sprint 4 (Alerty) i Sprint 5 (Ujednolicenie) świadomie odłożone, nie porzucone.
 > Poprzednio: Sprint 2 (Auto-sync, strategia C) ukończony i na produkcji - cron na VPS (06:00 i 18:00 UTC) kolejkuje import wszystkich aktywnych integracji przez kolejkę + worker.
 > Raport z audytu: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md) · Instrukcja auto-sync: [docs/CRM_AUTOSYNC.md](docs/CRM_AUTOSYNC.md)
 
@@ -204,9 +204,11 @@ i nie pasują do IMO:
 - **R-B (ważne): sprzedaż vs wynajem.** Dekodowane z prefiksu `GW` lub słów w tytule (`:934`).
   IMO koduje to w atrybucie `<dzial typ="wynajem">`, dziś ignorowanym. Działki na wynajem z IMO
   trafiłyby jako SPRZEDAŻ.
-- **R-C (średnie): usuwanie różnicowe `<oferta_usun>`.** Nieobsługiwane (parser nie łapie tagu).
-  Oferta skasowana w IMO zniknie z portalu dopiero przy najbliższym pełnym eksporcie
-  (`calosc` + `fullImportMode`), nie od razu. Pilność zależy od polityki eksportu IMO.
+- **R-C (WYMAGANE po odpowiedzi IMO): usuwanie różnicowe `<oferta_usun>`.** Nieobsługiwane dziś
+  (parser nie łapie tagu). IMO wysyła pełny eksport tylko na starcie i potem raz na 30 dni, a na co
+  dzień różnicowe, w których usunięcia idą przez `<oferta_usun>`. Dezaktywacja przy pełnym eksporcie
+  (R1) posprząta więc tylko raz na miesiąc; bieżące znikanie ofert trzeba oprzeć na `<oferta_usun>`
+  z różnicowych. Aktywne usuwanie ograniczyć do `provider = IMOX`, by nie zmienić zachowania Galactiki.
 
 Bez zmian (bezpieczne, nie ruszać): idempotencja (unikat `CrmOfferLink(integrationId, externalId)`),
 bezpiecznik dezaktywacji R1 (działa też dla IMO, bo `calosc` jest rozpoznawane), izolacja per
@@ -224,6 +226,28 @@ ze Sprintu 5 (wspólny moduł helperów), bo czwarty silnik od razu zweryfikuje 
   uzgodnić, żeby nie oblać testu za celowe ignorowanie mieszkań/domów/lokali.
 - Eksport pełny czy różnicowy i z jaką częstotliwością (przesądza pilność R-C).
 - Potwierdzenie, że dane FTP (host/login/katalog per biuro) podajemy my.
+
+### Odpowiedzi IMO (2026-06-18, potwierdzone mailowo)
+Daniel wysłał pytania, IMO odpowiedziało; komplet zamyka analizę realnymi danymi:
+- Profil "tylko działki" zaakceptowany; weryfikacja obejmie wyłącznie kategorię działek.
+- Oferty działek zawsze w `<dzial tab="dzialki">`, atrybut `typ` ("sprzedaz"/"wynajem") zawsze
+  ustawiony. Klasyfikację (R-A) i transakcję (R-B) opieramy pewnie na `<dzial>`, bez heurystyk.
+- `typdzialki` bywa pusty (pole nieobowiązkowe). Nie polegać na nim; przy pustym dać domyślne
+  przeznaczenie (jak push API: `BUDOWLANA`).
+- Tryb eksportu: pełny tylko pierwszy raz i potem raz na 30 dni; codziennie różnicowe z pełnym
+  kompletem danych oferty. Usunięcia przez `<oferta_usun>` (stąd R-C wymagane). Brak cyklicznego
+  pełnego eksportu do bieżącej dezaktywacji, ale pełny ma charakter usuwający (przysłane 8 z 10
+  zostawia 8 = nasz bezpiecznik R1 przy `calosc`).
+- `<id>` oferty stałe w czasie (idempotencja OK).
+- FTP: zakładamy my, osobne konto i katalog per biuro; wyłącznie zwykły FTP, port 21 (zgodne z
+  silnikiem, `secure: false`; serwer na VPS w trybie pasywnym).
+- Paczka `oferty_*.zip` z `oferty.xml` + zdjęcia luzem, nazwy bez polskich znaków i unikalne
+  (zgodne z naszym odczytem ZIP).
+- Start weryfikacji: po opłacie proformy IMO startuje od razu, gdy dostanie konto w portalu (dla
+  `pomoc@imo.pl`) i testowe konto FTP. Konfigurację eksportu po stronie biura zwykle robi pomoc IMO
+  (biuro przekazuje dane FTP). Nasz import: 2x dziennie + na żądanie.
+- Po stronie Daniela do startu: opłata 1500 PLN netto, konto testowe portalu dla `pomoc@imo.pl`,
+  testowe konto FTP.
 
 ### Jak zweryfikowano
 Sprint analityczny, bez kodu. Weryfikacja przez czytanie kodu produkcyjnego: silnik domypl (parser
@@ -247,7 +271,9 @@ nadrzędna: wstecznie zerowe dla Galactiki/Asari/Esti.
 > **Wejście (z analizy Sprintu 6, decyzje Daniela 2026-06-18):** (1) parametryzacja klasyfikacji
 > w silniku domypl per provider, ścieżka Galactiki bez zmian; (2) FTP na VPS z kontem i katalogiem
 > per biuro; wariant płatny IMO (1500 PLN netto). Zakres: R-A (klasyfikacja działki z `<dzial tab>`),
-> R-B (sprzedaż/wynajem z `<dzial typ>`), R-C (opcjonalnie `<oferta_usun>`). Rozważyć Fazę 1 ze
+> R-B (sprzedaż/wynajem z `<dzial typ>`), R-C (`<oferta_usun>` WYMAGANE, bo pełny eksport idzie tylko
+> raz na 30 dni; aktywne usuwanie tylko dla IMOX). Parser `streamParseDomyPlOffers` musi zacząć czytać
+> `<dzial tab/typ>` i `<oferta_usun>` (dziś łapie tylko `header` i `oferta`). Rozważyć Fazę 1 ze
 > Sprintu 5 (wspólny moduł helperów) jako fundament. Zasada nadrzędna: wstecznie zerowe dla
 > Galactiki/Asari/Esti, najpierw test na jednej integracji.
 
