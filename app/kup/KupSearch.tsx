@@ -112,6 +112,8 @@ const VALID_SORTS: SortOption[] = ['newest', 'oldest', 'price_asc', 'price_desc'
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'newest', label: 'Najnowsze' },
   { value: 'oldest', label: 'Najstarsze' },
+  { value: 'price_asc', label: 'Cena rosnąco' },
+  { value: 'price_desc', label: 'Cena malejąco' },
   { value: 'area_asc', label: 'Pow. rosnąco' },
   { value: 'area_desc', label: 'Pow. malejąco' },
 ];
