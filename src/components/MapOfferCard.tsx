@@ -70,7 +70,8 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
     setI((v) => (v + dir + total) % total);
   };
 
-  const zlM2 = point.area > 0 ? Math.round(point.cena / point.area) : 0;
+  const isRent = point.transakcja === 'WYNAJEM';
+  const zlM2 = !isRent && point.area > 0 ? Math.round(point.cena / point.area) : 0;
   const przezn = (point.przezn ?? []).map((x) => PRZEZN_LABEL[x] ?? x).filter(Boolean).join(', ') || '—';
   const loc = (point.loc ?? '').trim() || 'Lokalizacja niepodana';
 
@@ -125,6 +126,12 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
             </span>
           )}
 
+          {isRent && (
+            <span className="absolute left-3 bottom-3 rounded-full border border-white/30 bg-black/65 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-white backdrop-blur-sm">
+              NA WYNAJEM
+            </span>
+          )}
+
           {total > 1 && (
             <>
               <button
@@ -158,7 +165,10 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
             <div className="min-w-0 text-center">
               <div className="text-[10px] uppercase tracking-[0.16em] text-[#7aa333]">Cena</div>
               <div className="mt-1.5 flex flex-wrap items-baseline justify-center gap-x-1.5">
-                <span className="text-[19px] font-semibold leading-none text-white">{formatPLN(point.cena)}</span>
+                <span className="text-[19px] font-semibold leading-none text-white">
+                  {formatPLN(point.cena)}
+                  {isRent ? <span className="text-[12px] font-normal text-white/65">/mc</span> : null}
+                </span>
                 {zlM2 ? <span className="text-[11px] text-white/55">{formatIntPL(zlM2)} zł/m²</span> : null}
               </div>
             </div>

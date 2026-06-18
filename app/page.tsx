@@ -116,6 +116,7 @@ export default async function HomePage() {
     tytul: d.tytul,
     cenaPln: d.cenaPln,
     powierzchniaM2: d.powierzchniaM2,
+    transakcja: d.transakcja,
     locationLabel: d.locationLabel,
     przeznaczenia: d.przeznaczenia,
     zdjecia: (d.zdjecia ?? []).map((z) => ({ url: z.url, kolejnosc: z.kolejnosc })),

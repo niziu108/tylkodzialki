@@ -25,6 +25,8 @@ const ALLOWED_PRZEZN: Przeznaczenie[] = [
 
 const ALLOWED_MEDIA = ['prad', 'woda', 'kanalizacja', 'gaz'] as const;
 
+const ALLOWED_TRANSAKCJA = ['SPRZEDAZ', 'WYNAJEM'] as const;
+
 function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value ?? '';
 }
@@ -64,6 +66,13 @@ export default async function KupPage({ searchParams }: KupPageProps) {
     .map((s) => s.trim())
     .filter((x): x is (typeof ALLOWED_MEDIA)[number] =>
       (ALLOWED_MEDIA as readonly string[]).includes(x)
+    );
+
+  const transakcja = one(sp.transakcja)
+    .split(',')
+    .map((s) => s.trim())
+    .filter((x): x is (typeof ALLOWED_TRANSAKCJA)[number] =>
+      (ALLOWED_TRANSAKCJA as readonly string[]).includes(x)
     );
 
   // BBox „szukaj w tym obszarze" (P11) — zastępuje lokalizację tekstową/promień.
@@ -107,6 +116,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
           areaMax: digitsOnly(one(sp.areaMax)),
           przezn,
           media,
+          transakcja,
           bbox: hasBBox ? { n: bn, s: bs, e: be, w: bw } : null,
           sort,
         }}

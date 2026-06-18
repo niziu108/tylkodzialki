@@ -36,6 +36,7 @@ function criteriaFromAlert(a: AlertWithUser): AlertCriteria {
     areaMin: a.areaMin,
     areaMax: a.areaMax,
     przeznaczenia: a.przeznaczenia,
+    transakcja: a.transakcja,
     lat: a.lat,
     lng: a.lng,
     radiusKm: a.radiusKm,
@@ -180,6 +181,11 @@ export async function runOfferAlerts() {
 
     if (criteria.przeznaczenia.length) {
       andFilters.push({ przeznaczenia: { hasSome: criteria.przeznaczenia } });
+    }
+
+    // Typ oferty: 1 wybrany = zawęź; 0 lub 2 = bez zawężenia (spójnie z filtrem /kup).
+    if (criteria.transakcja.length === 1) {
+      andFilters.push({ transakcja: criteria.transakcja[0] });
     }
 
     const candidates = await prisma.dzialka.findMany({

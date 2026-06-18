@@ -19,6 +19,7 @@ function criteriaFromRow(a: {
   areaMin: number | null;
   areaMax: number | null;
   przeznaczenia: AlertCriteria['przeznaczenia'];
+  transakcja: AlertCriteria['transakcja'];
   lat: number | null;
   lng: number | null;
   radiusKm: number | null;
@@ -30,6 +31,7 @@ function criteriaFromRow(a: {
     areaMin: a.areaMin,
     areaMax: a.areaMax,
     przeznaczenia: a.przeznaczenia,
+    transakcja: a.transakcja,
     lat: a.lat,
     lng: a.lng,
     radiusKm: a.radiusKm,
@@ -99,6 +101,7 @@ export async function POST(req: Request) {
       areaMin: criteria.areaMin,
       areaMax: criteria.areaMax,
       przeznaczenia: criteria.przeznaczenia,
+      transakcja: criteria.transakcja,
       lat: criteria.lat,
       lng: criteria.lng,
       radiusKm: criteria.radiusKm,

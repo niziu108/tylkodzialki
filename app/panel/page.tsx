@@ -105,6 +105,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             tytul: true,
             cenaPln: true,
             powierzchniaM2: true,
+            transakcja: true,
             locationLabel: true,
             przeznaczenia: true,
             status: true,

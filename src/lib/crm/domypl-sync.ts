@@ -16,6 +16,7 @@ import {
   PradStatus,
   Prisma,
   Przeznaczenie,
+  TransakcjaTyp,
   WodaStatus,
 } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
@@ -56,6 +57,7 @@ type ParsedDomyOffer = {
   mapsUrl: string | null;
   plotTypeRaw: string | null;
   przeznaczenia: Przeznaczenie[];
+  transakcja: TransakcjaTyp;
   photoFileNames: string[];
   biuroNazwa: string | null;
   biuroOpiekun: string | null;
@@ -926,6 +928,15 @@ const isLandOffer =
 
     const description = toTextValue(params.opis) || null;
 
+    // Sprzedaż vs wynajem. domy.pl koduje to w numerze oferty: GS = Grunt Sprzedaż, GW = Grunt Wynajem.
+    // Dla pewności dokładamy sygnał ze słów kluczowych w tytule (część biur myli kod, np. GS + „na wynajem")
+    // — ta sama logika co jednorazowy backfill, dzięki czemu re-sync nie cofa poprawnej klasyfikacji.
+    const isRentByCode =
+      externalIdUpper.startsWith("GW") || externalIdUpper.includes("-GW-");
+    const isRentByTitle = /(wynaj|dzierżaw|dzierzaw)/i.test(title);
+    const transakcja: TransakcjaTyp =
+      isRentByCode || isRentByTitle ? "WYNAJEM" : "SPRZEDAZ";
+
     const lat = toNumber(params.n_geo_y) ?? toNumber(params.wsp_x);
     const lng = toNumber(params.n_geo_x) ?? toNumber(params.wsp_y);
     const mapsUrl = buildMapsUrl(lat, lng);
@@ -968,6 +979,7 @@ const isLandOffer =
       mapsUrl,
       plotTypeRaw,
       przeznaczenia: mapPlotTypeToPrzeznaczenia(plotTypeRaw),
+      transakcja,
       photoFileNames,
       biuroNazwa: headerMeta.agencyName,
       biuroOpiekun,
@@ -1161,6 +1173,7 @@ function buildDzialkaDataFromOffer(offer: ParsedDomyOffer) {
     tytul: offer.title,
     cenaPln: offer.pricePln,
     powierzchniaM2: offer.areaM2,
+    transakcja: offer.transakcja,
     email: offer.email,
     telefon: offer.phone,
     sprzedajacyTyp: "BIURO" as const,

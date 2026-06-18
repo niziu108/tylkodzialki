@@ -62,6 +62,7 @@ type DzialkaDraft = {
   telefon: string;
   cenaPln: string;
   powierzchniaM2: string;
+  transakcja: 'SPRZEDAZ' | 'WYNAJEM';
   sprzedajacyTyp: SprzedajacyTypUI;
   sprzedajacyImie: string;
   biuroNazwa: string;
@@ -113,6 +114,7 @@ export type DzialkaFormInitialData = {
   email?: string;
   cenaPln: number;
   powierzchniaM2: number;
+  transakcja?: 'SPRZEDAZ' | 'WYNAJEM' | null;
   sprzedajacyTyp: 'PRYWATNIE' | 'BIURO';
   sprzedajacyImie?: string | null;
   biuroNazwa?: string | null;
@@ -560,6 +562,10 @@ export default function DzialkaForm({
     typeof initialData?.powierzchniaM2 === 'number' ? formatThousandsSpaces(String(initialData.powierzchniaM2)) : ''
   );
 
+  const [transakcja, setTransakcja] = useState<'SPRZEDAZ' | 'WYNAJEM'>(
+    initialData?.transakcja === 'WYNAJEM' ? 'WYNAJEM' : 'SPRZEDAZ'
+  );
+
   const [sprzedajacyTyp, setSprzedajacyTyp] = useState<SprzedajacyTypUI>(
     initialData?.sprzedajacyTyp === 'BIURO' ? 'BIURO_NIERUCHOMOSCI' : 'PRYWATNIE'
   );
@@ -787,6 +793,7 @@ export default function DzialkaForm({
     setTelefon(draft.telefon ?? defaults?.telefon ?? '');
     setCenaPln(draft.cenaPln ?? '');
     setPowierzchniaM2(draft.powierzchniaM2 ?? '');
+    setTransakcja(draft.transakcja === 'WYNAJEM' ? 'WYNAJEM' : 'SPRZEDAZ');
     setSprzedajacyTyp(draft.sprzedajacyTyp ?? defaults?.sprzedajacyTyp ?? 'PRYWATNIE');
     setSprzedajacyImie(draft.sprzedajacyImie ?? defaults?.sprzedajacyImie ?? '');
     setBiuroNazwa(draft.biuroNazwa ?? defaults?.biuroNazwa ?? '');
@@ -828,6 +835,7 @@ export default function DzialkaForm({
       telefon,
       cenaPln,
       powierzchniaM2,
+      transakcja,
       sprzedajacyTyp,
       sprzedajacyImie,
       biuroNazwa,
@@ -859,6 +867,7 @@ export default function DzialkaForm({
     telefon,
     cenaPln,
     powierzchniaM2,
+    transakcja,
     sprzedajacyTyp,
     sprzedajacyImie,
     biuroNazwa,
@@ -1092,6 +1101,7 @@ export default function DzialkaForm({
       tytul: tytul.trim().slice(0, MAX_TITLE_CHARS),
       powierzchniaM2: pm2,
       cenaPln: cena,
+      transakcja,
       przeznaczenia,
       telefon: telefon.trim(),
       opis: opis.trim() ? opis.trim().slice(0, MAX_OPIS_CHARS) : null,
@@ -1126,6 +1136,7 @@ export default function DzialkaForm({
       telefon,
       cenaPln,
       powierzchniaM2,
+      transakcja,
       sprzedajacyTyp,
       sprzedajacyImie,
       biuroNazwa,
@@ -1775,6 +1786,18 @@ export default function DzialkaForm({
           <div className="space-y-8">
             <SectionTitle>Podstawowe informacje</SectionTitle>
 
+            <div>
+              <div className="mb-3 text-[12px] uppercase tracking-[0.22em] text-white/50">Typ oferty</div>
+              <Tabs
+                value={transakcja}
+                onChange={(v) => setTransakcja(v as 'SPRZEDAZ' | 'WYNAJEM')}
+                options={[
+                  { value: 'SPRZEDAZ', label: 'Sprzedaż' },
+                  { value: 'WYNAJEM', label: 'Wynajem' },
+                ]}
+              />
+            </div>
+
             <div className="grid gap-10 md:grid-cols-2">
               <UnderlineField
                 label="Telefon"
@@ -1789,10 +1812,10 @@ export default function DzialkaForm({
               />
 
               <UnderlineField
-                label="Cena (PLN)"
+                label={transakcja === 'WYNAJEM' ? 'Czynsz (PLN / miesiąc)' : 'Cena (PLN)'}
                 value={cenaPln}
                 onChange={(v) => { setCenaPln(formatThousandsSpaces(v)); clearFieldError('cenaPln'); }}
-                placeholder="Np. 150 000"
+                placeholder={transakcja === 'WYNAJEM' ? 'Np. 2 500' : 'Np. 150 000'}
                 inputMode="numeric"
                 required
                 error={fieldErrors.has('cenaPln')}

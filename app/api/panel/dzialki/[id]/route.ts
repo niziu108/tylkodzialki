@@ -8,6 +8,7 @@ import {
   KanalizacjaStatus,
   GazStatus,
   SwiatlowodStatus,
+  TransakcjaTyp,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
@@ -106,6 +107,7 @@ export async function PATCH(req: Request, { params }: Props) {
     tytul,
     powierzchniaM2,
     cenaPln,
+    transakcja,
     przeznaczenia,
     telefon,
     opis,
@@ -198,6 +200,9 @@ export async function PATCH(req: Request, { params }: Props) {
   const seller: SprzedajacyTyp =
     sprzedajacyTyp === 'BIURO' ? SprzedajacyTyp.BIURO : SprzedajacyTyp.PRYWATNIE;
 
+  const transakcjaParsed: TransakcjaTyp =
+    transakcja === 'WYNAJEM' ? TransakcjaTyp.WYNAJEM : TransakcjaTyp.SPRZEDAZ;
+
   const telefonClean = telefon.trim();
   const nr = cleanOptionalString(numerOferty);
   const sprzedajacyImieClean = cleanOptionalString(sprzedajacyImie);
@@ -252,6 +257,7 @@ export async function PATCH(req: Request, { params }: Props) {
           tytul: tytul.trim(),
           powierzchniaM2,
           cenaPln,
+          transakcja: transakcjaParsed,
           przeznaczenia: mappedPrzeznaczenia,
           telefon: telefonClean,
           email: dbUser.email ?? null,

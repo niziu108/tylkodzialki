@@ -83,6 +83,7 @@ model Dzialka {
   tytul          String
   cenaPln        Int
   powierzchniaM2 Int
+  transakcja     TransakcjaTyp   @default(SPRZEDAZ)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   editToken      String          @unique
@@ -191,6 +192,7 @@ model OfferAlert {
   areaMin          Int?
   areaMax          Int?
   przeznaczenia    Przeznaczenie[]
+  transakcja       TransakcjaTyp[]
   lat              Float?
   lng              Float?
   radiusKm         Int?
@@ -533,6 +535,11 @@ enum Role {
 enum DzialkaStatus {
   AKTYWNE
   ZAKONCZONE
+}
+
+enum TransakcjaTyp {
+  SPRZEDAZ
+  WYNAJEM
 }
 
 enum DzialkaSourceType {

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import type { Przeznaczenie } from '@prisma/client';
+import type { Przeznaczenie, TransakcjaTyp } from '@prisma/client';
 
 /* ────────────────────────────────────────────────────────────────────────────
  *  Wspólna karta oferty — jedno źródło prawdy dla listy /kup i raili na stronie
@@ -45,6 +45,7 @@ export type OfferData = {
   tytul: string;
   cenaPln: number;
   powierzchniaM2: number;
+  transakcja?: TransakcjaTyp | null;
   locationLabel?: string | null;
   przeznaczenia?: Przeznaczenie[];
   zdjecia?: Photo[];
@@ -268,6 +269,7 @@ function Carousel({
   coverFallback,
   title,
   featured,
+  rent = false,
   eagerImage = false,
   isFavorite,
   onToggleFavorite,
@@ -276,6 +278,7 @@ function Carousel({
   coverFallback: string | null;
   title: string;
   featured: boolean;
+  rent?: boolean;
   eagerImage?: boolean;
   isFavorite: boolean;
   onToggleFavorite: () => void;
@@ -385,6 +388,14 @@ function Carousel({
             </div>
           ) : null}
 
+          {rent ? (
+            <div className="absolute bottom-4 left-4 z-10">
+              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
+                NA WYNAJEM
+              </span>
+            </div>
+          ) : null}
+
           {list.length > 1 && (
             <>
               <button
@@ -442,7 +453,9 @@ export function OfferCard({
   const coverFallback = photos[0]?.url ?? null;
   const loc = d.locationLabel?.trim() || 'Lokalizacja niepodana';
   const area = d.powierzchniaM2 ?? 0;
-  const zlZaM2 = area ? Math.round(d.cenaPln / area) : 0;
+  const isRent = d.transakcja === 'WYNAJEM';
+  // zł/m² nie ma sensu dla wynajmu (cena to czynsz miesięczny, nie cena gruntu) — pokazujemy tylko dla sprzedaży.
+  const zlZaM2 = !isRent && area ? Math.round(d.cenaPln / area) : 0;
   const przezn = d.przeznaczenia?.length
     ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ')
     : '—';
@@ -492,6 +505,7 @@ export function OfferCard({
         coverFallback={coverFallback}
         title={d.tytul}
         featured={featured}
+        rent={isRent}
         eagerImage={eagerImage}
         isFavorite={isFavorite}
         onToggleFavorite={() => onToggleFavorite(d.id)}
@@ -506,6 +520,7 @@ export function OfferCard({
               <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
                 <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
                   {formatPLN(d.cenaPln)}
+                  {isRent ? <span className="text-[13px] font-normal text-white/70">/mc</span> : null}
                 </span>
                 {zlZaM2 ? (
                   <span className="text-[12px] text-white/60">({formatIntPL(zlZaM2)} zł/m²)</span>

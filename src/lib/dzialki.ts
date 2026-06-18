@@ -120,8 +120,10 @@ export async function getSimilarDzialki(
   limit = 8
 ): Promise<SimilarDzialka[]> {
   const now = new Date();
+  // Rail nosi tytuł „Podobne działki na sprzedaż" → świadomie pomijamy wynajem.
   const activeWhere = {
     status: 'AKTYWNE' as const,
+    transakcja: 'SPRZEDAZ' as const,
     OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
   };
 

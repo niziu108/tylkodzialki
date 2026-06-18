@@ -12,6 +12,7 @@ type Dzialka = {
   opis?: string | null;
   cenaPln: number;
   powierzchniaM2: number;
+  transakcja?: 'SPRZEDAZ' | 'WYNAJEM' | string | null;
 
   telefon?: string | null;
   email?: string | null;
@@ -315,7 +316,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const cover = hasPhotos ? photos[Math.min(idx, photos.length - 1)] : null;
 
   const area = d?.powierzchniaM2 ?? 0;
-  const zlZaM2 = area ? Math.round((d?.cenaPln ?? 0) / area) : 0;
+  const isRent = d?.transakcja === 'WYNAJEM';
+  // zł/m² liczymy tylko dla sprzedaży — przy wynajmie cena to czynsz, nie cena gruntu.
+  const zlZaM2 = !isRent && area ? Math.round((d?.cenaPln ?? 0) / area) : 0;
 
   const przezn = Array.isArray(d?.przeznaczenia) ? d.przeznaczenia.filter(Boolean) : [];
   const przeznText = przezn.length ? przezn.map(labelPrzeznaczenie).join(', ') : null;
@@ -676,6 +679,11 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   </span>
                 </button>
 
+                {isRent ? (
+                  <span className="mb-2 inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90">
+                    Na wynajem
+                  </span>
+                ) : null}
                 <h1 className="text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
                   {d.tytul}
                 </h1>
@@ -684,9 +692,12 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
               <Hr className="mt-6" />
 
-              <FieldBlock label="Cena">
+              <FieldBlock label={isRent ? 'Cena najmu' : 'Cena'}>
                 <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 break-words">
                   {formatPLN(d.cenaPln)}
+                  {isRent ? (
+                    <span className="ml-1 text-[13px] text-white/60 font-normal">/mc</span>
+                  ) : null}
                   {zlZaM2 ? (
                     <span className="ml-2 text-[12px] text-white/50 font-normal">
                       ({formatIntPL(zlZaM2)} zł/m²)

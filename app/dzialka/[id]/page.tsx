@@ -107,14 +107,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const purpose = labelPrzeznaczenie(firstPurpose);
 
+  const isRent = dzialka.transakcja === 'WYNAJEM';
+  const txnWord = isRent ? 'na wynajem' : 'na sprzedaż';
+
   const baseTitle = area
-    ? `Działka ${purpose} ${area} m² na sprzedaż – ${location}`
-    : `Działka ${purpose} na sprzedaż – ${location}`;
+    ? `Działka ${purpose} ${area} m² ${txnWord}, ${location}`
+    : `Działka ${purpose} ${txnWord}, ${location}`;
 
   const descriptionParts = [
     area ? `Działka ${purpose} o powierzchni ${area} m²` : `Działka ${purpose}`,
     `lokalizacja: ${location}`,
-    price ? `cena: ${price} zł` : null,
+    price ? (isRent ? `czynsz: ${price} zł/mc` : `cena: ${price} zł`) : null,
     'sprawdź zdjęcia, opis i kontakt do ogłoszeniodawcy na tylkodzialki.pl',
   ].filter(Boolean);
 
@@ -174,7 +177,8 @@ export default async function Page({ params }: PageProps) {
 
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
-  const title = dzialka?.tytul?.trim() || 'Działka na sprzedaż';
+  const isRent = dzialka?.transakcja === 'WYNAJEM';
+  const title = dzialka?.tytul?.trim() || (isRent ? 'Działka na wynajem' : 'Działka na sprzedaż');
 
   const price =
     typeof dzialka?.cenaPln === 'number' && dzialka.cenaPln > 0
@@ -188,7 +192,7 @@ export default async function Page({ params }: PageProps) {
         name: title,
         description:
           cleanText(dzialka.opis) ||
-          `Działka na sprzedaż – ${cleanText(dzialka.locationLabel) || 'Polska'}`,
+          `Działka ${isRent ? 'na wynajem' : 'na sprzedaż'}, ${cleanText(dzialka.locationLabel) || 'Polska'}`,
         image: getMainImage(dzialka),
         url: fullUrl,
         ...(price
@@ -223,7 +227,9 @@ export default async function Page({ params }: PageProps) {
         jsonLdOnly
         items={[
           { label: 'Strona główna', href: '/' },
-          { label: 'Działki na sprzedaż', href: '/kup' },
+          isRent
+            ? { label: 'Działki na wynajem', href: '/kup?transakcja=WYNAJEM' }
+            : { label: 'Działki na sprzedaż', href: '/kup' },
           { label: title },
         ]}
       />

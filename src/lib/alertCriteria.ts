@@ -2,7 +2,7 @@
 // Używane po stronie klienta (AlertBar) i serwera (API, silnik, mail),
 // dlatego: tylko `import type` z @prisma/client (zero runtime Prisma w bundlu klienta).
 
-import type { Przeznaczenie } from '@prisma/client';
+import type { Przeznaczenie, TransakcjaTyp } from '@prisma/client';
 
 export type AlertCriteria = {
   query: string | null;
@@ -11,6 +11,7 @@ export type AlertCriteria = {
   areaMin: number | null;
   areaMax: number | null;
   przeznaczenia: Przeznaczenie[];
+  transakcja: TransakcjaTyp[];
   lat: number | null;
   lng: number | null;
   radiusKm: number | null;
@@ -24,6 +25,8 @@ export const PRZEZNACZENIE_KEYS: Przeznaczenie[] = [
   'REKREACYJNA',
   'SIEDLISKOWA',
 ];
+
+export const TRANSAKCJA_KEYS: TransakcjaTyp[] = ['SPRZEDAZ', 'WYNAJEM'];
 
 const RADIUS_OPTIONS = [5, 10, 20, 40];
 
@@ -60,6 +63,13 @@ export function normalizeCriteria(raw: Record<string, unknown> | null | undefine
       ) as Przeznaczenie[])
     : [];
 
+  const txnIn: unknown = raw?.transakcja;
+  const transakcja = Array.isArray(txnIn)
+    ? (txnIn.filter(
+        (t): t is TransakcjaTyp => typeof t === 'string' && (TRANSAKCJA_KEYS as string[]).includes(t)
+      ) as TransakcjaTyp[])
+    : [];
+
   const lat = toFiniteNumber(raw?.lat);
   const lng = toFiniteNumber(raw?.lng);
   const hasCenter = lat !== null && lng !== null && !(lat === 0 && lng === 0);
@@ -74,6 +84,7 @@ export function normalizeCriteria(raw: Record<string, unknown> | null | undefine
     areaMin: toPosInt(raw?.areaMin),
     areaMax: toPosInt(raw?.areaMax),
     przeznaczenia: Array.from(new Set(przeznaczenia)),
+    transakcja: Array.from(new Set(transakcja)),
     lat: hasCenter ? lat : null,
     lng: hasCenter ? lng : null,
     radiusKm,
@@ -103,6 +114,7 @@ export function criteriaFingerprint(c: AlertCriteria): string {
     amin: c.areaMin,
     amax: c.areaMax,
     pr: [...c.przeznaczenia].sort(),
+    tr: [...c.transakcja].sort(),
     lat: c.lat !== null ? Number(c.lat.toFixed(4)) : null,
     lng: c.lng !== null ? Number(c.lng.toFixed(4)) : null,
     r: c.radiusKm,
@@ -130,6 +142,9 @@ export function buildAlertLabel(c: AlertCriteria): string {
   if (c.przeznaczenia.length === 1) {
     const adj = PRZEZN_ADJ[c.przeznaczenia[0]];
     if (adj) head = `Działki ${adj}`;
+  }
+  if (c.transakcja.length === 1) {
+    head += c.transakcja[0] === 'WYNAJEM' ? ' na wynajem' : ' na sprzedaż';
   }
 
   const parts: string[] = [head];
@@ -174,6 +189,7 @@ export function buildKupPathFromCriteria(c: AlertCriteria): string {
   if (c.areaMin !== null) sp.set('areaMin', String(c.areaMin));
   if (c.areaMax !== null) sp.set('areaMax', String(c.areaMax));
   if (c.przeznaczenia.length) sp.set('przezn', c.przeznaczenia.join(','));
+  if (c.transakcja.length) sp.set('transakcja', c.transakcja.join(','));
 
   const qs = sp.toString();
   return qs ? `/kup?${qs}` : '/kup';

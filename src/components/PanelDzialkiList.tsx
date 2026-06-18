@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import type { Przeznaczenie } from '@prisma/client';
+import type { Przeznaczenie, TransakcjaTyp } from '@prisma/client';
 import {
   przedluzOgloszenieAction,
   zakonczOgloszenieAction,
@@ -27,6 +27,7 @@ export type Dzialka = {
   tytul: string;
   cenaPln: number;
   powierzchniaM2: number;
+  transakcja?: TransakcjaTyp | null;
   locationLabel?: string | null;
   przeznaczenia?: Przeznaczenie[];
   zdjecia?: Photo[];
@@ -336,7 +337,8 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   const coverFallback = photos[0]?.url ?? null;
   const loc = d.locationLabel?.trim() || 'Lokalizacja niepodana';
   const area = d.powierzchniaM2 ?? 0;
-  const zlZaM2 = area ? Math.round(d.cenaPln / area) : 0;
+  const isRent = d.transakcja === 'WYNAJEM';
+  const zlZaM2 = !isRent && area ? Math.round(d.cenaPln / area) : 0;
   const przezn = d.przeznaczenia?.length ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ') : '—';
 
   const effectiveStatus = getEffectiveStatus(d.status, d.expiresAt);
@@ -464,11 +466,12 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
 <div className="p-5 md:p-6">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
             <MetricBlock
-              label="Cena"
+              label={isRent ? 'Cena najmu' : 'Cena'}
               value={
                 <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
                   <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
                     {formatPLN(d.cenaPln)}
+                    {isRent ? <span className="text-[13px] font-normal text-white/60">/mc</span> : null}
                   </span>
                   {zlZaM2 ? (
                     <span className="text-[12px] text-white/50">

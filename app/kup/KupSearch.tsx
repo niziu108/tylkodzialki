@@ -6,7 +6,7 @@ import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
 import KupMap, { type MapPoint } from '@/components/KupMap';
 import type { AlertCriteria } from '@/lib/alertCriteria';
-import type { Przeznaczenie } from '@prisma/client';
+import type { Przeznaczenie, TransakcjaTyp } from '@prisma/client';
 
 type BBox = { n: number; s: number; e: number; w: number };
 
@@ -17,6 +17,7 @@ type ApiDzialka = {
   tytul: string;
   cenaPln: number;
   powierzchniaM2: number;
+  transakcja?: TransakcjaTyp | null;
   locationLabel?: string | null;
   locationFull?: string | null;
   lat?: number | null;
@@ -56,6 +57,15 @@ const MEDIA: { key: MediaKey; label: string }[] = [
 
 const MEDIA_KEYS: MediaKey[] = MEDIA.map((m) => m.key);
 
+export type TransakcjaKey = 'SPRZEDAZ' | 'WYNAJEM';
+
+const TRANSAKCJA: { key: TransakcjaKey; label: string }[] = [
+  { key: 'SPRZEDAZ', label: 'Sprzedaż' },
+  { key: 'WYNAJEM', label: 'Wynajem' },
+];
+
+const TRANSAKCJA_KEYS: TransakcjaKey[] = TRANSAKCJA.map((t) => t.key);
+
 const PAGE_SIZE = 20;
 const SCROLL_OFFSET = -450;
 const STORAGE_KEY = 'TD_KUP_STATE_V2';
@@ -72,6 +82,7 @@ type AppliedFilters = {
   areaMax: string;
   przezn: Przeznaczenie[];
   media: MediaKey[];
+  transakcja: TransakcjaKey[];
   bbox: BBox | null;
   sort: SortOption;
 };
@@ -91,6 +102,7 @@ const EMPTY_APPLIED: AppliedFilters = {
   areaMax: '',
   przezn: [],
   media: [],
+  transakcja: [],
   bbox: null,
   sort: 'newest',
 };
@@ -255,6 +267,7 @@ function buildUrlFromState(filters: AppliedFilters, page: number) {
   if (filters.areaMax) sp.set('areaMax', filters.areaMax);
   if (filters.przezn.length) sp.set('przezn', filters.przezn.join(','));
   if (filters.media.length) sp.set('media', filters.media.join(','));
+  if (filters.transakcja.length) sp.set('transakcja', filters.transakcja.join(','));
   if (filters.sort && filters.sort !== 'newest') sp.set('sort', filters.sort);
   if (page > 1) sp.set('page', String(page));
 
@@ -369,6 +382,12 @@ function readStateFromUrl(useStorageFallback = true): StoredState {
     .filter(Boolean)
     .filter((x): x is MediaKey => MEDIA_KEYS.includes(x as MediaKey));
 
+  const transakcjaRaw = sp.get('transakcja') ?? '';
+  const transakcja = transakcjaRaw
+    .split(',')
+    .filter(Boolean)
+    .filter((x): x is TransakcjaKey => TRANSAKCJA_KEYS.includes(x as TransakcjaKey));
+
   const pageRaw = Number(sp.get('page') ?? '1');
 
   const sortRaw = sp.get('sort') ?? 'newest';
@@ -385,6 +404,7 @@ function readStateFromUrl(useStorageFallback = true): StoredState {
       areaMax: digitsOnly(sp.get('areaMax') ?? ''),
       przezn,
       media,
+      transakcja,
       bbox,
       sort,
     },
@@ -428,6 +448,7 @@ function makeParams(filters: AppliedFilters, page: number) {
   if (filters.areaMax) sp.set('areaMax', filters.areaMax);
   if (filters.przezn.length) sp.set('przeznaczenia', filters.przezn.join(','));
   if (filters.media.length) sp.set('media', filters.media.join(','));
+  if (filters.transakcja.length) sp.set('transakcja', filters.transakcja.join(','));
 
   sp.set('skip', String((page - 1) * PAGE_SIZE));
   sp.set('take', String(PAGE_SIZE));
@@ -648,6 +669,7 @@ export default function KupSearch({
         center: initialFilters.center ?? null,
         przezn: initialFilters.przezn ?? [],
         media: initialFilters.media ?? [],
+        transakcja: initialFilters.transakcja ?? [],
       },
     };
   }, [initialFilters, initialPage]);
@@ -673,10 +695,12 @@ export default function KupSearch({
 
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>(initial.filters.przezn);
   const [media, setMedia] = useState<MediaKey[]>(initial.filters.media);
+  const [transakcja, setTransakcja] = useState<TransakcjaKey[]>(initial.filters.transakcja);
   const [applied, setApplied] = useState<AppliedFilters>(initial.filters);
   const [expanded, setExpanded] = useState(
     initial.filters.przezn.length > 0 ||
       initial.filters.media.length > 0 ||
+      initial.filters.transakcja.length > 0 ||
       !!initial.filters.priceMin ||
       !!initial.filters.priceMax ||
       !!initial.filters.areaMin ||
@@ -732,10 +756,12 @@ export default function KupSearch({
     setAreaMax(formatPLThousands(f.areaMax));
     setPrzezn(f.przezn);
     setMedia(f.media);
+    setTransakcja(f.transakcja);
     setApplied(f);
     setExpanded(
       f.przezn.length > 0 ||
         f.media.length > 0 ||
+        f.transakcja.length > 0 ||
         !!f.priceMin ||
         !!f.priceMax ||
         !!f.areaMin ||
@@ -831,6 +857,10 @@ export default function KupSearch({
 
   function toggleMedia(k: MediaKey) {
     setMedia((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  }
+
+  function toggleTransakcja(k: TransakcjaKey) {
+    setTransakcja((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
   }
 
   useEffect(() => {
@@ -1011,6 +1041,7 @@ export default function KupSearch({
       areaMax: digitsOnly(areaMax),
       przezn,
       media,
+      transakcja,
       bbox: keepBBox,
       sort: applied.sort,
     };
@@ -1035,6 +1066,7 @@ export default function KupSearch({
     setAreaMax('');
     setPrzezn([]);
     setMedia([]);
+    setTransakcja([]);
 
     if (navigationMode) {
       return;
@@ -1046,6 +1078,7 @@ export default function KupSearch({
           ...initialFilters,
           center: initialFilters?.center ?? null,
           przezn: initialFilters?.przezn ?? [],
+          transakcja: initialFilters?.transakcja ?? [],
         }
       : { ...EMPTY_APPLIED };
 
@@ -1085,6 +1118,7 @@ export default function KupSearch({
       areaMin: applied.areaMin ? Number(applied.areaMin) : null,
       areaMax: applied.areaMax ? Number(applied.areaMax) : null,
       przeznaczenia: applied.przezn,
+      transakcja: applied.transakcja,
     }),
     [applied]
   );
@@ -1107,6 +1141,7 @@ export default function KupSearch({
         amax: applied.areaMax,
         pz: applied.przezn,
         md: applied.media,
+        tr: applied.transakcja,
         bb: applied.bbox,
       }),
     [applied]
@@ -1284,6 +1319,32 @@ export default function KupSearch({
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+              Typ oferty
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {TRANSAKCJA.map((t) => {
+                const active = transakcja.includes(t.key);
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => toggleTransakcja(t.key)}
+                    className={[
+                      'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                      active
+                        ? 'border-white/80 text-white'
+                        : 'border-white/25 text-white/70 hover:border-white/45',
+                    ].join(' ')}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

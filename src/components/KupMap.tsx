@@ -19,6 +19,7 @@ export type MapPoint = {
   lng: number | null;
   cena: number;
   area: number;
+  transakcja?: 'SPRZEDAZ' | 'WYNAJEM' | string | null;
   tytul: string;
   przezn?: string[];
   featured?: boolean;
@@ -338,7 +339,8 @@ export default function KupMap({
     for (const p of points) {
       if (p.lat == null || p.lng == null) continue;
 
-      const label = formatShortPLN(p.cena);
+      const label =
+        p.transakcja === 'WYNAJEM' ? `${formatShortPLN(p.cena)}/mc` : formatShortPLN(p.cena);
       const featured = !!p.featured;
 
       const marker = new google.maps.Marker({

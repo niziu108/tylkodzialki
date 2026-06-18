@@ -11,6 +11,7 @@ import {
   SwiatlowodStatus,
   Prisma,
   DzialkaStatus,
+  TransakcjaTyp,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
@@ -110,6 +111,16 @@ export async function GET(req: Request) {
     ? mediaRaw.split(',').map((s) => s.trim()).filter(Boolean)
     : [];
 
+  // Typ oferty (sprzedaż / wynajem): filtr „miękki" jak media/przeznaczenie — nic nie zaznaczone
+  // = pokazuj wszystko (i sprzedaż, i wynajem), zaznaczenie zawęża. Zaznaczenie obu = brak zawężenia.
+  const transakcjaRaw = (url.searchParams.get('transakcja') || '').trim();
+  const transakcja = transakcjaRaw
+    ? transakcjaRaw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s): s is TransakcjaTyp => s === 'SPRZEDAZ' || s === 'WYNAJEM')
+    : [];
+
   // Tryb mapy (P11): lekki payload wszystkich pasujących pinów zamiast stronicowanej listy.
   const mapMode = url.searchParams.get('mode') === 'map';
 
@@ -169,6 +180,11 @@ export async function GET(req: Request) {
     });
   }
 
+  // length 1 = zawęź do jednego typu; length 2 (oba) = brak zawężenia (= jak nic nie zaznaczone).
+  if (transakcja.length === 1) {
+    andFilters.push({ transakcja: transakcja[0] });
+  }
+
   // Filtr mediów (P10): zaznaczone medium = działka faktycznie je MA, fizycznie NA DZIAŁCE.
   // Świadomie wykluczamy „brak", „możliwość podłączenia", „w drodze" i „warunki wydane" —
   // to wszystko znaczy, że medium na działce jeszcze NIE MA (decyzja właściciela: „w drodze" się nie liczy).
@@ -221,6 +237,7 @@ export async function GET(req: Request) {
         lng: true,
         cenaPln: true,
         powierzchniaM2: true,
+        transakcja: true,
         tytul: true,
         przeznaczenia: true,
         isFeatured: true,
@@ -257,6 +274,7 @@ export async function GET(req: Request) {
       lng: r.lng,
       cena: r.cenaPln,
       area: r.powierzchniaM2,
+      transakcja: r.transakcja,
       tytul: r.tytul,
       przezn: r.przeznaczenia,
       featured: isFeaturedActive(r),
@@ -414,6 +432,7 @@ export async function POST(req: Request) {
     tytul,
     powierzchniaM2,
     cenaPln,
+    transakcja,
     przeznaczenia,
     telefon,
     opis,
@@ -502,6 +521,9 @@ export async function POST(req: Request) {
   const seller: SprzedajacyTyp =
     sprzedajacyTyp === 'BIURO' ? SprzedajacyTyp.BIURO : SprzedajacyTyp.PRYWATNIE;
 
+  const transakcjaParsed: TransakcjaTyp =
+    transakcja === 'WYNAJEM' ? TransakcjaTyp.WYNAJEM : TransakcjaTyp.SPRZEDAZ;
+
   const telefonClean = telefon.trim();
   const nr = cleanOptionalString(numerOferty);
   const sprzedajacyImieClean = cleanOptionalString(sprzedajacyImie);
@@ -556,6 +578,7 @@ export async function POST(req: Request) {
           tytul: tytul.trim(),
           powierzchniaM2,
           cenaPln,
+          transakcja: transakcjaParsed,
           przeznaczenia: mappedPrzeznaczenia,
           telefon: telefonClean,
           email: dbUser.email ?? null,
