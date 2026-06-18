@@ -1,6 +1,6 @@
 # ROADMAP CRM V2
 
-> **Status na 2026-06-18:** Sprint 3 (Monitoring synchronizacji) - **UKOŃCZONY i na produkcji** (potwierdzone przez Daniela). Nowa read-only strona `/admin/crm` pokazuje wszystkie integracje w jednym miejscu (status zdrowia, ostatnia synchronizacja, liczba ofert, nowe, zaktualizowane, błędy), problemy na górze. Czysty odczyt pól `CrmIntegration.last*`, bez zmian w silnikach/workerze/kolejce i bez migracji. **Następny: Sprint 4 - Alerty awarii CRM.**
+> **Status na 2026-06-18:** Sprint 6 (IMO CRM, analiza) - **UKOŃCZONY**. Kluczowe ustalenie: IMO eksportuje w formacie domy.pl/Oferty.net/Melog, który już parsuje silnik `src/lib/crm/domypl-sync.ts`; provider `IMOX` jest w enumie, panelu admina i routingu (kieruje do silnika domypl). Integracja to domknięcie różnic, nie nowy silnik: klasyfikacja działki i transakcji z atrybutów `<dzial tab/typ>` (dziś po prefiksie ID GS/GW pod Galacticę), opcjonalnie `<oferta_usun>`, oraz FTP na VPS (IMO wgrywa push, worker czyta pull). Decyzje Daniela 2026-06-18: architektura przez parametryzację wspólnego silnika bez kopii (ścieżka Galactiki bez zmian), FTP na VPS z kontem per biuro, wariant płatny IMO (1500 PLN netto). **Następny: Sprint 7 - IMO CRM (implementacja).** Sprint 3 (Monitoring) ukończony i na produkcji; Sprint 4 (Alerty) i Sprint 5 (Ujednolicenie) świadomie odłożone, nie porzucone.
 > Poprzednio: Sprint 2 (Auto-sync, strategia C) ukończony i na produkcji - cron na VPS (06:00 i 18:00 UTC) kolejkuje import wszystkich aktywnych integracji przez kolejkę + worker.
 > Raport z audytu: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md) · Instrukcja auto-sync: [docs/CRM_AUTOSYNC.md](docs/CRM_AUTOSYNC.md)
 
@@ -15,10 +15,10 @@ i wpisz w niej numer aktualnego sprintu.
 - [x] **Sprint 1 - Audyt obecnych integracji** (ukończony 2026-06-17, raport: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md))
 - [x] **Sprint 2 - Automatyczna synchronizacja CRM** (ukończony 2026-06-17, strategia C; cron na VPS 2x dziennie kolejkuje aktywne integracje przez kolejkę + worker)
 - [x] **Sprint 3 - Monitoring synchronizacji** (ukończony 2026-06-18, na produkcji; read-only strona `/admin/crm`)
-- [ ] **Sprint 4 - Alerty awarii CRM** (NASTĘPNY)
-- [ ] Sprint 5 - Ujednolicenie architektury CRM
-- [ ] Sprint 6 - IMO CRM (analiza)
-- [ ] Sprint 7 - IMO CRM (implementacja)
+- [ ] **Sprint 4 - Alerty awarii CRM** (odłożony 2026-06-18)
+- [ ] Sprint 5 - Ujednolicenie architektury CRM (przeanalizowany 2026-06-18, wykonanie odłożone; Faza 1 do wpięcia w Sprint 7)
+- [x] **Sprint 6 - IMO CRM (analiza)** (ukończony 2026-06-18; IMO = format domy.pl/Oferty.net, już parsowany przez silnik domypl; plan w sekcji Sprint 6)
+- [ ] **Sprint 7 - IMO CRM (implementacja)** (NASTĘPNY)
 - [ ] Sprint 8 - IMO CRM (testy)
 - [ ] Sprint 9 - Properly CRM (analiza)
 - [ ] Sprint 10 - Properly CRM (implementacja)
@@ -164,15 +164,92 @@ liczba ofert nagle spadnie, import nie wykona się o czasie.
 
 ## CRM SPRINT 5 - Ujednolicenie architektury CRM
 
+> **Status 2026-06-18:** przeanalizowany, wykonanie odłożone (decyzja Daniela: nie ruszać działającego kodu produkcyjnego dla samego porządku). Potwierdzona duplikacja: bajt-identyczny typ `SyncSummary` i wiele identycznych czystych helperów w 3 silnikach (różni je najwyżej etykieta w logu). Plan fazowy: Faza 1 = wspólny moduł helperów + wspólny typ (zero zmian zachowania); Faza 2 = wspólne FTP + mapowanie enumów mediów; Faza 3 = wspólny szkielet importera (processOffer/deactivate, dotyka bezpiecznika R1, duże ryzyko). Rekomendacja: Fazę 1 wpiąć jako fundament w Sprint 7 (implementacja IMO), gdy czwarty silnik od razu zweryfikuje abstrakcję. P-B (zdjęcia) osobno, bo to zmiana zachowania.
+
 Sprawdzić: wspólne mechanizmy, wspólne mapowanie, wspólny importer.
 Cel: łatwiejsze dodawanie kolejnych CRM.
 
 W zakresie tego sprintu: **optymalizacja zdjęć (P-B)** - wykrywanie zmian zamiast pełnego re-uploadu przy każdym imporcie, żeby koszt skalował się ze zmianami, nie z całym katalogiem. Szczegóły i kierunek w sekcji "Znalezione problemy / P-B". Warunek konieczny przed wariantem B ("sync przy każdej zmianie").
 
-## CRM SPRINT 6 - IMO CRM (analiza)
+## CRM SPRINT 6 - IMO CRM (analiza) [UKOŃCZONY 2026-06-18]
+
 Analiza dokumentacji. Bez kodowania.
 
+### Najważniejsze ustalenie
+IMO eksportuje w formacie **domy.pl / Oferty.net / Melog** (XML), czyli w tym samym formacie,
+który już parsuje silnik `src/lib/crm/domypl-sync.ts`. Provider `IMOX` istnieje w enumie
+(`schema.prisma`), w panelu admina (`AdminCrmIntegrationEditor.tsx`) i w routingu
+(`run-crm-job.ts` kieruje wszystko poza ASARI/ESTI do silnika domypl). Kolejka `CrmImportJob`,
+worker, auto-sync (Sprint 2) i monitoring (Sprint 3) obsłużą IMO bez zmian. Zgodność rdzenia
+potwierdzona przez czytanie kodu: `<param nazwa typ>`, `<cena waluta>`, `<location><area level>`,
+współrzędne `n_geo_x`/`n_geo_y`, zdjęcia luzem w ZIP + `zdjecie1..N`, paczka `oferty_*.zip`
+zawierająca `oferty.xml`, wykrywanie pełnego eksportu po `<zawartosc_pliku>calosc</>`.
+**To nie jest budowa silnika od zera, tylko domknięcie kilku różnic** (szacowo ~80% już gotowe).
+
+### Model integracji (uzgodniony kierunek)
+- **Transport (R-D):** IMO wgrywa paczki na FTP (push), a nasz silnik czyta z FTP (pull,
+  `domypl-sync.ts` łączy się i pobiera). Trzeba serwera FTP na naszym VPS, osobne konto i katalog
+  per biuro (wymóg IMO: "osobne konto FTP i osobny katalog"). **Decyzja Daniela 2026-06-18: FTP na VPS.**
+- **Wariant integracji:** płatny zweryfikowany (1500 PLN netto), weryfikacja przez pomoc IMO
+  formatem Oferty.net, logo + reklama portalu w IMO przez 30 dni + mailing. **Decyzja Daniela: wariant płatny.**
+
+### Luki do zamknięcia w Sprincie 7
+Silnik domypl jest **współdzielony z produkcyjną Galacticą** (oraz GENERIC/GALACTICA), więc każda
+zmiana musi być **wstecznie zerowa** dla istniejących integracji. Trzy miejsca są zaszyte pod Galacticę
+i nie pasują do IMO:
+- **R-A (krytyczne): klasyfikacja "czy to działka".** Dziś po prefiksie ID `GS`/`GW` (konwencja
+  Galactiki) lub obecności `typdzialki` (`domypl-sync.ts:867`). Parser strumieniowy **nie czyta
+  atrybutu `<dzial tab="dzialki">`** (`:1042` łapie tylko `header` i `oferta`). Działka z IMO bez
+  `typdzialki` i bez prefiksu GS/GW zostałaby odrzucona jako "nie działka" → utrata ofert (łamie cel #1).
+- **R-B (ważne): sprzedaż vs wynajem.** Dekodowane z prefiksu `GW` lub słów w tytule (`:934`).
+  IMO koduje to w atrybucie `<dzial typ="wynajem">`, dziś ignorowanym. Działki na wynajem z IMO
+  trafiłyby jako SPRZEDAŻ.
+- **R-C (średnie): usuwanie różnicowe `<oferta_usun>`.** Nieobsługiwane (parser nie łapie tagu).
+  Oferta skasowana w IMO zniknie z portalu dopiero przy najbliższym pełnym eksporcie
+  (`calosc` + `fullImportMode`), nie od razu. Pilność zależy od polityki eksportu IMO.
+
+Bez zmian (bezpieczne, nie ruszać): idempotencja (unikat `CrmOfferLink(integrationId, externalId)`),
+bezpiecznik dezaktywacji R1 (działa też dla IMO, bo `calosc` jest rozpoznawane), izolacja per
+integracja, worker sekwencyjny.
+
+### Rekomendacja architektury (zaakceptowana przez Daniela)
+Nie kopiować silnika (~1700 linii duplikatu). **Sparametryzować klasyfikację per provider:** dla
+`IMOX` czytać typ z atrybutów `<dzial tab/typ>` (działka + sprzedaż/wynajem), dla Galactiki zostawić
+obecną ścieżkę (prefiks ID) **bit w bit**. R-C dodać jako osobny, opcjonalny krok. Spina się z Fazą 1
+ze Sprintu 5 (wspólny moduł helperów), bo czwarty silnik od razu zweryfikuje abstrakcję.
+
+### Do ustalenia z IMO przed opłatą 1500 zł
+- Portal przyjmuje **wyłącznie działki** (`tab="dzialki"`); pozostałe kategorie mają być ignorowane
+  bez błędu. Weryfikacja IMO testuje "dodanie oferty po jednej w każdej kategorii", więc trzeba to
+  uzgodnić, żeby nie oblać testu za celowe ignorowanie mieszkań/domów/lokali.
+- Eksport pełny czy różnicowy i z jaką częstotliwością (przesądza pilność R-C).
+- Potwierdzenie, że dane FTP (host/login/katalog per biuro) podajemy my.
+
+### Jak zweryfikowano
+Sprint analityczny, bez kodu. Weryfikacja przez czytanie kodu produkcyjnego: silnik domypl (parser
+strumieniowy, pobieranie FTP, rozpakowanie ZIP, zdjęcia, dezaktywacja), routing `run-crm-job.ts`,
+model `CrmIntegration` i enumy w `schema.prisma`, panel `AdminCrmIntegrationEditor.tsx`, endpoint
+`app/api/crm/push/route.ts`. Porównano ze specyfikacją domy.pl/Oferty.net dostarczoną przez IMO.
+
+### Efekt biznesowy
+IMO otwiera nowych klientów (biura pracujące na programie IMO mogą publikować na portalu),
+plus reklama portalu w interfejsie IMO przez 30 dni i mailing po stronie IMO. Koszt wejścia mocno
+obniżony, bo format pokrywa się z istniejącym silnikiem; główna praca to domknięcie R-A/R-B/R-C
+i infrastruktura FTP, a nie nowy silnik.
+
+### Następny sprint
+Sprint 7: IMO CRM (implementacja). Zakres: parametryzacja klasyfikacji per provider (R-A, R-B),
+opcjonalna obsługa `<oferta_usun>` (R-C), przygotowanie FTP na VPS (konta per biuro). Zasada
+nadrzędna: wstecznie zerowe dla Galactiki/Asari/Esti.
+
 ## CRM SPRINT 7 - IMO CRM (implementacja)
+
+> **Wejście (z analizy Sprintu 6, decyzje Daniela 2026-06-18):** (1) parametryzacja klasyfikacji
+> w silniku domypl per provider, ścieżka Galactiki bez zmian; (2) FTP na VPS z kontem i katalogiem
+> per biuro; wariant płatny IMO (1500 PLN netto). Zakres: R-A (klasyfikacja działki z `<dzial tab>`),
+> R-B (sprzedaż/wynajem z `<dzial typ>`), R-C (opcjonalnie `<oferta_usun>`). Rozważyć Fazę 1 ze
+> Sprintu 5 (wspólny moduł helperów) jako fundament. Zasada nadrzędna: wstecznie zerowe dla
+> Galactiki/Asari/Esti, najpierw test na jednej integracji.
 
 ## CRM SPRINT 8 - IMO CRM (testy)
 
