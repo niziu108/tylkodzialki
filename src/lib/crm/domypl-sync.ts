@@ -840,7 +840,11 @@ function parseHeaderMeta(headerXml: string): HeaderMeta {
   };
 }
 
-function parseOfferFragment(offerXml: string, headerMeta: HeaderMeta): ParsedDomyOffer | null {
+function parseOfferFragment(
+  offerXml: string,
+  headerMeta: HeaderMeta,
+  provider: CrmProvider
+): ParsedDomyOffer | null {
   try {
     const parser = new XMLParser({
       ignoreAttributes: false,
@@ -864,12 +868,28 @@ function parseOfferFragment(offerXml: string, headerMeta: HeaderMeta): ParsedDom
 
     const externalIdUpper = externalId.toUpperCase();
 
-const isLandOffer =
-  externalIdUpper.startsWith("GS") ||
-  externalIdUpper.includes("-GS-") ||
-  externalIdUpper.startsWith("GW") ||
-  externalIdUpper.includes("-GW-") ||
-  Boolean(plotTypeRaw);
+    // IMO (IMOX) koduje kategorię i typ transakcji w elemencie <dzial tab="..." typ="...">,
+    // a nie w prefiksie numeru oferty jak Galactica. Czytamy <dzial> tylko dla IMOX,
+    // żeby ścieżka pozostałych providerów (Galactica/GENERIC) została bit w bit bez zmian.
+    const isImox = provider === "IMOX";
+    const dzialRaw = ofertaNode.dzial;
+    const dzialNode =
+      dzialRaw && typeof dzialRaw === "object" && !Array.isArray(dzialRaw)
+        ? (dzialRaw as Record<string, unknown>)
+        : null;
+    const dzialTab = normalizeText(toTextValue(dzialNode?.tab));
+    const dzialTyp = normalizeText(toTextValue(dzialNode?.typ));
+
+    // R-A: dla IMOX działką jest oferta w dziale "dzialki". Dla pozostałych providerów
+    // klasyfikacja bez zmian (prefiks GS/GW lub obecność typdzialki) — warunek IMOX jest
+    // czysto addytywny, więc dla nie-IMOX wynik jest identyczny jak dotychczas.
+    const isLandOffer =
+      externalIdUpper.startsWith("GS") ||
+      externalIdUpper.includes("-GS-") ||
+      externalIdUpper.startsWith("GW") ||
+      externalIdUpper.includes("-GW-") ||
+      Boolean(plotTypeRaw) ||
+      (isImox && dzialTab === "dzialki");
 
     if (!isLandOffer) {
       console.log("[CRM DEBUG] Odrzucono:", externalId, "to nie jest działka", { plotTypeRaw });
@@ -928,14 +948,20 @@ const isLandOffer =
 
     const description = toTextValue(params.opis) || null;
 
-    // Sprzedaż vs wynajem. domy.pl koduje to w numerze oferty: GS = Grunt Sprzedaż, GW = Grunt Wynajem.
-    // Dla pewności dokładamy sygnał ze słów kluczowych w tytule (część biur myli kod, np. GS + „na wynajem")
-    // — ta sama logika co jednorazowy backfill, dzięki czemu re-sync nie cofa poprawnej klasyfikacji.
-    const isRentByCode =
-      externalIdUpper.startsWith("GW") || externalIdUpper.includes("-GW-");
-    const isRentByTitle = /(wynaj|dzierżaw|dzierzaw)/i.test(title);
-    const transakcja: TransakcjaTyp =
-      isRentByCode || isRentByTitle ? "WYNAJEM" : "SPRZEDAZ";
+    // R-B: sprzedaż vs wynajem.
+    // IMOX: bierzemy wprost z atrybutu <dzial typ="sprzedaz|wynajem"> (IMO gwarantuje, że jest ustawiony).
+    // Pozostali (Galactica): kod w numerze oferty (GS = Grunt Sprzedaż, GW = Grunt Wynajem) plus sygnał
+    // ze słów kluczowych w tytule (część biur myli kod, np. GS + „na wynajem") — ta sama logika co
+    // jednorazowy backfill, dzięki czemu re-sync nie cofa poprawnej klasyfikacji.
+    let transakcja: TransakcjaTyp;
+    if (isImox && dzialTyp) {
+      transakcja = /(wynaj|dzierzaw|dzierżaw)/.test(dzialTyp) ? "WYNAJEM" : "SPRZEDAZ";
+    } else {
+      const isRentByCode =
+        externalIdUpper.startsWith("GW") || externalIdUpper.includes("-GW-");
+      const isRentByTitle = /(wynaj|dzierżaw|dzierzaw)/i.test(title);
+      transakcja = isRentByCode || isRentByTitle ? "WYNAJEM" : "SPRZEDAZ";
+    }
 
     const lat = toNumber(params.n_geo_y) ?? toNumber(params.wsp_x);
     const lng = toNumber(params.n_geo_x) ?? toNumber(params.wsp_y);
@@ -1008,10 +1034,33 @@ const isLandOffer =
   }
 }
 
+// R-C: wyciąga externalId z fragmentu <oferta_usun> (eksport różnicowy IMO).
+// Obsługuje zarówno <oferta_usun><id>123</id></oferta_usun>, jak i <oferta_usun id="123"/>.
+function parseDeleteFragment(deleteXml: string): string | null {
+  try {
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: "",
+      trimValues: true,
+      parseTagValue: false,
+      parseAttributeValue: false,
+    });
+
+    const doc = parser.parse(deleteXml) as Record<string, unknown>;
+    const node = (doc.oferta_usun ?? {}) as Record<string, unknown>;
+    const id = toTextValue(node.id);
+    return id || null;
+  } catch (error) {
+    console.error("[CRM DEBUG] Błąd parsowania <oferta_usun>:", error);
+    return null;
+  }
+}
+
 async function streamParseDomyPlOffers(
   xmlStream: NodeJS.ReadableStream,
+  provider: CrmProvider,
   onOffer: (offer: ParsedDomyOffer) => Promise<void>
-): Promise<{ importedOffers: number; headerMeta: HeaderMeta }> {
+): Promise<{ importedOffers: number; headerMeta: HeaderMeta; deletedExternalIds: string[] }> {
   const saxStream = sax.createStream(true, {
     lowercase: true,
     trim: false,
@@ -1032,6 +1081,12 @@ async function streamParseDomyPlOffers(
   let offerDepth = 0;
   let offerXml = "";
 
+  // R-C: <oferta_usun> z eksportu różnicowego (usuwanie ofert). Zbierane analogicznie do <oferta>.
+  let collectingDelete = false;
+  let deleteDepth = 0;
+  let deleteXml = "";
+  const deletedExternalIds: string[] = [];
+
   let rawOffersFound = 0;
   let importedOffers = 0;
   let chain = Promise.resolve<void>(undefined);
@@ -1050,6 +1105,19 @@ async function streamParseDomyPlOffers(
     if (collectingHeader) {
       headerDepth += 1;
       headerXml += startTagToXml(node);
+      return;
+    }
+
+    if (node.name === "oferta_usun" && !collectingOffer && !collectingDelete) {
+      collectingDelete = true;
+      deleteDepth = 1;
+      deleteXml = startTagToXml(node);
+      return;
+    }
+
+    if (collectingDelete) {
+      deleteDepth += 1;
+      deleteXml += startTagToXml(node);
       return;
     }
 
@@ -1078,6 +1146,11 @@ async function streamParseDomyPlOffers(
       return;
     }
 
+    if (collectingDelete) {
+      deleteXml += escapeXmlText(text);
+      return;
+    }
+
     if (collectingOffer) {
       offerXml += escapeXmlText(text);
     }
@@ -1086,6 +1159,11 @@ async function streamParseDomyPlOffers(
   saxStream.on("cdata", (text: string) => {
     if (collectingHeader) {
       headerXml += `<![CDATA[${text}]]>`;
+      return;
+    }
+
+    if (collectingDelete) {
+      deleteXml += `<![CDATA[${text}]]>`;
       return;
     }
 
@@ -1109,6 +1187,22 @@ async function streamParseDomyPlOffers(
       return;
     }
 
+    if (collectingDelete) {
+      deleteXml += `</${tagName}>`;
+      deleteDepth -= 1;
+
+      if (deleteDepth === 0) {
+        collectingDelete = false;
+        const deletedId = parseDeleteFragment(deleteXml);
+        deleteXml = "";
+        if (deletedId) {
+          deletedExternalIds.push(deletedId);
+        }
+      }
+
+      return;
+    }
+
     if (collectingOffer) {
       offerXml += `</${tagName}>`;
       offerDepth -= 1;
@@ -1125,7 +1219,7 @@ async function streamParseDomyPlOffers(
 
         chain = chain
           .then(async () => {
-            const parsed = parseOfferFragment(completedOfferXml, headerMeta);
+            const parsed = parseOfferFragment(completedOfferXml, headerMeta, provider);
             if (!parsed) return;
 
             importedOffers += 1;
@@ -1140,7 +1234,7 @@ async function streamParseDomyPlOffers(
     }
   });
 
-  const finishedPromise = new Promise<{ importedOffers: number; headerMeta: HeaderMeta }>((resolve, reject) => {
+  const finishedPromise = new Promise<{ importedOffers: number; headerMeta: HeaderMeta; deletedExternalIds: string[] }>((resolve, reject) => {
     saxStream.on("error", (error: unknown) => reject(error));
     xmlStream.on("error", (error: unknown) => reject(error));
 
@@ -1156,9 +1250,10 @@ async function streamParseDomyPlOffers(
             importedOffers
           );
           resolve({
-  importedOffers,
-  headerMeta,
-});
+            importedOffers,
+            headerMeta,
+            deletedExternalIds,
+          });
         })
         .catch(reject);
     });
@@ -1545,6 +1640,71 @@ async function deactivateMissingOffers(integrationId: string, seenExternalIds: S
   return count;
 }
 
+// R-C: aktywne usuwanie różnicowe — gasi konkretne oferty wskazane przez <oferta_usun>.
+// Używane wyłącznie dla IMOX (eksport różnicowy). Soft delete, jak deactivateMissingOffers,
+// ale po liście externalId zamiast „wszystkie nieobecne w pełnym eksporcie".
+async function deactivateExternalIds(integrationId: string, externalIds: string[]) {
+  if (externalIds.length === 0) return 0;
+
+  const now = new Date();
+
+  const linksToDeactivate = await prisma.crmOfferLink.findMany({
+    where: {
+      integrationId,
+      isActiveInSource: true,
+      externalId: {
+        in: externalIds,
+      },
+    },
+    include: {
+      dzialka: true,
+    },
+  });
+
+  let count = 0;
+
+  for (const link of linksToDeactivate) {
+    await prisma.$transaction(async (tx) => {
+      if (link.dzialka.status !== "ZAKONCZONE") {
+        await tx.dzialka.update({
+          where: { id: link.dzialkaId },
+          data: {
+            status: "ZAKONCZONE",
+            endedAt: now,
+            crmLastSyncedAt: now,
+          },
+        });
+      }
+
+      await tx.crmOfferLink.update({
+        where: { id: link.id },
+        data: {
+          lastImportedAt: now,
+          lastSeenAt: now,
+          lastDeactivatedAt: now,
+          isActiveInSource: false,
+        },
+      });
+
+      await tx.crmSyncLog.create({
+        data: {
+          integrationId,
+          dzialkaId: link.dzialkaId,
+          offerLinkId: link.id,
+          externalId: link.externalId,
+          action: "DEACTIVATE",
+          status: "SUCCESS",
+          message: "Oferta usunięta przez <oferta_usun> z eksportu różnicowego.",
+        },
+      });
+    });
+
+    count += 1;
+  }
+
+  return count;
+}
+
 export async function syncCrmIntegrationNow(integrationId: string): Promise<SyncSummary> {
   const integration = await prisma.crmIntegration.findUnique({
     where: { id: integrationId },
@@ -1633,7 +1793,7 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
         currentFeedReader = await openFeedReader(downloaded.localFilePath, downloaded.remoteFileName);
         const xmlStream = await currentFeedReader.createXmlReadStream();
 
-        const parseResult = await streamParseDomyPlOffers(xmlStream, async (offer) => {
+        const parseResult = await streamParseDomyPlOffers(xmlStream, integration.provider, async (offer) => {
           importedOffers += 1;
           fileImportedOffers += 1;
           seenExternalIds.add(offer.externalId);
@@ -1687,6 +1847,18 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
           const deactivated = await deactivateMissingOffers(integration.id, seenExternalIds);
           deactivatedCount += deactivated;
           fileDeactivatedCount += deactivated;
+        }
+
+        // R-C: usuwanie różnicowe z <oferta_usun> — wyłącznie dla IMOX.
+        // Eksport różnicowy IMO nie jest pełny (isFullExport=false), więc bezpiecznik R1 powyżej
+        // go nie czyści; bieżące znikanie ofert opieramy właśnie na <oferta_usun>.
+        if (integration.provider === "IMOX" && parseResult.deletedExternalIds.length > 0) {
+          const removedByDiff = await deactivateExternalIds(
+            integration.id,
+            parseResult.deletedExternalIds
+          );
+          deactivatedCount += removedByDiff;
+          fileDeactivatedCount += removedByDiff;
         }
 
         await prisma.crmProcessedFile.upsert({
@@ -1864,3 +2036,12 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
     );
   }
 }
+
+// Eksport czystych funkcji parsujących wyłącznie do testów offline (Sprint 7/8).
+// Nie dotykają bazy ani FTP. Runtime produkcyjny korzysta z syncCrmIntegrationNow,
+// więc ten eksport niczego w nim nie zmienia.
+export const __domyplInternalsForTest = {
+  parseOfferFragment,
+  parseDeleteFragment,
+  streamParseDomyPlOffers,
+};

@@ -1,6 +1,6 @@
 # ROADMAP CRM V2
 
-> **Status na 2026-06-18:** Sprint 6 (IMO CRM, analiza) - **UKOŃCZONY**. Kluczowe ustalenie: IMO eksportuje w formacie domy.pl/Oferty.net/Melog, który już parsuje silnik `src/lib/crm/domypl-sync.ts`; provider `IMOX` jest w enumie, panelu admina i routingu (kieruje do silnika domypl). Integracja to domknięcie różnic, nie nowy silnik: klasyfikacja działki i transakcji z atrybutów `<dzial tab/typ>` (dziś po prefiksie ID GS/GW pod Galacticę), opcjonalnie `<oferta_usun>`, oraz FTP na VPS (IMO wgrywa push, worker czyta pull). Decyzje Daniela 2026-06-18: architektura przez parametryzację wspólnego silnika bez kopii (ścieżka Galactiki bez zmian), FTP na VPS z kontem per biuro, wariant płatny IMO (1500 PLN netto). Odpowiedzi IMO (2026-06-18) potwierdziły plan; obsługa `<oferta_usun>` jest wymagana, bo pełny eksport idzie tylko raz na 30 dni (codziennie różnicowe). **Następny: Sprint 7 - IMO CRM (implementacja).** Sprint 3 (Monitoring) ukończony i na produkcji; Sprint 4 (Alerty) i Sprint 5 (Ujednolicenie) świadomie odłożone, nie porzucone.
+> **Status na 2026-06-18:** Sprint 6 (IMO CRM, analiza) - **UKOŃCZONY**. Kluczowe ustalenie: IMO eksportuje w formacie domy.pl/Oferty.net/Melog, który już parsuje silnik `src/lib/crm/domypl-sync.ts`; provider `IMOX` jest w enumie, panelu admina i routingu (kieruje do silnika domypl). Integracja to domknięcie różnic, nie nowy silnik: klasyfikacja działki i transakcji z atrybutów `<dzial tab/typ>` (dziś po prefiksie ID GS/GW pod Galacticę), opcjonalnie `<oferta_usun>`, oraz FTP na VPS (IMO wgrywa push, worker czyta pull). Decyzje Daniela 2026-06-18: architektura przez parametryzację wspólnego silnika bez kopii (ścieżka Galactiki bez zmian), FTP na VPS z kontem per biuro, wariant płatny IMO (1500 PLN netto). Odpowiedzi IMO (2026-06-18) potwierdziły plan; obsługa `<oferta_usun>` jest wymagana, bo pełny eksport idzie tylko raz na 30 dni (codziennie różnicowe). **Sprint 7 (IMO CRM, implementacja silnika) - UKOŃCZONY:** R-A/R-B/R-C dopięte w `domypl-sync.ts` warunkowo dla `IMOX`, ścieżka Galactiki bit w bit; test offline 8/8 (`scripts/crm-imo-selftest.ts`). Zakres świadomie zawężony do silnika (decyzja Daniela 2026-06-18): onboarding i FTP idą procesem ręcznym jak dla pozostałych CRM, bez zmian w kodzie. Czeka na deploy i potwierdzenie na realnym feedzie IMO. **Następny: Sprint 8 - IMO CRM (testy).** Sprint 3 (Monitoring) ukończony i na produkcji; Sprint 4 (Alerty) i Sprint 5 (Ujednolicenie) świadomie odłożone, nie porzucone.
 > Poprzednio: Sprint 2 (Auto-sync, strategia C) ukończony i na produkcji - cron na VPS (06:00 i 18:00 UTC) kolejkuje import wszystkich aktywnych integracji przez kolejkę + worker.
 > Raport z audytu: [docs/CRM_AUDIT_SPRINT1.md](docs/CRM_AUDIT_SPRINT1.md) · Instrukcja auto-sync: [docs/CRM_AUTOSYNC.md](docs/CRM_AUTOSYNC.md)
 
@@ -18,8 +18,8 @@ i wpisz w niej numer aktualnego sprintu.
 - [ ] **Sprint 4 - Alerty awarii CRM** (odłożony 2026-06-18)
 - [ ] Sprint 5 - Ujednolicenie architektury CRM (przeanalizowany 2026-06-18, wykonanie odłożone; Faza 1 do wpięcia w Sprint 7)
 - [x] **Sprint 6 - IMO CRM (analiza)** (ukończony 2026-06-18; IMO = format domy.pl/Oferty.net, już parsowany przez silnik domypl; plan w sekcji Sprint 6)
-- [ ] **Sprint 7 - IMO CRM (implementacja)** (NASTĘPNY)
-- [ ] Sprint 8 - IMO CRM (testy)
+- [x] **Sprint 7 - IMO CRM (implementacja)** (ukończony 2026-06-18, zakres zawężony do silnika; R-A/R-B/R-C w `domypl-sync.ts` tylko dla IMOX, test offline 8/8; czeka na deploy i realny feed)
+- [ ] **Sprint 8 - IMO CRM (testy)** (NASTĘPNY: test na realnym koncie IMO + FTP, potwierdzenie na produkcji)
 - [ ] Sprint 9 - Properly CRM (analiza)
 - [ ] Sprint 10 - Properly CRM (implementacja)
 - [ ] Sprint 11 - Properly CRM (testy)
@@ -277,6 +277,46 @@ nadrzędna: wstecznie zerowe dla Galactiki/Asari/Esti.
 > Sprintu 5 (wspólny moduł helperów) jako fundament. Zasada nadrzędna: wstecznie zerowe dla
 > Galactiki/Asari/Esti, najpierw test na jednej integracji.
 
+### Stan realizacji (UKOŃCZONY 2026-06-18)
+
+**Zakres zawężony przez Daniela do silnika.** Onboarding (rejestracja biura, zakładanie integracji
+w panelu, przekazanie danych FTP mailem) działa dla IMO tak samo jak dla pozostałych CRM i jest
+obsługiwany ręcznie - bez zmian w kodzie. FTP na VPS i konto w portalu IMO to kroki po stronie Daniela.
+Sprint 7 dotyka **wyłącznie** `src/lib/crm/domypl-sync.ts`. Zero migracji bazy, zero zmian w panelu,
+workerze, kolejce, auto-sync, monitoringu oraz w silnikach Asari/Esti.
+
+**Kluczowe ustalenie (uściśla analizę Sprintu 6):** parser SAX już dziś zbiera cały fragment
+`<oferta>...</oferta>` razem z elementem `<dzial>` (każdy tag wewnątrz oferty trafia do `offerXml`
+przez `startTagToXml`, który serializuje atrybuty), a `parseOfferFragment` parsuje to z
+`ignoreAttributes:false`. `<dzial tab/typ>` był więc dostępny, tylko nieczytany - R-A i R-B to
+dodanie odczytu, bez zmian w SAX. Realna zmiana w SAX dotyczyła tylko R-C (`<oferta_usun>` ma inną
+nazwę niż `<oferta>`, więc był pomijany).
+
+**Co powstało (wszystko warunkowo dla `provider === "IMOX"`):**
+- `provider` przeprowadzony do `streamParseDomyPlOffers` i `parseOfferFragment`.
+- **R-A:** `isLandOffer` rozszerzone o `<dzial tab="dzialki">` (addytywnie; dla nie-IMOX warunek jest
+  martwy, klasyfikacja bit w bit jak dziś). Puste `typdzialki` daje domyślnie `BUDOWLANA`
+  (to zachowanie `mapPlotTypeToPrzeznaczenia(null)` już istniało).
+- **R-B:** dla IMOX transakcja czytana wprost z `<dzial typ="sprzedaz|wynajem">`; pozostali bez zmian
+  (prefiks `GW` + słowa w tytule).
+- **R-C:** parser zbiera `<oferta_usun>` i zwraca `deletedExternalIds`; nowa funkcja
+  `deactivateExternalIds` gasi te oferty miękko (`ZAKONCZONE`), wołana **tylko dla IMOX**. Bezpiecznik
+  R1 (`deactivateMissingOffers`) i warunek pełnego eksportu nietknięte.
+- Eksport testowy `__domyplInternalsForTest` (czyste funkcje parsujące, bez bazy/FTP).
+
+**Jak zweryfikowano:** `tsc --noEmit` czysty; eslint bez nowych zgłoszeń (dwa istniejące to dług sprzed
+sprintu - patrz P-G); test offline `scripts/crm-imo-selftest.ts` (`npx tsx`) - **8/8 PASS**. Test na
+sztucznym pełnym eksporcie dowodzi izolacji: ta sama oferta IMO (`<dzial tab=dzialki>`, bez prefiksu)
+jest przyjmowana dla IMOX, a odrzucana dla GALACTICA; oferta `GS-200` z `<dzial typ=wynajem>` dla
+GALACTICA wychodzi jako SPRZEDAŻ (ignoruje `<dzial>`), a dla IMOX jako WYNAJEM.
+
+**Ryzyko:** niskie. Jedyny współdzielony plik to silnik domypl (Galactica/GENERIC); wszystkie nowe
+gałęzie są bramkowane `IMOX`, co potwierdza test. Produkcyjne potwierdzenie na realnym feedzie IMO
+to Sprint 8.
+
+**Następny:** Sprint 8 - test na realnym koncie IMO + FTP (pierwszy import jednej integracji IMOX,
+weryfikacja na produkcji).
+
 ## CRM SPRINT 8 - IMO CRM (testy)
 
 ## CRM SPRINT 9 - Properly CRM (analiza)
@@ -340,6 +380,12 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Naprawa (commit `fb851eb`):** silnik idzie od najnowszego pliku, zbiera przyrostowe i zatrzymuje się na pierwszym pełnym eksporcie (czyli najnowszy pełny + nowsze przyrostowe). Dla biur z samymi pełnymi eksportami zachowanie identyczne (pętla kończy się na idx 0), tryb nieznany też kończy pętlę konserwatywnie.
 - **Weryfikacja na produkcji (17.06):** RGN 0 → 51 działek; dsilodz dalej 9; pawlowskipolkowice dalej 12; wszystkie `SUCCESS`, 0 błędów. Wymagało restartu workera (`pm2 restart crm-worker`), który przy okazji zaktualizował workera do bieżącego kodu.
 - **Status:** naprawione i wdrożone. Pozostały dług powiązany: P-A (route usera `sync-now` nadal bez EstiCRM, idzie przez kolejkę/worker).
+
+### P-G: Istniejący dług eslint w `domypl-sync.ts` (sprzed Sprintu 7)
+- **Gdzie:** `src/lib/crm/domypl-sync.ts` - linia ~249 (`Unexpected any`, error) oraz ~128 (`addDays` zdefiniowane, nieużywane, warning).
+- **Co:** zgłoszenia eslint obecne na wersji `HEAD` sprzed Sprintu 7 (potwierdzone uruchomieniem eslint na zastashowanym pliku). Sprint 7 ich nie wprowadził i ich nie dotknął (zasada: nie naprawiać poza zakresem).
+- **Wpływ biznesowy:** żaden bezpośredni - kod działa na produkcji, build przechodzi. `any` osłabia typowanie w jednym miejscu; `addDays` to martwy helper.
+- **Priorytet:** niski. Drobne sprzątanie; `any` można dotknąć przy Fazie 1 ze Sprintu 5 (wspólny moduł helperów), `addDays` usunąć lub wykorzystać.
 
 ---
 
