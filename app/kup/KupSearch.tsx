@@ -1337,7 +1337,7 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-white/80 text-white'
+                        ? 'border-[#7aa333] bg-[#7aa333]/20 text-[#9fd14b]'
                         : 'border-white/25 text-white/70 hover:border-white/45',
                     ].join(' ')}
                   >
@@ -1363,7 +1363,7 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-white/80 text-white'
+                        ? 'border-[#7aa333] bg-[#7aa333]/20 text-[#9fd14b]'
                         : 'border-white/25 text-white/70 hover:border-white/45',
                     ].join(' ')}
                   >
@@ -1389,7 +1389,7 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-white/80 text-white'
+                        ? 'border-[#7aa333] bg-[#7aa333]/20 text-[#9fd14b]'
                         : 'border-white/25 text-white/70 hover:border-white/45',
                     ].join(' ')}
                   >

@@ -680,7 +680,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 </button>
 
                 {isRent ? (
-                  <span className="mb-2 inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90">
+                  <span className="flex w-fit items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90">
                     Na wynajem
                   </span>
                 ) : null}
