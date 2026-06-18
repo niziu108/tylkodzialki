@@ -86,8 +86,9 @@ function ResetPageContent() {
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
                 type="password"
+                autoComplete="new-password"
                 placeholder="••••••••"
-                className="mt-2 w-full bg-transparent text-[18px] text-white/90 border-0 border-b border-white/25 pb-2 placeholder:text-white/35 outline-none focus:border-white/70"
+                className="mt-2 w-full bg-transparent text-[18px] text-white/90 field-line pb-2 placeholder:text-white/35 outline-none"
               />
             </label>
 

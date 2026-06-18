@@ -96,8 +96,10 @@ export default function GlobalNav() {
     setOpen(false);
     setAccountOpen(false);
 
-    const cb = encodeURIComponent(pathname || '/');
-    router.push(`/auth?callbackUrl=${cb}`);
+    // Czyste /auth z menu (po zalogowaniu i tak ląduje się na /panel). callbackUrl
+    // dokładamy tylko tam, gdzie powrót na konkretną stronę ma sens (middleware,
+    // ulubione, autopublikacja oferty), żeby pasek adresu nie pokazywał ?callbackUrl=%2F.
+    router.push('/auth');
   };
 
   const navBtnBase =

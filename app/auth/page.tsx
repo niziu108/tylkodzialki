@@ -238,12 +238,12 @@ function AuthPageContent() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         type="text"
+                        autoComplete="name"
                         placeholder="np. Jan"
                         className={cx(
                           'mt-2 w-full bg-transparent text-[18px] text-white/90',
-                          'border-0 border-b border-white/25 pb-2',
+                          'field-line pb-2',
                           'placeholder:text-white/35 outline-none',
-                          'focus:border-white/70',
                           'selection:bg-white/20 selection:text-white'
                         )}
                       />
@@ -258,12 +258,12 @@ function AuthPageContent() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       type="email"
+                      autoComplete="email"
                       placeholder="np. adres@email.pl"
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-white/90',
-                        'border-0 border-b border-white/25 pb-2',
+                        'field-line pb-2',
                         'placeholder:text-white/35 outline-none',
-                        'focus:border-white/70',
                         'selection:bg-white/20 selection:text-white'
                       )}
                     />
@@ -277,12 +277,12 @@ function AuthPageContent() {
                       value={pass}
                       onChange={(e) => setPass(e.target.value)}
                       type="password"
+                      autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                       placeholder="••••••••"
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-white/90',
-                        'border-0 border-b border-white/25 pb-2',
+                        'field-line pb-2',
                         'placeholder:text-white/35 outline-none',
-                        'focus:border-white/70',
                         'selection:bg-white/20 selection:text-white'
                       )}
                     />

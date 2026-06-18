@@ -54,6 +54,20 @@ select:focus {
   box-shadow: none;
 }
 
+/* autofill: przeglądarka maluje pole własnym (jasnym) tłem i kolorem tekstu,
+   co na ciemnym motywie wygląda jak wypełniony prostokąt z ramką. Poniżej
+   wymuszamy ciemne tło i jasny tekst, żeby autouzupełnione pole wyglądało
+   identycznie jak puste (linia pod spodem, bez wypełnienia). */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--fg) !important;
+  box-shadow: 0 0 0 1000px var(--bg) inset !important;
+  caret-color: var(--fg) !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 /* jednolity focus dla klikalnych */
 :focus-visible {
   outline: 2px solid rgba(245, 245, 247, 0.28);
