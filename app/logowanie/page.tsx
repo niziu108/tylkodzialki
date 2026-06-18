@@ -239,7 +239,6 @@ function AuthPageContent() {
                         onChange={(e) => setName(e.target.value)}
                         type="text"
                         autoComplete="name"
-                        placeholder="np. Jan"
                         className={cx(
                           'mt-2 w-full bg-transparent text-[18px] text-white/90',
                           'field-line pb-2',
@@ -259,7 +258,6 @@ function AuthPageContent() {
                       onChange={(e) => setEmail(e.target.value)}
                       type="email"
                       autoComplete="email"
-                      placeholder="np. adres@email.pl"
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-white/90',
                         'field-line pb-2',
@@ -330,7 +328,7 @@ function AuthPageContent() {
 
                   <div className="pt-1">
                     <a
-                      href="/auth/forgot"
+                      href="/logowanie/forgot"
                       className="text-[12px] text-white/55 underline decoration-white/25 underline-offset-4 transition hover:text-white/85"
                       style={{ textTransform: 'none' }}
                     >

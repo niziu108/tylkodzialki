@@ -76,7 +76,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
     const sp = new URLSearchParams(window.location.search);
     sp.set('autoalert', '1');
     const cb = `${window.location.pathname}?${sp.toString()}`;
-    window.location.href = `/auth?callbackUrl=${encodeURIComponent(cb)}`;
+    window.location.href = `/logowanie?callbackUrl=${encodeURIComponent(cb)}`;
   }
 
   // Po powrocie z logowania dokończ włączanie powiadomień (wzorzec jak /sprzedaj autopublish).

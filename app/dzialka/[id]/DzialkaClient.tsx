@@ -1024,7 +1024,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               </button>
 
               <Link
-                href="/auth"
+                href="/logowanie"
                 className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#7aa333] px-4 text-[12px] font-black uppercase tracking-[0.18em] text-[#101010] transition hover:brightness-110"
               >
                 Przejdź do logowania

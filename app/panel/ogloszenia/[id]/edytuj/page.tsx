@@ -15,7 +15,7 @@ export default async function EdytujOgloszeniePage({ params }: Props) {
   const email = session?.user?.email?.toLowerCase().trim();
 
   if (!email) {
-    redirect('/auth');
+    redirect('/logowanie');
   }
 
   const user = await prisma.user.findUnique({
@@ -24,7 +24,7 @@ export default async function EdytujOgloszeniePage({ params }: Props) {
   });
 
   if (!user?.id) {
-    redirect('/auth');
+    redirect('/logowanie');
   }
 
   const { id } = await params;

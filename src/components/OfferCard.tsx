@@ -225,7 +225,7 @@ export function LoginPrompt({ open, onClose }: { open: boolean; onClose: () => v
             type="button"
             onClick={() => {
               const cb = encodeURIComponent(window.location.pathname + window.location.search);
-              window.location.href = `/auth?callbackUrl=${cb}`;
+              window.location.href = `/logowanie?callbackUrl=${cb}`;
             }}
             className="h-12 rounded-2xl border border-[#7aa333]/60 bg-[#7aa333] px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#131313] transition hover:bg-[#8dbb3a]"
           >

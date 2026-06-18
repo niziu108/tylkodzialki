@@ -54,7 +54,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             Zaloguj się, aby przejść do panelu klienta.
           </div>
           <Link
-            href="/auth"
+            href="/logowanie"
             className="mt-6 inline-flex rounded-full bg-[#7aa333] px-6 py-3 text-sm font-semibold text-black transition hover:opacity-90"
           >
             Przejdź do logowania

@@ -10,14 +10,14 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const token = searchParams.get('token');
 
-    if (!token) return NextResponse.redirect(`${baseUrl()}/auth?verified=0`);
+    if (!token) return NextResponse.redirect(`${baseUrl()}/logowanie?verified=0`);
 
     const row = await prisma.verificationToken.findUnique({ where: { token } });
-    if (!row) return NextResponse.redirect(`${baseUrl()}/auth?verified=0`);
+    if (!row) return NextResponse.redirect(`${baseUrl()}/logowanie?verified=0`);
 
     if (row.expires.getTime() < Date.now()) {
       await prisma.verificationToken.delete({ where: { token } }).catch(() => {});
-      return NextResponse.redirect(`${baseUrl()}/auth?verified=0`);
+      return NextResponse.redirect(`${baseUrl()}/logowanie?verified=0`);
     }
 
     // ustawiamy verified
@@ -29,9 +29,9 @@ export async function GET(req: Request) {
     // sprzątamy tokeny dla email
     await prisma.verificationToken.deleteMany({ where: { identifier: row.identifier } });
 
-    return NextResponse.redirect(`${baseUrl()}/auth?verified=1`);
+    return NextResponse.redirect(`${baseUrl()}/logowanie?verified=1`);
   } catch (e) {
     console.error('VERIFY_EMAIL_ERROR', e);
-    return NextResponse.redirect(`${baseUrl()}/auth?verified=0`);
+    return NextResponse.redirect(`${baseUrl()}/logowanie?verified=0`);
   }
 }

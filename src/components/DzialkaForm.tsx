@@ -1419,7 +1419,7 @@ export default function DzialkaForm({
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href={`/auth?callbackUrl=${encodeURIComponent('/sprzedaj?autopublish=1')}`}
+                href={`/logowanie?callbackUrl=${encodeURIComponent('/sprzedaj?autopublish=1')}`}
                 className="inline-flex items-center justify-center rounded-2xl bg-[#7aa333] px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
               >
                 Zaloguj się / Zarejestruj

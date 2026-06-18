@@ -35,7 +35,7 @@ export async function requestPasswordReset(email: string) {
     },
   });
 
-  const url = `${baseUrl()}/auth/reset?token=${token}`;
+  const url = `${baseUrl()}/logowanie/reset?token=${token}`;
 
   const html = buildMailTemplate({
     preheader: "Ustaw nowe hasło do konta tylkodzialki.pl.",

@@ -69,7 +69,7 @@ function ResetPageContent() {
               Hasło zostało zmienione. Możesz się zalogować.
             </div>
             <a
-              href="/auth"
+              href="/logowanie"
               className="block w-full text-center rounded-2xl px-4 py-4 font-semibold border border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition"
               style={{ color: GREEN }}
             >

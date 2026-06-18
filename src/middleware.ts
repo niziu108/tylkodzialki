@@ -4,7 +4,7 @@ import { getToken } from 'next-auth/jwt';
 
 function isProtectedPath(pathname: string) {
   // /sprzedaj jest celowo PUBLICZNE — formularz wypełnia się bez logowania,
-  // a konto zakłada się dopiero przy publikacji (patrz DzialkaForm: 401 -> /auth -> autopublish).
+  // a konto zakłada się dopiero przy publikacji (patrz DzialkaForm: 401 -> /logowanie -> autopublish).
   return pathname.startsWith('/panel') || pathname.startsWith('/admin');
 }
 
@@ -29,7 +29,7 @@ export async function middleware(req: NextRequest) {
 
   if (!token) {
     const url = req.nextUrl.clone();
-    url.pathname = '/auth';
+    url.pathname = '/logowanie';
     url.searchParams.set('callbackUrl', pathname + (search || ''));
     return NextResponse.redirect(url);
   }

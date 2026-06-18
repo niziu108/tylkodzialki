@@ -10,7 +10,7 @@ export default async function UlubionePage() {
   const userId = session?.user?.id;
 
   if (!userId) {
-    redirect('/auth?callbackUrl=/ulubione');
+    redirect('/logowanie?callbackUrl=/ulubione');
   }
 
   const favorites = await prisma.favoriteDzialka.findMany({

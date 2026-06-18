@@ -6,7 +6,7 @@ import {
   sendAdminMailTestAction,
 } from "./actions";
 
-const LOGIN_URL = "https://tylkodzialki.pl/auth";
+const LOGIN_URL = "https://tylkodzialki.pl/logowanie";
 
 const TEMPLATE_EXPIRED_SUBJECT =
   "Sprawdź swoje ogłoszenia na tylkodzialki.pl";

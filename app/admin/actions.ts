@@ -12,7 +12,7 @@ import { deleteUserCompletely } from "@/lib/delete-user-completely";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 
 const APP_URL = "https://tylkodzialki.pl";
-const LOGIN_URL = `${APP_URL}/auth`;
+const LOGIN_URL = `${APP_URL}/logowanie`;
 
 type MailAudience = "ALL" | "LISTER" | "EXPIRED";
 
