@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isInPoland } from '@/lib/geo';
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim();
@@ -30,6 +31,9 @@ export async function GET(req: NextRequest) {
     }
 
     const { lat, lng } = data.results[0].geometry.location;
+    if (!isInPoland(lat, lng)) {
+      return NextResponse.json({ error: 'out of bounds', lat, lng }, { status: 404 });
+    }
     return NextResponse.json({ lat, lng });
   } catch {
     return NextResponse.json({ error: 'geocode failed' }, { status: 500 });

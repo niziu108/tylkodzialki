@@ -17,6 +17,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { sanitizePlCoords } from "@/lib/geo";
 
 type IntegrationForSync = {
   id: string;
@@ -404,8 +405,12 @@ function parseEstiOffer(
     return null;
   }
 
-  const lat = toNumber(rawOffer.locationLatitude);
-  const lng = toNumber(rawOffer.locationLongitude);
+  const rawLat = toNumber(rawOffer.locationLatitude);
+  const rawLng = toNumber(rawOffer.locationLongitude);
+  // Bramka jakości: na mapę trafiają tylko współrzędne w granicach Polski.
+  const plCoords = sanitizePlCoords(rawLat, rawLng);
+  const lat = plCoords?.lat ?? null;
+  const lng = plCoords?.lng ?? null;
 
   const plotTypeRaw =
     nodeTextOrDictionary(rawOffer.groundType, definitions) ||

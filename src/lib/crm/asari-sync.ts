@@ -15,6 +15,8 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { sanitizePlCoords } from "@/lib/geo";
+import { geocodeAddressInPoland } from "@/lib/crm/geocode";
 
 type IntegrationForSync = {
   id: string;
@@ -515,13 +517,26 @@ function parseAsariOffer(
   const fullParts = [ulica, miasto, dzielnica, gmina, powiat, wojewodztwo].filter(Boolean);
   const locationFull = fullParts.length > 0 ? fullParts.join(", ") : locationLabel;
 
-  const lat =
-    getNumberByName(params, definitions, ["szerokosc"], ["201", "205"]) ??
+  // UWAGA: po polsku "szerokość"/"długość" są dwuznaczne — to ZARÓWNO współrzędne
+  // geograficzne, JAK I wymiary działki ("szerokość działki [m]"). Dawne dopasowanie
+  // po samym "szerokosc"/"dlugosc" łapało wymiary w metrach i wrzucało je jako lat/lng
+  // (piny poza Polską). Dlatego dopasowujemy po PEŁNEJ nazwie "...geograficzna" (co
+  // wyklucza "...działki"), a jako zapas stabilne ID 201/202 (oraz 205/206).
+  const rawLat =
+    getNumberByName(params, definitions, ["szerokosc", "geograficzna"], ["201", "205"]) ??
     getNumberByName(params, definitions, ["latitude"], ["201", "205"]);
 
-  const lng =
-    getNumberByName(params, definitions, ["dlugosc"], ["202", "206"]) ??
+  const rawLng =
+    getNumberByName(params, definitions, ["dlugosc", "geograficzna"], ["202", "206"]) ??
     getNumberByName(params, definitions, ["longitude"], ["202", "206"]);
+
+  // Bramka jakości: na mapę trafiają tylko współrzędne w granicach Polski.
+  const plCoords = sanitizePlCoords(rawLat, rawLng);
+  if ((rawLat != null || rawLng != null) && !plCoords) {
+    console.log("[ASARI GEO] Odrzucono współrzędne poza Polską:", locationLabel, rawLat, rawLng);
+  }
+  const lat = plCoords?.lat ?? null;
+  const lng = plCoords?.lng ?? null;
 
   const mediaText = [
     getTextByName(params, definitions, ["media"], ["39"]),
@@ -1059,6 +1074,17 @@ async function processOffer(
 ): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS"> {
   const now = new Date();
   const expiresAt = null;
+
+  // Fallback geokodowania: gdy feed nie podał współrzędnych (albo zostały odrzucone
+  // jako spoza Polski), dolicz je z adresu — z kontrolą granic PL w geocode.ts.
+  if (offer.lat == null || offer.lng == null) {
+    const hit = await geocodeAddressInPoland(offer.locationFull || offer.locationLabel);
+    if (hit) {
+      offer.lat = hit.lat;
+      offer.lng = hit.lng;
+      offer.mapsUrl = buildMapsUrl(hit.lat, hit.lng);
+    }
+  }
 
   const existingLink = await prisma.crmOfferLink.findUnique({
     where: {

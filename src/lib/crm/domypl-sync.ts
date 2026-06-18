@@ -22,6 +22,7 @@ import {
 import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { sanitizePlCoords } from "@/lib/geo";
 
 type IntegrationForSync = {
   id: string;
@@ -963,8 +964,13 @@ function parseOfferFragment(
       transakcja = isRentByCode || isRentByTitle ? "WYNAJEM" : "SPRZEDAZ";
     }
 
-    const lat = toNumber(params.n_geo_y) ?? toNumber(params.wsp_x);
-    const lng = toNumber(params.n_geo_x) ?? toNumber(params.wsp_y);
+    const rawLat = toNumber(params.n_geo_y) ?? toNumber(params.wsp_x);
+    const rawLng = toNumber(params.n_geo_x) ?? toNumber(params.wsp_y);
+    // Bramka jakości: współrzędne spoza Polski (np. zamiana osi wsp_x/wsp_y) odrzucamy do null,
+    // dzięki czemu enrichOfferWithGeocoding dolicza je z adresu (też z kontrolą granic PL).
+    const plCoords = sanitizePlCoords(rawLat, rawLng);
+    const lat = plCoords?.lat ?? null;
+    const lng = plCoords?.lng ?? null;
     const mapsUrl = buildMapsUrl(lat, lng);
 
     const biuroOpiekun = toTextValue(params.agent_nazwisko) || null;
