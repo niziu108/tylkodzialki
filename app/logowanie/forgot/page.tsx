@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 
-const BG = '#131313';
-const FG = '#F3EFF5';
-const GREEN = '#7aa333';
+const BG = 'var(--bg)';
+const FG = 'var(--fg)';
+const GREEN = 'var(--brand)';
 
 export default function ForgotPage() {
   const [email, setEmail] = useState('');

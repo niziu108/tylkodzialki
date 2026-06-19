@@ -140,7 +140,7 @@ export default function ArticleForm({
                 />
               </div>
             ) : (
-              <div className="flex h-44 items-center justify-center rounded-2xl border border-dashed border-fg/10 bg-black/20 text-sm text-fg/50">
+              <div className="flex h-44 items-center justify-center rounded-2xl border border-dashed border-fg/10 bg-surface text-sm text-fg/50">
                 Brak zdjęcia głównego
               </div>
             )}
@@ -255,7 +255,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
           </p>
         </div>
 
-        <details className="rounded-2xl border border-fg/10 bg-black/20 p-4 md:col-span-2">
+        <details className="rounded-2xl border border-fg/10 bg-surface p-4 md:col-span-2">
           <summary className="cursor-pointer select-none text-sm font-medium text-fg">
             SEO (tytuł i opis w Google) — opcjonalne
           </summary>
@@ -306,7 +306,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
         </details>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-fg/10 bg-black/20 p-4">
+      <div className="mt-6 rounded-2xl border border-fg/10 bg-surface p-4">
         <label className="flex items-center gap-3 text-sm text-fg">
           <input
             type="checkbox"

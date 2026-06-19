@@ -158,7 +158,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
 
       {loginPromptOpen ? (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/65 px-5 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-fg/12 bg-bg p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+          <div className="w-full max-w-md rounded-3xl border border-fg/12 bg-bg p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.12)]">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/12 text-brand-bright">
               <BellIcon className="h-6 w-6" />
             </div>

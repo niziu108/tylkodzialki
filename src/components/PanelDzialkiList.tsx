@@ -102,7 +102,7 @@ function labelPrzeznaczenie(p: Przeznaczenie) {
   return map[p] ?? String(p);
 }
 
-const GREEN = '#7aa333';
+const GREEN = 'var(--brand)';
 
 function SelectChevron() {
   return (
@@ -224,7 +224,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Np. tytuł ogłoszenia, lokalizacja..."
-              className="h-[54px] w-full rounded-2xl border border-fg/12 bg-black/20 px-4 text-sm text-fg outline-none transition placeholder:text-fg/35 focus:border-brand/60 focus:bg-black/30"
+              className="h-[54px] w-full rounded-2xl border border-fg/12 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/35 focus:border-brand/60 focus:bg-black/30"
             />
           </div>
 

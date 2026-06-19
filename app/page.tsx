@@ -22,13 +22,13 @@ export const metadata: Metadata = {
   },
 };
 
-const PAGE_BG = "#131313";
+const PAGE_BG = 'var(--bg)';
 
 function PopularSearchesSection() {
   return (
     <section className="relative overflow-hidden border-t border-fg/10 bg-surface-2">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.13),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.18),transparent_32%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.13),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
         <div>
@@ -51,7 +51,7 @@ function PopularSearchesSection() {
             {SEO_REGIONS.map((region, index) => (
               <article
                 key={region.name}
-                className="group relative min-w-[86%] snap-start overflow-hidden rounded-[32px] border border-fg/12 bg-surface-2/78 p-6 shadow-[0_0_70px_rgba(0,0,0,0.20)] backdrop-blur transition hover:border-brand/35 md:min-w-[360px] xl:min-w-[390px]"
+                className="group relative min-w-[86%] snap-start overflow-hidden rounded-[32px] border border-fg/12 bg-surface-2/78 p-6 shadow-[0_0_50px_rgba(0,0,0,0.06)] backdrop-blur transition hover:border-brand/35 md:min-w-[360px] xl:min-w-[390px]"
               >
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(122,163,51,0.12),transparent_34%)] opacity-0 transition group-hover:opacity-100" />
 
@@ -179,7 +179,7 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/52 to-black/72" />
 
         <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-8 text-center">
-          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg/80 [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[70px] md:leading-none">
+          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-white/90 [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[70px] md:leading-none">
             Znajdź swoją działkę
           </h1>
 
@@ -192,11 +192,11 @@ export default async function HomePage() {
           <div className="mt-6">
             <Link
               href="/sprzedaj"
-              className="text-sm text-fg/42 transition hover:text-fg/72"
+              className="text-sm text-white/55 transition hover:text-white/80"
             >
               Sprzedajesz działkę?{" "}
               <span
-                className="text-brand-bright"
+                className="text-[#9fd14b]"
                 style={{
                   textDecoration: "underline",
                   textUnderlineOffset: "4px",
@@ -216,7 +216,7 @@ export default async function HomePage() {
         <section className="relative overflow-hidden">
           {/* zielona „siateczka" — żeby sekcja nie była monolitem */}
           <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
-          <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.22),transparent_32%)]" />
+          <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.05),transparent_32%)]" />
 
           <div className="relative z-10 mx-auto max-w-7xl px-6 pt-14 pb-14 md:px-10 md:pt-16 md:pb-16">
             <h2 className="text-[22px] font-semibold text-fg md:text-[28px]">

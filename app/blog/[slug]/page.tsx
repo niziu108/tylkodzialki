@@ -180,7 +180,7 @@ export default async function BlogArticlePage({
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pt-10 md:px-8 md:pt-12">
-        <div className="overflow-hidden rounded-[30px] border border-fg/10 bg-black/20">
+        <div className="overflow-hidden rounded-[30px] border border-fg/10 bg-surface">
           <img
             src={heroSrc}
             alt={article.title}

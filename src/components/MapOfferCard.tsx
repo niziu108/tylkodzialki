@@ -85,13 +85,13 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
               e.stopPropagation();
               onClose?.();
             }}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-fg/15 bg-bg/95 text-[20px] leading-none text-fg shadow-[0_8px_24px_rgba(0,0,0,0.5)] backdrop-blur transition hover:bg-surface"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-fg/15 bg-bg/95 text-[20px] leading-none text-fg shadow-[0_8px_24px_rgba(0,0,0,0.10)] backdrop-blur transition hover:bg-surface"
           >
             ×
           </button>
         </div>
 
-        <div className="relative w-full overflow-hidden rounded-2xl border border-fg/12 bg-bg shadow-[0_18px_60px_rgba(0,0,0,0.6)]">
+        <div className="relative w-full overflow-hidden rounded-2xl border border-fg/12 bg-bg shadow-[0_18px_60px_rgba(0,0,0,0.12)]">
           <a href={`/dzialka/${point.id}`} className="group block text-left text-fg no-underline">
             {/* Karuzela */}
             <div

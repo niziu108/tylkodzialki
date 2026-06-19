@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
 };
 
-const PAGE_BG = '#131313';
+const PAGE_BG = 'var(--bg)';
 
 const FEATURES = [
   {
@@ -72,7 +72,7 @@ export default async function DlaBiurPage() {
       {/* HERO — pełna wysokość; 2 kolumny na desktopie (lewo wielki licznik, prawo teksty), od lewej też na mobile */}
       <section className="relative flex min-h-[100svh] items-center overflow-hidden border-b border-fg/10">
         <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.22),transparent_34%)]" />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.05),transparent_34%)]" />
         <div className="pointer-events-none absolute left-[-140px] top-24 z-0 h-[420px] w-[420px] rounded-full bg-brand/10 blur-[120px]" />
 
         <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-16 text-left md:px-10 md:py-20 lg:grid-cols-2 lg:gap-16">
@@ -158,7 +158,7 @@ export default async function DlaBiurPage() {
         id="jak-to-dziala"
         className="relative scroll-mt-24 overflow-hidden border-y border-fg/10 bg-surface-2"
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.18),transparent_32%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">

@@ -74,7 +74,7 @@ export default function AdminMailComposer() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-      <div className="rounded-3xl border border-fg/10 bg-black/20 p-4 md:p-5">
+      <div className="rounded-3xl border border-fg/10 bg-surface p-4 md:p-5">
         <div className="mb-4 flex flex-wrap gap-2">
           <button
             type="button"

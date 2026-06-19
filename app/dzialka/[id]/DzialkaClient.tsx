@@ -50,8 +50,8 @@ type Dzialka = {
   zdjecia?: Photo[];
 };
 
-const BG = '#131313';
-const FG = '#F3EFF5';
+const BG = 'var(--bg)';
+const FG = 'var(--fg)';
 
 function cx(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(' ');
@@ -1094,7 +1094,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       <a
         href={`tel:${telefonHref}`}
         onClick={() => trackContact('phone')}
-        className="flex h-12 items-center justify-center rounded-2xl border border-brand/70 bg-surface-2/92 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/80 shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
+        className="flex h-12 items-center justify-center rounded-2xl border border-brand/70 bg-surface-2/92 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/80 shadow-[0_0_22px_rgba(0,0,0,0.08)] transition active:scale-[0.98]"
       >
         Zadzwoń
       </a>
@@ -1103,7 +1103,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
         <a
           href={smsHref}
           onClick={() => trackContact('message')}
-          className="flex h-12 items-center justify-center rounded-2xl border border-fg/15 bg-brand/95 text-[12px] font-semibold uppercase tracking-[0.18em] text-ink shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
+          className="flex h-12 items-center justify-center rounded-2xl border border-fg/15 bg-brand/95 text-[12px] font-semibold uppercase tracking-[0.18em] text-ink shadow-[0_0_22px_rgba(0,0,0,0.08)] transition active:scale-[0.98]"
         >
           Napisz
         </a>
@@ -1115,7 +1115,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
       {shareDone ? (
         <div className="fixed inset-x-0 bottom-24 z-[1000] flex justify-center px-4 md:bottom-10">
-          <div className="rounded-full border border-fg/15 bg-surface px-4 py-2 text-[13px] text-fg/90 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+          <div className="rounded-full border border-fg/15 bg-surface px-4 py-2 text-[13px] text-fg/90 shadow-[0_10px_30px_rgba(0,0,0,0.10)]">
             Skopiowano link do oferty
           </div>
         </div>
@@ -1123,7 +1123,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
       {favoriteModalOpen ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 px-4 backdrop-blur-md">
-          <div className="w-full max-w-[480px] rounded-[28px] border border-fg/10 bg-surface px-6 py-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+          <div className="w-full max-w-[480px] rounded-[28px] border border-fg/10 bg-surface px-6 py-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.12)]">
             <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/10 text-[28px] text-brand-text">
               ♡
             </div>

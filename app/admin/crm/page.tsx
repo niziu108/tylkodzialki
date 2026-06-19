@@ -287,7 +287,7 @@ export default async function AdminCrmMonitoringPage() {
               {providerStats.map((stat) => (
                 <div
                   key={stat.provider}
-                  className="rounded-2xl border border-fg/10 bg-black/20 p-4"
+                  className="rounded-2xl border border-fg/10 bg-surface p-4"
                 >
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-fg">

@@ -418,7 +418,7 @@ export default function KupMap({
           <button
             type="button"
             onClick={handleSearchArea}
-            className="pointer-events-auto rounded-full border border-brand/60 bg-bg/95 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-fg shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur transition hover:border-brand hover:bg-surface sm:px-5 sm:py-2.5 sm:text-[12px]"
+            className="pointer-events-auto rounded-full border border-brand/60 bg-bg/95 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-fg shadow-[0_10px_30px_rgba(0,0,0,0.10)] backdrop-blur transition hover:border-brand hover:bg-surface sm:px-5 sm:py-2.5 sm:text-[12px]"
           >
             Szukaj w tym obszarze
           </button>

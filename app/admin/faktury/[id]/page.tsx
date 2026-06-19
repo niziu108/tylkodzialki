@@ -131,7 +131,7 @@ function DetailItem({
   value: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+    <div className="rounded-2xl border border-fg/10 bg-surface p-4">
       <div className="mb-1 text-xs uppercase tracking-wide text-fg/50">
         {label}
       </div>
@@ -370,7 +370,7 @@ export default async function FakturaDetailsPage({
               />
             </div>
 
-            <div className="mt-4 rounded-2xl border border-fg/10 bg-black/20 p-4">
+            <div className="mt-4 rounded-2xl border border-fg/10 bg-surface p-4">
               <div className="mb-2 text-xs uppercase tracking-wide text-fg/50">
                 Komunikat błędu KSeF
               </div>

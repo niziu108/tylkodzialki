@@ -201,7 +201,7 @@ function WyroznieniaPageContent() {
                 className={`flex-1 rounded-2xl border px-4 py-4 text-left transition ${
                   invoiceType === 'NONE'
                     ? 'border-brand/60 bg-brand/12 text-fg'
-                    : 'border-fg/10 bg-black/20 text-fg/75 hover:border-fg/20'
+                    : 'border-fg/10 bg-surface text-fg/75 hover:border-fg/20'
                 }`}
               >
                 <div className="text-sm font-semibold">Osoba prywatna</div>
@@ -213,7 +213,7 @@ function WyroznieniaPageContent() {
                 className={`flex-1 rounded-2xl border px-4 py-4 text-left transition ${
                   invoiceType === 'COMPANY'
                     ? 'border-brand/60 bg-brand/12 text-fg'
-                    : 'border-fg/10 bg-black/20 text-fg/75 hover:border-fg/20'
+                    : 'border-fg/10 bg-surface text-fg/75 hover:border-fg/20'
                 }`}
               >
                 <div className="text-sm font-semibold">Firma</div>
@@ -299,7 +299,7 @@ function WyroznieniaPageContent() {
               Jedno wyróżnienie gotowe do użycia od razu po zakupie.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-fg/10 bg-black/20 p-4 text-left">
+            <div className="mt-5 rounded-2xl border border-fg/10 bg-surface p-4 text-left">
               <div className="text-sm font-medium text-fg/85">
                 Co otrzymujesz:
               </div>
@@ -346,7 +346,7 @@ function WyroznieniaPageContent() {
               Najlepszy balans ceny i liczby wyróżnień.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-brand/20 bg-black/20 p-4 text-left">
+            <div className="mt-5 rounded-2xl border border-brand/20 bg-surface p-4 text-left">
               <div className="text-sm font-medium text-fg">
                 Co otrzymujesz:
               </div>

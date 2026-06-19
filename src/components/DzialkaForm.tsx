@@ -173,8 +173,8 @@ function cx(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(' ');
 }
 
-const BG = '#131313';
-const FG = '#F3EFF5';
+const BG = 'var(--bg)';
+const FG = 'var(--fg)';
 const MAX_TITLE_CHARS = 90;
 const MAX_OPIS_CHARS = 5000;
 const AUTO_PUBLISH_MAX_RETRIES = 8;
@@ -1659,7 +1659,7 @@ export default function DzialkaForm({
               'overflow-hidden rounded-3xl border bg-fg/[0.03]',
               fieldErrors.has('photos') ? 'border-red-400/50' : 'border-fg/10'
             )}>
-              <div className="relative aspect-[16/9] bg-black/25">
+              <div className="relative aspect-[16/9] bg-surface">
                 {previewUrl ? (
                   <img src={previewUrl} alt="" className="h-full w-full object-contain" />
                 ) : (

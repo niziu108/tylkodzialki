@@ -193,7 +193,7 @@ export default function CookieConsent() {
     <>
       {showBanner && (
         <div className="fixed inset-x-0 bottom-0 z-[160] px-4 pb-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-5xl rounded-[28px] border border-fg/10 bg-surface-2/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-6">
+          <div className="mx-auto max-w-5xl rounded-[28px] border border-fg/10 bg-surface-2/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.10)] backdrop-blur-md sm:p-6">
             <div className="grid gap-5 lg:grid-cols-[1.5fr_auto] lg:items-end">
               <div className="space-y-3">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-brand-text">
@@ -248,7 +248,7 @@ export default function CookieConsent() {
 
       {showSettings && (
         <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/70 px-4 py-6">
-          <div className="w-full max-w-2xl rounded-[32px] border border-fg/10 bg-surface-2 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5)] sm:p-7">
+          <div className="w-full max-w-2xl rounded-[32px] border border-fg/10 bg-surface-2 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.12)] sm:p-7">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-brand-text">

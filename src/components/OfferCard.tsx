@@ -206,7 +206,7 @@ export function LoginPrompt({ open, onClose }: { open: boolean; onClose: () => v
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/65 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl border border-fg/12 bg-bg p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+      <div className="w-full max-w-md rounded-3xl border border-fg/12 bg-bg p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.12)]">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/12 text-brand-text">
           <HeartIcon />
         </div>
@@ -466,8 +466,8 @@ export function OfferCard({
         horizontal ? 'lg:flex lg:items-stretch lg:h-[256px]' : ''
       } ${
         featured
-          ? 'border-brand/45 bg-surface-2/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-brand/70'
-          : 'border-fg/14 bg-surface-2/20 hover:border-fg/30'
+          ? 'border-brand/45 bg-surface shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-brand/70'
+          : 'border-fg/14 bg-surface hover:border-fg/30'
       }`}
     >
       <Carousel

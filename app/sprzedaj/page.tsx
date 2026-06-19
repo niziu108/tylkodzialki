@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 function SprzedajFallback() {
   return (
-    <main className="min-h-screen" style={{ background: "#131313", color: "#F3EFF5" }}>
+    <main className="min-h-screen" style={{ background: "var(--bg)", color: "var(--fg)" }}>
       <div className="flex min-h-screen items-center justify-center px-6">
         <div className="text-fg/60">Ładowanie…</div>
       </div>

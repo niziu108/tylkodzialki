@@ -3,9 +3,9 @@
 import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-const BG = '#131313';
-const FG = '#F3EFF5';
-const GREEN = '#7aa333';
+const BG = 'var(--bg)';
+const FG = 'var(--fg)';
+const GREEN = 'var(--brand)';
 
 function ResetPageContent() {
   const sp = useSearchParams();

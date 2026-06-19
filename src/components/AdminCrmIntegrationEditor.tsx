@@ -398,7 +398,7 @@ export default function AdminCrmIntegrationEditor({
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-fg/10 bg-black/20 px-4 py-3 text-sm">
+              <div className="rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm">
                 <div className="text-fg/45">Status</div>
                 <div
                   className={`mt-1 font-semibold ${
@@ -413,7 +413,7 @@ export default function AdminCrmIntegrationEditor({
             </div>
 
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+              <div className="rounded-2xl border border-fg/10 bg-surface p-4">
                 <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
                   Ostatnia synchronizacja
                 </div>
@@ -422,7 +422,7 @@ export default function AdminCrmIntegrationEditor({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+              <div className="rounded-2xl border border-fg/10 bg-surface p-4">
                 <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
                   Ostatni sukces
                 </div>
@@ -431,7 +431,7 @@ export default function AdminCrmIntegrationEditor({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+              <div className="rounded-2xl border border-fg/10 bg-surface p-4">
                 <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
                   Ostatnio zaimportowano
                 </div>
@@ -440,7 +440,7 @@ export default function AdminCrmIntegrationEditor({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+              <div className="rounded-2xl border border-fg/10 bg-surface p-4">
                 <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
                   Błędy
                 </div>
@@ -451,7 +451,7 @@ export default function AdminCrmIntegrationEditor({
             </div>
 
             <div className="mt-8 grid gap-4 xl:grid-cols-2">
-              <div className="rounded-2xl border border-fg/10 bg-black/20 p-5">
+              <div className="rounded-2xl border border-fg/10 bg-surface p-5">
                 <div className="text-sm font-semibold text-fg">
                   Ustawienia ogólne
                 </div>
@@ -525,7 +525,7 @@ export default function AdminCrmIntegrationEditor({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-fg/10 bg-black/20 p-5">
+              <div className="rounded-2xl border border-fg/10 bg-surface p-5">
                 <div className="text-sm font-semibold text-fg">
                   Połączenie FTP
                 </div>
@@ -680,7 +680,7 @@ export default function AdminCrmIntegrationEditor({
                 {logsError}
               </div>
             ) : logs.length === 0 ? (
-              <div className="mt-5 rounded-2xl border border-fg/10 bg-black/20 p-4 text-sm text-fg/65">
+              <div className="mt-5 rounded-2xl border border-fg/10 bg-surface p-4 text-sm text-fg/65">
                 Brak logów.
               </div>
             ) : (
@@ -688,7 +688,7 @@ export default function AdminCrmIntegrationEditor({
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[760px] text-sm">
                     <thead>
-                      <tr className="border-b border-fg/10 bg-black/20 text-left text-fg/50">
+                      <tr className="border-b border-fg/10 bg-surface text-left text-fg/50">
                         <th className="px-4 py-3 font-medium">Data</th>
                         <th className="px-4 py-3 font-medium">Akcja</th>
                         <th className="px-4 py-3 font-medium">Status</th>

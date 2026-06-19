@@ -59,7 +59,7 @@ export default function BlogSearchSection({
 
         <div className="relative mx-auto max-w-7xl px-6 py-14 md:px-8 md:py-20">
           <div className="mx-auto max-w-4xl">
-            <div className="rounded-[30px] border border-fg/10 bg-black/20 p-6 backdrop-blur-sm md:p-8">
+            <div className="rounded-[30px] border border-fg/10 bg-surface p-6 backdrop-blur-sm md:p-8">
               <div className="flex flex-col items-center text-center">
                 <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
                   Blog tylkodzialki.pl
@@ -73,7 +73,7 @@ export default function BlogSearchSection({
               </div>
 
               <div className="mx-auto mt-8 max-w-3xl md:mt-9">
-                <div className="rounded-[24px] border border-fg/10 bg-black/25 p-2.5 backdrop-blur-sm md:p-3">
+                <div className="rounded-[24px] border border-fg/10 bg-surface p-2.5 backdrop-blur-sm md:p-3">
                   <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
                     <div className="relative flex-1">
                       <input

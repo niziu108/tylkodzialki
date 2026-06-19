@@ -338,7 +338,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               ["Wyróżnienie 1", "featuredSinglePrice", config.featuredSinglePriceGrossPln],
               ["Pakiet 3 wyróżnień", "featuredPack3Price", config.featuredPack3PriceGrossPln],
             ].map(([label, name, value]) => (
-              <div key={String(name)} className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+              <div key={String(name)} className="rounded-2xl border border-fg/10 bg-surface p-4">
                 <label className="mb-2 block text-sm font-medium text-fg">
                   {label}
                 </label>
@@ -416,13 +416,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
 
           {articles.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-fg/10 bg-black/20 px-5 py-8 text-sm text-fg/55">
+            <div className="rounded-2xl border border-dashed border-fg/10 bg-surface px-5 py-8 text-sm text-fg/55">
               Nie masz jeszcze żadnych artykułów. Dodaj pierwszy wpis i zacznij budować SEO portalu.
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {articles.map((article) => (
-                <div key={article.id} className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+                <div key={article.id} className="rounded-2xl border border-fg/10 bg-surface p-4">
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
                       <h3 className="line-clamp-2 text-base font-semibold text-fg">
@@ -592,7 +592,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <td className="px-4 py-4 align-middle">
                         <form
                           action={saveUserAgencyLogoAction}
-                          className="flex min-w-[360px] flex-col gap-2 rounded-2xl border border-fg/10 bg-black/20 p-3"
+                          className="flex min-w-[360px] flex-col gap-2 rounded-2xl border border-fg/10 bg-surface p-3"
                         >
                           <input type="hidden" name="userId" value={user.id} />
 
@@ -704,11 +704,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
 
           {invoices.length === 0 ? (
-            <div className="rounded-2xl border border-fg/10 bg-black/20 px-5 py-10 text-center text-sm text-fg/55">
+            <div className="rounded-2xl border border-fg/10 bg-surface px-5 py-10 text-center text-sm text-fg/55">
               Brak faktur w systemie.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-fg/10 bg-black/20">
+            <div className="overflow-x-auto rounded-2xl border border-fg/10 bg-surface">
               <table className="w-full min-w-[1360px] text-sm">
                 <thead>
                   <tr className="border-b border-fg/10 text-left text-fg/70">

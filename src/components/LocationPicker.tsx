@@ -100,7 +100,7 @@ export default function LocationPicker({ value, onChange }: Props) {
       const map = new google.maps.Map(mapDivRef.current, {
         center,
         zoom: value?.lat ? 15 : 6,
-        backgroundColor: '#131313',
+        backgroundColor: 'var(--surface)',
         clickableIcons: false,
         mapTypeControl: false,
         streetViewControl: false,
@@ -222,7 +222,7 @@ export default function LocationPicker({ value, onChange }: Props) {
         ref={inputRef}
         placeholder="Wpisz miejscowość lub adres…"
         defaultValue={value?.locationLabel ?? ''}
-        className="w-full rounded-xl border border-fg/15 bg-black/25 px-4 py-3 text-fg outline-none placeholder:text-fg/35 focus:border-brand/60"
+        className="w-full rounded-xl border border-fg/15 bg-surface px-4 py-3 text-fg outline-none placeholder:text-fg/35 focus:border-brand/60"
       />
 
       <div className="flex flex-wrap gap-8">
@@ -251,7 +251,7 @@ export default function LocationPicker({ value, onChange }: Props) {
 
       <input
         placeholder="Numer działki / obręb (opcjonalnie)"
-        className="w-full rounded-xl border border-fg/15 bg-black/25 px-4 py-3 text-fg outline-none placeholder:text-fg/35 focus:border-brand/60"
+        className="w-full rounded-xl border border-fg/15 bg-surface px-4 py-3 text-fg outline-none placeholder:text-fg/35 focus:border-brand/60"
         value={parcelText}
         onChange={(e) => setParcelText(e.target.value)}
       />

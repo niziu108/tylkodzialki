@@ -14,7 +14,7 @@ export default function ArticleCardCover({
 }: ArticleCardCoverProps) {
   if (imageUrl) {
     return (
-      <div className={`relative aspect-[16/10] overflow-hidden bg-black/20 ${className}`}>
+      <div className={`relative aspect-[16/10] overflow-hidden bg-surface ${className}`}>
         <img
           src={imageUrl}
           alt={title}
