@@ -636,14 +636,41 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           telefon ? 'pb-24 md:pb-10' : 'pb-10'
         )}
       >
-        <Link
-          href="/kup"
-          scroll={false}
-          onClick={onBackToListClick}
-          className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
-        >
-          <span className="relative top-[-1px]">←</span> Wróć do listy
-        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            href="/kup"
+            scroll={false}
+            onClick={onBackToListClick}
+            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
+          >
+            <span className="relative top-[-1px]">←</span> Wróć do listy
+          </Link>
+
+          {/* Ulubione + udostępnij — same ikony, na wysokości „Wróć do listy", po prawej. */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={favoriteLoading}
+              onClick={toggleFavorite}
+              aria-pressed={isFavorite}
+              aria-label={isFavorite ? 'W ulubionych' : 'Dodaj do ulubionych'}
+              className="group flex h-9 w-9 items-center justify-center text-white/70 transition hover:text-[#7aa333] disabled:cursor-wait disabled:opacity-60"
+            >
+              <span className={`text-[26px] leading-none ${isFavorite ? 'text-[#7aa333]' : ''}`}>
+                {isFavorite ? '♥' : '♡'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={shareOffer}
+              aria-label="Udostępnij ofertę"
+              className="group flex h-9 w-9 items-center justify-center text-white/70 transition hover:text-[#7aa333]"
+            >
+              <ShareIcon className="h-[21px] w-[21px]" />
+            </button>
+          </div>
+        </div>
 
         <div className="mt-6 grid gap-3 lg:gap-10 lg:grid-cols-2">
           <section className="min-w-0 lg:space-y-8">
@@ -746,42 +773,6 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
           <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
             <div className="px-6 pb-6 pt-4 lg:p-7">
-              {/* Ulubione + udostępnij — mobile: jeden pod drugim; desktop: w jednej linii. */}
-              <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
-                <button
-                  type="button"
-                  disabled={favoriteLoading}
-                  onClick={toggleFavorite}
-                  aria-pressed={isFavorite}
-                  className="group inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:text-[#b7db74] disabled:cursor-wait disabled:opacity-60"
-                >
-                  <span
-                    className={`inline-flex h-6 w-6 items-center justify-center text-[22px] leading-none transition ${
-                      isFavorite
-                        ? 'text-[#7aa333]'
-                        : 'text-white/70 group-hover:text-[#7aa333]'
-                    }`}
-                  >
-                    {isFavorite ? '♥' : '♡'}
-                  </span>
-
-                  <span>
-                    {isFavorite ? 'W ulubionych' : 'Dodaj do ulubionych'}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={shareOffer}
-                  className="group inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:text-[#b7db74]"
-                >
-                  <span className="inline-flex h-6 w-6 items-center justify-center text-white/70 transition group-hover:text-[#7aa333]">
-                    <ShareIcon className="h-[18px] w-[18px]" />
-                  </span>
-                  <span>Udostępnij ofertę</span>
-                </button>
-              </div>
-
               {isRent ? (
                 <span className="flex w-fit items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90">
                   Na wynajem
