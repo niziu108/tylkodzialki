@@ -1446,10 +1446,6 @@ export default function KupSearch({
 
   return (
     <div className="w-full overflow-x-hidden">
-      {/* Stała subtelna siatka (fixed). Zielona poświata jest osobno — tylko na wejściu
-          (góra listy) i wyjściu (dół listy), żeby same oferty w środku zostały czyste. */}
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
-
       <section ref={searchTopRef} className="relative w-full">
         <div
           className="absolute inset-0"
@@ -1471,14 +1467,8 @@ export default function KupSearch({
         </div>
       </section>
 
-      {/* pt-8/pb-20 wniesione tu z <main>, by zielona poświata sięgała OD zdjęcia (góra)
-          DO stopki (dół) — odstępy są w środku wrappera, więc poświata je obejmuje. */}
-      <div className="relative pt-8 pb-20">
-        {/* Zielona poświata: mocna tuż pod zdjęciem hero (góra) i przy stopce (dół),
-            gaśnie ku środkowi — oferty w środku czyste, bez czarnej przerwy ani cięć. */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[460px] bg-[radial-gradient(135%_100%_at_50%_0%,rgba(122,163,51,0.10),transparent_62%)]" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[460px] bg-[radial-gradient(135%_100%_at_50%_100%,rgba(122,163,51,0.12),transparent_62%)]" />
-
+      {/* Odstępy listy (czyste tło — bez siatki i poświaty, właściciel woli przejrzystość). */}
+      <div className="pt-8 pb-20">
       <section className="mx-auto max-w-6xl px-3 md:px-4">
         <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
           <span className="text-[11px] uppercase tracking-[0.22em] text-white/35">Sortuj:</span>
