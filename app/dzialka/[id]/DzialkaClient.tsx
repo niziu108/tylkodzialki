@@ -205,6 +205,25 @@ function FieldBlock({
   );
 }
 
+function ShareIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 3v12" />
+      <path d="M8 7l4-4 4 4" />
+      <path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+    </svg>
+  );
+}
+
 export default function DzialkaPage({ initial }: { initial?: Dzialka | null }) {
   const params = useParams();
   const router = useRouter();
@@ -220,6 +239,7 @@ export default function DzialkaPage({ initial }: { initial?: Dzialka | null }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
+  const [shareDone, setShareDone] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -398,6 +418,73 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     }
   };
 
+  const toggleFavorite = async () => {
+    if (!d?.id) return;
+
+    try {
+      setFavoriteLoading(true);
+
+      const res = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dzialkaId: d.id }),
+      });
+
+      if (res.status === 401) {
+        setFavoriteModalOpen(true);
+        return;
+      }
+
+      const data = await res.json();
+      if (typeof data?.isFavorite === 'boolean') {
+        setIsFavorite(data.isFavorite);
+      }
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
+  // Udostępnianie oferty: natywny arkusz telefonu (Web Share API), a gdy go brak
+  // (zwykle desktop) — kopiowanie linku do schowka. Darmowy kanał wzrostu.
+  const shareOffer = async () => {
+    if (typeof window === 'undefined') return;
+
+    const url = window.location.href;
+    const title = d?.tytul?.trim() || 'Działka na sprzedaż';
+    const bits = [
+      area ? `${formatIntPL(area)} m²` : null,
+      loc,
+      d?.cenaPln ? `${formatIntPL(d.cenaPln)} zł` : null,
+    ].filter(Boolean);
+    const text = bits.length ? `${title}, ${bits.join(', ')}` : title;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url });
+        return;
+      }
+    } catch {
+      return; // użytkownik anulował natywne udostępnianie
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        setShareDone(true);
+        window.setTimeout(() => setShareDone(false), 2200);
+        return;
+      }
+    } catch {
+      // brak dostępu do schowka — ostatecznością jest prompt
+    }
+
+    try {
+      window.prompt('Skopiuj link do oferty:', url);
+    } catch {
+      /* nic więcej nie zrobimy */
+    }
+  };
+
   const prev = () => {
     if (photos.length < 2) return;
     setIdx((p) => (p - 1 + photos.length) % photos.length);
@@ -527,20 +614,25 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   return (
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
-      <div className="mx-auto max-w-6xl px-4 py-10">
+      <div
+        className={cx(
+          'mx-auto max-w-6xl px-4 pt-4 lg:py-10',
+          telefon ? 'pb-24 md:pb-10' : 'pb-10'
+        )}
+      >
         <Link
           href="/kup"
           scroll={false}
           onClick={onBackToListClick}
-          className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
+          className="hidden lg:inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
         >
           <span className="relative top-[-1px]">←</span> Wróć do listy
         </Link>
 
-        <div className="mt-6 grid gap-10 lg:grid-cols-2">
+        <div className="mt-0 grid gap-5 lg:mt-6 lg:gap-10 lg:grid-cols-2">
           <section className="min-w-0 space-y-8">
-            <div className="min-w-0 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-              <div className="relative aspect-video bg-white/5">
+            <div className="min-w-0 -mx-4 overflow-hidden rounded-none bg-[#0f0f0f]/20 lg:mx-0 lg:rounded-3xl">
+              <div className="relative aspect-[4/3] bg-white/5 lg:aspect-video">
                 {cover ? (
                   <>
                     <SmartImg
@@ -558,12 +650,50 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   </div>
                 )}
 
+                {/* Sterowanie na zdjęciu (tylko mobile) — wróć, udostępnij, ulubione. */}
+                <button
+                  type="button"
+                  onClick={onBackToListClick}
+                  aria-label="Wróć do listy"
+                  className="absolute left-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition active:scale-95 lg:hidden"
+                >
+                  <span className="text-[18px] leading-none">←</span>
+                </button>
+
+                <div className="absolute right-3 top-3 z-10 flex items-center gap-2 lg:hidden">
+                  <button
+                    type="button"
+                    onClick={shareOffer}
+                    aria-label="Udostępnij ofertę"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition active:scale-95"
+                  >
+                    <ShareIcon className="h-[18px] w-[18px]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={toggleFavorite}
+                    disabled={favoriteLoading}
+                    aria-pressed={isFavorite}
+                    aria-label={isFavorite ? 'W ulubionych' : 'Dodaj do ulubionych'}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/45 backdrop-blur-md transition active:scale-95 disabled:opacity-60"
+                  >
+                    <span
+                      className={`text-[20px] leading-none ${
+                        isFavorite ? 'text-[#7aa333]' : 'text-white'
+                      }`}
+                    >
+                      {isFavorite ? '♥' : '♡'}
+                    </span>
+                  </button>
+                </div>
+
                 {hasPhotos && photos.length > 1 && (
                   <>
                     <button
                       type="button"
                       onClick={prev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
                       aria-label="Poprzednie"
                     >
                       ‹
@@ -571,13 +701,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <button
                       type="button"
                       onClick={next}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
                       aria-label="Następne"
                     >
                       ›
                     </button>
 
-                    <div className="absolute right-4 top-4 rounded-full bg-black/45 px-3 py-1 text-xs text-white/80 border border-white/10">
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-white/85 border border-white/10 backdrop-blur-sm">
                       {idx + 1}/{photos.length}
                     </div>
                   </>
@@ -587,7 +717,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {hasPhotos && photos.length > 1 && (
                 <div
                   className={cx(
-                    'td-thumbstrip px-3 py-3',
+                    'td-thumbstrip px-4 py-3 lg:px-3',
                     'flex flex-nowrap gap-2',
                     'overflow-x-auto overscroll-x-contain',
                     'min-w-0'
@@ -628,39 +758,12 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
           <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
             <div className="p-6 md:p-7">
-              <div className="space-y-4">
+              {/* Ulubione + udostępnij — wersja desktop (na mobile sterowanie jest na zdjęciu). */}
+              <div className="mb-5 hidden items-center gap-6 lg:flex">
                 <button
                   type="button"
                   disabled={favoriteLoading}
-                  onClick={async () => {
-                    if (!d?.id) return;
-
-                    try {
-                      setFavoriteLoading(true);
-
-                      const res = await fetch('/api/favorites', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          dzialkaId: d.id,
-                        }),
-                      });
-
-                      if (res.status === 401) {
-                     setFavoriteModalOpen(true);
-                     return;
-                     }
-                      const data = await res.json();
-
-                      if (typeof data?.isFavorite === 'boolean') {
-                        setIsFavorite(data.isFavorite);
-                      }
-                    } finally {
-                      setFavoriteLoading(false);
-                    }
-                  }}
+                  onClick={toggleFavorite}
                   aria-pressed={isFavorite}
                   className="group inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:text-[#b7db74] disabled:cursor-wait disabled:opacity-60"
                 >
@@ -671,7 +774,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         : 'text-white/70 group-hover:text-[#7aa333]'
                     }`}
                   >
-                    ♡
+                    {isFavorite ? '♥' : '♡'}
                   </span>
 
                   <span>
@@ -679,53 +782,65 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   </span>
                 </button>
 
-                {isRent ? (
-                  <span className="flex w-fit items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90">
-                    Na wynajem
-                  </span>
-                ) : null}
-                <h1 className="text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
-                  {d.tytul}
-                </h1>
+                <button
+                  type="button"
+                  onClick={shareOffer}
+                  className="group inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:text-[#b7db74]"
+                >
+                  <ShareIcon className="h-[17px] w-[17px] text-white/70 transition group-hover:text-[#7aa333]" />
+                  <span>Udostępnij</span>
+                </button>
               </div>
 
+              {isRent ? (
+                <span className="flex w-fit items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90">
+                  Na wynajem
+                </span>
+              ) : null}
 
-              <Hr className="mt-6" />
+              <h1 className="mt-2 text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
+                {d.tytul}
+              </h1>
 
-              <FieldBlock label={isRent ? 'Cena najmu' : 'Cena'}>
-                <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 break-words">
+              {/* Cena — najważniejsza liczba na stronie */}
+              <div className="mt-4">
+                <div className="text-[30px] md:text-[34px] font-semibold tracking-tight text-white leading-none break-words">
                   {formatPLN(d.cenaPln)}
                   {isRent ? (
-                    <span className="ml-1 text-[13px] text-white/60 font-normal">/mc</span>
-                  ) : null}
-                  {zlZaM2 ? (
-                    <span className="ml-2 text-[12px] text-white/50 font-normal">
-                      ({formatIntPL(zlZaM2)} zł/m²)
-                    </span>
+                    <span className="ml-1.5 text-[15px] font-normal text-white/55">/mc</span>
                   ) : null}
                 </div>
-              </FieldBlock>
+                {zlZaM2 ? (
+                  <div className="mt-1.5 text-[13px] text-white/55">
+                    {formatIntPL(zlZaM2)} zł/m²
+                  </div>
+                ) : null}
+              </div>
 
-              <Hr />
-
-              <FieldBlock label="Powierzchnia">
-                <div className="text-[15px] md:text-[16px] font-medium text-white/95 break-words">
-                  {formatIntPL(area)} m²
+              {/* Kluczowe fakty — zwarty blok zamiast osobnych wierszy z liniami */}
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
+                    Powierzchnia
+                  </div>
+                  <div className="mt-1 text-[15px] font-medium text-white/95">
+                    {formatIntPL(area)} m²
+                  </div>
                 </div>
-              </FieldBlock>
 
-              <Hr />
-
-              {przeznText ? (
-                <>
-                  <FieldBlock label="Przeznaczenie">
-                    <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
+                {przeznText ? (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
+                      Przeznaczenie
+                    </div>
+                    <div className="mt-1 text-[15px] font-medium leading-snug text-white/95 break-words">
                       {przeznText}
                     </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              <Hr className="mt-6" />
 
               {sprzedajacyTyp === 'PRYWATNIE' ? (
                 <>
@@ -998,6 +1113,14 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   </div>
 ) : null}
 
+
+      {shareDone ? (
+        <div className="fixed inset-x-0 bottom-24 z-[1000] flex justify-center px-4 md:bottom-10">
+          <div className="rounded-full border border-white/15 bg-[#1b1b1b] px-4 py-2 text-[13px] text-white/90 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            Skopiowano link do oferty
+          </div>
+        </div>
+      ) : null}
 
       {favoriteModalOpen ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 px-4 backdrop-blur-md">
