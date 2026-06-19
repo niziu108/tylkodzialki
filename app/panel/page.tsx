@@ -271,117 +271,38 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
   return (
     <main className="min-h-screen bg-[#131313] text-[#d9d9d9]">
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-8">
-        <div className="mb-8 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-5 md:p-6">
-            <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9fd14b]">
-                    Panel klienta
-                  </div>
-                  <div className="mt-2 h-px w-12 bg-[#7aa333]/55" />
+        <div className="mb-8">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9fd14b]">
+                Panel klienta
+              </div>
+              <div className="mt-2 h-px w-12 bg-[#7aa333]/55" />
 
-                  <div className="mt-4 text-[28px] font-semibold leading-tight text-white md:text-[34px]">
-                    {user.name || "Panel użytkownika"}
-                  </div>
-
-                  <div className="mt-2 text-sm text-white/55">
-                    {user.email ? (
-                      <span className="truncate text-white/60">{user.email}</span>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 flex-wrap gap-3">
-                  <Link
-                    href="/sprzedaj"
-                    className="inline-flex min-h-[48px] items-center justify-center rounded-full px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-black transition hover:scale-[1.01] hover:opacity-90"
-                    style={{ background: "#7aa333" }}
-                  >
-                    Dodaj działkę
-                  </Link>
-
-                  {paymentsEnabled ? (
-                    <Link
-                      href="/panel/pakiety"
-                      className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-white/14 bg-white/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition hover:border-white/28 hover:bg-white/[0.05]"
-                    >
-                      Kup pakiet
-                    </Link>
-                  ) : null}
-                </div>
+              <div className="mt-4 text-[28px] font-semibold leading-tight text-white md:text-[34px]">
+                {user.name || "Panel użytkownika"}
               </div>
 
-              <div className="grid grid-cols-2 gap-8 border-t border-white/10 pt-5">
-                <div>
-                  <div className="text-[30px] font-semibold leading-none text-white">
-                    {items.length}
-                  </div>
-                  <div className="mt-3 inline-block border-b border-white/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
-                    Ogłoszenia
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[30px] font-semibold leading-none text-[#9fd14b]">
-                    {activeCount}
-                  </div>
-                  <div className="mt-3 inline-block border-b border-[#7aa333]/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]/80">
-                    Aktywne
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-white/8 pt-4 text-[13px] text-white/50">
-                Konto od:{" "}
-                <span className="text-white/75">
-                  {formatDatePL(user.createdAt)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[30px] border border-[#7aa333]/18 bg-[linear-gradient(180deg,rgba(122,163,51,0.08),rgba(255,255,255,0.03))] p-5 md:p-6">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#9fd14b]">
-              Dostępne zasoby
-            </div>
-
-            <div className="mt-5 flex flex-col gap-4">
-              <div className="flex items-baseline justify-between gap-4 border-b border-white/12 pb-3">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                  Publikacje
-                </span>
-                <span className="flex items-baseline gap-2">
-                  {!paymentsEnabled ? (
-                    <span className="text-[12px] text-[#9fd14b]">Nieograniczone</span>
-                  ) : null}
-                  <span className="text-[26px] font-semibold leading-none text-white">
-                    {paymentsEnabled ? user.listingCredits : "∞"}
-                  </span>
-                </span>
-              </div>
-
-              <div className="flex items-baseline justify-between gap-4 border-b border-white/12 pb-3">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                  Wyróżnienia
-                </span>
-                <span className="text-[26px] font-semibold leading-none text-white">
-                  {user.featuredCredits}
-                </span>
+              <div className="mt-2 text-sm text-white/55">
+                {user.email ? (
+                  <span className="truncate text-white/60">{user.email}</span>
+                ) : null}
               </div>
             </div>
 
-            {!paymentsEnabled ? (
-              <div className="mt-4 rounded-2xl border border-[#7aa333]/25 bg-[#7aa333]/10 px-4 py-3 text-sm leading-6 text-[#dce9bf]">
-                Publikacja ogłoszeń jest obecnie darmowa.
-              </div>
-            ) : null}
+            <div className="flex shrink-0 flex-wrap gap-3">
+              <Link
+                href="/sprzedaj"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-black transition hover:scale-[1.01] hover:opacity-90"
+                style={{ background: "#7aa333" }}
+              >
+                Dodaj działkę
+              </Link>
 
-            <div className="mt-4 flex flex-col gap-3">
               {paymentsEnabled ? (
                 <Link
                   href="/panel/pakiety"
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-[#7aa333] px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-white/14 bg-white/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition hover:border-white/28 hover:bg-white/[0.05]"
                 >
                   Kup pakiet
                 </Link>
@@ -389,10 +310,59 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
               <Link
                 href="/panel/wyroznienia"
-                className="inline-flex w-full items-center justify-center rounded-2xl border border-[#7aa333]/35 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:border-[#7aa333]/60 hover:bg-white/[0.05]"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#7aa333]/35 bg-white/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition hover:border-[#7aa333]/60 hover:bg-white/[0.05]"
               >
                 Kup wyróżnienie
               </Link>
+            </div>
+          </div>
+
+          <div className="mt-7 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-white/10 pt-6 sm:grid-cols-4">
+            <div>
+              <div className="flex min-h-[34px] items-end">
+                <span className="text-[28px] font-semibold leading-none text-[#9fd14b]">
+                  {activeCount}
+                </span>
+              </div>
+              <div className="mt-3 inline-block whitespace-nowrap border-b border-[#7aa333]/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]/80">
+                Aktywne oferty
+              </div>
+            </div>
+
+            <div>
+              <div className="flex min-h-[34px] items-end gap-2">
+                <span className="text-[28px] font-semibold leading-none text-white">
+                  {paymentsEnabled ? user.listingCredits : "∞"}
+                </span>
+                {!paymentsEnabled ? (
+                  <span className="text-[11px] leading-none text-[#9fd14b]">bez limitu</span>
+                ) : null}
+              </div>
+              <div className="mt-3 inline-block border-b border-white/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                Publikacje
+              </div>
+            </div>
+
+            <div>
+              <div className="flex min-h-[34px] items-end">
+                <span className="text-[28px] font-semibold leading-none text-white">
+                  {user.featuredCredits}
+                </span>
+              </div>
+              <div className="mt-3 inline-block border-b border-white/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                Wyróżnienia
+              </div>
+            </div>
+
+            <div>
+              <div className="flex min-h-[34px] items-end">
+                <span className="text-[19px] font-medium leading-none text-white/90 md:text-[21px]">
+                  {formatDatePL(user.createdAt)}
+                </span>
+              </div>
+              <div className="mt-3 inline-block border-b border-white/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                Konto od
+              </div>
             </div>
           </div>
         </div>
