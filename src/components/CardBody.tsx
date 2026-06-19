@@ -6,7 +6,7 @@
 
 import type { ReactNode } from 'react';
 import { offerPriceLabel, pricePerM2, formatIntPL } from '@/lib/format';
-import { IconPin, IconArea, IconTag, IconPlug } from './CardIcons';
+import { IconPin, IconArea, IconLayers, IconPlug } from './CardIcons';
 
 export function CardBody({
   cena,
@@ -65,7 +65,7 @@ export function CardBody({
 
       <div
         className={`flex items-center gap-1.5 text-white/45 ${tytul ? 'mt-2' : 'mt-2.5'} ${
-          compact ? 'text-[13px]' : 'text-[14px]'
+          compact ? 'text-[13px]' : 'text-[15px]'
         }`}
       >
         <IconPin className={`${ic} shrink-0 text-white/40`} />
@@ -74,7 +74,7 @@ export function CardBody({
 
       <div
         className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-white/90 ${
-          compact ? 'mt-2.5 text-[12px]' : 'mt-3 text-[13px]'
+          compact ? 'mt-2.5 text-[12px]' : 'mt-3 text-[14px]'
         }`}
       >
         <span className="inline-flex items-center gap-1.5">
@@ -83,7 +83,7 @@ export function CardBody({
         </span>
         {przezn && przezn !== '—' ? (
           <span className="inline-flex items-center gap-1.5">
-            <IconTag className={`${ic} shrink-0 text-white/75`} />
+            <IconLayers className={`${ic} shrink-0 text-white/75`} />
             {przezn}
           </span>
         ) : null}

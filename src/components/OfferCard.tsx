@@ -245,6 +245,7 @@ function Carousel({
   featured,
   rent = false,
   eagerImage = false,
+  horizontal = false,
   isFavorite,
   onToggleFavorite,
 }: {
@@ -254,6 +255,8 @@ function Carousel({
   featured: boolean;
   rent?: boolean;
   eagerImage?: boolean;
+  /** Desktop: zdjęcie po lewej, wypełnia wysokość karty (układ poziomy). */
+  horizontal?: boolean;
   isFavorite: boolean;
   onToggleFavorite: () => void;
 }) {
@@ -325,7 +328,9 @@ function Carousel({
 
   return (
     <div
-      className="relative aspect-[16/10] overflow-hidden bg-white/5 md:aspect-video"
+      className={`relative aspect-[16/10] overflow-hidden bg-white/5 md:aspect-video ${
+        horizontal ? 'lg:aspect-auto lg:h-full lg:w-[42%] lg:shrink-0' : ''
+      }`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -411,6 +416,7 @@ function Carousel({
 export function OfferCard({
   d,
   eagerImage = false,
+  horizontal = false,
   isFavorite,
   onToggleFavorite,
   onClick,
@@ -418,6 +424,8 @@ export function OfferCard({
 }: {
   d: OfferData;
   eagerImage?: boolean;
+  /** Lista /kup: na desktopie układ poziomy (zdjęcie z lewej). Raile zostają pionowe. */
+  horizontal?: boolean;
   isFavorite: boolean;
   onToggleFavorite: (dzialkaId: string) => void;
   /** /kup: zapis pozycji scrolla przed nawigacją (przywracanie przy powrocie). */
@@ -470,6 +478,8 @@ export function OfferCard({
       scroll={scroll}
       onClick={onClick}
       className={`group block overflow-hidden rounded-3xl border transition duration-200 ${
+        horizontal ? 'lg:flex lg:items-stretch lg:min-h-[228px]' : ''
+      } ${
         featured
           ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
           : 'border-white/14 bg-[#0f0f0f]/20 hover:border-white/30'
@@ -482,19 +492,22 @@ export function OfferCard({
         featured={featured}
         rent={isRent}
         eagerImage={eagerImage}
+        horizontal={horizontal}
         isFavorite={isFavorite}
         onToggleFavorite={() => onToggleFavorite(d.id)}
       />
 
-      <CardBody
-        cena={d.cenaPln}
-        isRent={isRent}
-        tytul={d.tytul}
-        loc={loc}
-        area={area}
-        przezn={przezn}
-        media={parcelMediaLabel(d)}
-      />
+      <div className={horizontal ? 'lg:flex lg:flex-1 lg:flex-col lg:justify-center' : ''}>
+        <CardBody
+          cena={d.cenaPln}
+          isRent={isRent}
+          tytul={d.tytul}
+          loc={loc}
+          area={area}
+          przezn={przezn}
+          media={parcelMediaLabel(d)}
+        />
+      </div>
     </Link>
   );
 }

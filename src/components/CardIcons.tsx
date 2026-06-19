@@ -36,12 +36,13 @@ export function IconArea({ className }: IconProps) {
   );
 }
 
-/** Przeznaczenie — etykieta. */
-export function IconTag({ className }: IconProps) {
+/** Przeznaczenie — warstwy (klasyfikacja/typ działki). */
+export function IconLayers({ className }: IconProps) {
   return (
     <svg {...base} className={className}>
-      <path d="M4 13.4V5a1 1 0 0 1 1-1h8.4a1 1 0 0 1 .7.3l6.6 6.6a1 1 0 0 1 0 1.4l-6.6 6.6a1 1 0 0 1-1.4 0L4.3 14.1a1 1 0 0 1-.3-.7Z" />
-      <circle cx="8" cy="8" r="1.2" />
+      <path d="M12 3 3 7.5l9 4.5 9-4.5L12 3Z" />
+      <path d="M3 12l9 4.5 9-4.5" />
+      <path d="M3 16.5l9 4.5 9-4.5" />
     </svg>
   );
 }

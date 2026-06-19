@@ -9,23 +9,19 @@ export default function KupList({
   items,
   loading,
   error,
-  singleColumn = false,
   onItemHover,
 }: {
   items: OfferData[];
   loading: boolean;
   error: string | null;
-  /** Split lista+mapa: lista w węższej kolumnie → jedna kolumna kart. */
-  singleColumn?: boolean;
   /** Najazd na kartę → podświetlenie pinu na mapie. */
   onItemHover?: (id: string | null) => void;
 }) {
   const { favoriteIds, toggleFavorite, loginPromptOpen, setLoginPromptOpen } =
     useOfferFavorites(items);
 
-  const gridClass = singleColumn
-    ? 'grid grid-cols-1 gap-5'
-    : 'grid grid-cols-1 gap-5 lg:grid-cols-2';
+  // Lista ofert = jedna kolumna szerokich kart; na desktopie poziomych (zdjęcie z lewej).
+  const gridClass = 'grid grid-cols-1 gap-5';
 
   // Zapis pozycji scrolla — przywracanie widoku przy powrocie na /kup.
   useEffect(() => {
@@ -62,18 +58,17 @@ export default function KupList({
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="overflow-hidden rounded-3xl border border-white/12 bg-[#0f0f0f]/20"
+              className="overflow-hidden rounded-3xl border border-white/12 bg-[#0f0f0f]/20 lg:flex lg:min-h-[228px]"
             >
-              <div className="aspect-[16/10] animate-pulse bg-white/5 md:aspect-video" />
-              <div className="space-y-3 p-5">
+              <div className="aspect-[16/10] animate-pulse bg-white/5 md:aspect-video lg:aspect-auto lg:w-[42%] lg:shrink-0" />
+              <div className="space-y-3 p-5 lg:flex-1 lg:self-center">
                 <div className="h-6 w-32 animate-pulse rounded bg-white/5" />
                 <div className="h-4 w-11/12 animate-pulse rounded bg-white/5" />
                 <div className="h-4 w-2/3 animate-pulse rounded bg-white/5" />
-                <div className="flex gap-2 pt-1">
-                  <div className="h-6 w-16 animate-pulse rounded-full bg-white/5" />
-                  <div className="h-6 w-24 animate-pulse rounded-full bg-white/5" />
+                <div className="flex gap-3 pt-1">
+                  <div className="h-5 w-16 animate-pulse rounded bg-white/5" />
+                  <div className="h-5 w-28 animate-pulse rounded bg-white/5" />
                 </div>
-                <div className="h-10 w-full animate-pulse rounded-xl bg-white/5" />
               </div>
             </div>
           ))}
@@ -116,6 +111,7 @@ export default function KupList({
             <OfferCard
               d={d}
               eagerImage={index < 2}
+              horizontal
               isFavorite={favoriteIds.has(d.id)}
               onToggleFavorite={toggleFavorite}
               scroll={false}
