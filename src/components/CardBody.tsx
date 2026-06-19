@@ -56,18 +56,21 @@ export function CardBody({
   return (
     <div className={`${compact ? 'px-4 py-4' : 'p-5'} ${horizontal ? 'lg:flex lg:h-full lg:flex-col' : ''}`}>
       <div>
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          {price ? (
-            <span className={`${compact ? 'text-[19px]' : 'text-[22px]'} font-semibold leading-none text-white`}>
-              {price}
-              {isRent ? <span className="text-[13px] font-normal text-white/60">/mc</span> : null}
-            </span>
-          ) : (
-            <span className="rounded-full bg-[#7aa333]/15 px-3 py-1 text-[14px] font-medium leading-none text-[#9fd14b]">
-              Zapytaj o cenę
-            </span>
-          )}
-          {zlM2 ? <span className="text-[13px] leading-none text-white/45">· {formatIntPL(zlM2)} zł/m²</span> : null}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            {price ? (
+              <span className={`${compact ? 'text-[19px]' : 'text-[22px]'} font-semibold leading-none text-white`}>
+                {price}
+                {isRent ? <span className="text-[13px] font-normal text-white/60">/mc</span> : null}
+              </span>
+            ) : (
+              <span className="rounded-full bg-[#7aa333]/15 px-3 py-1 text-[14px] font-medium leading-none text-[#9fd14b]">
+                Zapytaj o cenę
+              </span>
+            )}
+            {zlM2 ? <span className="text-[13px] leading-none text-white/45">· {formatIntPL(zlM2)} zł/m²</span> : null}
+          </div>
+          {heartSlot ? <div className="-mt-1 shrink-0">{heartSlot}</div> : null}
         </div>
 
         {tytul ? (
@@ -115,31 +118,26 @@ export function CardBody({
         {extra ? <div className="mt-3">{extra}</div> : null}
       </div>
 
-      {heartSlot || sellerType ? (
-        <div className="mt-4 lg:mt-auto">
-          {heartSlot ? <div className="mb-3 flex justify-end">{heartSlot}</div> : null}
-          {sellerType ? (
-            <div className="flex items-center gap-2.5 border-t border-white/10 pt-3.5">
-              {sellerType === 'BIURO' ? (
-                biuroLogoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={biuroLogoUrl}
-                    alt={biuroNazwa ?? ''}
-                    className="h-7 w-auto max-w-[112px] object-contain"
-                    loading="lazy"
-                  />
-                ) : (
-                  <IconBuilding className="h-4 w-4 shrink-0 text-white/50" />
-                )
-              ) : (
-                <IconUser className="h-4 w-4 shrink-0 text-white/50" />
-              )}
-              <span className="text-[13px] text-white/55">
-                {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
-              </span>
-            </div>
-          ) : null}
+      {sellerType ? (
+        <div className="mt-4 flex items-center gap-2.5 border-t border-white/10 pt-3.5 lg:mt-auto">
+          {sellerType === 'BIURO' ? (
+            biuroLogoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={biuroLogoUrl}
+                alt={biuroNazwa ?? ''}
+                className="h-7 w-auto max-w-[112px] object-contain"
+                loading="lazy"
+              />
+            ) : (
+              <IconBuilding className="h-4 w-4 shrink-0 text-white/50" />
+            )
+          ) : (
+            <IconUser className="h-4 w-4 shrink-0 text-white/50" />
+          )}
+          <span className="text-[13px] text-white/55">
+            {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
+          </span>
         </div>
       ) : null}
     </div>

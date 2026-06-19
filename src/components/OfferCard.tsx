@@ -503,7 +503,7 @@ export function OfferCard({
                 onToggleFavorite(d.id);
               }}
               className={`flex h-8 w-8 items-center justify-center transition active:scale-90 ${
-                isFavorite ? 'text-[#7aa333]' : 'text-white/45 hover:text-[#7aa333]'
+                isFavorite ? 'text-[#7aa333]' : 'text-[#7aa333]/80 hover:text-[#7aa333]'
               }`}
             >
               <HeartIcon filled={isFavorite} />
