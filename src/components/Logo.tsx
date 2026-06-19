@@ -12,7 +12,7 @@ export default function Logo({ className = '' }: Props) {
   // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
-      src="/logomail.png"
+      src="/logomail.png?v=2"
       alt="tylkodzialki.pl"
       className={`w-auto select-none ${className}`}
       draggable={false}
