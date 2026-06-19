@@ -1189,7 +1189,7 @@ export default function KupSearch({
       {/* Row 1: Lokalizacja + Zasięg — always visible */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_200px]">
         <div>
-          <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
+          <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
             Lokalizacja
           </label>
           <div className={`mt-3 rounded-xl border bg-transparent ${locError ? 'border-red-400/70' : 'border-fg/25'}`}>
@@ -1214,7 +1214,7 @@ export default function KupSearch({
         </div>
 
         <div>
-          <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
+          <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
             Zasięg
           </label>
           <div className="mt-3 rounded-xl border border-fg/25">
@@ -1238,7 +1238,7 @@ export default function KupSearch({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-fg/70 transition hover:text-fg/80"
+          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-fg/85 transition hover:text-fg"
         >
           <span className="text-[8px]">{expanded ? '▲' : '▼'}</span>
           {expanded ? 'Mniej filtrów' : 'Więcej filtrów'}
@@ -1250,7 +1250,7 @@ export default function KupSearch({
         <div className="mt-5 space-y-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
+              <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
                 Powierzchnia
               </label>
               <div className="mt-3 grid grid-cols-2 gap-3">
@@ -1282,7 +1282,7 @@ export default function KupSearch({
             </div>
 
             <div>
-              <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
+              <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
                 Cena
               </label>
               <div className="mt-3 grid grid-cols-2 gap-3">
@@ -1315,7 +1315,7 @@ export default function KupSearch({
           </div>
 
           <div>
-            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
               Typ oferty
             </label>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -1341,7 +1341,7 @@ export default function KupSearch({
           </div>
 
           <div>
-            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
               Przeznaczenie
             </label>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -1367,7 +1367,7 @@ export default function KupSearch({
           </div>
 
           <div>
-            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
               Media
             </label>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -1398,7 +1398,7 @@ export default function KupSearch({
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         {/* Results count (only on /kup) */}
         {!navigationMode ? (
-          <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
+          <div className="text-[12px] uppercase tracking-[0.18em] text-fg">
             {loading && items.length === 0 ? 'Ładowanie ofert...' : `Wyniki: ${count}`}
           </div>
         ) : (

@@ -51,10 +51,8 @@ function PopularSearchesSection() {
             {SEO_REGIONS.map((region, index) => (
               <article
                 key={region.name}
-                className="group relative min-w-[86%] snap-start overflow-hidden rounded-[32px] border border-fg/12 bg-surface-2/78 p-6 shadow-[0_0_50px_rgba(0,0,0,0.06)] backdrop-blur transition hover:border-brand/35 md:min-w-[360px] xl:min-w-[390px]"
+                className="group relative min-w-[86%] snap-start overflow-hidden rounded-[32px] border border-brand/30 bg-brand/20 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur transition hover:border-brand/55 md:min-w-[360px] xl:min-w-[390px]"
               >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_0%_0%,rgba(122,163,51,0.28),transparent_60%)]" />
-
                 <div className="relative z-10">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -67,7 +65,7 @@ function PopularSearchesSection() {
                       </h3>
                     </div>
 
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10 text-[13px] font-semibold text-brand-bright">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand/30 bg-surface text-[13px] font-semibold text-brand-bright">
                       {String(index + 1).padStart(2, "0")}
                     </div>
                   </div>
@@ -77,7 +75,7 @@ function PopularSearchesSection() {
                       <Link
                         key={city.slug}
                         href={`/dzialki/${city.slug}/budowlane`}
-                        className="block rounded-2xl border border-fg/8 bg-fg/[0.025] px-4 py-3 text-sm leading-5 text-fg/68 transition hover:border-brand/35 hover:bg-brand/10 hover:text-fg"
+                        className="block rounded-2xl border border-brand/15 bg-surface/70 px-4 py-3 text-sm leading-5 text-fg/80 transition hover:border-brand/45 hover:bg-surface hover:text-fg"
                       >
                         Działki budowlane {city.name}
                       </Link>
