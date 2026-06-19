@@ -103,7 +103,7 @@ export default function GlobalNav() {
   };
 
   const navBtnBase =
-    'relative inline-flex h-[72px] items-center justify-center font-display uppercase tracking-[0.20em] text-[12px] transition';
+    'relative inline-flex h-[72px] items-center justify-center font-display uppercase tracking-[0.20em] text-[14px] transition';
 
   const navBtnWhite =
     'text-white/85 hover:text-white after:absolute after:left-0 after:right-0 after:bottom-[18px] after:h-px after:origin-center after:scale-x-0 after:bg-white/70 after:transition-transform after:duration-200 hover:after:scale-x-100';
