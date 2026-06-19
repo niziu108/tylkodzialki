@@ -119,7 +119,11 @@ export function CardBody({
       </div>
 
       {sellerType ? (
-        <div className="mt-4 flex items-center gap-2.5 border-t border-white/10 pt-3.5 lg:mt-auto">
+        <div
+          className={`mt-4 flex items-center gap-2.5 border-t border-white/10 pt-3.5 ${
+            horizontal ? 'lg:mt-auto' : ''
+          }`}
+        >
           {sellerType === 'BIURO' ? (
             biuroLogoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
