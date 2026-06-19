@@ -1445,11 +1445,10 @@ export default function KupSearch({
   }
 
   return (
-    <div className="relative w-full overflow-x-hidden">
-      {/* Siateczka: stała siatka (fixed) + zielona poświata na CAŁĄ długość listy
-          (absolute, kafelkowana co ~1000px) — płynie przez całą stronę przy przewijaniu. */}
+    <div className="w-full overflow-x-hidden">
+      {/* Stała subtelna siatka (fixed). Zielona poświata jest osobno — tylko na wejściu
+          (góra listy) i wyjściu (dół listy), żeby same oferty w środku zostały czyste. */}
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_9%_4%,rgba(122,163,51,0.07),transparent_23%),radial-gradient(circle_at_84%_12%,rgba(47,94,70,0.06),transparent_22%),radial-gradient(circle_at_37%_26%,rgba(122,163,51,0.055),transparent_20%),radial-gradient(circle_at_94%_39%,rgba(122,163,51,0.06),transparent_22%),radial-gradient(circle_at_15%_50%,rgba(47,94,70,0.07),transparent_23%),radial-gradient(circle_at_61%_61%,rgba(122,163,51,0.06),transparent_21%),radial-gradient(circle_at_30%_75%,rgba(47,94,70,0.06),transparent_22%),radial-gradient(circle_at_89%_85%,rgba(122,163,51,0.06),transparent_22%),radial-gradient(circle_at_52%_93%,rgba(122,163,51,0.055),transparent_20%)] bg-[size:100%_2300px]" />
 
       <section ref={searchTopRef} className="relative w-full">
         <div
@@ -1471,6 +1470,12 @@ export default function KupSearch({
           <div className="h-6 md:h-10" />
         </div>
       </section>
+
+      <div className="relative">
+        {/* Zielona poświata tylko na wejściu (góra) i wyjściu (dół) listy — środek czysty.
+            Wygaszanie do zera, więc bez twardych cięć (problem starego kafelka). */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[460px] bg-[radial-gradient(130%_120%_at_50%_30%,rgba(122,163,51,0.10),transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[460px] bg-[radial-gradient(130%_120%_at_50%_70%,rgba(47,94,70,0.10),transparent_55%)]" />
 
       <section className="mx-auto mt-8 max-w-6xl px-3 md:px-4">
         <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
@@ -1561,6 +1566,7 @@ export default function KupSearch({
           </button>
         )}
       </section>
+      </div>
     </div>
   );
 }
