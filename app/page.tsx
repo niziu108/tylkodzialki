@@ -110,7 +110,8 @@ export default async function HomePage() {
   ]);
 
   // Mapujemy tylko bezpieczne pola (bez editToken/telefon itp.), bo lecą do
-  // komponentu klienckiego FeaturedRail.
+  // komponentu klienckiego FeaturedRail. Karta jest wspólna z /kup, więc dorzucamy
+  // media (chipy) oraz sprzedawcę/logo (stopka), żeby wyróżnione wyglądały tak samo.
   const featuredCards: OfferData[] = featuredListings.map((d) => ({
     id: d.id,
     tytul: d.tytul,
@@ -122,6 +123,16 @@ export default async function HomePage() {
     zdjecia: (d.zdjecia ?? []).map((z) => ({ url: z.url, kolejnosc: z.kolejnosc })),
     isFeatured: d.isFeatured,
     featuredUntil: d.featuredUntil,
+    prad: d.prad,
+    woda: d.woda,
+    kanalizacja: d.kanalizacja,
+    gaz: d.gaz,
+    sprzedajacyTyp: d.sprzedajacyTyp,
+    biuroNazwa: d.biuroNazwa,
+    biuroLogoUrl: d.biuroLogoUrl,
+    owner: d.owner
+      ? { defaultBiuroLogoUrl: d.owner.defaultBiuroLogoUrl, defaultBiuroNazwa: d.owner.defaultBiuroNazwa }
+      : null,
   }));
 
   const articleCards =
