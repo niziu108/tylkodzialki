@@ -2,88 +2,17 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import ArticleContent from "@/components/ArticleContent";
+import ArticleCardCover from "@/components/ArticleCardCover";
+import ArticleMeta from "@/components/ArticleMeta";
+
+const SITE_URL = "https://tylkodzialki.pl";
 
 type BlogArticlePageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
-
-function renderSimpleMarkdown(content: string) {
-  const lines = content.split("\n");
-
-  return lines.map((line, index) => {
-    const trimmed = line.trim();
-
-    if (!trimmed) {
-      return <div key={index} className="h-4" />;
-    }
-
-    if (trimmed.startsWith("### ")) {
-      return (
-        <h3
-          key={index}
-          className="mt-10 text-[24px] font-semibold tracking-tight text-white"
-        >
-          {trimmed.replace(/^### /, "")}
-        </h3>
-      );
-    }
-
-    if (trimmed.startsWith("## ")) {
-      return (
-        <h2
-          key={index}
-          className="mt-14 text-[30px] font-semibold tracking-tight text-white md:text-[36px]"
-        >
-          {trimmed.replace(/^## /, "")}
-        </h2>
-      );
-    }
-
-    if (trimmed.startsWith("# ")) {
-      return (
-        <h1
-          key={index}
-          className="mt-14 text-[34px] font-semibold tracking-tight text-white md:text-[42px]"
-        >
-          {trimmed.replace(/^# /, "")}
-        </h1>
-      );
-    }
-
-    if (/^\d+\.\s/.test(trimmed)) {
-      return (
-        <p
-          key={index}
-          className="pl-2 text-[18px] leading-9 text-white/82"
-        >
-          {trimmed}
-        </p>
-      );
-    }
-
-    if (trimmed.startsWith("- ")) {
-      return (
-        <p
-          key={index}
-          className="pl-2 text-[18px] leading-9 text-white/82"
-        >
-          • {trimmed.replace(/^- /, "")}
-        </p>
-      );
-    }
-
-    return (
-      <p
-        key={index}
-        className="text-[18px] leading-9 text-white/82"
-      >
-        {trimmed}
-      </p>
-    );
-  });
-}
 
 export async function generateMetadata({ params }: BlogArticlePageProps) {
   const { slug } = await params;
@@ -94,20 +23,50 @@ export async function generateMetadata({ params }: BlogArticlePageProps) {
       title: true,
       excerpt: true,
       isPublished: true,
+      imageUrl: true,
+      createdAt: true,
+      updatedAt: true,
+      seoTitle: true,
+      seoDescription: true,
     },
   });
 
   if (!article || !article.isPublished) {
     return {
-      title: "Artykuł | tylkodzialki.pl",
+      title: "Artykuł",
     };
   }
 
+  const metaTitle = article.seoTitle || article.title;
+  const description =
+    article.seoDescription ||
+    article.excerpt ||
+    "Artykuł poradnikowy o działkach, sprzedaży, zakupie i formalnościach.";
+
+  const canonical = `/blog/${slug}`;
+  const images = article.imageUrl ? [article.imageUrl] : [`${SITE_URL}/logo.png`];
+
   return {
-    title: `${article.title} | tylkodzialki.pl`,
-    description:
-      article.excerpt ||
-      "Artykuł poradnikowy o działkach, sprzedaży, zakupie i formalnościach.",
+    title: metaTitle,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      type: "article",
+      title: article.title,
+      description,
+      url: `${SITE_URL}${canonical}`,
+      images,
+      publishedTime: new Date(article.createdAt).toISOString(),
+      modifiedTime: new Date(article.updatedAt).toISOString(),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description,
+      images,
+    },
   };
 }
 
@@ -135,8 +94,51 @@ export default async function BlogArticlePage({
     take: 3,
   });
 
+  const canonicalUrl = `${SITE_URL}/blog/${article.slug}`;
+  const articleImages = article.imageUrl
+    ? [article.imageUrl]
+    : [`${SITE_URL}/logo.png`];
+
+  const blogPostingSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: article.title,
+    description:
+      article.excerpt ||
+      "Artykuł poradnikowy o działkach, sprzedaży, zakupie i formalnościach.",
+    image: articleImages,
+    datePublished: new Date(article.createdAt).toISOString(),
+    dateModified: new Date(article.updatedAt).toISOString(),
+    author: {
+      "@type": "Organization",
+      name: "tylkodzialki.pl",
+      url: SITE_URL,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "tylkodzialki.pl",
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/logo.png`,
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": canonicalUrl,
+    },
+    url: canonicalUrl,
+  };
+
+  // BreadcrumbList (Strona główna / Blog / tytuł) emituje już komponent
+  // <Breadcrumbs/> niżej — nie dublujemy go tutaj.
+
   return (
     <main className="min-h-screen bg-[#131313] text-[#F3EFF5]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}
+      />
+
       <section className="border-b border-white/10">
         <div className="mx-auto max-w-5xl px-6 py-14 md:px-8 md:py-16">
           <Link
@@ -156,9 +158,12 @@ export default async function BlogArticlePage({
             />
           </div>
 
-          <div className="mt-6 text-[12px] uppercase tracking-[0.14em] text-[#9fd14b]">
-            {new Date(article.createdAt).toLocaleDateString("pl-PL")}
-          </div>
+          <ArticleMeta
+            category={article.category}
+            createdAt={article.createdAt}
+            readingTime={article.readingTime}
+            className="mt-6"
+          />
 
           <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-white md:text-6xl">
             {article.title}
@@ -178,17 +183,15 @@ export default async function BlogArticlePage({
             <img
               src={article.imageUrl}
               alt={article.title}
-              className="w-full h-auto object-contain"
+              className="mx-auto max-h-[70vh] w-full object-contain"
             />
           </div>
         </section>
       ) : null}
 
       <section className="mx-auto max-w-5xl px-6 py-12 md:px-8 md:py-16">
-        <article className="max-w-4xl">
-          <div className="space-y-5">
-            {renderSimpleMarkdown(article.content)}
-          </div>
+        <article className="max-w-[700px]">
+          <ArticleContent content={article.content} />
         </article>
       </section>
 
@@ -236,27 +239,17 @@ export default async function BlogArticlePage({
               {relatedArticles.map((item) => (
                 <article
                   key={item.id}
-                  className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.045]"
+                  className="group overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.045]"
                 >
                   <Link href={`/blog/${item.slug}`} className="block">
-                    <div className="bg-black/20">
-                      {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="w-full h-auto object-contain"
-                        />
-                      ) : (
-                        <div className="flex aspect-[16/10] items-center justify-center text-sm text-white/35">
-                          tylkodzialki.pl
-                        </div>
-                      )}
-                    </div>
+                    <ArticleCardCover imageUrl={item.imageUrl} title={item.title} />
 
                     <div className="p-5">
-                      <div className="text-[12px] uppercase tracking-[0.14em] text-white/40">
-                        {new Date(item.createdAt).toLocaleDateString("pl-PL")}
-                      </div>
+                      <ArticleMeta
+                        category={item.category}
+                        createdAt={item.createdAt}
+                        readingTime={item.readingTime}
+                      />
 
                       <h3 className="mt-3 line-clamp-2 text-lg font-semibold tracking-tight text-white">
                         {item.title}

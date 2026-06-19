@@ -355,15 +355,19 @@ model EmailSendLog {
 }
 
 model Article {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  excerpt     String?
-  content     String
-  imageUrl    String?
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  excerpt        String?
+  content        String
+  imageUrl       String?
+  category       String?
+  readingTime    Int?
+  seoTitle       String?
+  seoDescription String?
+  isPublished    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([slug])
   @@index([isPublished, createdAt])

@@ -5,6 +5,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth-options";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { estimateReadingTime } from "@/lib/articleCategories";
+
+// Czas czytania: bierzemy wartość z formularza, a gdy pusta/niepoprawna —
+// liczymy automatycznie z treści.
+function resolveReadingTime(raw: string, content: string): number {
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0
+    ? parsed
+    : estimateReadingTime(content);
+}
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -49,7 +59,14 @@ export async function createArticleAction(formData: FormData) {
   const excerpt = String(formData.get("excerpt") || "").trim();
   const content = String(formData.get("content") || "").trim();
   const imageUrl = String(formData.get("imageUrl") || "").trim();
+  const category = String(formData.get("category") || "").trim();
+  const seoTitle = String(formData.get("seoTitle") || "").trim();
+  const seoDescription = String(formData.get("seoDescription") || "").trim();
   const isPublished = String(formData.get("isPublished") || "") === "on";
+  const readingTime = resolveReadingTime(
+    String(formData.get("readingTime") || "").trim(),
+    content
+  );
 
   if (!title) {
     throw new Error("Tytuł artykułu jest wymagany.");
@@ -81,6 +98,10 @@ export async function createArticleAction(formData: FormData) {
       excerpt: excerpt || null,
       content,
       imageUrl: imageUrl || null,
+      category: category || null,
+      readingTime,
+      seoTitle: seoTitle || null,
+      seoDescription: seoDescription || null,
       isPublished,
     },
   });
@@ -101,7 +122,14 @@ export async function updateArticleAction(formData: FormData) {
   const excerpt = String(formData.get("excerpt") || "").trim();
   const content = String(formData.get("content") || "").trim();
   const imageUrl = String(formData.get("imageUrl") || "").trim();
+  const category = String(formData.get("category") || "").trim();
+  const seoTitle = String(formData.get("seoTitle") || "").trim();
+  const seoDescription = String(formData.get("seoDescription") || "").trim();
   const isPublished = String(formData.get("isPublished") || "") === "on";
+  const readingTime = resolveReadingTime(
+    String(formData.get("readingTime") || "").trim(),
+    content
+  );
 
   if (!id) {
     throw new Error("Brak ID artykułu.");
@@ -146,6 +174,10 @@ export async function updateArticleAction(formData: FormData) {
       excerpt: excerpt || null,
       content,
       imageUrl: imageUrl || null,
+      category: category || null,
+      readingTime,
+      seoTitle: seoTitle || null,
+      seoDescription: seoDescription || null,
       isPublished,
     },
   });

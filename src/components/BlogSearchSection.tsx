@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import ArticleCardCover from "@/components/ArticleCardCover";
+import ArticleMeta from "@/components/ArticleMeta";
 
 type BlogArticle = {
   id: string;
@@ -11,6 +13,8 @@ type BlogArticle = {
   imageUrl: string | null;
   createdAt: Date | string;
   content: string;
+  category: string | null;
+  readingTime: number | null;
 };
 
 function normalizeText(value: string) {
@@ -144,24 +148,17 @@ export default function BlogSearchSection({
                 className="group overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.045]"
               >
                 <Link href={`/blog/${article.slug}`} className="block">
-                  <div className="bg-black/20">
-                    {article.imageUrl ? (
-                      <img
-                        src={article.imageUrl}
-                        alt={article.title}
-                        className="h-auto w-full object-contain"
-                      />
-                    ) : (
-                      <div className="flex aspect-[16/10] items-center justify-center text-sm text-white/35">
-                        tylkodzialki.pl
-                      </div>
-                    )}
-                  </div>
+                  <ArticleCardCover
+                    imageUrl={article.imageUrl}
+                    title={article.title}
+                  />
 
                   <div className="p-5 md:p-6">
-                    <div className="text-[12px] uppercase tracking-[0.14em] text-white/40">
-                      {new Date(article.createdAt).toLocaleDateString("pl-PL")}
-                    </div>
+                    <ArticleMeta
+                      category={article.category}
+                      createdAt={article.createdAt}
+                      readingTime={article.readingTime}
+                    />
 
                     <h2 className="mt-3 line-clamp-2 text-xl font-semibold tracking-tight text-white">
                       {article.title}

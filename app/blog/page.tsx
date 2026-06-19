@@ -3,9 +3,12 @@ import { prisma } from "@/lib/prisma";
 import BlogSearchSection from "@/components/BlogSearchSection";
 
 export const metadata = {
-  title: "Blog o działkach | tylkodzialki.pl",
+  title: "Blog o działkach",
   description:
     "Poradniki, wskazówki i artykuły o działkach: MPZP, wycena działki, zakup, sprzedaż i formalności.",
+  alternates: {
+    canonical: "/blog",
+  },
 };
 
 export default async function BlogPage() {
@@ -22,6 +25,8 @@ export default async function BlogPage() {
       imageUrl: true,
       createdAt: true,
       content: true,
+      category: true,
+      readingTime: true,
     },
   });
 

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
+import { ARTICLE_CATEGORIES, estimateReadingTime } from '@/lib/articleCategories';
 
 type ArticleFormProps = {
   mode: 'create' | 'edit';
@@ -13,6 +14,10 @@ type ArticleFormProps = {
     excerpt: string | null;
     content: string;
     imageUrl: string | null;
+    category: string | null;
+    readingTime: number | null;
+    seoTitle: string | null;
+    seoDescription: string | null;
     isPublished: boolean;
     createdAt?: string;
     updatedAt?: string;
@@ -49,6 +54,15 @@ export default function ArticleForm({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [readingEstimate, setReadingEstimate] = useState(() =>
+    estimateReadingTime(initialData?.content || '')
+  );
+  const [seoTitleLen, setSeoTitleLen] = useState(
+    (initialData?.seoTitle || '').length
+  );
+  const [seoDescLen, setSeoDescLen] = useState(
+    (initialData?.seoDescription || '').length
+  );
 
   async function handleUpload(file: File | null) {
     if (!file) return;
@@ -160,6 +174,44 @@ export default function ArticleForm({
           </div>
         </div>
 
+        <div>
+          <label className="mb-2 block text-sm font-medium text-white">
+            Kategoria
+          </label>
+          <select
+            name="category"
+            defaultValue={initialData?.category || ''}
+            className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition focus:border-[#7aa333]/60"
+          >
+            <option value="">Bez kategorii</option>
+            {ARTICLE_CATEGORIES.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs text-[#8f8f8f]">
+            Steruje chipem na karcie i (wkrótce) ikoną na grafice.
+          </p>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-white">
+            Czas czytania (min)
+          </label>
+          <input
+            type="number"
+            name="readingTime"
+            min={1}
+            defaultValue={initialData?.readingTime ?? ''}
+            placeholder={`Auto: ${readingEstimate} min`}
+            className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+          />
+          <p className="mt-2 text-xs text-[#8f8f8f]">
+            Zostaw puste — policzymy z treści ({readingEstimate} min).
+          </p>
+        </div>
+
         <div className="md:col-span-2">
           <label className="mb-2 block text-sm font-medium text-white">
             Zajawka / excerpt
@@ -181,6 +233,9 @@ export default function ArticleForm({
             name="content"
             rows={18}
             defaultValue={initialData?.content || ''}
+            onChange={(e) =>
+              setReadingEstimate(estimateReadingTime(e.target.value))
+            }
             placeholder={`Np.
 
 # MPZP – co to jest?
@@ -199,6 +254,56 @@ Miejscowy plan zagospodarowania przestrzennego to...
             Możesz pisać normalny tekst albo prosty markdown.
           </p>
         </div>
+
+        <details className="rounded-2xl border border-white/10 bg-black/20 p-4 md:col-span-2">
+          <summary className="cursor-pointer select-none text-sm font-medium text-white">
+            SEO (tytuł i opis w Google) — opcjonalne
+          </summary>
+
+          <div className="mt-4 grid gap-4">
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block text-sm font-medium text-white">
+                  SEO title
+                </label>
+                <span
+                  className={`text-xs ${seoTitleLen > 60 ? 'text-amber-300' : 'text-[#8f8f8f]'}`}
+                >
+                  {seoTitleLen}/60
+                </span>
+              </div>
+              <input
+                type="text"
+                name="seoTitle"
+                defaultValue={initialData?.seoTitle || ''}
+                onChange={(e) => setSeoTitleLen(e.target.value.length)}
+                placeholder="Domyślnie: tytuł artykułu"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block text-sm font-medium text-white">
+                  SEO description
+                </label>
+                <span
+                  className={`text-xs ${seoDescLen > 160 ? 'text-amber-300' : 'text-[#8f8f8f]'}`}
+                >
+                  {seoDescLen}/160
+                </span>
+              </div>
+              <textarea
+                name="seoDescription"
+                rows={3}
+                defaultValue={initialData?.seoDescription || ''}
+                onChange={(e) => setSeoDescLen(e.target.value.length)}
+                placeholder="Domyślnie: zajawka artykułu"
+                className="w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+              />
+            </div>
+          </div>
+        </details>
       </div>
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">

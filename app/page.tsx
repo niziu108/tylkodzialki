@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
+import ArticleCardCover from "@/components/ArticleCardCover";
+import ArticleMeta from "@/components/ArticleMeta";
 import KupSearch from "./kup/KupSearch";
 import HeroCounter from "@/components/HeroCounter";
 import FeaturedRail from "@/components/FeaturedRail";
@@ -265,28 +267,19 @@ export default async function HomePage() {
                     className="group min-w-[86%] snap-start md:min-w-[360px] xl:min-w-[380px]"
                   >
                     <article className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.045]">
-                      <div className="aspect-[16/10] bg-black/20">
-                        {article.imageUrl ? (
-                          <img
-                            src={article.imageUrl}
-                            alt={article.title}
-                            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-white/35">
-                            tylkodzialki.pl
-                          </div>
-                        )}
-                      </div>
+                      <ArticleCardCover
+                        imageUrl={article.imageUrl}
+                        title={article.title}
+                      />
 
                       <div className="p-5">
-                        <div className="text-[12px] text-white/40">
-                          {new Date(article.createdAt).toLocaleDateString(
-                            "pl-PL"
-                          )}
-                        </div>
+                        <ArticleMeta
+                          category={article.category}
+                          createdAt={article.createdAt}
+                          readingTime={article.readingTime}
+                        />
 
-                        <h3 className="mt-2 line-clamp-2 text-lg font-semibold text-white">
+                        <h3 className="mt-3 line-clamp-2 text-lg font-semibold text-white">
                           {article.title}
                         </h3>
 
