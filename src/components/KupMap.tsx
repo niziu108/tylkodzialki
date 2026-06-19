@@ -26,6 +26,10 @@ export type MapPoint = {
   thumb?: string | null;
   loc?: string | null;
   approx?: boolean;
+  prad?: string | null;
+  woda?: string | null;
+  kanalizacja?: string | null;
+  gaz?: string | null;
 };
 
 type Bounds = { n: number; s: number; e: number; w: number };

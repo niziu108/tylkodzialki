@@ -1,5 +1,11 @@
 import { cache } from 'react';
-import type { Przeznaczenie } from '@prisma/client';
+import type {
+  Przeznaczenie,
+  PradStatus,
+  WodaStatus,
+  KanalizacjaStatus,
+  GazStatus,
+} from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -56,6 +62,10 @@ export type SimilarDzialka = {
   locationLabel: string | null;
   przeznaczenia: Przeznaczenie[];
   zdjecia: { url: string }[];
+  prad: PradStatus | null;
+  woda: WodaStatus | null;
+  kanalizacja: KanalizacjaStatus | null;
+  gaz: GazStatus | null;
   /** Odległość od bieżącej oferty w km (null, gdy dobrane spoza geo). */
   distanceKm: number | null;
 };
@@ -95,6 +105,10 @@ type SimilarRow = {
   przeznaczenia: Przeznaczenie[];
   lat: number | null;
   lng: number | null;
+  prad: PradStatus | null;
+  woda: WodaStatus | null;
+  kanalizacja: KanalizacjaStatus | null;
+  gaz: GazStatus | null;
   zdjecia: { url: string }[];
 };
 
@@ -107,6 +121,10 @@ function toSimilar(row: SimilarRow, distanceKm: number | null): SimilarDzialka {
     locationLabel: row.locationLabel,
     przeznaczenia: row.przeznaczenia ?? [],
     zdjecia: (row.zdjecia ?? []).map((z) => ({ url: z.url })),
+    prad: row.prad ?? null,
+    woda: row.woda ?? null,
+    kanalizacja: row.kanalizacja ?? null,
+    gaz: row.gaz ?? null,
     distanceKm,
   };
 }

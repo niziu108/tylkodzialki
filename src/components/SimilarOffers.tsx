@@ -1,22 +1,10 @@
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 import type { Przeznaczenie } from '@prisma/client';
 import HomeHorizontalSlider from '@/components/HomeHorizontalSlider';
 import type { SimilarDzialka } from '@/lib/dzialki';
-
-const GREEN = '#7aa333';
-
-function formatPLN(value: number) {
-  return new Intl.NumberFormat('pl-PL', {
-    style: 'currency',
-    currency: 'PLN',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatIntPL(value: number) {
-  return new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 }).format(value);
-}
+import { CardBody } from '@/components/CardBody';
+import { formatIntPL } from '@/lib/format';
+import { parcelMediaLabel } from '@/lib/media';
 
 function labelPrzeznaczenie(p: Przeznaczenie) {
   const map: Record<string, string> = {
@@ -38,29 +26,10 @@ function formatDistance(km: number | null): string | null {
   return `${formatIntPL(Math.round(km))} km`;
 }
 
-function MetricBlock({
-  label,
-  value,
-  subValue,
-}: {
-  label: string;
-  value: ReactNode;
-  subValue?: ReactNode;
-}) {
-  return (
-    <div className="min-w-0 flex flex-col items-center text-center">
-      <div className="text-[11px] uppercase tracking-[0.16em] text-white/35">{label}</div>
-      <div className="mt-2 min-w-0">{value}</div>
-      {subValue ? <div className="min-w-0">{subValue}</div> : null}
-    </div>
-  );
-}
-
 function SimilarCard({ d }: { d: SimilarDzialka }) {
   const cover = d.zdjecia?.[0]?.url ?? null;
   const loc = d.locationLabel?.trim() || 'Lokalizacja niepodana';
   const area = d.powierzchniaM2 ?? 0;
-  const zlZaM2 = area ? Math.round(d.cenaPln / area) : 0;
   const przezn = d.przeznaczenia?.length
     ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ')
     : '—';
@@ -69,22 +38,24 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
   return (
     <Link
       href={`/dzialka/${d.id}`}
-      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/40 transition hover:border-white/30 md:min-w-[360px] xl:min-w-[380px]"
+      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/40 transition duration-200 hover:-translate-y-1 hover:border-white/30 hover:shadow-[0_18px_50px_rgba(0,0,0,0.45)] md:min-w-[360px] xl:min-w-[380px]"
     >
-      <div className="relative aspect-video bg-white/5">
+      <div className="relative aspect-video overflow-hidden bg-white/5">
         {cover ? (
           <>
             <img
               src={cover}
               alt={d.tytul}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-[450ms] ease-out group-hover:scale-[1.05]"
               loading="lazy"
               decoding="async"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
           </>
         ) : (
-          <div className="flex h-full items-center justify-center text-white/50">Brak zdjęć</div>
+          <div className="flex h-full items-center justify-center bg-[#161616]">
+            <span className="text-[12px] tracking-[0.12em] text-white/30">Zdjęcie wkrótce</span>
+          </div>
         )}
 
         {distance ? (
@@ -96,61 +67,15 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
         ) : null}
       </div>
 
-      <div className="p-5 md:p-6">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <MetricBlock
-            label="Cena"
-            value={
-              <div
-                className="text-[22px] font-semibold leading-none md:text-[24px]"
-                style={{ color: GREEN }}
-              >
-                {formatPLN(d.cenaPln)}
-              </div>
-            }
-            subValue={
-              zlZaM2 ? (
-                <div className="mt-1 text-[12px] text-white/45">{formatIntPL(zlZaM2)} zł/m²</div>
-              ) : null
-            }
-          />
-
-          <div className="h-14 w-px bg-white/10" />
-
-          <MetricBlock
-            label="Powierzchnia"
-            value={
-              <div className="text-[20px] font-medium leading-none text-white/95 md:text-[22px]">
-                {formatIntPL(area)} m²
-              </div>
-            }
-          />
-        </div>
-
-        <div className="mt-6">
-          <div className="mx-auto max-w-[92%] text-center text-[16px] font-medium leading-[1.35] text-white/92 md:text-[17px]">
-            {d.tytul}
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <MetricBlock
-            label="Lokalizacja"
-            value={
-              <div className="break-words text-[14px] leading-[1.4] text-white/90">{loc}</div>
-            }
-          />
-
-          <div className="h-14 w-px bg-white/10" />
-
-          <MetricBlock
-            label="Przeznaczenie"
-            value={
-              <div className="break-words text-[14px] leading-[1.4] text-white/90">{przezn}</div>
-            }
-          />
-        </div>
-      </div>
+      <CardBody
+        cena={d.cenaPln}
+        isRent={false}
+        tytul={d.tytul}
+        loc={loc}
+        area={area}
+        przezn={przezn}
+        media={parcelMediaLabel(d)}
+      />
     </Link>
   );
 }

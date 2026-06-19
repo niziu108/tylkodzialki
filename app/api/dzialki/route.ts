@@ -19,6 +19,7 @@ import { authOptions } from '@/auth-options';
 import { buildSearchContext, getSearchMatchInfo } from '@/lib/dzialkiSearch';
 import { listDzialkiPaginated, PAGE_INCLUDE, type ListSort } from '@/lib/dzialkiQuery';
 import { MAX_PHOTOS_PER_OFFER } from '@/lib/photoLimits';
+import { MEDIA_AVAILABLE } from '@/lib/media';
 
 const MAX_PHOTOS = MAX_PHOTOS_PER_OFFER;
 
@@ -186,20 +187,8 @@ export async function GET(req: Request) {
   }
 
   // Filtr mediów (P10): zaznaczone medium = działka faktycznie je MA, fizycznie NA DZIAŁCE.
-  // Świadomie wykluczamy „brak", „możliwość podłączenia", „w drodze" i „warunki wydane" —
-  // to wszystko znaczy, że medium na działce jeszcze NIE MA (decyzja właściciela: „w drodze" się nie liczy).
-  // Studnia/szambo/oczyszczalnia liczą się — to woda/ścieki fizycznie rozwiązane na działce.
-  const MEDIA_AVAILABLE = {
-    prad: [PradStatus.PRZYLACZE_NA_DZIALCE],
-    woda: [WodaStatus.WODOCIAG_NA_DZIALCE, WodaStatus.STUDNIA_GLEBINOWA],
-    kanalizacja: [
-      KanalizacjaStatus.MIEJSKA_NA_DZIALCE,
-      KanalizacjaStatus.SZAMBO,
-      KanalizacjaStatus.PRZYDOMOWA_OCZYSZCZALNIA,
-    ],
-    gaz: [GazStatus.GAZ_NA_DZIALCE],
-  } as const;
-
+  // Lista dozwolonych statusów (MEDIA_AVAILABLE) jest wspólna z chipem „media" na kartach
+  // (src/lib/media.ts) — jedno źródło prawdy, filtr i etykieta nigdy się nie rozjadą.
   for (const key of media) {
     if (key === 'prad') andFilters.push({ prad: { in: [...MEDIA_AVAILABLE.prad] } });
     else if (key === 'woda') andFilters.push({ woda: { in: [...MEDIA_AVAILABLE.woda] } });
@@ -240,6 +229,10 @@ export async function GET(req: Request) {
         transakcja: true,
         tytul: true,
         przeznaczenia: true,
+        prad: true,
+        woda: true,
+        kanalizacja: true,
+        gaz: true,
         isFeatured: true,
         featuredUntil: true,
         createdAt: true,
@@ -281,6 +274,10 @@ export async function GET(req: Request) {
       thumb: r.zdjecia[0]?.url ?? null,
       loc: r.locationLabel ?? null,
       approx: r.locationMode === LocationMode.APPROX,
+      prad: r.prad,
+      woda: r.woda,
+      kanalizacja: r.kanalizacja,
+      gaz: r.gaz,
     }));
 
     return NextResponse.json({

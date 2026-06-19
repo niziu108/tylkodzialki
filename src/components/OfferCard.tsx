@@ -2,9 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import type { ReactNode } from 'react';
 import Link from 'next/link';
-import type { Przeznaczenie, TransakcjaTyp } from '@prisma/client';
+import type {
+  Przeznaczenie,
+  TransakcjaTyp,
+  PradStatus,
+  WodaStatus,
+  KanalizacjaStatus,
+  GazStatus,
+} from '@prisma/client';
+import { CardBody } from './CardBody';
+import { parcelMediaLabel } from '@/lib/media';
 
 /* ────────────────────────────────────────────────────────────────────────────
  *  Wspólna karta oferty — jedno źródło prawdy dla listy /kup i raili na stronie
@@ -51,19 +59,11 @@ export type OfferData = {
   zdjecia?: Photo[];
   isFeatured?: boolean | null;
   featuredUntil?: string | Date | null;
+  prad?: PradStatus | null;
+  woda?: WodaStatus | null;
+  kanalizacja?: KanalizacjaStatus | null;
+  gaz?: GazStatus | null;
 };
-
-function formatPLN(value: number) {
-  return new Intl.NumberFormat('pl-PL', {
-    style: 'currency',
-    currency: 'PLN',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatIntPL(value: number) {
-  return new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 }).format(value);
-}
 
 function labelPrzeznaczenie(p: Przeznaczenie) {
   const map: Record<string, string> = {
@@ -237,33 +237,6 @@ export function LoginPrompt({ open, onClose }: { open: boolean; onClose: () => v
   );
 }
 
-function MetricBlock({
-  label,
-  value,
-  subValue,
-  align = 'center',
-}: {
-  label: string;
-  value: ReactNode;
-  subValue?: ReactNode;
-  align?: 'left' | 'center' | 'right';
-}) {
-  const alignClass =
-    align === 'left'
-      ? 'text-left items-start'
-      : align === 'right'
-        ? 'text-right items-end'
-        : 'text-center items-center';
-
-  return (
-    <div className={`min-w-0 flex flex-col ${alignClass}`}>
-      <div className="text-[11px] uppercase tracking-[0.16em] text-[#7aa333]">{label}</div>
-      <div className="mt-2 min-w-0">{value}</div>
-      {subValue ? <div className="min-w-0">{subValue}</div> : null}
-    </div>
-  );
-}
-
 function Carousel({
   photos,
   coverFallback,
@@ -351,7 +324,7 @@ function Carousel({
 
   return (
     <div
-      className="relative aspect-[16/10] bg-white/5 md:aspect-video"
+      className="relative aspect-[16/10] overflow-hidden bg-white/5 md:aspect-video"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -359,7 +332,12 @@ function Carousel({
     >
       {has ? (
         <>
-          <SmartImg src={list[i] ?? list[0]} alt={title} className="h-full w-full object-cover" eager={eagerImage} />
+          <SmartImg
+            src={list[i] ?? list[0]}
+            alt={title}
+            className="h-full w-full object-cover transition-transform duration-[450ms] ease-out group-hover:scale-[1.05]"
+            eager={eagerImage}
+          />
 
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
 
@@ -413,11 +391,11 @@ function Carousel({
                 ›
               </button>
 
-              <div className="absolute right-4 top-16 z-10 flex gap-2">
-                {list.slice(0, 6).map((_, idx) => (
+              <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
+                {list.slice(0, 8).map((_, idx) => (
                   <span
                     key={idx}
-                    className={`h-2 w-2 rounded-full ${idx === i ? 'bg-white' : 'bg-white/40'}`}
+                    className={`h-1.5 w-1.5 rounded-full ${idx === i ? 'bg-white' : 'bg-white/45'}`}
                   />
                 ))}
               </div>
@@ -425,7 +403,9 @@ function Carousel({
           )}
         </>
       ) : (
-        <div className="flex h-full items-center justify-center text-white/50">Brak zdjęć</div>
+        <div className="flex h-full items-center justify-center bg-[#161616]">
+          <span className="text-[12px] tracking-[0.12em] text-white/30">Zdjęcie wkrótce</span>
+        </div>
       )}
     </div>
   );
@@ -454,8 +434,6 @@ export function OfferCard({
   const loc = d.locationLabel?.trim() || 'Lokalizacja niepodana';
   const area = d.powierzchniaM2 ?? 0;
   const isRent = d.transakcja === 'WYNAJEM';
-  // zł/m² nie ma sensu dla wynajmu (cena to czynsz miesięczny, nie cena gruntu) — pokazujemy tylko dla sprzedaży.
-  const zlZaM2 = !isRent && area ? Math.round(d.cenaPln / area) : 0;
   const przezn = d.przeznaczenia?.length
     ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ')
     : '—';
@@ -494,7 +472,7 @@ export function OfferCard({
       href={`/dzialka/${d.id}`}
       scroll={scroll}
       onClick={onClick}
-      className={`group block overflow-hidden rounded-3xl border transition ${
+      className={`group block overflow-hidden rounded-3xl border transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_50px_rgba(0,0,0,0.45)] ${
         featured
           ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
           : 'border-white/14 bg-[#0f0f0f]/20 hover:border-white/30'
@@ -511,63 +489,15 @@ export function OfferCard({
         onToggleFavorite={() => onToggleFavorite(d.id)}
       />
 
-      <div className="p-5 md:p-6">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <MetricBlock
-            label="Cena"
-            align="center"
-            value={
-              <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
-                <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
-                  {formatPLN(d.cenaPln)}
-                  {isRent ? <span className="text-[13px] font-normal text-white/70">/mc</span> : null}
-                </span>
-                {zlZaM2 ? (
-                  <span className="text-[12px] text-white/60">({formatIntPL(zlZaM2)} zł/m²)</span>
-                ) : null}
-              </div>
-            }
-          />
-
-          <div className="h-14 w-px bg-white/10" />
-
-          <MetricBlock
-            label="Powierzchnia"
-            align="center"
-            value={
-              <div className="text-[20px] font-medium leading-none text-white/95 md:text-[22px]">
-                {formatIntPL(area)} m²
-              </div>
-            }
-          />
-        </div>
-
-        <div className="mt-6">
-          <div className="mx-auto max-w-[92%] text-center text-[16px] font-medium leading-[1.35] text-white/92 md:text-[17px]">
-            {d.tytul}
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <MetricBlock
-            label="Lokalizacja"
-            align="center"
-            value={
-              <div className="break-words text-[14px] leading-[1.4] text-white/90">{loc}</div>
-            }
-          />
-
-          <div className="h-14 w-px bg-white/10" />
-
-          <MetricBlock
-            label="Przeznaczenie"
-            align="center"
-            value={
-              <div className="break-words text-[14px] leading-[1.4] text-white/90">{przezn}</div>
-            }
-          />
-        </div>
-      </div>
+      <CardBody
+        cena={d.cenaPln}
+        isRent={isRent}
+        tytul={d.tytul}
+        loc={loc}
+        area={area}
+        przezn={przezn}
+        media={parcelMediaLabel(d)}
+      />
     </Link>
   );
 }

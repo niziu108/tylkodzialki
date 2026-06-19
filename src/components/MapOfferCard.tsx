@@ -2,14 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { MapPoint } from './KupMap';
+import { CardBody } from './CardBody';
+import { parcelMediaLabel } from '@/lib/media';
 
 /* ────────────────────────────────────────────────────────────────────────────
  *  Karta oferty pokazywana po kliknięciu pinu (P11). Renderowana jako WŁASNY
  *  panel nad mapą (nie w dymku Google) — pełna kontrola nad wyglądem: ostry
  *  tekst, spójne kolory, responsywna szerokość, brak obcinania na telefonie.
- *  Bloki spójne z `OfferCard` (Cena/Powierzchnia, Lokalizacja/Przeznaczenie,
- *  zielone etykiety). Bez tytułu (na mapie zbędny). Zdjęcia (karuzela)
- *  doładowywane dopiero po kliknięciu pinu — mapa zostaje lekka.
+ *  Ciało (cena/lokalizacja/chipy/CTA) to wspólny `CardBody` — identyczne z listą
+ *  i „podobnymi" (Wariant B). Bez tytułu (w ciasnym popupie zbędny). Zdjęcia
+ *  (karuzela) doładowywane dopiero po kliknięciu pinu — mapa zostaje lekka.
  * ──────────────────────────────────────────────────────────────────────────── */
 
 const PRZEZN_LABEL: Record<string, string> = {
@@ -20,18 +22,6 @@ const PRZEZN_LABEL: Record<string, string> = {
   REKREACYJNA: 'Rekreacyjna',
   SIEDLISKOWA: 'Siedliskowa',
 };
-
-function formatPLN(value: number) {
-  return new Intl.NumberFormat('pl-PL', {
-    style: 'currency',
-    currency: 'PLN',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatIntPL(value: number) {
-  return new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 }).format(value);
-}
 
 type Photo = { url: string; kolejnosc?: number };
 
@@ -71,8 +61,8 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
   };
 
   const isRent = point.transakcja === 'WYNAJEM';
-  const zlM2 = !isRent && point.area > 0 ? Math.round(point.cena / point.area) : 0;
-  const przezn = (point.przezn ?? []).map((x) => PRZEZN_LABEL[x] ?? x).filter(Boolean).join(', ') || '—';
+  const przezn =
+    (point.przezn ?? []).map((x) => PRZEZN_LABEL[x] ?? x).filter(Boolean).join(', ') || '—';
   const loc = (point.loc ?? '').trim() || 'Lokalizacja niepodana';
 
   return (
@@ -91,10 +81,10 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
         ×
       </button>
 
-      <a href={`/dzialka/${point.id}`} className="block text-left text-white no-underline">
+      <a href={`/dzialka/${point.id}`} className="group block text-left text-white no-underline">
         {/* Karuzela */}
         <div
-          className="relative aspect-[16/10] w-full bg-[#0d0d0d]"
+          className="relative aspect-[16/10] w-full overflow-hidden bg-[#0d0d0d]"
           onTouchStart={(e) => {
             touchStartX.current = e.changedTouches[0]?.clientX ?? null;
           }}
@@ -111,11 +101,13 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
             <img
               src={photos[i] ?? photos[0]}
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-[450ms] ease-out group-hover:scale-[1.05]"
               draggable={false}
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-[12px] text-white/40">Brak zdjęć</div>
+            <div className="flex h-full items-center justify-center bg-[#0d0d0d]">
+              <span className="text-[11px] tracking-[0.12em] text-white/30">Zdjęcie wkrótce</span>
+            </div>
           )}
 
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
@@ -159,52 +151,23 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
           )}
         </div>
 
-        {/* Treść — bloki jak w karcie listy, bez tytułu */}
-        <div className="px-4 py-4">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <div className="min-w-0 text-center">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-[#7aa333]">Cena</div>
-              <div className="mt-1.5 flex flex-wrap items-baseline justify-center gap-x-1.5">
-                <span className="text-[19px] font-semibold leading-none text-white">
-                  {formatPLN(point.cena)}
-                  {isRent ? <span className="text-[12px] font-normal text-white/65">/mc</span> : null}
-                </span>
-                {zlM2 ? <span className="text-[11px] text-white/55">{formatIntPL(zlM2)} zł/m²</span> : null}
-              </div>
-            </div>
-            <div className="h-10 w-px bg-white/12" />
-            <div className="min-w-0 text-center">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-[#7aa333]">Powierzchnia</div>
-              <div className="mt-1.5 text-[19px] font-semibold leading-none text-white">{formatIntPL(point.area)} m²</div>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <div className="min-w-0 text-center">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-[#7aa333]">Lokalizacja</div>
-              <div className="mt-1.5 break-words text-[13px] leading-[1.4] text-white/85">{loc}</div>
-            </div>
-            <div className="h-10 w-px bg-white/12" />
-            <div className="min-w-0 text-center">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-[#7aa333]">Przeznaczenie</div>
-              <div className="mt-1.5 break-words text-[13px] leading-[1.4] text-white/85">{przezn}</div>
-            </div>
-          </div>
-
-          {point.approx && (
-            <div className="mt-3.5 text-center">
+        {/* Ciało — wspólne z listą i „podobnymi" (bez tytułu, kompaktowo). */}
+        <CardBody
+          cena={point.cena}
+          isRent={isRent}
+          loc={loc}
+          area={point.area}
+          przezn={przezn}
+          media={parcelMediaLabel(point)}
+          compact
+          extra={
+            point.approx ? (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-2.5 py-1 text-[10px] text-[#9fd14b]">
                 ◎ Lokalizacja przybliżona
               </span>
-            </div>
-          )}
-
-          <div className="mt-4">
-            <span className="flex w-full items-center justify-center rounded-xl bg-[#7aa333] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0c0c0c]">
-              Zobacz ofertę
-            </span>
-          </div>
-        </div>
+            ) : undefined
+          }
+        />
       </a>
     </div>
   );
