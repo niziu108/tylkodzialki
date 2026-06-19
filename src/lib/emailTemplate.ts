@@ -11,12 +11,12 @@ function escapeHtml(value: string) {
     .replace(/"/g, "&quot;");
 }
 
-// Wspólny załącznik z logo (cid:logo) — sam znak „d", nasz znak rozpoznawczy.
+// Wspólny załącznik z logo (cid:logo) — pełny napis „tylkodziałki" (logomail.png).
 // Każdy mail korzystający z szablonu musi go dołączyć, dlatego trzymamy go w jednym miejscu.
 export function mailLogoAttachment() {
   return {
-    filename: "logo.png",
-    path: path.join(process.cwd(), "public", "logo.png"),
+    filename: "logomail.png",
+    path: path.join(process.cwd(), "public", "logomail.png"),
     cid: "logo",
   };
 }
@@ -120,7 +120,7 @@ export function buildMailTemplate({
 
 <tr>
 <td style="padding:40px 44px 0 44px;text-align:center;">
-<img src="cid:logo" alt="tylkodzialki.pl" width="50" height="50" style="display:inline-block;width:50px;height:50px;border:0;" />
+<img src="cid:logo" alt="tylkodzialki.pl" width="180" style="display:inline-block;width:180px;max-width:62%;height:auto;border:0;" />
 </td>
 </tr>
 

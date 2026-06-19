@@ -58,6 +58,31 @@ function dzialkaWord(n: number) {
   return 'działek';
 }
 
+// Kategoria liczby mnogiej PL: 1 / 2-4 / pozostałe.
+function pluralCat(n: number): 'one' | 'few' | 'many' {
+  if (n === 1) return 'one';
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return 'few';
+  return 'many';
+}
+
+// „Nowa działka" / „N nowe działki" / „N nowych działek".
+function newDzialkiPhrase(n: number) {
+  const cat = pluralCat(n);
+  if (cat === 'one') return 'Nowa działka';
+  const adj = cat === 'few' ? 'nowe' : 'nowych';
+  const noun = cat === 'few' ? 'działki' : 'działek';
+  return `${n} ${adj} ${noun}`;
+}
+
+// „pasująca" / „pasujące" / „pasujących" — zgodnie z liczbą działek.
+function matchingWord(n: number) {
+  const cat = pluralCat(n);
+  if (cat === 'one') return 'pasująca';
+  return cat === 'few' ? 'pasujące' : 'pasujących';
+}
+
 function buildAlertEmail(params: {
   label: string;
   matches: MatchOffer[];
@@ -71,13 +96,12 @@ function buildAlertEmail(params: {
   const firstName = userName?.trim()?.split(' ')[0];
   const hello = firstName ? `${firstName},` : 'Dzień dobry,';
 
-  const word = dzialkaWord(n);
-  const countText = n === 1 ? `Nowa ${word}` : `${n} nowe ${word}`;
+  const countText = newDzialkiPhrase(n);
 
   const subject =
     n === 1
       ? `Nowa działka: ${label}`
-      : `${n} ${dzialkaWord(n)} pasujące do alertu: ${label}`;
+      : `${n} ${dzialkaWord(n)} ${matchingWord(n)} do alertu: ${label}`;
 
   const shown = matches.slice(0, MAX_OFFERS_IN_EMAIL);
   const bullets = shown.map((d) => {
@@ -91,7 +115,7 @@ function buildAlertEmail(params: {
 
   const intro = `${hello}
 
-${countText} pasujące do Twojego alertu „${label}":`;
+${countText} ${matchingWord(n)} do Twojego alertu „${label}":`;
 
   const note =
     more > 0
@@ -106,7 +130,7 @@ ${countText} pasujące do Twojego alertu „${label}":`;
   const buttonLabel = n === 1 ? 'Zobacz ofertę' : 'Zobacz oferty';
 
   const html = buildMailTemplate({
-    preheader: `${countText} pasujące do Twojego alertu.`,
+    preheader: `${countText} ${matchingWord(n)} do Twojego alertu.`,
     title: countText,
     intro,
     bullets,
@@ -116,7 +140,7 @@ ${countText} pasujące do Twojego alertu „${label}":`;
     unsubscribeUrl,
   });
 
-  const text = `${countText} pasujące do Twojego alertu „${label}".\n\n${buttonUrl}`;
+  const text = `${countText} ${matchingWord(n)} do Twojego alertu „${label}".\n\n${buttonUrl}`;
 
   return { subject, html, text };
 }
