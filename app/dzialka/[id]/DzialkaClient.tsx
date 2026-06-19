@@ -243,6 +243,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  // Gdy gest był przesunięciem (zmiana zdjęcia), tłumimy następujący po nim klik,
+  // żeby swipe na głównym zdjęciu nie otwierał jednocześnie pełnego ekranu.
+  const swipeHandledRef = useRef(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
@@ -513,6 +516,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const onTouchStart = (e: React.TouchEvent) => {
     const t = e.touches?.[0];
     if (!t) return;
+    swipeHandledRef.current = false;
     touchStartX.current = t.clientX;
     touchStartY.current = t.clientY;
   };
@@ -533,8 +537,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     if (Math.abs(dy) > Math.abs(dx)) return;
 
     const TH = 40;
-    if (dx > TH) prev();
-    else if (dx < -TH) next();
+    if (dx > TH) {
+      swipeHandledRef.current = true;
+      prev();
+    } else if (dx < -TH) {
+      swipeHandledRef.current = true;
+      next();
+    }
   };
 
   useEffect(() => {
@@ -613,10 +622,14 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   }
 
   return (
-    <main className="min-h-screen" style={{ background: BG, color: FG }}>
+    <main className="relative isolate min-h-screen overflow-x-hidden" style={{ background: BG, color: FG }}>
+      {/* Tło: subtelna siatka + delikatna zielona poświata — spójne z listą ofert. */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_14%_16%,rgba(122,163,51,0.06),transparent_28%),radial-gradient(circle_at_86%_68%,rgba(47,94,70,0.06),transparent_28%)] bg-[size:100%_1000px]" />
+
       <div
         className={cx(
-          'mx-auto max-w-6xl px-4 pt-4 lg:py-10',
+          'mx-auto max-w-6xl px-4 pt-10',
           telefon ? 'pb-24 md:pb-10' : 'pb-10'
         )}
       >
@@ -624,15 +637,19 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           href="/kup"
           scroll={false}
           onClick={onBackToListClick}
-          className="hidden lg:inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
+          className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
         >
           <span className="relative top-[-1px]">←</span> Wróć do listy
         </Link>
 
-        <div className="mt-0 grid gap-5 lg:mt-6 lg:gap-10 lg:grid-cols-2">
+        <div className="mt-6 grid gap-5 lg:gap-10 lg:grid-cols-2">
           <section className="min-w-0 space-y-8">
             <div className="min-w-0 -mx-4 overflow-hidden rounded-none bg-[#0f0f0f]/20 lg:mx-0 lg:rounded-3xl">
-              <div className="relative aspect-[4/3] bg-white/5 lg:aspect-video">
+              <div
+                className="relative aspect-[4/3] touch-pan-y bg-white/5 lg:aspect-video"
+                onTouchStart={onTouchStart}
+                onTouchEnd={onTouchEnd}
+              >
                 {cover ? (
                   <>
                     <SmartImg
@@ -640,7 +657,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       alt={d.tytul}
                       className="h-full w-full object-cover cursor-zoom-in"
                       eager
-                      onClick={() => setOpen(true)}
+                      onClick={() => {
+                        if (swipeHandledRef.current) {
+                          swipeHandledRef.current = false;
+                          return;
+                        }
+                        setOpen(true);
+                      }}
                     />
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                   </>
@@ -650,50 +673,12 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   </div>
                 )}
 
-                {/* Sterowanie na zdjęciu (tylko mobile) — wróć, udostępnij, ulubione. */}
-                <button
-                  type="button"
-                  onClick={onBackToListClick}
-                  aria-label="Wróć do listy"
-                  className="absolute left-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition active:scale-95 lg:hidden"
-                >
-                  <span className="text-[18px] leading-none">←</span>
-                </button>
-
-                <div className="absolute right-3 top-3 z-10 flex items-center gap-2 lg:hidden">
-                  <button
-                    type="button"
-                    onClick={shareOffer}
-                    aria-label="Udostępnij ofertę"
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition active:scale-95"
-                  >
-                    <ShareIcon className="h-[18px] w-[18px]" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={toggleFavorite}
-                    disabled={favoriteLoading}
-                    aria-pressed={isFavorite}
-                    aria-label={isFavorite ? 'W ulubionych' : 'Dodaj do ulubionych'}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/45 backdrop-blur-md transition active:scale-95 disabled:opacity-60"
-                  >
-                    <span
-                      className={`text-[20px] leading-none ${
-                        isFavorite ? 'text-[#7aa333]' : 'text-white'
-                      }`}
-                    >
-                      {isFavorite ? '♥' : '♡'}
-                    </span>
-                  </button>
-                </div>
-
                 {hasPhotos && photos.length > 1 && (
                   <>
                     <button
                       type="button"
                       onClick={prev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10 lg:flex"
                       aria-label="Poprzednie"
                     >
                       ‹
@@ -701,7 +686,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <button
                       type="button"
                       onClick={next}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10 lg:flex"
                       aria-label="Następne"
                     >
                       ›
@@ -758,8 +743,8 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
           <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
             <div className="p-6 md:p-7">
-              {/* Ulubione + udostępnij — wersja desktop (na mobile sterowanie jest na zdjęciu). */}
-              <div className="mb-5 hidden items-center gap-6 lg:flex">
+              {/* Ulubione + udostępnij — mobile: jeden pod drugim; desktop: w jednej linii. */}
+              <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
                 <button
                   type="button"
                   disabled={favoriteLoading}
@@ -768,7 +753,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   className="group inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:text-[#b7db74] disabled:cursor-wait disabled:opacity-60"
                 >
                   <span
-                    className={`text-[23px] leading-none transition ${
+                    className={`inline-flex h-6 w-6 items-center justify-center text-[22px] leading-none transition ${
                       isFavorite
                         ? 'text-[#7aa333]'
                         : 'text-white/70 group-hover:text-[#7aa333]'
@@ -787,8 +772,10 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   onClick={shareOffer}
                   className="group inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:text-[#b7db74]"
                 >
-                  <ShareIcon className="h-[17px] w-[17px] text-white/70 transition group-hover:text-[#7aa333]" />
-                  <span>Udostępnij</span>
+                  <span className="inline-flex h-6 w-6 items-center justify-center text-white/70 transition group-hover:text-[#7aa333]">
+                    <ShareIcon className="h-[18px] w-[18px]" />
+                  </span>
+                  <span>Udostępnij ofertę</span>
                 </button>
               </div>
 
@@ -802,45 +789,42 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 {d.tytul}
               </h1>
 
-              {/* Cena — najważniejsza liczba na stronie */}
-              <div className="mt-4">
-                <div className="text-[30px] md:text-[34px] font-semibold tracking-tight text-white leading-none break-words">
+              <Hr className="mt-6" />
+
+              <FieldBlock label={isRent ? 'Cena najmu' : 'Cena'}>
+                <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 break-words">
                   {formatPLN(d.cenaPln)}
                   {isRent ? (
-                    <span className="ml-1.5 text-[15px] font-normal text-white/55">/mc</span>
+                    <span className="ml-1 text-[13px] text-white/60 font-normal">/mc</span>
+                  ) : null}
+                  {zlZaM2 ? (
+                    <span className="ml-2 text-[12px] text-white/50 font-normal">
+                      ({formatIntPL(zlZaM2)} zł/m²)
+                    </span>
                   ) : null}
                 </div>
-                {zlZaM2 ? (
-                  <div className="mt-1.5 text-[13px] text-white/55">
-                    {formatIntPL(zlZaM2)} zł/m²
-                  </div>
-                ) : null}
-              </div>
+              </FieldBlock>
 
-              {/* Kluczowe fakty — zwarty blok zamiast osobnych wierszy z liniami */}
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
-                    Powierzchnia
-                  </div>
-                  <div className="mt-1 text-[15px] font-medium text-white/95">
-                    {formatIntPL(area)} m²
-                  </div>
+              <Hr />
+
+              <FieldBlock label="Powierzchnia">
+                <div className="text-[15px] md:text-[16px] font-medium text-white/95 break-words">
+                  {formatIntPL(area)} m²
                 </div>
+              </FieldBlock>
 
-                {przeznText ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
-                      Przeznaczenie
-                    </div>
-                    <div className="mt-1 text-[15px] font-medium leading-snug text-white/95 break-words">
+              <Hr />
+
+              {przeznText ? (
+                <>
+                  <FieldBlock label="Przeznaczenie">
+                    <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
                       {przeznText}
                     </div>
-                  </div>
-                ) : null}
-              </div>
-
-              <Hr className="mt-6" />
+                  </FieldBlock>
+                  <Hr />
+                </>
+              ) : null}
 
               {sprzedajacyTyp === 'PRYWATNIE' ? (
                 <>
@@ -860,21 +844,19 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {sprzedajacyTyp === 'BIURO' ? (
                 <>
                   <FieldBlock label="Ogłoszenie biura nieruchomości">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1 space-y-3 text-[14px] text-white/85">
-                        {biuroOpiekun ? (
-                          <div className="break-words">
-                            Opiekun: <span className="text-white/95">{biuroOpiekun}</span>
-                          </div>
-                        ) : null}
-                      </div>
+                    <div className="space-y-3 text-[14px] text-white/85">
+                      {biuroOpiekun ? (
+                        <div className="break-words">
+                          Opiekun: <span className="text-white/95">{biuroOpiekun}</span>
+                        </div>
+                      ) : null}
 
                       {biuroLogoUrl ? (
-                        <div className="shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                        <div className="w-fit overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                           <img
                             src={biuroLogoUrl}
                             alt="Logo biura"
-                            className="h-16 w-auto max-w-[120px] object-contain"
+                            className="h-16 w-auto max-w-[140px] object-contain"
                           />
                         </div>
                       ) : null}
