@@ -30,6 +30,9 @@ export type MapPoint = {
   woda?: string | null;
   kanalizacja?: string | null;
   gaz?: string | null;
+  sprzedajacyTyp?: 'PRYWATNIE' | 'BIURO' | string | null;
+  biuroNazwa?: string | null;
+  biuroLogoUrl?: string | null;
 };
 
 type Bounds = { n: number; s: number; e: number; w: number };

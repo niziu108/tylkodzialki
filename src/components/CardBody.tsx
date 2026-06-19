@@ -26,6 +26,7 @@ export function CardBody({
   sellerType,
   biuroNazwa,
   biuroLogoUrl,
+  heartSlot,
 }: {
   cena: number;
   isRent: boolean;
@@ -40,11 +41,13 @@ export function CardBody({
   compact?: boolean;
   /** Dodatkowy slot na końcu (np. plakietka „Lokalizacja przybliżona" na mapie). */
   extra?: ReactNode;
-  /** Lista /kup na desktopie: stała wysokość + stopka sprzedawcy. */
+  /** Lista /kup na desktopie: karta pozioma o stałej wysokości; stopka sprzedawcy u dołu. */
   horizontal?: boolean;
   sellerType?: SprzedajacyTyp | null;
   biuroNazwa?: string | null;
   biuroLogoUrl?: string | null;
+  /** Serduszko ulubionych (klienckie) — renderowane w prawym dolnym rogu, nad kreską sprzedawcy. */
+  heartSlot?: ReactNode;
 }) {
   const price = offerPriceLabel(cena);
   const zlM2 = isRent ? 0 : pricePerM2(cena, area);
@@ -112,26 +115,31 @@ export function CardBody({
         {extra ? <div className="mt-3">{extra}</div> : null}
       </div>
 
-      {horizontal && sellerType ? (
-        <div className="mt-4 flex items-center gap-2.5 border-t border-white/10 pt-3.5 lg:mt-auto">
-          {sellerType === 'BIURO' ? (
-            biuroLogoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={biuroLogoUrl}
-                alt={biuroNazwa ?? ''}
-                className="h-7 w-auto max-w-[112px] object-contain"
-                loading="lazy"
-              />
-            ) : (
-              <IconBuilding className="h-4 w-4 shrink-0 text-white/50" />
-            )
-          ) : (
-            <IconUser className="h-4 w-4 shrink-0 text-white/50" />
-          )}
-          <span className="text-[13px] text-white/55">
-            {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
-          </span>
+      {heartSlot || sellerType ? (
+        <div className="mt-4 lg:mt-auto">
+          {heartSlot ? <div className="mb-3 flex justify-end">{heartSlot}</div> : null}
+          {sellerType ? (
+            <div className="flex items-center gap-2.5 border-t border-white/10 pt-3.5">
+              {sellerType === 'BIURO' ? (
+                biuroLogoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={biuroLogoUrl}
+                    alt={biuroNazwa ?? ''}
+                    className="h-7 w-auto max-w-[112px] object-contain"
+                    loading="lazy"
+                  />
+                ) : (
+                  <IconBuilding className="h-4 w-4 shrink-0 text-white/50" />
+                )
+              ) : (
+                <IconUser className="h-4 w-4 shrink-0 text-white/50" />
+              )}
+              <span className="text-[13px] text-white/55">
+                {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
+              </span>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

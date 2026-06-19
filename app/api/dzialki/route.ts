@@ -233,6 +233,10 @@ export async function GET(req: Request) {
         woda: true,
         kanalizacja: true,
         gaz: true,
+        sprzedajacyTyp: true,
+        biuroNazwa: true,
+        biuroLogoUrl: true,
+        owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroNazwa: true } },
         isFeatured: true,
         featuredUntil: true,
         createdAt: true,
@@ -278,6 +282,9 @@ export async function GET(req: Request) {
       woda: r.woda,
       kanalizacja: r.kanalizacja,
       gaz: r.gaz,
+      sprzedajacyTyp: r.sprzedajacyTyp,
+      biuroNazwa: r.biuroNazwa ?? r.owner?.defaultBiuroNazwa ?? null,
+      biuroLogoUrl: r.biuroLogoUrl ?? r.owner?.defaultBiuroLogoUrl ?? null,
     }));
 
     return NextResponse.json({

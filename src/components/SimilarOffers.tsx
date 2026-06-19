@@ -75,6 +75,9 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
         area={area}
         przezn={przezn}
         media={parcelMediaLabel(d)}
+        sellerType={d.sprzedajacyTyp}
+        biuroNazwa={d.biuroNazwa}
+        biuroLogoUrl={d.biuroLogoUrl}
       />
     </Link>
   );

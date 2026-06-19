@@ -252,8 +252,6 @@ function Carousel({
   rent = false,
   eagerImage = false,
   horizontal = false,
-  isFavorite,
-  onToggleFavorite,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
@@ -263,8 +261,6 @@ function Carousel({
   eagerImage?: boolean;
   /** Desktop: zdjęcie po lewej, wypełnia wysokość karty (układ poziomy). */
   horizontal?: boolean;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
 }) {
   const list = useMemo(
     () => (photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : []),
@@ -352,23 +348,6 @@ function Carousel({
           />
 
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
-
-          <button
-            type="button"
-            aria-label={isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            className={`absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
-              isFavorite
-                ? 'border-[#7aa333]/70 bg-[#7aa333] text-[#131313]'
-                : 'border-white/20 bg-black/45 text-white hover:border-[#7aa333]/70 hover:text-[#7aa333]'
-            }`}
-          >
-            <HeartIcon filled={isFavorite} />
-          </button>
 
           {featured ? (
             <div className="absolute left-4 top-4 z-10">
@@ -499,8 +478,6 @@ export function OfferCard({
         rent={isRent}
         eagerImage={eagerImage}
         horizontal={horizontal}
-        isFavorite={isFavorite}
-        onToggleFavorite={() => onToggleFavorite(d.id)}
       />
 
       <div className={horizontal ? 'lg:flex-1' : ''}>
@@ -516,6 +493,22 @@ export function OfferCard({
           sellerType={d.sprzedajacyTyp ?? null}
           biuroNazwa={d.biuroNazwa ?? d.owner?.defaultBiuroNazwa ?? null}
           biuroLogoUrl={d.biuroLogoUrl ?? d.owner?.defaultBiuroLogoUrl ?? null}
+          heartSlot={
+            <button
+              type="button"
+              aria-label={isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleFavorite(d.id);
+              }}
+              className={`flex h-8 w-8 items-center justify-center transition active:scale-90 ${
+                isFavorite ? 'text-[#7aa333]' : 'text-white/45 hover:text-[#7aa333]'
+              }`}
+            >
+              <HeartIcon filled={isFavorite} />
+            </button>
+          }
         />
       </div>
     </Link>

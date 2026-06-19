@@ -5,7 +5,12 @@ import type {
   WodaStatus,
   KanalizacjaStatus,
   GazStatus,
+  SprzedajacyTyp,
 } from '@prisma/client';
+
+const SELLER_OWNER_SELECT = {
+  owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroNazwa: true } },
+} as const;
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -66,6 +71,9 @@ export type SimilarDzialka = {
   woda: WodaStatus | null;
   kanalizacja: KanalizacjaStatus | null;
   gaz: GazStatus | null;
+  sprzedajacyTyp: SprzedajacyTyp | null;
+  biuroNazwa: string | null;
+  biuroLogoUrl: string | null;
   /** Odległość od bieżącej oferty w km (null, gdy dobrane spoza geo). */
   distanceKm: number | null;
 };
@@ -94,6 +102,7 @@ function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
 
 const SIMILAR_PHOTO_INCLUDE = {
   zdjecia: { orderBy: { kolejnosc: 'asc' as const }, take: 1 },
+  ...SELLER_OWNER_SELECT,
 } as const;
 
 type SimilarRow = {
@@ -109,6 +118,10 @@ type SimilarRow = {
   woda: WodaStatus | null;
   kanalizacja: KanalizacjaStatus | null;
   gaz: GazStatus | null;
+  sprzedajacyTyp: SprzedajacyTyp | null;
+  biuroNazwa: string | null;
+  biuroLogoUrl: string | null;
+  owner?: { defaultBiuroLogoUrl: string | null; defaultBiuroNazwa: string | null } | null;
   zdjecia: { url: string }[];
 };
 
@@ -125,6 +138,9 @@ function toSimilar(row: SimilarRow, distanceKm: number | null): SimilarDzialka {
     woda: row.woda ?? null,
     kanalizacja: row.kanalizacja ?? null,
     gaz: row.gaz ?? null,
+    sprzedajacyTyp: row.sprzedajacyTyp ?? null,
+    biuroNazwa: row.biuroNazwa ?? row.owner?.defaultBiuroNazwa ?? null,
+    biuroLogoUrl: row.biuroLogoUrl ?? row.owner?.defaultBiuroLogoUrl ?? null,
     distanceKm,
   };
 }
@@ -242,6 +258,7 @@ export async function getSimilarDzialki(
 const HOME_PHOTO_INCLUDE = {
   // kilka zdjęć — karuzela na karcie (jak na /kup), nie tylko okładka
   zdjecia: { orderBy: { kolejnosc: 'asc' as const }, take: 12 },
+  ...SELLER_OWNER_SELECT,
 } as const;
 
 export async function getFeaturedListings(limit = 8) {

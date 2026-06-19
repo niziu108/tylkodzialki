@@ -160,6 +160,13 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
           przezn={przezn}
           media={parcelMediaLabel(point)}
           compact
+          sellerType={
+            point.sprzedajacyTyp === 'BIURO' || point.sprzedajacyTyp === 'PRYWATNIE'
+              ? point.sprzedajacyTyp
+              : null
+          }
+          biuroNazwa={point.biuroNazwa ?? null}
+          biuroLogoUrl={point.biuroLogoUrl ?? null}
           extra={
             point.approx ? (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-2.5 py-1 text-[10px] text-[#9fd14b]">
