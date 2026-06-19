@@ -672,7 +672,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               aria-label={isFavorite ? 'W ulubionych' : 'Dodaj do ulubionych'}
               className={cx(
                 'group flex h-9 w-9 items-center justify-center transition disabled:cursor-wait disabled:opacity-60',
-                isFavorite ? 'text-brand-text' : 'text-fg/70 hover:text-brand-text'
+                isFavorite ? 'text-brand-text' : 'text-brand-text/85 hover:text-brand-text'
               )}
             >
               <HeartIcon filled={isFavorite} />
@@ -682,7 +682,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               type="button"
               onClick={shareOffer}
               aria-label="Udostępnij ofertę"
-              className="group flex h-9 w-9 items-center justify-center text-fg/70 transition hover:text-brand-text"
+              className="group flex h-9 w-9 items-center justify-center text-brand-text transition hover:text-brand-bright"
             >
               <ShareIcon className="h-[21px] w-[21px]" />
             </button>
@@ -715,7 +715,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                   </>
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-fg/66">
+                  <div className="flex h-full w-full items-center justify-center text-sm text-fg/70">
                     Brak zdjęć
                   </div>
                 )}
@@ -809,7 +809,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <span className="ml-1 text-[13px] text-fg/72 font-normal">/mc</span>
                   ) : null}
                   {zlZaM2 ? (
-                    <span className="ml-2 text-[12px] text-fg/66 font-normal">
+                    <span className="ml-2 text-[12px] text-fg/70 font-normal">
                       ({formatIntPL(zlZaM2)} zł/m²)
                     </span>
                   ) : null}
@@ -966,7 +966,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   ) : null}
 
                   {isApproxLocation ? (
-                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-fg/62">
+                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-fg/68">
                      Lokalizacja przybliżona
                    </div>
                   ) : null}
@@ -1137,7 +1137,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               Zapisz ofertę
             </div>
 
-            <p className="mt-5 text-[14px] leading-relaxed text-fg/58">
+            <p className="mt-5 text-[14px] leading-relaxed text-fg/64">
               Zaloguj się lub zarejestruj, aby dodać ofertę do ulubionych.
             </p>
 

@@ -428,7 +428,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <h3 className="line-clamp-2 text-base font-semibold text-fg">
                         {article.title}
                       </h3>
-                      <p className="mt-1 text-xs text-fg/66">
+                      <p className="mt-1 text-xs text-fg/70">
                         /blog/{article.slug}
                       </p>
                     </div>
@@ -448,7 +448,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     {article.excerpt || "Brak zajawki artykułu."}
                   </p>
 
-                  <div className="mt-4 flex items-center justify-between text-xs text-fg/66">
+                  <div className="mt-4 flex items-center justify-between text-xs text-fg/70">
                     <span>{new Date(article.createdAt).toLocaleDateString("pl-PL")}</span>
 
                     <Link
@@ -471,7 +471,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               name="q"
               defaultValue={q}
               placeholder="Szukaj po mailu lub imieniu..."
-              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
+              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/70 focus:border-brand/60"
             />
 
             <div className="flex gap-2">
@@ -553,7 +553,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             {user.phoneFromListings}
                           </a>
                         ) : (
-                          <span className="text-fg/66">—</span>
+                          <span className="text-fg/70">—</span>
                         )}
                       </td>
 
@@ -569,7 +569,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             {user.crmIntegration.isActive ? "Aktywna" : "Wyłączona"}
                           </span>
                         ) : (
-                          <span className="text-fg/66">Brak</span>
+                          <span className="text-fg/70">Brak</span>
                         )}
                       </td>
 
@@ -601,7 +601,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             name="logoUrl"
                             defaultValue={user.defaultBiuroLogoUrl || ""}
                             placeholder="URL logo albo wgraj plik poniżej"
-                            className="h-10 w-full rounded-xl border border-fg/10 bg-surface px-3 text-xs text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
+                            className="h-10 w-full rounded-xl border border-fg/10 bg-surface px-3 text-xs text-fg outline-none transition placeholder:text-fg/70 focus:border-brand/60"
                           />
 
                           <input

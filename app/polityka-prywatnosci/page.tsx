@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
             Polityka prywatności
           </h1>
 
-          <p className="max-w-3xl text-[15px] leading-8 text-fg/65">
+          <p className="max-w-3xl text-[15px] leading-8 text-fg/70">
             Niniejsza Polityka prywatności określa zasady przetwarzania danych osobowych
             użytkowników serwisu tylkodzialki.pl, w tym osób odwiedzających stronę, zakładających
             konto, publikujących ogłoszenia, kontaktujących się z operatorem oraz korzystających
@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
 
-        <div className="mb-12 grid gap-3 rounded-3xl border border-fg/10 bg-fg/[0.02] p-5 text-sm text-fg/65 sm:grid-cols-2">
+        <div className="mb-12 grid gap-3 rounded-3xl border border-fg/10 bg-fg/[0.02] p-5 text-sm text-fg/70 sm:grid-cols-2">
           <Link href="#administrator" className="transition hover:text-fg">
             §1. Administrator danych
           </Link>

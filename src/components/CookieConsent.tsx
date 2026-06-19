@@ -207,7 +207,7 @@ export default function CookieConsent() {
                   opcjonalne albo ustawić swoje preferencje.
                 </p>
 
-                <p className="text-xs leading-6 text-fg/62">
+                <p className="text-xs leading-6 text-fg/68">
                   Więcej informacji znajdziesz w Polityce cookies i Polityce
                   prywatności.
                 </p>
@@ -257,7 +257,7 @@ export default function CookieConsent() {
                 <h2 className="text-2xl font-semibold text-fg">
                   Zarządzaj zgodą
                 </h2>
-                <p className="text-sm leading-7 text-fg/65">
+                <p className="text-sm leading-7 text-fg/70">
                   Możesz w każdej chwili zmienić swoje preferencje. Cookies
                   niezbędne są zawsze aktywne, ponieważ odpowiadają za podstawowe
                   działanie serwisu.

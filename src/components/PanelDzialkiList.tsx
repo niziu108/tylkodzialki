@@ -215,7 +215,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
       <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-4 md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="w-full xl:max-w-md">
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/62">
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/68">
               Szukaj ogłoszenia
             </label>
 
@@ -224,13 +224,13 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Np. tytuł ogłoszenia, lokalizacja..."
-              className="h-[54px] w-full rounded-2xl border border-fg/12 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-brand/60 focus:bg-black/30"
+              className="h-[54px] w-full rounded-2xl border border-fg/12 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-brand/60 focus:bg-black/30"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-end">
             <div className="min-w-[190px]">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/62">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/68">
                 Status
               </label>
 
@@ -259,7 +259,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
             </div>
 
             <div className="min-w-[250px]">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/62">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/68">
                 Sortowanie
               </label>
 
@@ -479,9 +479,9 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
 
           {effectiveStatus === 'AKTYWNE' ? (
             isIndefinite ? (
-              <span className="text-fg/62">Widoczne bezterminowo</span>
+              <span className="text-fg/68">Widoczne bezterminowo</span>
             ) : (
-              <span className="text-fg/62">
+              <span className="text-fg/68">
                 Widoczne do: {formatDatePL(d.expiresAt)}
                 {typeof daysLeft === 'number' && daysLeft >= 0
                   ? ` (${daysLeft} dni)`
@@ -621,7 +621,7 @@ function PanelStats({
   return (
     <div>
       <div className="mb-3 flex items-center gap-3">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fg/58">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fg/64">
           Wyniki ogłoszenia
         </span>
         <span className="h-px flex-1 bg-fg/10" />
@@ -664,7 +664,7 @@ function StatRow({
     >
       <div className="min-w-0">
         <div className="text-[12px] font-medium text-fg/80">{label}</div>
-        <div className="text-[10px] leading-tight text-fg/55">{hint}</div>
+        <div className="text-[10px] leading-tight text-fg/62">{hint}</div>
       </div>
       <div
         className={`text-[19px] font-semibold leading-none tabular-nums ${
@@ -717,7 +717,7 @@ function ActionBtnAsLink({
       }}
       className={`inline-flex min-h-[40px] items-center justify-center rounded-full border px-4 text-[12px] font-semibold transition ${
         disabled
-          ? 'border-fg/10 bg-fg/[0.02] text-fg/55'
+          ? 'border-fg/10 bg-fg/[0.02] text-fg/62'
           : 'border-fg/14 bg-fg/[0.03] text-fg/80 hover:border-fg/28 hover:bg-fg/[0.05] hover:text-fg'
       }`}
     >

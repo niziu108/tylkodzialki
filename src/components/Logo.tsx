@@ -3,21 +3,19 @@ type Props = {
 };
 
 /**
- * Wordmark marki: „tylkodzialki.pl" jako żywy tekst (krój Jost, cienki).
- * Zielone „d" to sygnatura marki; pozostałe litery dziedziczą kolor tekstu
- * (text-fg), więc logo само dopasowuje się do motywu (jasny/ciemny) bez
- * podmiany pliku graficznego. Domena pisana „działki" (poprawna polszczyzna),
- * mimo że adres jest ASCII „dzialki".
+ * Logo marki = `public/logomail.png` (wordmark zaprojektowany przez właściciela).
+ * JEDEN plik używany wszędzie: menu, stopka, mobile (oraz maile przez ten sam plik).
+ * Podmiana `public/logomail.png` = zmiana logo w całym serwisie i mailach naraz.
+ * `className` steruje wysokością (np. h-10), szerokość auto.
  */
 export default function Logo({ className = '' }: Props) {
+  // eslint-disable-next-line @next/next/no-img-element
   return (
-    <span
-      aria-label="tylkodzialki.pl"
-      className={`font-logo select-none lowercase leading-none tracking-[0.005em] text-fg ${className}`}
-    >
-      <span className="font-extralight">tylko</span>
-      <span className="font-black text-brand">d</span>
-      <span className="font-extralight">zialki.pl</span>
-    </span>
+    <img
+      src="/logomail.png"
+      alt="tylkodzialki.pl"
+      className={`w-auto select-none ${className}`}
+      draggable={false}
+    />
   );
 }

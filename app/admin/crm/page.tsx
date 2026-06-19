@@ -250,11 +250,11 @@ export default async function AdminCrmMonitoringPage() {
 
         <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <div className="rounded-2xl border border-fg/10 bg-fg/5 p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Integracje
             </div>
             <div className="mt-2 text-2xl font-semibold text-fg">{total}</div>
-            <div className="mt-1 text-xs text-fg/66">{activeCount} aktywnych</div>
+            <div className="mt-1 text-xs text-fg/70">{activeCount} aktywnych</div>
           </div>
 
           {summaryCards.map((card) => (
@@ -266,7 +266,7 @@ export default async function AdminCrmMonitoringPage() {
                 <span
                   className={`inline-block h-2.5 w-2.5 rounded-full ${HEALTH_META[card.health].dot}`}
                 />
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
                   {card.label}
                 </div>
               </div>
@@ -304,7 +304,7 @@ export default async function AdminCrmMonitoringPage() {
                     <span className="text-amber-300">Nieświeże {stat.STALE}</span>
                     <span className="text-brand-bright">OK {stat.OK}</span>
                     {stat.DISABLED > 0 ? (
-                      <span className="text-fg/62">Wył. {stat.DISABLED}</span>
+                      <span className="text-fg/68">Wył. {stat.DISABLED}</span>
                     ) : null}
                   </div>
                 </div>
@@ -372,7 +372,7 @@ export default async function AdminCrmMonitoringPage() {
                           >
                             {row.user.email || row.user.name || "Brak emaila"}
                           </Link>
-                          <div className="mt-0.5 text-xs text-fg/62">
+                          <div className="mt-0.5 text-xs text-fg/68">
                             {row.name}
                           </div>
                         </td>
@@ -386,12 +386,12 @@ export default async function AdminCrmMonitoringPage() {
                             {formatDate(row.lastSyncAt)}
                           </div>
                           {relative ? (
-                            <div className="mt-0.5 text-xs text-fg/62">
+                            <div className="mt-0.5 text-xs text-fg/68">
                               {relative}
                             </div>
                           ) : null}
                           {showSuccessHint ? (
-                            <div className="mt-0.5 text-xs text-fg/58">
+                            <div className="mt-0.5 text-xs text-fg/64">
                               sukces: {formatDate(row.lastSuccessAt)}
                             </div>
                           ) : null}

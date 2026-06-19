@@ -124,7 +124,7 @@ export default async function DlaBiurPage() {
               Łączymy się z każdym systemem CRM.
             </h2>
 
-            <p className="mt-6 text-base leading-8 text-fg/65 md:text-lg">
+            <p className="mt-6 text-base leading-8 text-fg/70 md:text-lg">
               Nieważne, w jakim programie prowadzisz oferty. I tak się
               podłączymy. Import działa w tle: nowe działki pojawiają się na
               portalu same, zmiany cen i statusów aktualizują się
@@ -205,13 +205,13 @@ export default async function DlaBiurPage() {
                 Porozmawiajmy o integracji.
               </h2>
 
-              <p className="mt-5 max-w-md text-base leading-8 text-fg/65">
+              <p className="mt-5 max-w-md text-base leading-8 text-fg/70">
                 Podłączymy Twój system, skonfigurujemy import po naszej stronie
                 i zadbamy, żeby Twoje działki były widoczne w całej Polsce. Bez
                 instalacji, bez przepisywania, bez pracy po Twojej stronie.
               </p>
 
-              <p className="mt-6 text-sm text-fg/62">
+              <p className="mt-6 text-sm text-fg/68">
                 Wolisz e-mail? Napisz na{' '}
                 <a
                   href="mailto:biuro@tylkodzialki.pl"

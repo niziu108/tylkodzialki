@@ -35,6 +35,15 @@ function HeartIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function PersonIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+      <circle cx="12" cy="8" r="3.6" strokeWidth="2" />
+      <path d="M4.5 20c0-3.6 3.4-5.6 7.5-5.6s7.5 2 7.5 5.6" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function GlobalNav() {
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -119,7 +128,7 @@ export default function GlobalNav() {
       <header className="sticky top-0 left-0 z-[100] w-full border-b border-fg/10 bg-bg backdrop-blur">
         <div className="flex h-[72px] w-full items-center justify-between px-4 sm:px-8">
           <button onClick={() => go('/')} className="flex items-center" aria-label="Strona główna">
-            <Logo className="text-[22px] sm:text-[26px]" />
+            <Logo className="h-10 sm:h-12" />
           </button>
 
           <nav className="hidden items-center gap-10 md:flex">
@@ -194,7 +203,7 @@ export default function GlobalNav() {
                       className="absolute right-0 top-[62px] w-60 overflow-hidden rounded-2xl border border-fg/12 bg-surface-2/95 shadow-[0_12px_40px_rgba(0,0,0,0.10)] backdrop-blur-md"
                     >
                       <div className="border-b border-fg/10 px-4 py-3">
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-fg/62">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-fg/68">
                           Zalogowano
                         </div>
 
@@ -239,6 +248,15 @@ export default function GlobalNav() {
         </button>
       ) : null}
 
+      <button
+        type="button"
+        aria-label={isLogged ? 'Moje konto' : 'Zaloguj się lub zarejestruj'}
+        onClick={() => (isLogged ? go('/panel') : goAuth())}
+        className={`fixed ${isLogged ? 'right-[108px]' : 'right-[62px]'} top-4 z-[120] flex h-10 w-10 items-center justify-center text-fg/85 md:hidden`}
+      >
+        <PersonIcon className="h-[22px] w-[22px]" />
+      </button>
+
       <motion.button
         aria-label={open ? 'Zamknij menu' : 'Otwórz menu'}
         onClick={() => setOpen((s) => !s)}
@@ -281,7 +299,7 @@ export default function GlobalNav() {
             />
 
             <div className="flex flex-1 flex-col items-center justify-center gap-10 px-6 text-center">
-              <Logo className="text-[34px]" />
+              <Logo className="h-12" />
 
               <div className="flex w-full max-w-sm flex-col divide-y divide-fg/10">
                 <button onClick={() => go('/')} className={linkMobile}>

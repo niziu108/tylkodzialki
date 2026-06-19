@@ -183,7 +183,7 @@ function AuthPageContent() {
                     Zaloguj się
                   </button>
 
-                  <div className="text-fg/55">/</div>
+                  <div className="text-fg/62">/</div>
 
                   <button
                     type="button"
@@ -222,7 +222,7 @@ function AuthPageContent() {
 
                 <div className="my-7 flex items-center gap-3">
                   <div className="h-px flex-1 bg-fg/10" />
-                  <div className="text-[12px] uppercase tracking-[0.14em] text-fg/62">
+                  <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
                     albo
                   </div>
                   <div className="h-px flex-1 bg-fg/10" />
@@ -242,7 +242,7 @@ function AuthPageContent() {
                         className={cx(
                           'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                           'field-line pb-2',
-                          'placeholder:text-fg/55 outline-none',
+                          'placeholder:text-fg/62 outline-none',
                           'selection:bg-fg/20 selection:text-fg'
                         )}
                       />
@@ -261,7 +261,7 @@ function AuthPageContent() {
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                         'field-line pb-2',
-                        'placeholder:text-fg/55 outline-none',
+                        'placeholder:text-fg/62 outline-none',
                         'selection:bg-fg/20 selection:text-fg'
                       )}
                     />
@@ -280,14 +280,14 @@ function AuthPageContent() {
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                         'field-line pb-2',
-                        'placeholder:text-fg/55 outline-none',
+                        'placeholder:text-fg/62 outline-none',
                         'selection:bg-fg/20 selection:text-fg'
                       )}
                     />
                   </label>
 
                   {mode === 'register' && (
-                    <label className="flex items-start gap-3 text-[12px] leading-relaxed text-fg/65">
+                    <label className="flex items-start gap-3 text-[12px] leading-relaxed text-fg/70">
                       <input
                         type="checkbox"
                         checked={rodo}
@@ -340,16 +340,15 @@ function AuthPageContent() {
                     type="submit"
                     disabled={busy}
                     className={cx(
-                      'mt-2 w-full rounded-2xl border border-fg/15 bg-fg/[0.05] px-4 py-4 text-[14px] font-semibold transition hover:bg-fg/[0.08]',
+                      'mt-2 w-full rounded-2xl bg-brand px-4 py-4 text-[14px] font-semibold text-ink transition hover:bg-brand-strong',
                       busy && 'cursor-not-allowed opacity-60'
                     )}
-                    style={{ color: GREEN }}
                   >
                     {busy ? '...' : mode === 'login' ? 'Zaloguj się' : 'Zarejestruj się'}
                   </button>
                 </form>
 
-                <div className="mt-6 text-center text-[12px] text-fg/58">
+                <div className="mt-6 text-center text-[12px] text-fg/64">
                   {mode === 'login' ? (
                     <span>
                       Nie masz konta?{' '}

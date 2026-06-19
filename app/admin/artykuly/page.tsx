@@ -133,7 +133,7 @@ export default async function AdminArticlesPage({
               name="q"
               defaultValue={q}
               placeholder="Szukaj po tytule lub slugu..."
-              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
+              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/70 focus:border-brand/60"
             />
 
             <select
@@ -199,7 +199,7 @@ export default async function AdminArticlesPage({
                           <div className="font-semibold text-fg">
                             {article.title}
                           </div>
-                          <div className="mt-1 line-clamp-2 text-xs text-fg/66">
+                          <div className="mt-1 line-clamp-2 text-xs text-fg/70">
                             {article.excerpt || "Brak zajawki artykułu."}
                           </div>
                         </div>

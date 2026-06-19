@@ -18,7 +18,7 @@ const inputClass =
   'field-line w-full bg-transparent px-0 pb-2.5 text-[15px] text-fg outline-none placeholder:text-fg/25';
 
 const labelClass =
-  'mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/62';
+  'mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/68';
 
 const EMPTY = {
   agency: '',
@@ -174,7 +174,7 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-fg/58">
+          <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-fg/64">
             ▾
           </span>
         </div>
@@ -214,7 +214,7 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
           {status === 'sending' ? 'Wysyłanie…' : 'Wyślij zapytanie'}
         </button>
 
-        <p className="text-[12px] leading-relaxed text-fg/58 sm:max-w-xs">
+        <p className="text-[12px] leading-relaxed text-fg/64 sm:max-w-xs">
           Wysyłając formularz, zgadzasz się na kontakt w sprawie współpracy.
         </p>
       </div>

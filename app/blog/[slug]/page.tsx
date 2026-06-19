@@ -145,7 +145,7 @@ export default async function BlogArticlePage({
         <div className="mx-auto max-w-5xl px-6 py-14 md:px-8 md:py-16">
           <Link
             href="/blog"
-            className="inline-flex text-sm text-fg/66 transition hover:text-fg"
+            className="inline-flex text-sm text-fg/70 transition hover:text-fg"
           >
             ← Wróć do bloga
           </Link>
@@ -172,7 +172,7 @@ export default async function BlogArticlePage({
           </h1>
 
           {article.excerpt ? (
-            <p className="mt-6 max-w-3xl text-[20px] leading-9 text-fg/62">
+            <p className="mt-6 max-w-3xl text-[20px] leading-9 text-fg/68">
               {article.excerpt}
             </p>
           ) : null}
@@ -206,7 +206,7 @@ export default async function BlogArticlePage({
             Sprawdź działki na sprzedaż
           </h2>
 
-          <p className="mt-4 max-w-3xl text-base leading-8 text-fg/65">
+          <p className="mt-4 max-w-3xl text-base leading-8 text-fg/70">
             Przeglądaj aktualne oferty w serwisie skupionym wyłącznie na
             działkach. Bez mieszkań, bez domów, bez przypadkowego ruchu.
           </p>
@@ -256,7 +256,7 @@ export default async function BlogArticlePage({
                         {item.title}
                       </h3>
 
-                      <p className="mt-3 line-clamp-3 text-sm leading-7 text-fg/62">
+                      <p className="mt-3 line-clamp-3 text-sm leading-7 text-fg/68">
                         {item.excerpt ||
                           "Przeczytaj artykuł i poznaj ważne informacje o działkach."}
                       </p>

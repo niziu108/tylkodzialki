@@ -132,7 +132,7 @@ export default function AdminMailComposer() {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Np. Sprawdź swoje ogłoszenia na tylkodzialki.pl"
-              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
+              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/70 focus:border-brand/60"
               required
             />
           </div>
@@ -147,7 +147,7 @@ export default function AdminMailComposer() {
               onChange={(e) => setBody(e.target.value)}
               rows={12}
               placeholder="Wpisz treść wiadomości..."
-              className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
+              className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm text-fg outline-none transition placeholder:text-fg/70 focus:border-brand/60"
               required
             />
           </div>

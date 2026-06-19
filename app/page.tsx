@@ -53,12 +53,12 @@ function PopularSearchesSection() {
                 key={region.name}
                 className="group relative min-w-[86%] snap-start overflow-hidden rounded-[32px] border border-fg/12 bg-surface-2/78 p-6 shadow-[0_0_50px_rgba(0,0,0,0.06)] backdrop-blur transition hover:border-brand/35 md:min-w-[360px] xl:min-w-[390px]"
               >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(122,163,51,0.12),transparent_34%)] opacity-0 transition group-hover:opacity-100" />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_0%_0%,rgba(122,163,51,0.28),transparent_60%)]" />
 
                 <div className="relative z-10">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-fg/55">
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-fg/62">
                         Województwo
                       </div>
 
@@ -192,7 +192,7 @@ export default async function HomePage() {
           <div className="mt-6">
             <Link
               href="/sprzedaj"
-              className="text-sm text-white/80 transition hover:text-white"
+              className="text-sm text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] transition hover:text-white/80"
             >
               Sprzedajesz działkę?{" "}
               <span
@@ -219,7 +219,7 @@ export default async function HomePage() {
           <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.05),transparent_32%)]" />
 
           <div className="relative z-10 mx-auto max-w-7xl px-6 pt-14 pb-14 md:px-10 md:pt-16 md:pb-16">
-            <h2 className="text-[22px] font-semibold text-fg md:text-[28px]">
+            <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Wyróżnione oferty
             </h2>
 

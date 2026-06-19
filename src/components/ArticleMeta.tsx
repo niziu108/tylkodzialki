@@ -26,12 +26,12 @@ export default function ArticleMeta({
         </span>
       ) : null}
 
-      <span className="text-[12px] uppercase tracking-[0.12em] text-fg/62">
+      <span className="text-[12px] uppercase tracking-[0.12em] text-fg/68">
         {date}
       </span>
 
       {readingTime ? (
-        <span className="text-[12px] uppercase tracking-[0.12em] text-fg/62">
+        <span className="text-[12px] uppercase tracking-[0.12em] text-fg/68">
           · {readingTime} min czytania
         </span>
       ) : null}

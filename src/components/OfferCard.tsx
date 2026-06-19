@@ -215,7 +215,7 @@ export function LoginPrompt({ open, onClose }: { open: boolean; onClose: () => v
           Zapisz ofertę
         </h2>
 
-        <p className="mt-3 text-sm leading-6 text-fg/65">
+        <p className="mt-3 text-sm leading-6 text-fg/70">
           Zaloguj się lub zarejestruj, aby dodać ofertę do ulubionych.
         </p>
 

@@ -36,7 +36,7 @@ export default function HubLinkGrid({
               {item.label}
             </span>
             {item.sub ? (
-              <span className="mt-0.5 block text-[12px] leading-5 text-fg/58">
+              <span className="mt-0.5 block text-[12px] leading-5 text-fg/64">
                 {item.sub}
               </span>
             ) : null}

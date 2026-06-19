@@ -36,7 +36,7 @@ export default function RegulaminPage() {
             Regulamin serwisu tylkodzialki.pl
           </h1>
 
-          <p className="max-w-3xl text-[15px] leading-8 text-fg/65">
+          <p className="max-w-3xl text-[15px] leading-8 text-fg/70">
             Niniejszy regulamin określa zasady korzystania z serwisu internetowego
             tylkodzialki.pl, w szczególności zasady tworzenia kont, publikowania ogłoszeń,
             korzystania z usług bezpłatnych i płatnych oraz zasady odpowiedzialności
@@ -68,7 +68,7 @@ export default function RegulaminPage() {
           </div>
         </div>
 
-        <div className="mb-12 grid gap-3 rounded-3xl border border-fg/10 bg-fg/[0.02] p-5 text-sm text-fg/65 sm:grid-cols-2">
+        <div className="mb-12 grid gap-3 rounded-3xl border border-fg/10 bg-fg/[0.02] p-5 text-sm text-fg/70 sm:grid-cols-2">
           <Link href="#postanowienia-ogolne" className="transition hover:text-fg">
             §1. Postanowienia ogólne
           </Link>

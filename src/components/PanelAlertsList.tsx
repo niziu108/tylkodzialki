@@ -57,7 +57,7 @@ export default function PanelAlertsList({ initialAlerts }: { initialAlerts: Pane
       <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
         <div className="max-w-2xl">
           <h2 className="text-xl font-semibold text-fg">Brak alertów</h2>
-          <p className="mt-3 leading-7 text-fg/65">
+          <p className="mt-3 leading-7 text-fg/70">
             Włącz alert w wyszukiwarce, a wyślemy Ci e-mail, gdy pojawi się nowa działka pasująca do
             Twoich kryteriów. Nie musisz codziennie sprawdzać ofert.
           </p>
@@ -90,7 +90,7 @@ export default function PanelAlertsList({ initialAlerts }: { initialAlerts: Pane
               </span>
             </div>
             <div className="mt-2 truncate text-[15px] font-medium text-fg">{a.label}</div>
-            <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-fg/62">
+            <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-fg/68">
               <span>Utworzony: {formatDatePL(a.createdAt)}</span>
               <span>Ostatni mail: {formatDatePL(a.lastNotifiedAt)}</span>
             </div>

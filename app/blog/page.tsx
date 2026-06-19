@@ -46,7 +46,7 @@ export default async function BlogPage() {
                 Dodaj ogłoszenie w tylkodzialki.pl
               </h2>
 
-              <p className="mt-4 text-base leading-8 text-fg/65">
+              <p className="mt-4 text-base leading-8 text-fg/70">
                 Pokaż swoją ofertę w serwisie skupionym wyłącznie na działkach.
                 Bez chaosu, bez mieszkań i bez przypadkowego ruchu.
               </p>

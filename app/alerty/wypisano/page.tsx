@@ -25,7 +25,7 @@ export default async function AlertUnsubscribedPage({ searchParams }: Props) {
           {notFound ? 'Nie znaleziono alertu' : 'Wypisano z alertu'}
         </h1>
 
-        <p className="mt-3 text-sm leading-6 text-fg/65">
+        <p className="mt-3 text-sm leading-6 text-fg/70">
           {notFound
             ? 'Ten link wygasł lub alert został już usunięty. Nie musisz nic robić.'
             : 'Nie będziemy już wysyłać maili z tego alertu. Możesz w każdej chwili włączyć nowy w wyszukiwarce.'}

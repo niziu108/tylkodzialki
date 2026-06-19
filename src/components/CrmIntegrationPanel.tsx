@@ -260,7 +260,7 @@ export default function CrmIntegrationPanel({
               Integracja CRM została zgłoszona
             </h2>
 
-            <p className="mt-3 leading-7 text-fg/65">
+            <p className="mt-3 leading-7 text-fg/70">
               Dziękujemy za przesłanie formularza. Nasz zespół przygotowuje
               konfigurację integracji. Po jej zakończeniu oferty będą
               automatycznie synchronizowane z tylkodzialki.pl.
@@ -288,7 +288,7 @@ export default function CrmIntegrationPanel({
               Podłącz swój CRM
             </h2>
 
-            <p className="mt-3 leading-7 text-fg/65">
+            <p className="mt-3 leading-7 text-fg/70">
               Łączymy się z Twoim systemem po naszej stronie. Nie musisz nic
               instalować ani programować. Wypełnij formularz, a zajmiemy się
               resztą: Twoje działki będą się importować i codziennie
@@ -297,7 +297,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="shrink-0 rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm">
-            <div className="text-fg/62">Status</div>
+            <div className="text-fg/68">Status</div>
             <div className="mt-1 font-semibold text-fg/70">
               Brak integracji
             </div>
@@ -358,7 +358,7 @@ export default function CrmIntegrationPanel({
               Status integracji
             </h2>
 
-            <p className="mt-3 leading-7 text-fg/65">
+            <p className="mt-3 leading-7 text-fg/70">
               Konfiguracja połączenia jest zarządzana po stronie administratora.
               Tutaj możesz sprawdzić status integracji i uruchomić ręczną
               synchronizację.
@@ -366,7 +366,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm">
-            <div className="text-fg/62">Status</div>
+            <div className="text-fg/68">Status</div>
             <div className={`mt-1 font-semibold ${statusBadge.cls}`}>
               {statusBadge.label}
             </div>
@@ -375,7 +375,7 @@ export default function CrmIntegrationPanel({
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Provider
             </div>
             <div className="mt-2 text-base font-semibold text-fg">
@@ -384,7 +384,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Ostatnia synchronizacja
             </div>
             <div className="mt-2 text-base font-semibold text-fg">
@@ -393,7 +393,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Ostatni sukces
             </div>
             <div className="mt-2 text-base font-semibold text-fg">
@@ -402,7 +402,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Ostatnie użycie
             </div>
             <div className="mt-2 text-base font-semibold text-fg">
@@ -413,7 +413,7 @@ export default function CrmIntegrationPanel({
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Ostatnio zaimportowano
             </div>
             <div className="mt-2 text-2xl font-semibold text-fg">
@@ -422,7 +422,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Utworzone / zaktualizowane
             </div>
             <div className="mt-2 text-2xl font-semibold text-fg">
@@ -431,7 +431,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Zakończone / pominięte / błędy
             </div>
             <div className="mt-2 text-2xl font-semibold text-fg">
@@ -513,7 +513,7 @@ export default function CrmIntegrationPanel({
             {logsError}
           </div>
         ) : logs.length === 0 ? (
-          <div className="mt-5 rounded-2xl border border-fg/10 bg-surface p-4 text-sm text-fg/65">
+          <div className="mt-5 rounded-2xl border border-fg/10 bg-surface p-4 text-sm text-fg/70">
             Brak logów. Gdy uruchomisz synchronizację, zobaczysz tutaj historię
             importów.
           </div>
@@ -522,7 +522,7 @@ export default function CrmIntegrationPanel({
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
-                  <tr className="border-b border-fg/10 bg-surface text-left text-fg/66">
+                  <tr className="border-b border-fg/10 bg-surface text-left text-fg/70">
                     <th className="px-4 py-3 font-medium">Data</th>
                     <th className="px-4 py-3 font-medium">Akcja</th>
                     <th className="px-4 py-3 font-medium">Status</th>

@@ -147,7 +147,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
         </button>
 
         {/* Kontekst pod przyciskiem (w tym samym miejscu): na mobile zawsze, na desktopie na hover. */}
-        <span className="block pl-6 text-[12px] leading-snug text-fg/62 sm:hidden sm:group-hover:block">
+        <span className="block pl-6 text-[12px] leading-snug text-fg/68 sm:hidden sm:group-hover:block">
           {label}
         </span>
 
@@ -167,7 +167,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
               Powiadomienia o nowych ofertach
             </h2>
 
-            <p className="mt-3 text-sm leading-6 text-fg/65">
+            <p className="mt-3 text-sm leading-6 text-fg/70">
               Zaloguj się, aby otrzymywać e-mail, gdy pojawi się nowa działka pasująca do Twoich filtrów.
             </p>
 

@@ -229,21 +229,21 @@ function WyroznieniaPageContent() {
                       onChange={(e) =>
                         updateInvoiceField('companyName', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
                       placeholder="Nazwa firmy"
                     />
 
                     <input
                       value={invoice.email}
                       onChange={(e) => updateInvoiceField('email', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
                       placeholder="Email"
                     />
 
                     <input
                       value={invoice.nip}
                       onChange={(e) => updateInvoiceField('nip', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
                       placeholder="NIP"
                     />
                   </div>
@@ -254,7 +254,7 @@ function WyroznieniaPageContent() {
                       onChange={(e) =>
                         updateInvoiceField('addressLine1', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
                       placeholder="Adres"
                     />
 
@@ -263,14 +263,14 @@ function WyroznieniaPageContent() {
                       onChange={(e) =>
                         updateInvoiceField('postalCode', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
                       placeholder="Kod pocztowy"
                     />
 
                     <input
                       value={invoice.city}
                       onChange={(e) => updateInvoiceField('city', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
                       placeholder="Miasto"
                     />
                   </div>

@@ -88,7 +88,7 @@ function ResetPageContent() {
                 type="password"
                 autoComplete="new-password"
                 placeholder="••••••••"
-                className="mt-2 w-full bg-transparent text-[18px] text-fg/90 field-line pb-2 placeholder:text-fg/55 outline-none"
+                className="mt-2 w-full bg-transparent text-[18px] text-fg/90 field-line pb-2 placeholder:text-fg/62 outline-none"
               />
             </label>
 

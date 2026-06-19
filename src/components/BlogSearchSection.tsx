@@ -81,7 +81,7 @@ export default function BlogSearchSection({
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Wpisz czego szukasz... np. MPZP, warunki zabudowy, uzbrojenie działki"
-                        className="w-full rounded-[18px] border border-fg/8 bg-fg/[0.03] py-4 pl-5 pr-14 text-[15px] text-fg outline-none transition placeholder:text-fg/55 focus:border-brand/45 focus:bg-fg/[0.05] focus:ring-2 focus:ring-brand/15 md:text-base"
+                        className="w-full rounded-[18px] border border-fg/8 bg-fg/[0.03] py-4 pl-5 pr-14 text-[15px] text-fg outline-none transition placeholder:text-fg/62 focus:border-brand/45 focus:bg-fg/[0.05] focus:ring-2 focus:ring-brand/15 md:text-base"
                       />
 
                       <div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-fg/30">
@@ -118,7 +118,7 @@ export default function BlogSearchSection({
                   </div>
                 </div>
 
-                <div className="mt-4 text-sm text-fg/66">
+                <div className="mt-4 text-sm text-fg/70">
                   {query.trim()
                     ? `Znaleziono artykułów: ${filteredArticles.length}`
                     : `Wszystkich artykułów: ${articles.length}`}
@@ -164,7 +164,7 @@ export default function BlogSearchSection({
                       {article.title}
                     </h2>
 
-                    <p className="mt-3 line-clamp-3 text-sm leading-7 text-fg/62 md:text-[15px]">
+                    <p className="mt-3 line-clamp-3 text-sm leading-7 text-fg/68 md:text-[15px]">
                       {article.excerpt ||
                         "Przeczytaj artykuł i sprawdź najważniejsze informacje dotyczące działek, formalności i sprzedaży."}
                     </p>

@@ -32,7 +32,7 @@ export default function Breadcrumbs({
   return (
     <>
       {jsonLdOnly ? null : (
-      <nav aria-label="Breadcrumb" className="text-[13px] text-fg/66">
+      <nav aria-label="Breadcrumb" className="text-[13px] text-fg/70">
         <ol className="flex flex-wrap items-center gap-2">
           {items.map((item, index) => (
             <li key={index} className="flex items-center gap-2">

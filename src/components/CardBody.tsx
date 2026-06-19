@@ -68,7 +68,7 @@ export function CardBody({
                 Zapytaj o cenę
               </span>
             )}
-            {zlM2 ? <span className="text-[13px] leading-none text-fg/62">· {formatIntPL(zlM2)} zł/m²</span> : null}
+            {zlM2 ? <span className="text-[13px] leading-none text-fg/68">· {formatIntPL(zlM2)} zł/m²</span> : null}
           </div>
           {heartSlot ? <div className="-mt-1 shrink-0">{heartSlot}</div> : null}
         </div>
@@ -84,11 +84,11 @@ export function CardBody({
         ) : null}
 
         <div
-          className={`flex items-center gap-1.5 text-fg/62 ${tytul ? 'mt-2' : 'mt-2.5'} ${
+          className={`flex items-center gap-1.5 text-fg/68 ${tytul ? 'mt-2' : 'mt-2.5'} ${
             compact ? 'text-[13px]' : 'text-[15px]'
           }`}
         >
-          <IconPin className={`${ic} shrink-0 text-fg/58`} />
+          <IconPin className={`${ic} shrink-0 text-fg/64`} />
           <span className="truncate">{loc}</span>
         </div>
 
@@ -134,10 +134,10 @@ export function CardBody({
                 loading="lazy"
               />
             ) : (
-              <IconBuilding className="h-4 w-4 shrink-0 text-fg/66" />
+              <IconBuilding className="h-4 w-4 shrink-0 text-fg/70" />
             )
           ) : (
-            <IconUser className="h-4 w-4 shrink-0 text-fg/66" />
+            <IconUser className="h-4 w-4 shrink-0 text-fg/70" />
           )}
           <span className="text-[13px] text-fg/70">
             {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
