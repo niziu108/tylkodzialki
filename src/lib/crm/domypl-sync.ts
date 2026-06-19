@@ -816,6 +816,12 @@ function escapeXmlText(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function readSaxAttr(node: SaxTagLike, key: string): string {
+  const attr = node.attributes?.[key];
+  if (attr == null) return "";
+  return typeof attr === "object" && "value" in attr ? String(attr.value) : String(attr);
+}
+
 function startTagToXml(node: SaxTagLike) {
   const attrs = Object.entries(node.attributes ?? {})
     .map(([key, attr]) => {
@@ -849,7 +855,9 @@ function parseHeaderMeta(headerXml: string): HeaderMeta {
 function parseOfferFragment(
   offerXml: string,
   headerMeta: HeaderMeta,
-  provider: CrmProvider
+  provider: CrmProvider,
+  dzialTab: string,
+  dzialTyp: string
 ): ParsedDomyOffer | null {
   try {
     const parser = new XMLParser({
@@ -874,17 +882,11 @@ function parseOfferFragment(
 
     const externalIdUpper = externalId.toUpperCase();
 
-    // IMO (IMOX) koduje kategorię i typ transakcji w elemencie <dzial tab="..." typ="...">,
-    // a nie w prefiksie numeru oferty jak Galactica. Czytamy <dzial> tylko dla IMOX,
-    // żeby ścieżka pozostałych providerów (Galactica/GENERIC) została bit w bit bez zmian.
+    // IMO (IMOX) grupuje oferty w kontenerze <dzial tab="..." typ="...">, który jest RODZICEM
+    // elementu <oferta> (a nie atrybutem w środku oferty). Dlatego tab/typ przychodzą z parsera
+    // strumieniowego (bieżący <dzial>), już znormalizowane. Używane tylko dla IMOX, więc ścieżka
+    // pozostałych providerów (Galactica/GENERIC) zostaje bit w bit bez zmian.
     const isImox = provider === "IMOX";
-    const dzialRaw = ofertaNode.dzial;
-    const dzialNode =
-      dzialRaw && typeof dzialRaw === "object" && !Array.isArray(dzialRaw)
-        ? (dzialRaw as Record<string, unknown>)
-        : null;
-    const dzialTab = normalizeText(toTextValue(dzialNode?.tab));
-    const dzialTyp = normalizeText(toTextValue(dzialNode?.typ));
 
     // R-A: dla IMOX działką jest oferta w dziale "dzialki". Dla pozostałych providerów
     // klasyfikacja bez zmian (prefiks GS/GW lub obecność typdzialki) — warunek IMOX jest
@@ -1098,6 +1100,11 @@ async function streamParseDomyPlOffers(
   let deleteXml = "";
   const deletedExternalIds: string[] = [];
 
+  // R-A/R-B: IMO grupuje oferty w kontenerze <dzial tab="..." typ="...">, który jest rodzicem
+  // <oferta>. Zapamiętujemy bieżący dzial i przekazujemy do parsera oferty (tylko IMOX go używa).
+  let currentDzialTab = "";
+  let currentDzialTyp = "";
+
   let rawOffersFound = 0;
   let importedOffers = 0;
   let chain = Promise.resolve<void>(undefined);
@@ -1116,6 +1123,13 @@ async function streamParseDomyPlOffers(
     if (collectingHeader) {
       headerDepth += 1;
       headerXml += startTagToXml(node);
+      return;
+    }
+
+    // Kontener <dzial> (rodzic ofert). Zapamiętujemy jego tab/typ dla ofert w środku.
+    if (node.name === "dzial" && !collectingOffer && !collectingDelete) {
+      currentDzialTab = normalizeText(readSaxAttr(node, "tab"));
+      currentDzialTyp = normalizeText(readSaxAttr(node, "typ"));
       return;
     }
 
@@ -1214,6 +1228,13 @@ async function streamParseDomyPlOffers(
       return;
     }
 
+    // Wyjście z kontenera <dzial> (po przetworzeniu jego ofert) — czyścimy kontekst.
+    if (tagName === "dzial" && !collectingOffer && !collectingDelete) {
+      currentDzialTab = "";
+      currentDzialTyp = "";
+      return;
+    }
+
     if (collectingOffer) {
       offerXml += `</${tagName}>`;
       offerDepth -= 1;
@@ -1224,13 +1245,25 @@ async function streamParseDomyPlOffers(
         const completedOfferXml = offerXml;
         offerXml = "";
 
+        // Zamrażamy bieżący kontener <dzial> SYNCHRONICZNIE, w momencie zamknięcia oferty.
+        // Parsowanie oferty leci w async chain.then, a do tego czasu SAX zdąży przetworzyć
+        // </dzial> i wyzerować currentDzial* (przy jednym chunku cały dokument idzie synchronicznie).
+        const offerDzialTab = currentDzialTab;
+        const offerDzialTyp = currentDzialTyp;
+
         if (typeof (xmlStream as { pause?: () => void }).pause === "function") {
           (xmlStream as { pause: () => void }).pause();
         }
 
         chain = chain
           .then(async () => {
-            const parsed = parseOfferFragment(completedOfferXml, headerMeta, provider);
+            const parsed = parseOfferFragment(
+              completedOfferXml,
+              headerMeta,
+              provider,
+              offerDzialTab,
+              offerDzialTyp
+            );
             if (!parsed) return;
 
             importedOffers += 1;

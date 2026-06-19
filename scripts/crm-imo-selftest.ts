@@ -1,23 +1,24 @@
 /**
  * Test offline silnika IMO (Sprint 7).
  *
- * Weryfikuje na sztucznym pliku XML, bez bazy i bez FTP:
- *  - R-A: klasyfikacja działki z <dzial tab="dzialki"> (tylko IMOX),
- *  - R-B: transakcja sprzedaż/wynajem z <dzial typ="..."> (tylko IMOX),
+ * Weryfikuje na sztucznym pliku XML w PRAWDZIWEJ strukturze IMO/Oferty.net, bez bazy i FTP:
+ *  - R-A: klasyfikacja działki z kontenera <dzial tab="dzialki"> (tylko IMOX),
+ *  - R-B: sprzedaż/wynajem z kontenera <dzial typ="..."> (tylko IMOX),
  *  - R-C: zbieranie <oferta_usun> do listy ID do dezaktywacji,
- *  - izolacja: ścieżka Galactiki pozostaje bez zmian (ignoruje <dzial>).
+ *  - lokalizacja: miasto na prawach powiatu (Toruń) z fallbackiem miasto<-powiat,
+ *  - izolacja: ścieżka Galactiki pozostaje bez zmian (ignoruje kontener <dzial>).
  *
- * Aktywne usuwanie z R-C (deactivateExternalIds) jest bramkowane providerem IMOX
- * w syncCrmIntegrationNow; tu sprawdzamy samo zbieranie ID przez parser.
+ * WAŻNE: <dzial> jest KONTENEREM grupującym oferty (rodzicem <oferta>), a nie elementem
+ * w środku oferty. Tak wygląda realny eksport IMO (potwierdzone na paczce produkcyjnej).
  *
  * Uruchom: npx tsx scripts/crm-imo-selftest.ts
  */
 import { Readable } from "stream";
 import type { CrmProvider } from "@prisma/client";
 
-// Modul domypl-sync importuje @/lib/r2, ktory waliduje zmienne R2 przy starcie.
-// Parser nie korzysta z R2 ani z bazy, wiec podstawiamy atrapy tylko po to,
-// zeby import przeszedl. Dynamiczny import musi nastapic PO ustawieniu env.
+// Moduł domypl-sync importuje @/lib/r2, który waliduje zmienne R2 przy starcie.
+// Parser nie korzysta z R2 ani z bazy, więc podstawiamy atrapy tylko po to,
+// żeby import przeszedł. Dynamiczny import musi nastąpić PO ustawieniu env.
 for (const key of [
   "R2_ACCOUNT_ID",
   "R2_ACCESS_KEY_ID",
@@ -32,72 +33,68 @@ type DomyplMod = typeof import("@/lib/crm/domypl-sync");
 type StreamParseFn = DomyplMod["__domyplInternalsForTest"]["streamParseDomyPlOffers"];
 type ParsedOffer = Parameters<Parameters<StreamParseFn>[2]>[0];
 
-// Przypisane w main() po dynamicznym imporcie (top-level await niedostepne w CJS).
+// Przypisane w main() po dynamicznym imporcie (top-level await niedostępne w CJS).
 let streamParseDomyPlOffers: StreamParseFn;
 
+// Pojedyncza oferta BEZ <dzial> w środku — kategoria i typ pochodzą z kontenera.
 function offer(opts: {
   id: string;
-  dzialTab?: string;
-  dzialTyp?: string;
   title?: string;
   woj?: string;
   miasto?: string | null;
   powiat?: string;
 }) {
-  const dzial =
-    opts.dzialTab || opts.dzialTyp
-      ? `<dzial${opts.dzialTab ? ` tab="${opts.dzialTab}"` : ""}${
-          opts.dzialTyp ? ` typ="${opts.dzialTyp}"` : ""
-        }/>`
-      : "";
   const title = opts.title
-    ? `<param nazwa="advertisement_text">${opts.title}</param>`
+    ? `<param nazwa="advertisement_text" typ="text">${opts.title}</param>`
     : "";
   const woj = opts.woj ?? "mazowieckie";
   // miasto === null oznacza "nie wysyłaj pola miasto" — tak wygląda oferta z miasta na prawach
   // powiatu (nazwa miasta jest tylko w polu powiat), jak w paczkach IMO z Torunia.
   const miasto = opts.miasto === undefined ? "Warszawa" : opts.miasto;
-  const locParts = [`<param nazwa="wojewodztwo">${woj}</param>`];
-  if (opts.powiat) locParts.push(`<param nazwa="powiat">${opts.powiat}</param>`);
-  if (miasto) locParts.push(`<param nazwa="miasto">${miasto}</param>`);
+  const locParts = [`<param nazwa="wojewodztwo" typ="text">${woj}</param>`];
+  if (opts.powiat) locParts.push(`<param nazwa="powiat" typ="text">${opts.powiat}</param>`);
+  if (miasto) locParts.push(`<param nazwa="miasto" typ="text">${miasto}</param>`);
   return `
-  <oferta>
-    <id>${opts.id}</id>
-    ${dzial}
-    <cena>250000</cena>
-    ${title}
-    <param nazwa="powierzchnia">1000</param>
-    ${locParts.join("\n    ")}
-  </oferta>`;
+      <oferta>
+        <id>${opts.id}</id>
+        <cena waluta="PLN">250000,0000</cena>
+        ${title}
+        <param nazwa="powierzchnia" typ="real">1000</param>
+        ${locParts.join("\n        ")}
+      </oferta>`;
 }
 
-// Pełny eksport (calosc). Cztery oferty + jedno usunięcie różnicowe.
-const XML = `<?xml version="1.0" encoding="UTF-8"?>
-<oferty>
+// Kontener <dzial> grupujący oferty (jak w realnym eksporcie IMO).
+function dzial(tab: string, typ: string, offers: string) {
+  return `    <dzial tab="${tab}" typ="${typ}">${offers}
+    </dzial>`;
+}
+
+const XML = `<?xml version="1.0" encoding="utf-8"?>
+<plik>
   <header>
-    <data>2026-06-18 10:00:00</data>
     <agencja>Testowe Biuro IMO</agencja>
+    <data>2026-06-19 10:00:00</data>
     <zawartosc_pliku>calosc</zawartosc_pliku>
   </header>
-  ${offer({ id: "100", dzialTab: "dzialki", dzialTyp: "sprzedaz" })}
-  ${offer({ id: "101", dzialTab: "dzialki", dzialTyp: "wynajem" })}
-  ${offer({ id: "102", dzialTab: "mieszkania", dzialTyp: "sprzedaz" })}
-  ${offer({
-    id: "GS-200",
-    dzialTab: "dzialki",
-    dzialTyp: "wynajem",
-    title: "Atrakcyjna oferta",
-  })}
-  ${offer({
-    id: "200T",
-    dzialTab: "dzialki",
-    dzialTyp: "sprzedaz",
-    woj: "kujawsko-pomorskie",
-    miasto: null,
-    powiat: "Toruń",
-  })}
-  <oferta_usun><id>999</id></oferta_usun>
-</oferty>`;
+  <lista_ofert>
+    <dzial tab="domy" typ="sprzedaz" />
+${dzial(
+  "dzialki",
+  "sprzedaz",
+  offer({ id: "100" }) +
+    offer({ id: "200T", woj: "kujawsko-pomorskie", miasto: null, powiat: "Toruń" }) +
+    offer({ id: "GS-200", title: "Atrakcyjna oferta" })
+)}
+${dzial(
+  "dzialki",
+  "wynajem",
+  offer({ id: "101" }) + offer({ id: "130W" })
+)}
+${dzial("mieszkania", "sprzedaz", offer({ id: "102" }))}
+    <oferta_usun><id>999</id></oferta_usun>
+  </lista_ofert>
+</plik>`;
 
 async function parseAll(provider: CrmProvider) {
   const offers: ParsedOffer[] = [];
@@ -132,21 +129,14 @@ async function main() {
   const imo = await parseAll("IMOX");
   const imoIds = imo.offers.map((o) => o.externalId).sort();
   check(
-    "akceptuje dzialki (100, 101, 200T, GS-200), odrzuca mieszkanie 102",
-    JSON.stringify(imoIds) === JSON.stringify(["100", "101", "200T", "GS-200"]),
+    "akceptuje dzialki z kontenerow (100, 101, 130W, 200T, GS-200), odrzuca mieszkanie 102",
+    JSON.stringify(imoIds) === JSON.stringify(["100", "101", "130W", "200T", "GS-200"]),
     `dostalem: ${JSON.stringify(imoIds)}`
-  );
-
-  const torun = imo.offers.find((o) => o.externalId === "200T");
-  check(
-    "200T: miasto na prawach powiatu (Torun) zaakceptowane, miasto z fallbacku na powiat",
-    !!torun && (torun.locationLabel?.includes("Toruń") ?? false),
-    `locationLabel=${torun?.locationLabel}`
   );
 
   const o100 = imo.offers.find((o) => o.externalId === "100");
   check(
-    "100: SPRZEDAZ z <dzial typ=sprzedaz>",
+    "100: SPRZEDAZ z kontenera <dzial typ=sprzedaz>",
     o100?.transakcja === "SPRZEDAZ",
     `transakcja=${o100?.transakcja}`
   );
@@ -158,16 +148,30 @@ async function main() {
 
   const o101 = imo.offers.find((o) => o.externalId === "101");
   check(
-    "101: WYNAJEM z <dzial typ=wynajem>",
+    "101: WYNAJEM z kontenera <dzial typ=wynajem>",
     o101?.transakcja === "WYNAJEM",
     `transakcja=${o101?.transakcja}`
   );
 
+  const o130 = imo.offers.find((o) => o.externalId === "130W");
+  check(
+    "130W: WYNAJEM z kontenera mimo braku prefiksu GW (kluczowy przypadek R-B)",
+    o130?.transakcja === "WYNAJEM",
+    `transakcja=${o130?.transakcja}`
+  );
+
   const gs = imo.offers.find((o) => o.externalId === "GS-200");
   check(
-    "GS-200: WYNAJEM (IMOX ufa <dzial typ>, nie prefiksowi GS)",
-    gs?.transakcja === "WYNAJEM",
+    "GS-200: SPRZEDAZ z kontenera (IMOX ufa <dzial typ>, nie prefiksowi)",
+    gs?.transakcja === "SPRZEDAZ",
     `transakcja=${gs?.transakcja}`
+  );
+
+  const torun = imo.offers.find((o) => o.externalId === "200T");
+  check(
+    "200T: miasto na prawach powiatu (Torun) zaakceptowane, miasto z fallbacku na powiat",
+    !!torun && (torun.locationLabel?.includes("Toruń") ?? false),
+    `locationLabel=${torun?.locationLabel}`
   );
 
   check(
@@ -180,14 +184,14 @@ async function main() {
   const gal = await parseAll("GALACTICA");
   const galIds = gal.offers.map((o) => o.externalId).sort();
   check(
-    "akceptuje tylko GS-200 (prefiks), ignoruje <dzial> przy 100/101/102",
+    "akceptuje tylko GS-200 (prefiks), ignoruje kontenery <dzial> przy 100/101/130W/200T/102",
     JSON.stringify(galIds) === JSON.stringify(["GS-200"]),
     `dostalem: ${JSON.stringify(galIds)}`
   );
 
   const galGs = gal.offers.find((o) => o.externalId === "GS-200");
   check(
-    "GS-200: SPRZEDAZ (Galactica ignoruje <dzial typ=wynajem>, kod GS=sprzedaz)",
+    "GS-200: SPRZEDAZ (Galactica ignoruje kontener, kod GS=sprzedaz, tytul neutralny)",
     galGs?.transakcja === "SPRZEDAZ",
     `transakcja=${galGs?.transakcja}`
   );
