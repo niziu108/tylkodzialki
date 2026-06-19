@@ -229,21 +229,21 @@ function WyroznieniaPageContent() {
                       onChange={(e) =>
                         updateInvoiceField('companyName', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/35 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
                       placeholder="Nazwa firmy"
                     />
 
                     <input
                       value={invoice.email}
                       onChange={(e) => updateInvoiceField('email', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/35 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
                       placeholder="Email"
                     />
 
                     <input
                       value={invoice.nip}
                       onChange={(e) => updateInvoiceField('nip', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/35 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
                       placeholder="NIP"
                     />
                   </div>
@@ -254,7 +254,7 @@ function WyroznieniaPageContent() {
                       onChange={(e) =>
                         updateInvoiceField('addressLine1', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/35 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
                       placeholder="Adres"
                     />
 
@@ -263,14 +263,14 @@ function WyroznieniaPageContent() {
                       onChange={(e) =>
                         updateInvoiceField('postalCode', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/35 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
                       placeholder="Kod pocztowy"
                     />
 
                     <input
                       value={invoice.city}
                       onChange={(e) => updateInvoiceField('city', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/35 focus:border-fg/40"
+                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/55 focus:border-fg/40"
                       placeholder="Miasto"
                     />
                   </div>
@@ -286,7 +286,7 @@ function WyroznieniaPageContent() {
               <h3 className="text-[32px] font-semibold leading-none text-fg">
                 Pakiet 1
               </h3>
-              <p className="mt-3 text-sm text-fg/55">
+              <p className="mt-3 text-sm text-fg/70">
                 Dobry wybór, jeśli chcesz wyróżnić jedno ogłoszenie.
               </p>
             </div>
@@ -376,7 +376,7 @@ function WyroznieniaPageFallback() {
   return (
     <main className="min-h-screen bg-bg px-6 py-6 text-fg/85">
       <div className="mx-auto max-w-[1120px]">
-        <div className="text-center text-fg/60">Ładowanie…</div>
+        <div className="text-center text-fg/72">Ładowanie…</div>
       </div>
     </main>
   );

@@ -222,7 +222,7 @@ export default function LocationPicker({ value, onChange }: Props) {
         ref={inputRef}
         placeholder="Wpisz miejscowość lub adres…"
         defaultValue={value?.locationLabel ?? ''}
-        className="w-full rounded-xl border border-fg/15 bg-surface px-4 py-3 text-fg outline-none placeholder:text-fg/35 focus:border-brand/60"
+        className="w-full rounded-xl border border-fg/15 bg-surface px-4 py-3 text-fg outline-none placeholder:text-fg/55 focus:border-brand/60"
       />
 
       <div className="flex flex-wrap gap-8">
@@ -251,7 +251,7 @@ export default function LocationPicker({ value, onChange }: Props) {
 
       <input
         placeholder="Numer działki / obręb (opcjonalnie)"
-        className="w-full rounded-xl border border-fg/15 bg-surface px-4 py-3 text-fg outline-none placeholder:text-fg/35 focus:border-brand/60"
+        className="w-full rounded-xl border border-fg/15 bg-surface px-4 py-3 text-fg outline-none placeholder:text-fg/55 focus:border-brand/60"
         value={parcelText}
         onChange={(e) => setParcelText(e.target.value)}
       />
@@ -261,7 +261,7 @@ export default function LocationPicker({ value, onChange }: Props) {
       </div>
 
       {value?.lat != null && value?.lng != null && (
-        <p className="text-xs text-fg/45">
+        <p className="text-xs text-fg/62">
           {mode === 'EXACT'
             ? 'Na mapie ogłoszenia pokażemy dokładny punkt.'
             : 'Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}

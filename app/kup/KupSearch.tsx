@@ -489,7 +489,7 @@ function PagerResponsive({
                 return (
                   <span
                     key={`dots-${idx}`}
-                    className="shrink-0 px-0.5 text-[13px] tracking-[0.04em] text-fg/35"
+                    className="shrink-0 px-0.5 text-[13px] tracking-[0.04em] text-fg/55"
                   >
                     …
                   </span>
@@ -505,7 +505,7 @@ function PagerResponsive({
                   onClick={() => onGo(x)}
                   className={[
                     'shrink-0 min-w-[25px] px-1 text-center text-[13px] tracking-[0.04em] transition',
-                    active ? 'text-fg' : 'text-fg/60 hover:text-fg',
+                    active ? 'text-fg' : 'text-fg/72 hover:text-fg',
                   ].join(' ')}
                   style={{
                     textDecoration: active ? 'underline' : 'none',
@@ -556,7 +556,7 @@ function PagerResponsive({
             Poprzednia
           </button>
 
-          <div className="text-fg/55 text-[12px] tracking-[0.22em] uppercase">
+          <div className="text-fg/70 text-[12px] tracking-[0.22em] uppercase">
             {page}/{totalPages}
           </div>
 
@@ -581,7 +581,7 @@ function PagerResponsive({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-fg/35 text-[11px] tracking-[0.22em] uppercase">Idź do</div>
+          <div className="text-fg/55 text-[11px] tracking-[0.22em] uppercase">Idź do</div>
 
           <input
             value={val}
@@ -1202,7 +1202,7 @@ export default function KupSearch({
                 if (locError) setLocError(null);
               }}
               placeholder="Wpisz lokalizację"
-              className="w-full bg-transparent px-4 py-3 text-fg/90 outline-none placeholder:text-fg/35"
+              className="w-full bg-transparent px-4 py-3 text-fg/90 outline-none placeholder:text-fg/55"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') applyAndSearch();
               }}
@@ -1238,7 +1238,7 @@ export default function KupSearch({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-fg/50 transition hover:text-fg/80"
+          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-fg/66 transition hover:text-fg/80"
         >
           <span className="text-[8px]">{expanded ? '▲' : '▼'}</span>
           {expanded ? 'Mniej filtrów' : 'Więcej filtrów'}
@@ -1260,9 +1260,9 @@ export default function KupSearch({
                     onChange={makeAutoPLHandler(setAreaMin)}
                     inputMode="numeric"
                     placeholder="od"
-                    className="w-full bg-transparent px-4 py-3 pr-16 text-fg/90 outline-none placeholder:text-fg/35"
+                    className="w-full bg-transparent px-4 py-3 pr-16 text-fg/90 outline-none placeholder:text-fg/55"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/60">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/72">
                     m²
                   </span>
                 </div>
@@ -1272,9 +1272,9 @@ export default function KupSearch({
                     onChange={makeAutoPLHandler(setAreaMax)}
                     inputMode="numeric"
                     placeholder="do"
-                    className="w-full bg-transparent px-4 py-3 pr-16 text-fg/90 outline-none placeholder:text-fg/35"
+                    className="w-full bg-transparent px-4 py-3 pr-16 text-fg/90 outline-none placeholder:text-fg/55"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/60">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/72">
                     m²
                   </span>
                 </div>
@@ -1292,9 +1292,9 @@ export default function KupSearch({
                     onChange={makeAutoPLHandler(setPriceMin)}
                     inputMode="numeric"
                     placeholder="od"
-                    className="w-full bg-transparent px-4 py-3 pr-14 text-fg/90 outline-none placeholder:text-fg/35"
+                    className="w-full bg-transparent px-4 py-3 pr-14 text-fg/90 outline-none placeholder:text-fg/55"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/60">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/72">
                     zł
                   </span>
                 </div>
@@ -1304,9 +1304,9 @@ export default function KupSearch({
                     onChange={makeAutoPLHandler(setPriceMax)}
                     inputMode="numeric"
                     placeholder="do"
-                    className="w-full bg-transparent px-4 py-3 pr-14 text-fg/90 outline-none placeholder:text-fg/35"
+                    className="w-full bg-transparent px-4 py-3 pr-14 text-fg/90 outline-none placeholder:text-fg/55"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/60">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/72">
                     zł
                   </span>
                 </div>
@@ -1398,7 +1398,7 @@ export default function KupSearch({
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         {/* Results count (only on /kup) */}
         {!navigationMode ? (
-          <div className="text-[12px] uppercase tracking-[0.18em] text-fg/55">
+          <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
             {loading && items.length === 0 ? 'Ładowanie ofert...' : `Wyniki: ${count}`}
           </div>
         ) : (
@@ -1416,7 +1416,7 @@ export default function KupSearch({
           <button
             type="button"
             onClick={applyAndSearch}
-            className="rounded-xl bg-fg px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-bg transition hover:bg-fg/90 disabled:opacity-60"
+            className="rounded-xl bg-brand px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-strong disabled:opacity-60"
             disabled={loading}
           >
             {loading ? 'Szukam…' : 'Szukaj'}
@@ -1461,14 +1461,14 @@ export default function KupSearch({
       <div className="pt-8 pb-20">
       <section className="mx-auto max-w-6xl px-3 md:px-4">
         <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
-          <span className="text-[11px] uppercase tracking-[0.22em] text-fg/35">Sortuj:</span>
+          <span className="text-[11px] uppercase tracking-[0.22em] text-fg/55">Sortuj:</span>
           <button
             type="button"
             onClick={() => setSortOpen((v) => !v)}
             className="flex items-center gap-2 rounded-xl border border-fg/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-fg/80 transition hover:border-fg/40"
           >
             {SORT_OPTIONS.find((o) => o.value === applied.sort)?.label ?? 'Najnowsze'}
-            <span className="text-[8px] text-fg/40">{sortOpen ? '▲' : '▼'}</span>
+            <span className="text-[8px] text-fg/58">{sortOpen ? '▲' : '▼'}</span>
           </button>
           {sortOpen && (
             <div className="absolute left-[5.5rem] top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-fg/12 bg-surface py-1.5 shadow-2xl">
@@ -1484,10 +1484,10 @@ export default function KupSearch({
                     }}
                     className={[
                       'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.18em] transition',
-                      active ? 'text-fg' : 'text-fg/50 hover:text-fg/85',
+                      active ? 'text-fg' : 'text-fg/66 hover:text-fg/85',
                     ].join(' ')}
                   >
-                    <span className={active ? 'text-fg/60 text-[7px]' : 'w-[0.7em]'}>
+                    <span className={active ? 'text-fg/72 text-[7px]' : 'w-[0.7em]'}>
                       {active ? '●' : ''}
                     </span>
                     {opt.label}

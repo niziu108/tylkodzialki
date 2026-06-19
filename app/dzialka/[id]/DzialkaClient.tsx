@@ -200,7 +200,7 @@ function FieldBlock({
 }) {
   return (
     <div className="py-5">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">{label}</div>
+      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">{label}</div>
       <div className="mt-2">{children}</div>
     </div>
   );
@@ -628,7 +628,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
           <div className="mt-6 rounded-3xl bg-surface-2/20 p-6">
             <div className="font-medium text-fg/90">Nie udało się załadować ogłoszenia</div>
-            <div className="mt-2 text-sm text-fg/60">{err ?? 'Brak danych'}</div>
+            <div className="mt-2 text-sm text-fg/72">{err ?? 'Brak danych'}</div>
           </div>
         </div>
       </main>
@@ -637,13 +637,18 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden" style={{ color: FG }}>
-      {/* Tło czyste (#131313 z body) — bez zielonej poświaty i siatki (właściciel woli
-          przejrzystość). Brak własnego tła na <main>, żeby pełnoekranowa galeria mogła być
-          nad globalnym menu (bez kontekstu nakładania). */}
+      {/* Delikatny zielony gradient od góry — dodaje charakteru jasnej stronie oferty. */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[520px]"
+        style={{
+          background:
+            'radial-gradient(80% 70% at 50% -12%, rgba(122,163,51,0.16), rgba(122,163,51,0) 70%)',
+        }}
+      />
 
       <div
         className={cx(
-          'mx-auto max-w-6xl px-4 pt-6',
+          'relative z-10 mx-auto max-w-6xl px-4 pt-6',
           telefon ? 'pb-24 md:pb-10' : 'pb-10'
         )}
       >
@@ -710,7 +715,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                   </>
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-fg/50">
+                  <div className="flex h-full w-full items-center justify-center text-sm text-fg/66">
                     Brak zdjęć
                   </div>
                 )}
@@ -774,7 +779,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
             {opis ? (
               <div className="hidden lg:block">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Opis</div>
+                <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Opis</div>
                 <div
                   className="td-opis mt-4 text-[15px] leading-relaxed text-fg/85"
                   dangerouslySetInnerHTML={{ __html: opis }}
@@ -801,10 +806,10 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-fg/95 break-words">
                   {formatPLN(d.cenaPln)}
                   {isRent ? (
-                    <span className="ml-1 text-[13px] text-fg/60 font-normal">/mc</span>
+                    <span className="ml-1 text-[13px] text-fg/72 font-normal">/mc</span>
                   ) : null}
                   {zlZaM2 ? (
-                    <span className="ml-2 text-[12px] text-fg/50 font-normal">
+                    <span className="ml-2 text-[12px] text-fg/66 font-normal">
                       ({formatIntPL(zlZaM2)} zł/m²)
                     </span>
                   ) : null}
@@ -940,7 +945,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {opis ? (
                 <>
                   <div className="py-5 lg:hidden">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Opis</div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Opis</div>
                     <div
                       className="td-opis mt-4 text-[15px] leading-relaxed text-fg/85"
                       dangerouslySetInnerHTML={{ __html: opis }}
@@ -952,7 +957,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
               {(loc || showMap || isApproxLocation) ? (
                 <div className="py-5">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Lokalizacja</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Lokalizacja</div>
 
                   {loc ? (
                     <div className="mt-2 min-w-0 text-fg/90 text-[14px] leading-snug whitespace-normal break-words">
@@ -961,7 +966,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   ) : null}
 
                   {isApproxLocation ? (
-                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-fg/45">
+                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-fg/62">
                      Lokalizacja przybliżona
                    </div>
                   ) : null}

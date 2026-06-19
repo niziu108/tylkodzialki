@@ -56,13 +56,13 @@ export default function ForgotPage() {
         ) : (
           <form onSubmit={submit} className="mt-6 space-y-5">
             <label className="block">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Email</div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Email</div>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 type="email"
                 autoComplete="email"
-                className="mt-2 w-full bg-transparent text-[18px] text-fg/90 field-line pb-2 placeholder:text-fg/35 outline-none"
+                className="mt-2 w-full bg-transparent text-[18px] text-fg/90 field-line pb-2 placeholder:text-fg/55 outline-none"
               />
             </label>
 

@@ -1,7 +1,7 @@
 'use client';
 
-import Image from "next/image";
 import Link from "next/link";
+import Logo from "./Logo";
 
 export default function Footer() {
   return (
@@ -15,7 +15,7 @@ export default function Footer() {
             {/* LOGO + OPIS */}
             <div className="space-y-6">
               <Link href="/" className="inline-flex items-center">
-                <Image src="/logo1.png" alt="tylkodzialki.pl" width={180} height={46} className="object-contain" />
+                <Logo className="text-[26px]" />
               </Link>
 
               <p className="max-w-sm text-[15px] leading-7 text-fg/65">
@@ -31,14 +31,14 @@ export default function Footer() {
 
               <div className="space-y-5 text-[15px]">
                 <div>
-                  <p className="mb-1 text-sm text-fg/40">Obsługa klienta</p>
+                  <p className="mb-1 text-sm text-fg/58">Obsługa klienta</p>
                   <a href="mailto:kontakt@tylkodzialki.pl" className="text-brand-text transition hover:opacity-80">
                     kontakt@tylkodzialki.pl
                   </a>
                 </div>
 
                 <div>
-                  <p className="mb-1 text-sm text-fg/40">Dla partnerów biznesowych</p>
+                  <p className="mb-1 text-sm text-fg/58">Dla partnerów biznesowych</p>
                   <a href="mailto:biuro@tylkodzialki.pl" className="text-brand-text transition hover:opacity-80">
                     biuro@tylkodzialki.pl
                   </a>
@@ -135,11 +135,11 @@ export default function Footer() {
 
           {/* DÓŁ */}
           <div className="mt-16 border-t border-fg/10 pt-6">
-            <div className="flex flex-col gap-3 text-xs text-fg/45 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 text-xs text-fg/62 sm:flex-row sm:items-center sm:justify-between">
               <p>© 2026 tylkodzialki.pl. Wszelkie prawa zastrzeżone.</p>
               <p>Ultima Reality Sp. z o.o.</p>
             </div>
-            <div className="mt-3 text-xs text-fg/35">
+            <div className="mt-3 text-xs text-fg/55">
               <p>NIP: 7252337429 · KRS: 0001068696 · Adres: ul. Piotrkowska 44/10, 90-265 Łódź</p>
             </div>
           </div>

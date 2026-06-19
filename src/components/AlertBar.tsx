@@ -147,7 +147,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
         </button>
 
         {/* Kontekst pod przyciskiem (w tym samym miejscu): na mobile zawsze, na desktopie na hover. */}
-        <span className="block pl-6 text-[12px] leading-snug text-fg/45 sm:hidden sm:group-hover:block">
+        <span className="block pl-6 text-[12px] leading-snug text-fg/62 sm:hidden sm:group-hover:block">
           {label}
         </span>
 

@@ -48,7 +48,7 @@ export default async function EditArticlePage({
         <div className="mb-8">
           <Link
             href="/admin/artykuly"
-            className="mb-3 inline-flex text-sm text-fg/55 transition hover:text-fg"
+            className="mb-3 inline-flex text-sm text-fg/70 transition hover:text-fg"
           >
             ← Wróć do artykułów
           </Link>

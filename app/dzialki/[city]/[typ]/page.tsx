@@ -106,7 +106,7 @@ export default async function CityTypePage({ params }: PageProps) {
           <h2 className="text-lg font-semibold text-fg md:text-xl">
             Działki {type.adj} {city.name}
           </h2>
-          <p className="mt-4 max-w-4xl text-sm leading-7 text-fg/55 md:text-[15px]">
+          <p className="mt-4 max-w-4xl text-sm leading-7 text-fg/70 md:text-[15px]">
             Na tej stronie znajdziesz działki {type.adj} w okolicy {city.name}: {type.desc}{' '}
             Zawęź wyniki po cenie, powierzchni i mediach, a kontakt do sprzedającego
             masz na stronie wybranej oferty.

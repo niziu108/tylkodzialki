@@ -151,7 +151,7 @@ function AuthPageContent() {
     return (
       <main className="min-h-screen" style={{ background: BG, color: FG }}>
         <div className="flex min-h-screen items-center justify-center px-6">
-          <div className="text-fg/60">Ładowanie…</div>
+          <div className="text-fg/72">Ładowanie…</div>
         </div>
       </main>
     );
@@ -183,7 +183,7 @@ function AuthPageContent() {
                     Zaloguj się
                   </button>
 
-                  <div className="text-fg/35">/</div>
+                  <div className="text-fg/55">/</div>
 
                   <button
                     type="button"
@@ -222,7 +222,7 @@ function AuthPageContent() {
 
                 <div className="my-7 flex items-center gap-3">
                   <div className="h-px flex-1 bg-fg/10" />
-                  <div className="text-[12px] uppercase tracking-[0.14em] text-fg/45">
+                  <div className="text-[12px] uppercase tracking-[0.14em] text-fg/62">
                     albo
                   </div>
                   <div className="h-px flex-1 bg-fg/10" />
@@ -231,7 +231,7 @@ function AuthPageContent() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {mode === 'register' && (
                     <label className="block">
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">
                         Imię
                       </div>
                       <input
@@ -242,7 +242,7 @@ function AuthPageContent() {
                         className={cx(
                           'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                           'field-line pb-2',
-                          'placeholder:text-fg/35 outline-none',
+                          'placeholder:text-fg/55 outline-none',
                           'selection:bg-fg/20 selection:text-fg'
                         )}
                       />
@@ -250,7 +250,7 @@ function AuthPageContent() {
                   )}
 
                   <label className="block">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">
                       Email
                     </div>
                     <input
@@ -261,14 +261,14 @@ function AuthPageContent() {
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                         'field-line pb-2',
-                        'placeholder:text-fg/35 outline-none',
+                        'placeholder:text-fg/55 outline-none',
                         'selection:bg-fg/20 selection:text-fg'
                       )}
                     />
                   </label>
 
                   <label className="block">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">
                       Hasło
                     </div>
                     <input
@@ -280,7 +280,7 @@ function AuthPageContent() {
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                         'field-line pb-2',
-                        'placeholder:text-fg/35 outline-none',
+                        'placeholder:text-fg/55 outline-none',
                         'selection:bg-fg/20 selection:text-fg'
                       )}
                     />
@@ -329,7 +329,7 @@ function AuthPageContent() {
                   <div className="pt-1">
                     <a
                       href="/logowanie/forgot"
-                      className="text-[12px] text-fg/55 underline decoration-white/25 underline-offset-4 transition hover:text-fg/85"
+                      className="text-[12px] text-fg/70 underline decoration-white/25 underline-offset-4 transition hover:text-fg/85"
                       style={{ textTransform: 'none' }}
                     >
                       zapomniałem hasła
@@ -349,7 +349,7 @@ function AuthPageContent() {
                   </button>
                 </form>
 
-                <div className="mt-6 text-center text-[12px] text-fg/40">
+                <div className="mt-6 text-center text-[12px] text-fg/58">
                   {mode === 'login' ? (
                     <span>
                       Nie masz konta?{' '}
@@ -439,7 +439,7 @@ function AuthPageFallback() {
   return (
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
       <div className="flex min-h-screen items-center justify-center px-6">
-        <div className="text-fg/60">Ładowanie…</div>
+        <div className="text-fg/72">Ładowanie…</div>
       </div>
     </main>
   );

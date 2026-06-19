@@ -83,14 +83,14 @@ export default function PanelAlertsList({ initialAlerts }: { initialAlerts: Pane
             <div className="flex items-center gap-2">
               <span
                 className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
-                  a.isActive ? 'bg-brand/20 text-brand-bright' : 'bg-fg/10 text-fg/55'
+                  a.isActive ? 'bg-brand/20 text-brand-bright' : 'bg-fg/10 text-fg/70'
                 }`}
               >
                 {a.isActive ? 'Aktywny' : 'Wstrzymany'}
               </span>
             </div>
             <div className="mt-2 truncate text-[15px] font-medium text-fg">{a.label}</div>
-            <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-fg/45">
+            <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-fg/62">
               <span>Utworzony: {formatDatePL(a.createdAt)}</span>
               <span>Ostatni mail: {formatDatePL(a.lastNotifiedAt)}</span>
             </div>

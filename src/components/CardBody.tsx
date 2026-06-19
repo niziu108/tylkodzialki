@@ -61,14 +61,14 @@ export function CardBody({
             {price ? (
               <span className={`${compact ? 'text-[19px]' : 'text-[22px]'} font-semibold leading-none text-fg`}>
                 {price}
-                {isRent ? <span className="text-[13px] font-normal text-fg/60">/mc</span> : null}
+                {isRent ? <span className="text-[13px] font-normal text-fg/72">/mc</span> : null}
               </span>
             ) : (
               <span className="rounded-full bg-brand/15 px-3 py-1 text-[14px] font-medium leading-none text-brand-bright">
                 Zapytaj o cenę
               </span>
             )}
-            {zlM2 ? <span className="text-[13px] leading-none text-fg/45">· {formatIntPL(zlM2)} zł/m²</span> : null}
+            {zlM2 ? <span className="text-[13px] leading-none text-fg/62">· {formatIntPL(zlM2)} zł/m²</span> : null}
           </div>
           {heartSlot ? <div className="-mt-1 shrink-0">{heartSlot}</div> : null}
         </div>
@@ -84,11 +84,11 @@ export function CardBody({
         ) : null}
 
         <div
-          className={`flex items-center gap-1.5 text-fg/45 ${tytul ? 'mt-2' : 'mt-2.5'} ${
+          className={`flex items-center gap-1.5 text-fg/62 ${tytul ? 'mt-2' : 'mt-2.5'} ${
             compact ? 'text-[13px]' : 'text-[15px]'
           }`}
         >
-          <IconPin className={`${ic} shrink-0 text-fg/40`} />
+          <IconPin className={`${ic} shrink-0 text-fg/58`} />
           <span className="truncate">{loc}</span>
         </div>
 
@@ -134,12 +134,12 @@ export function CardBody({
                 loading="lazy"
               />
             ) : (
-              <IconBuilding className="h-4 w-4 shrink-0 text-fg/50" />
+              <IconBuilding className="h-4 w-4 shrink-0 text-fg/66" />
             )
           ) : (
-            <IconUser className="h-4 w-4 shrink-0 text-fg/50" />
+            <IconUser className="h-4 w-4 shrink-0 text-fg/66" />
           )}
-          <span className="text-[13px] text-fg/55">
+          <span className="text-[13px] text-fg/70">
             {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
           </span>
         </div>

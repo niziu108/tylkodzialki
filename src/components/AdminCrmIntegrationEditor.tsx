@@ -399,7 +399,7 @@ export default function AdminCrmIntegrationEditor({
               </div>
 
               <div className="rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm">
-                <div className="text-fg/45">Status</div>
+                <div className="text-fg/62">Status</div>
                 <div
                   className={`mt-1 font-semibold ${
                     currentIntegration.isActive
@@ -414,7 +414,7 @@ export default function AdminCrmIntegrationEditor({
 
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
                   Ostatnia synchronizacja
                 </div>
                 <div className="mt-2 text-base font-semibold text-fg">
@@ -423,7 +423,7 @@ export default function AdminCrmIntegrationEditor({
               </div>
 
               <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
                   Ostatni sukces
                 </div>
                 <div className="mt-2 text-base font-semibold text-fg">
@@ -432,7 +432,7 @@ export default function AdminCrmIntegrationEditor({
               </div>
 
               <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
                   Ostatnio zaimportowano
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-fg">
@@ -441,7 +441,7 @@ export default function AdminCrmIntegrationEditor({
               </div>
 
               <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
                   Błędy
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-fg">
@@ -674,7 +674,7 @@ export default function AdminCrmIntegrationEditor({
             </h3>
 
             {logsLoading ? (
-              <div className="mt-5 text-sm text-fg/60">Ładowanie logów...</div>
+              <div className="mt-5 text-sm text-fg/72">Ładowanie logów...</div>
             ) : logsError ? (
               <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
                 {logsError}
@@ -688,7 +688,7 @@ export default function AdminCrmIntegrationEditor({
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[760px] text-sm">
                     <thead>
-                      <tr className="border-b border-fg/10 bg-surface text-left text-fg/50">
+                      <tr className="border-b border-fg/10 bg-surface text-left text-fg/66">
                         <th className="px-4 py-3 font-medium">Data</th>
                         <th className="px-4 py-3 font-medium">Akcja</th>
                         <th className="px-4 py-3 font-medium">Status</th>

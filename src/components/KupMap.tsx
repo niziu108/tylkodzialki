@@ -464,7 +464,7 @@ export default function KupMap({
       )}
 
       {error && (
-        <div className="absolute inset-0 z-[7] flex items-center justify-center bg-bg p-6 text-center text-sm text-fg/60">
+        <div className="absolute inset-0 z-[7] flex items-center justify-center bg-bg p-6 text-center text-sm text-fg/72">
           {error}
         </div>
       )}

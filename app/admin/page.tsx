@@ -416,7 +416,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
 
           {articles.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-fg/10 bg-surface px-5 py-8 text-sm text-fg/55">
+            <div className="rounded-2xl border border-dashed border-fg/10 bg-surface px-5 py-8 text-sm text-fg/70">
               Nie masz jeszcze żadnych artykułów. Dodaj pierwszy wpis i zacznij budować SEO portalu.
             </div>
           ) : (
@@ -428,7 +428,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <h3 className="line-clamp-2 text-base font-semibold text-fg">
                         {article.title}
                       </h3>
-                      <p className="mt-1 text-xs text-fg/50">
+                      <p className="mt-1 text-xs text-fg/66">
                         /blog/{article.slug}
                       </p>
                     </div>
@@ -448,7 +448,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     {article.excerpt || "Brak zajawki artykułu."}
                   </p>
 
-                  <div className="mt-4 flex items-center justify-between text-xs text-fg/50">
+                  <div className="mt-4 flex items-center justify-between text-xs text-fg/66">
                     <span>{new Date(article.createdAt).toLocaleDateString("pl-PL")}</span>
 
                     <Link
@@ -471,7 +471,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               name="q"
               defaultValue={q}
               placeholder="Szukaj po mailu lub imieniu..."
-              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
             />
 
             <div className="flex gap-2">
@@ -531,7 +531,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <tbody>
                 {usersWithStats.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-fg/55">
+                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-fg/70">
                       Brak użytkowników pasujących do wyszukiwania.
                     </td>
                   </tr>
@@ -553,7 +553,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             {user.phoneFromListings}
                           </a>
                         ) : (
-                          <span className="text-fg/50">—</span>
+                          <span className="text-fg/66">—</span>
                         )}
                       </td>
 
@@ -569,7 +569,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             {user.crmIntegration.isActive ? "Aktywna" : "Wyłączona"}
                           </span>
                         ) : (
-                          <span className="text-fg/50">Brak</span>
+                          <span className="text-fg/66">Brak</span>
                         )}
                       </td>
 
@@ -601,7 +601,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             name="logoUrl"
                             defaultValue={user.defaultBiuroLogoUrl || ""}
                             placeholder="URL logo albo wgraj plik poniżej"
-                            className="h-10 w-full rounded-xl border border-fg/10 bg-surface px-3 text-xs text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+                            className="h-10 w-full rounded-xl border border-fg/10 bg-surface px-3 text-xs text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
                           />
 
                           <input
@@ -704,7 +704,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
 
           {invoices.length === 0 ? (
-            <div className="rounded-2xl border border-fg/10 bg-surface px-5 py-10 text-center text-sm text-fg/55">
+            <div className="rounded-2xl border border-fg/10 bg-surface px-5 py-10 text-center text-sm text-fg/70">
               Brak faktur w systemie.
             </div>
           ) : (

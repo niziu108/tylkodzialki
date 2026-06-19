@@ -207,7 +207,7 @@ export default function CookieConsent() {
                   opcjonalne albo ustawić swoje preferencje.
                 </p>
 
-                <p className="text-xs leading-6 text-fg/45">
+                <p className="text-xs leading-6 text-fg/62">
                   Więcej informacji znajdziesz w Polityce cookies i Polityce
                   prywatności.
                 </p>
@@ -285,7 +285,7 @@ export default function CookieConsent() {
                     <h3 className="text-base font-medium text-fg">
                       Niezbędne
                     </h3>
-                    <p className="text-sm leading-7 text-fg/60">
+                    <p className="text-sm leading-7 text-fg/72">
                       Odpowiadają za logowanie, bezpieczeństwo, zapis sesji i
                       podstawowe działanie strony.
                     </p>
@@ -303,7 +303,7 @@ export default function CookieConsent() {
                     <h3 className="text-base font-medium text-fg">
                       Analityczne
                     </h3>
-                    <p className="text-sm leading-7 text-fg/60">
+                    <p className="text-sm leading-7 text-fg/72">
                       Pomagają mierzyć ruch i ulepszać portal na podstawie
                       statystyk odwiedzin.
                     </p>
@@ -333,7 +333,7 @@ export default function CookieConsent() {
                     <h3 className="text-base font-medium text-fg">
                       Marketingowe
                     </h3>
-                    <p className="text-sm leading-7 text-fg/60">
+                    <p className="text-sm leading-7 text-fg/72">
                       Umożliwiają mierzenie skuteczności reklam i korzystanie z
                       narzędzi marketingowych.
                     </p>

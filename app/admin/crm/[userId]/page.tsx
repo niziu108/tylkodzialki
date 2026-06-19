@@ -85,7 +85,7 @@ export default async function AdminCrmUserPage({ params }: PageProps) {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="text-sm text-fg/55">
+            <div className="text-sm text-fg/70">
               <Link href="/admin" className="transition hover:text-fg">
                 Panel admina
               </Link>

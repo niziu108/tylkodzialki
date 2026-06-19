@@ -104,7 +104,7 @@ function getBuyerTypeBadgeClass(buyerType?: InvoiceBuyerType | null) {
     case "PRIVATE":
       return "bg-fg/10 text-fg/80 border border-fg/10";
     default:
-      return "bg-fg/5 text-fg/50 border border-fg/10";
+      return "bg-fg/5 text-fg/66 border border-fg/10";
   }
 }
 
@@ -132,7 +132,7 @@ function DetailItem({
 }) {
   return (
     <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-      <div className="mb-1 text-xs uppercase tracking-wide text-fg/50">
+      <div className="mb-1 text-xs uppercase tracking-wide text-fg/66">
         {label}
       </div>
       <div className="text-sm text-fg">{value || "—"}</div>
@@ -223,7 +223,7 @@ export default async function FakturaDetailsPage({
         <section className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-5">
           <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <div className="text-sm text-fg/50">Numer faktury</div>
+              <div className="text-sm text-fg/66">Numer faktury</div>
               <div className="mt-1 text-2xl font-semibold text-fg">
                 {invoice.invoiceNumber || "—"}
               </div>
@@ -371,7 +371,7 @@ export default async function FakturaDetailsPage({
             </div>
 
             <div className="mt-4 rounded-2xl border border-fg/10 bg-surface p-4">
-              <div className="mb-2 text-xs uppercase tracking-wide text-fg/50">
+              <div className="mb-2 text-xs uppercase tracking-wide text-fg/66">
                 Komunikat błędu KSeF
               </div>
               <div className="whitespace-pre-wrap break-words text-sm text-fg">

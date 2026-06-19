@@ -21,7 +21,7 @@ export default function ArticleToc({ headings }: { headings: TocHeading[] }) {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="text-sm text-fg/45 transition hover:text-fg md:hidden"
+          className="text-sm text-fg/62 transition hover:text-fg md:hidden"
         >
           {open ? "Zwiń" : "Rozwiń"}
         </button>

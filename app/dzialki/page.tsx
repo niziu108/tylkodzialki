@@ -41,7 +41,7 @@ export default async function DzialkiHubPage() {
           Działki na sprzedaż w Polsce
         </h1>
 
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-fg/60 md:text-[15px]">
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-fg/72 md:text-[15px]">
           Wybierz województwo, a następnie miasto, aby zobaczyć aktualne oferty
           działek w okolicy. Na każdej stronie zawęzisz wyniki po typie działki,
           cenie, powierzchni i mediach. Kontakt do sprzedającego masz od razu na
@@ -62,7 +62,7 @@ export default async function DzialkiHubPage() {
         <h2 className="text-lg font-semibold text-fg md:text-xl">
           Typy działek
         </h2>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-fg/55 md:text-[15px]">
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-fg/70 md:text-[15px]">
           Szukasz konkretnego rodzaju gruntu? Każdy typ znajdziesz w wybranym
           mieście, na przykład działki budowlane czy rolne w największych
           miastach danego województwa.
@@ -82,7 +82,7 @@ export default async function DzialkiHubPage() {
       <section className="mx-auto mt-12 max-w-6xl px-3 md:px-4">
         <Link
           href="/kup"
-          className="inline-flex text-sm text-fg/60 transition hover:text-fg"
+          className="inline-flex text-sm text-fg/72 transition hover:text-fg"
         >
           Przeglądaj wszystkie oferty w wyszukiwarce →
         </Link>

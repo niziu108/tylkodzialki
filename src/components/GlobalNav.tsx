@@ -194,7 +194,7 @@ export default function GlobalNav() {
                       className="absolute right-0 top-[62px] w-60 overflow-hidden rounded-2xl border border-fg/12 bg-surface-2/95 shadow-[0_12px_40px_rgba(0,0,0,0.10)] backdrop-blur-md"
                     >
                       <div className="border-b border-fg/10 px-4 py-3">
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-fg/45">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-fg/62">
                           Zalogowano
                         </div>
 

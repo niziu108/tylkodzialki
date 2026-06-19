@@ -146,7 +146,7 @@ export default async function DlaBiurPage() {
                   {f.title}
                 </h3>
 
-                <p className="mt-3 text-sm leading-7 text-fg/60">{f.body}</p>
+                <p className="mt-3 text-sm leading-7 text-fg/72">{f.body}</p>
               </div>
             ))}
           </div>
@@ -183,7 +183,7 @@ export default async function DlaBiurPage() {
                   {s.title}
                 </h3>
 
-                <p className="mt-3 text-sm leading-7 text-fg/60">{s.body}</p>
+                <p className="mt-3 text-sm leading-7 text-fg/72">{s.body}</p>
               </div>
             ))}
           </div>
@@ -211,7 +211,7 @@ export default async function DlaBiurPage() {
                 instalacji, bez przepisywania, bez pracy po Twojej stronie.
               </p>
 
-              <p className="mt-6 text-sm text-fg/45">
+              <p className="mt-6 text-sm text-fg/62">
                 Wolisz e-mail? Napisz na{' '}
                 <a
                   href="mailto:biuro@tylkodzialki.pl"

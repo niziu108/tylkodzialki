@@ -79,7 +79,7 @@ function ResetPageContent() {
         ) : (
           <form onSubmit={submit} className="mt-6 space-y-5">
             <label className="block">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">
                 Nowe hasło
               </div>
               <input
@@ -88,7 +88,7 @@ function ResetPageContent() {
                 type="password"
                 autoComplete="new-password"
                 placeholder="••••••••"
-                className="mt-2 w-full bg-transparent text-[18px] text-fg/90 field-line pb-2 placeholder:text-fg/35 outline-none"
+                className="mt-2 w-full bg-transparent text-[18px] text-fg/90 field-line pb-2 placeholder:text-fg/55 outline-none"
               />
             </label>
 
@@ -119,7 +119,7 @@ function ResetPageFallback() {
       className="min-h-screen flex items-center justify-center px-6"
       style={{ background: BG, color: FG }}
     >
-      <div className="text-fg/60">Ładowanie…</div>
+      <div className="text-fg/72">Ładowanie…</div>
     </main>
   );
 }

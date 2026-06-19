@@ -145,7 +145,7 @@ export default async function BlogArticlePage({
         <div className="mx-auto max-w-5xl px-6 py-14 md:px-8 md:py-16">
           <Link
             href="/blog"
-            className="inline-flex text-sm text-fg/50 transition hover:text-fg"
+            className="inline-flex text-sm text-fg/66 transition hover:text-fg"
           >
             ← Wróć do bloga
           </Link>

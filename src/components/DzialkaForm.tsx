@@ -325,13 +325,13 @@ function UnderlineField({
       <div className="flex items-end justify-between gap-4">
         <div className={cx(
           'text-[11px] uppercase tracking-[0.18em]',
-          error ? 'text-red-400/90' : 'text-fg/55'
+          error ? 'text-red-400/90' : 'text-fg/70'
         )}>
           {label}
           {required ? <span className={error ? 'text-red-400' : 'text-brand-bright'}> *</span> : null}
         </div>
         {showCounter && typeof maxLength === 'number' ? (
-          <div className="text-[11px] tracking-[0.12em] text-fg/40">
+          <div className="text-[11px] tracking-[0.12em] text-fg/58">
             {value.length}/{maxLength}
           </div>
         ) : null}
@@ -348,7 +348,7 @@ function UnderlineField({
         className={cx(
           'mt-2 w-full bg-transparent text-[18px] md:text-[19px] text-fg/90',
           error ? 'border-0 border-b border-red-400/70 pb-2' : 'border-0 border-b border-fg/20 pb-2',
-          'placeholder:text-fg/35',
+          'placeholder:text-fg/55',
           error ? 'outline-none focus:border-red-400/90 focus:ring-0' : 'outline-none focus:border-fg/70 focus:ring-0',
           error
             ? 'underline decoration-red-400/55 decoration-[1px] underline-offset-[10px]'
@@ -1526,14 +1526,14 @@ export default function DzialkaForm({
         <div className="mx-auto max-w-5xl px-6 pb-5 pt-7 md:px-10">
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-fg/45">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-fg/62">
                 {mode === 'edit' ? 'Edycja ogłoszenia' : 'Dodaj działkę'}
               </div>
               <h1 className="mt-1.5 truncate text-[24px] font-semibold leading-tight tracking-tight text-fg md:text-[30px]">
                 {STEPS[step].title}
               </h1>
             </div>
-            <div className="hidden shrink-0 text-right text-[13px] font-medium text-fg/45 sm:block">
+            <div className="hidden shrink-0 text-right text-[13px] font-medium text-fg/62 sm:block">
               Krok {step + 1} / {STEPS.length}
             </div>
           </div>
@@ -1561,7 +1561,7 @@ export default function DzialkaForm({
                           ? 'border-brand-bright bg-brand text-black'
                           : done
                           ? 'border-brand/60 bg-brand/15 text-brand-bright'
-                          : 'border-fg/20 bg-fg/[0.03] text-fg/50 group-hover:border-fg/35'
+                          : 'border-fg/20 bg-fg/[0.03] text-fg/66 group-hover:border-fg/35'
                       )}
                     >
                       {done ? '✓' : i + 1}
@@ -1569,7 +1569,7 @@ export default function DzialkaForm({
                     <span
                       className={cx(
                         'whitespace-nowrap text-[13px] font-semibold tracking-tight transition',
-                        active ? 'text-fg' : done ? 'text-fg/70 group-hover:text-fg' : 'text-fg/40 group-hover:text-fg/70'
+                        active ? 'text-fg' : done ? 'text-fg/70 group-hover:text-fg' : 'text-fg/58 group-hover:text-fg/70'
                       )}
                     >
                       {s.short}
@@ -1588,7 +1588,7 @@ export default function DzialkaForm({
           <div className="mt-5 md:hidden">
             <div className="flex items-center justify-between text-[12px] font-medium">
               <span className="text-fg/75">{STEPS[step].short}</span>
-              <span className="text-fg/45">{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
+              <span className="text-fg/62">{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
             </div>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-fg/10">
               <div
@@ -1602,7 +1602,7 @@ export default function DzialkaForm({
 
       <div className="mx-auto max-w-5xl px-6 pb-24 pt-10 md:px-10">
         <form onSubmit={onSubmit} className="space-y-10">
-          <div className="text-xs text-fg/40">
+          <div className="text-xs text-fg/58">
             <span className="text-brand-bright">*</span> pole wymagane
           </div>
 
@@ -1650,7 +1650,7 @@ export default function DzialkaForm({
               <SectionTitle>
                 Zdjęcia <span className="text-brand-bright">*</span>
               </SectionTitle>
-              <div className="text-[13px] font-medium text-fg/55">
+              <div className="text-[13px] font-medium text-fg/70">
                 minimum 1 zdjęcie, maksymalnie {MAX_PHOTOS}
               </div>
             </div>
@@ -1666,7 +1666,7 @@ export default function DzialkaForm({
                   <div className="flex h-full items-center justify-center text-fg/70">
                     <div className="text-center">
                       <div className="text-[16px] font-semibold">Dodaj zdjęcia ogłoszenia</div>
-                      <div className="mt-2 text-[13px] text-fg/45">
+                      <div className="mt-2 text-[13px] text-fg/62">
                         Możesz dodawać zdjęcia kilka razy i usuwać pojedyncze miniatury
                       </div>
                     </div>
@@ -1675,7 +1675,7 @@ export default function DzialkaForm({
 
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-xs text-white/80">
                   Zdjęcia: {currentImages.length}{' '}
-                  {uploadingPhotos ? <span className="text-fg/60">— wgrywam…</span> : null}
+                  {uploadingPhotos ? <span className="text-fg/72">— wgrywam…</span> : null}
                 </div>
               </div>
 
@@ -1684,7 +1684,7 @@ export default function DzialkaForm({
                   className={cx(
                     'inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition',
                     uploaded.length >= MAX_PHOTOS
-                      ? 'cursor-not-allowed bg-fg/10 text-fg/45'
+                      ? 'cursor-not-allowed bg-fg/10 text-fg/62'
                       : 'cursor-pointer bg-brand text-black hover:opacity-90'
                   )}
                 >
@@ -1716,7 +1716,7 @@ export default function DzialkaForm({
 
               {uploaded.length > 0 && (
                 <>
-                  <div className="px-3 pt-2 text-[12px] leading-relaxed text-fg/55">
+                  <div className="px-3 pt-2 text-[12px] leading-relaxed text-fg/70">
                     Przeciągnij miniatury, aby zmienić kolejność.{' '}
                     <span className="text-brand-bright">Pierwsze zdjęcie będzie zdjęciem głównym.</span>
                   </div>
@@ -1787,7 +1787,7 @@ export default function DzialkaForm({
             <SectionTitle>Podstawowe informacje</SectionTitle>
 
             <div>
-              <div className="mb-3 text-[12px] uppercase tracking-[0.22em] text-fg/50">Typ oferty</div>
+              <div className="mb-3 text-[12px] uppercase tracking-[0.22em] text-fg/66">Typ oferty</div>
               <Tabs
                 value={transakcja}
                 onChange={(v) => setTransakcja(v as 'SPRZEDAZ' | 'WYNAJEM')}
@@ -1893,14 +1893,14 @@ export default function DzialkaForm({
                 </div>
 
                 <div className="space-y-4">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Logo biura</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Logo biura</div>
 
                   <div className="flex flex-wrap items-center gap-4">
                     <label
                       className={cx(
                         'inline-flex cursor-pointer items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition',
                         uploadingLogo
-                          ? 'bg-fg/10 text-fg/45'
+                          ? 'bg-fg/10 text-fg/62'
                           : 'bg-brand text-black hover:opacity-90'
                       )}
                     >
@@ -1931,7 +1931,7 @@ export default function DzialkaForm({
                       <img src={biuroLogoUrl} alt="Logo biura" className="h-16 w-auto max-w-[180px] object-contain" />
                     </div>
                   ) : (
-                    <div className="text-sm text-fg/45">Logo jest opcjonalne, ale warto je dodać.</div>
+                    <div className="text-sm text-fg/62">Logo jest opcjonalne, ale warto je dodać.</div>
                   )}
                 </div>
               </div>
@@ -2108,7 +2108,7 @@ export default function DzialkaForm({
               />
             </div>
 
-            <div className="text-[12px] tracking-[0.12em] text-fg/40">
+            <div className="text-[12px] tracking-[0.12em] text-fg/58">
               Opis: {opis.length}/{MAX_OPIS_CHARS}
             </div>
 
@@ -2238,7 +2238,7 @@ export default function DzialkaForm({
           {ok && <div className="text-sm font-medium text-fg/85 underline decoration-white/40 underline-offset-8">{ok}</div>}
 
           {step === LAST_STEP && mode === 'create' && (
-            <div className="text-xs text-fg/35">
+            <div className="text-xs text-fg/55">
               Po kliknięciu zapiszesz ofertę.
             </div>
           )}
@@ -2260,7 +2260,7 @@ export default function DzialkaForm({
                 ← Wstecz
               </button>
 
-              <div className="hidden text-[13px] font-medium text-fg/40 sm:block">
+              <div className="hidden text-[13px] font-medium text-fg/58 sm:block">
                 Krok {step + 1} z {STEPS.length}
               </div>
 

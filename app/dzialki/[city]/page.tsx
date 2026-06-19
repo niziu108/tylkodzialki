@@ -86,7 +86,7 @@ export default async function CityHubPage({ params }: PageProps) {
           <h2 className="text-xl font-semibold text-fg md:text-2xl">
             Działki w {city.name} według typu
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-fg/55 md:text-[15px]">
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-fg/70 md:text-[15px]">
             Wybierz rodzaj gruntu, którego szukasz. Liczba przy każdym typie to
             aktualna liczba ofert w okolicy.
           </p>
@@ -101,7 +101,7 @@ export default async function CityHubPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold text-fg md:text-xl">
             Działki na sprzedaż w okolicy {city.name}
           </h2>
-          <p className="mt-4 max-w-4xl text-sm leading-7 text-fg/55 md:text-[15px]">
+          <p className="mt-4 max-w-4xl text-sm leading-7 text-fg/70 md:text-[15px]">
             Zebraliśmy oferty działek z {city.name} i najbliższej okolicy. Możesz
             zawęzić wyniki po cenie, powierzchni, przeznaczeniu oraz dostępnych
             mediach. Każde ogłoszenie ma kontakt do sprzedającego, więc szczegóły

@@ -104,7 +104,7 @@ export default function ArticleForm({
             name="title"
             defaultValue={initialData?.title || ''}
             placeholder="Np. MPZP – co to jest i jak sprawdzić plan dla działki?"
-            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
             required
           />
         </div>
@@ -118,9 +118,9 @@ export default function ArticleForm({
             name="slug"
             defaultValue={initialData?.slug || ''}
             placeholder="Np. mpzp-co-to-jest"
-            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
           />
-          <p className="mt-2 text-xs text-fg/50">
+          <p className="mt-2 text-xs text-fg/66">
             Możesz zostawić puste — system wygeneruje slug z tytułu.
           </p>
         </div>
@@ -140,7 +140,7 @@ export default function ArticleForm({
                 />
               </div>
             ) : (
-              <div className="flex h-44 items-center justify-center rounded-2xl border border-dashed border-fg/10 bg-surface text-sm text-fg/50">
+              <div className="flex h-44 items-center justify-center rounded-2xl border border-dashed border-fg/10 bg-surface text-sm text-fg/66">
                 Brak zdjęcia głównego
               </div>
             )}
@@ -190,7 +190,7 @@ export default function ArticleForm({
               </option>
             ))}
           </select>
-          <p className="mt-2 text-xs text-fg/50">
+          <p className="mt-2 text-xs text-fg/66">
             Steruje chipem na karcie i (wkrótce) ikoną na grafice.
           </p>
         </div>
@@ -205,9 +205,9 @@ export default function ArticleForm({
             min={1}
             defaultValue={initialData?.readingTime ?? ''}
             placeholder={`Auto: ${readingEstimate} min`}
-            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
           />
-          <p className="mt-2 text-xs text-fg/50">
+          <p className="mt-2 text-xs text-fg/66">
             Zostaw puste — policzymy z treści ({readingEstimate} min).
           </p>
         </div>
@@ -221,7 +221,7 @@ export default function ArticleForm({
             rows={4}
             defaultValue={initialData?.excerpt || ''}
             placeholder="Krótki opis artykułu widoczny na liście bloga i w panelu admina..."
-            className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+            className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
           />
         </div>
 
@@ -247,10 +247,10 @@ Miejscowy plan zagospodarowania przestrzennego to...
 1. Wejdź na stronę urzędu...
 2. Sprawdź numer działki...
 `}
-            className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm leading-7 text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+            className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm leading-7 text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
             required
           />
-          <p className="mt-2 text-xs text-fg/50">
+          <p className="mt-2 text-xs text-fg/66">
             Możesz pisać normalny tekst albo prosty markdown.
           </p>
         </div>
@@ -267,7 +267,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
                   SEO title
                 </label>
                 <span
-                  className={`text-xs ${seoTitleLen > 60 ? 'text-amber-300' : 'text-fg/50'}`}
+                  className={`text-xs ${seoTitleLen > 60 ? 'text-amber-300' : 'text-fg/66'}`}
                 >
                   {seoTitleLen}/60
                 </span>
@@ -278,7 +278,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
                 defaultValue={initialData?.seoTitle || ''}
                 onChange={(e) => setSeoTitleLen(e.target.value.length)}
                 placeholder="Domyślnie: tytuł artykułu"
-                className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+                className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
               />
             </div>
 
@@ -288,7 +288,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
                   SEO description
                 </label>
                 <span
-                  className={`text-xs ${seoDescLen > 160 ? 'text-amber-300' : 'text-fg/50'}`}
+                  className={`text-xs ${seoDescLen > 160 ? 'text-amber-300' : 'text-fg/66'}`}
                 >
                   {seoDescLen}/160
                 </span>
@@ -299,7 +299,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
                 defaultValue={initialData?.seoDescription || ''}
                 onChange={(e) => setSeoDescLen(e.target.value.length)}
                 placeholder="Domyślnie: zajawka artykułu"
-                className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+                className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
               />
             </div>
           </div>
@@ -316,13 +316,13 @@ Miejscowy plan zagospodarowania przestrzennego to...
           />
           {mode === 'create' ? 'Opublikuj od razu' : 'Artykuł opublikowany'}
         </label>
-        <p className="mt-2 text-xs text-fg/50">
+        <p className="mt-2 text-xs text-fg/66">
           Jeśli zostawisz odznaczone, artykuł zapisze się jako szkic.
         </p>
       </div>
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-2 text-xs text-fg/50 sm:text-sm">
+        <div className="flex flex-col gap-2 text-xs text-fg/66 sm:text-sm">
           {mode === 'edit' && initialData?.createdAt ? (
             <span>Utworzono: {initialData.createdAt}</span>
           ) : null}

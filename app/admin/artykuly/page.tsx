@@ -86,7 +86,7 @@ export default async function AdminArticlesPage({
           <div>
             <Link
               href="/admin"
-              className="mb-3 inline-flex text-sm text-fg/55 transition hover:text-fg"
+              className="mb-3 inline-flex text-sm text-fg/70 transition hover:text-fg"
             >
               ← Wróć do panelu admina
             </Link>
@@ -109,19 +109,19 @@ export default async function AdminArticlesPage({
 
         <section className="mb-6 grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
-            <p className="text-sm text-fg/55">Wszystkie artykuły</p>
+            <p className="text-sm text-fg/70">Wszystkie artykuły</p>
             <p className="mt-2 text-3xl font-semibold text-fg">{totalCount}</p>
           </div>
 
           <div className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
-            <p className="text-sm text-fg/55">Opublikowane</p>
+            <p className="text-sm text-fg/70">Opublikowane</p>
             <p className="mt-2 text-3xl font-semibold text-brand-bright">
               {publishedCount}
             </p>
           </div>
 
           <div className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
-            <p className="text-sm text-fg/55">Szkice</p>
+            <p className="text-sm text-fg/70">Szkice</p>
             <p className="mt-2 text-3xl font-semibold text-fg">{draftCount}</p>
           </div>
         </section>
@@ -133,7 +133,7 @@ export default async function AdminArticlesPage({
               name="q"
               defaultValue={q}
               placeholder="Szukaj po tytule lub slugu..."
-              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
+              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60"
             />
 
             <select
@@ -170,7 +170,7 @@ export default async function AdminArticlesPage({
               <p className="text-lg font-medium text-fg">
                 Brak artykułów pasujących do filtrowania
               </p>
-              <p className="mt-2 text-sm text-fg/55">
+              <p className="mt-2 text-sm text-fg/70">
                 Zmień wyszukiwanie albo dodaj nowy wpis.
               </p>
             </div>
@@ -199,7 +199,7 @@ export default async function AdminArticlesPage({
                           <div className="font-semibold text-fg">
                             {article.title}
                           </div>
-                          <div className="mt-1 line-clamp-2 text-xs text-fg/50">
+                          <div className="mt-1 line-clamp-2 text-xs text-fg/66">
                             {article.excerpt || "Brak zajawki artykułu."}
                           </div>
                         </div>

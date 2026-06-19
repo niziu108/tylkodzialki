@@ -120,7 +120,7 @@ export default function SimilarOffers({ items }: { items: SimilarDzialka[] }) {
         <div className="mt-6 flex justify-center md:justify-start">
           <Link
             href="/kup"
-            className="inline-flex text-sm text-fg/60 transition hover:text-fg"
+            className="inline-flex text-sm text-fg/72 transition hover:text-fg"
           >
             Przeglądaj wszystkie działki →
           </Link>

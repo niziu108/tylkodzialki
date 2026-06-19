@@ -40,7 +40,7 @@ function PopularSearchesSection() {
             Najpopularniejsze lokalizacje w województwach
           </h2>
 
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-fg/55 md:text-base">
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-fg/70 md:text-base">
             Wybierz województwo i przejdź do najczęściej wyszukiwanych miast.
             Każdy link prowadzi bezpośrednio do działek budowlanych w danej lokalizacji.
           </p>
@@ -58,7 +58,7 @@ function PopularSearchesSection() {
                 <div className="relative z-10">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-fg/35">
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-fg/55">
                         Województwo
                       </div>
 
@@ -192,7 +192,7 @@ export default async function HomePage() {
           <div className="mt-6">
             <Link
               href="/sprzedaj"
-              className="text-sm text-white/55 transition hover:text-white/80"
+              className="text-sm text-white/80 transition hover:text-white"
             >
               Sprzedajesz działkę?{" "}
               <span
@@ -230,7 +230,7 @@ export default async function HomePage() {
             <div className="mt-6 flex justify-center md:justify-start">
               <Link
                 href="/kup"
-                className="inline-flex text-sm text-fg/60 transition hover:text-fg"
+                className="inline-flex text-sm text-fg/72 transition hover:text-fg"
               >
                 Przeglądaj wszystkie oferty →
               </Link>
@@ -283,7 +283,7 @@ export default async function HomePage() {
                           {article.title}
                         </h3>
 
-                        <p className="mt-2 line-clamp-3 text-sm text-fg/60">
+                        <p className="mt-2 line-clamp-3 text-sm text-fg/72">
                           {article.excerpt}
                         </p>
 
@@ -301,7 +301,7 @@ export default async function HomePage() {
           <div className="mt-6 flex justify-center md:justify-start">
             <Link
               href="/blog"
-              className="inline-flex text-sm text-fg/60 transition hover:text-fg"
+              className="inline-flex text-sm text-fg/72 transition hover:text-fg"
             >
               Zobacz wszystkie artykuły →
             </Link>

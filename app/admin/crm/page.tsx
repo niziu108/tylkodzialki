@@ -47,7 +47,7 @@ const HEALTH_META: Record<
   },
   DISABLED: {
     label: "Wyłączona",
-    badge: "border-fg/15 bg-fg/10 text-fg/60",
+    badge: "border-fg/15 bg-fg/10 text-fg/72",
     dot: "bg-fg/40",
     order: 3,
   },
@@ -222,7 +222,7 @@ export default async function AdminCrmMonitoringPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="text-sm text-fg/55">
+            <div className="text-sm text-fg/70">
               <Link href="/admin" className="transition hover:text-fg">
                 Panel admina
               </Link>
@@ -250,11 +250,11 @@ export default async function AdminCrmMonitoringPage() {
 
         <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <div className="rounded-2xl border border-fg/10 bg-fg/5 p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
               Integracje
             </div>
             <div className="mt-2 text-2xl font-semibold text-fg">{total}</div>
-            <div className="mt-1 text-xs text-fg/50">{activeCount} aktywnych</div>
+            <div className="mt-1 text-xs text-fg/66">{activeCount} aktywnych</div>
           </div>
 
           {summaryCards.map((card) => (
@@ -266,7 +266,7 @@ export default async function AdminCrmMonitoringPage() {
                 <span
                   className={`inline-block h-2.5 w-2.5 rounded-full ${HEALTH_META[card.health].dot}`}
                 />
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/62">
                   {card.label}
                 </div>
               </div>
@@ -293,7 +293,7 @@ export default async function AdminCrmMonitoringPage() {
                     <div className="font-semibold text-fg">
                       {providerLabel(stat.provider)}
                     </div>
-                    <div className="text-sm text-fg/55">
+                    <div className="text-sm text-fg/70">
                       {stat.total}{" "}
                       {stat.total === 1 ? "integracja" : "integracji"}
                     </div>
@@ -304,7 +304,7 @@ export default async function AdminCrmMonitoringPage() {
                     <span className="text-amber-300">Nieświeże {stat.STALE}</span>
                     <span className="text-brand-bright">OK {stat.OK}</span>
                     {stat.DISABLED > 0 ? (
-                      <span className="text-fg/45">Wył. {stat.DISABLED}</span>
+                      <span className="text-fg/62">Wył. {stat.DISABLED}</span>
                     ) : null}
                   </div>
                 </div>
@@ -334,7 +334,7 @@ export default async function AdminCrmMonitoringPage() {
                   <tr>
                     <td
                       colSpan={8}
-                      className="px-4 py-10 text-center text-sm text-fg/55"
+                      className="px-4 py-10 text-center text-sm text-fg/70"
                     >
                       Brak skonfigurowanych integracji CRM.
                     </td>
@@ -372,7 +372,7 @@ export default async function AdminCrmMonitoringPage() {
                           >
                             {row.user.email || row.user.name || "Brak emaila"}
                           </Link>
-                          <div className="mt-0.5 text-xs text-fg/45">
+                          <div className="mt-0.5 text-xs text-fg/62">
                             {row.name}
                           </div>
                         </td>
@@ -386,12 +386,12 @@ export default async function AdminCrmMonitoringPage() {
                             {formatDate(row.lastSyncAt)}
                           </div>
                           {relative ? (
-                            <div className="mt-0.5 text-xs text-fg/45">
+                            <div className="mt-0.5 text-xs text-fg/62">
                               {relative}
                             </div>
                           ) : null}
                           {showSuccessHint ? (
-                            <div className="mt-0.5 text-xs text-fg/40">
+                            <div className="mt-0.5 text-xs text-fg/58">
                               sukces: {formatDate(row.lastSuccessAt)}
                             </div>
                           ) : null}

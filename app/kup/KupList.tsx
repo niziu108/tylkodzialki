@@ -83,7 +83,7 @@ export default function KupList({
       return (
         <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6">
           <div className="font-medium text-fg/90">Nie udało się pobrać ofert</div>
-          <div className="mt-2 text-sm text-fg/60">{error}</div>
+          <div className="mt-2 text-sm text-fg/72">{error}</div>
           <button
             className="mt-4 rounded-full border border-fg/20 px-4 py-2 text-[12px] uppercase tracking-[0.18em] text-fg/75 transition hover:border-fg/40"
             onClick={() => window.location.reload()}

@@ -15,9 +15,9 @@ export default function Logo({ className = '' }: Props) {
       aria-label="tylkodzialki.pl"
       className={`font-logo select-none lowercase leading-none tracking-[0.005em] text-fg ${className}`}
     >
-      <span className="font-light">tylko</span>
+      <span className="font-extralight">tylko</span>
       <span className="font-black text-brand">d</span>
-      <span className="font-light">ziałki.pl</span>
+      <span className="font-extralight">zialki.pl</span>
     </span>
   );
 }

@@ -44,7 +44,7 @@ export default async function UlubionePage() {
             Ulubione działki
           </h1>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-fg/60">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-fg/72">
             Tutaj znajdziesz polubione oferty.
           </p>
         </div>

@@ -56,7 +56,7 @@ const components: Components = {
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="mb-6 list-decimal space-y-2 pl-5 marker:text-fg/40">
+    <ol className="mb-6 list-decimal space-y-2 pl-5 marker:text-fg/58">
       {children}
     </ol>
   ),

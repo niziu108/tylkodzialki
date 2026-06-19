@@ -80,7 +80,7 @@ export default async function WojewodztwoPage({ params }: PageProps) {
         <h2 className="text-xl font-semibold text-fg md:text-2xl">
           Działki w miastach województwa {region.name}
         </h2>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-fg/55 md:text-[15px]">
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-fg/70 md:text-[15px]">
           Przejdź do najczęściej wyszukiwanych miast w regionie. Na stronie miasta
           zawęzisz oferty po typie działki: {SEO_TYPES.map((t) => t.adj).join(', ')}.
         </p>
@@ -94,7 +94,7 @@ export default async function WojewodztwoPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold text-fg md:text-xl">
             Kupno działki w województwie {region.name}
           </h2>
-          <p className="mt-4 max-w-4xl text-sm leading-7 text-fg/55 md:text-[15px]">
+          <p className="mt-4 max-w-4xl text-sm leading-7 text-fg/70 md:text-[15px]">
             Na tej stronie zebraliśmy oferty działek z całego regionu. Filtruj po
             cenie, powierzchni, przeznaczeniu i mediach, a następnie przejdź do
             wybranej oferty. Kontakt do sprzedającego jest na stronie każdego

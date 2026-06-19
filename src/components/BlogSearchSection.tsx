@@ -81,7 +81,7 @@ export default function BlogSearchSection({
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Wpisz czego szukasz... np. MPZP, warunki zabudowy, uzbrojenie działki"
-                        className="w-full rounded-[18px] border border-fg/8 bg-fg/[0.03] py-4 pl-5 pr-14 text-[15px] text-fg outline-none transition placeholder:text-fg/35 focus:border-brand/45 focus:bg-fg/[0.05] focus:ring-2 focus:ring-brand/15 md:text-base"
+                        className="w-full rounded-[18px] border border-fg/8 bg-fg/[0.03] py-4 pl-5 pr-14 text-[15px] text-fg outline-none transition placeholder:text-fg/55 focus:border-brand/45 focus:bg-fg/[0.05] focus:ring-2 focus:ring-brand/15 md:text-base"
                       />
 
                       <div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-fg/30">
@@ -118,7 +118,7 @@ export default function BlogSearchSection({
                   </div>
                 </div>
 
-                <div className="mt-4 text-sm text-fg/50">
+                <div className="mt-4 text-sm text-fg/66">
                   {query.trim()
                     ? `Znaleziono artykułów: ${filteredArticles.length}`
                     : `Wszystkich artykułów: ${articles.length}`}
@@ -135,7 +135,7 @@ export default function BlogSearchSection({
             <h2 className="text-2xl font-semibold text-fg">
               Nie znaleziono artykułów
             </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-fg/60 md:text-base">
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-fg/72 md:text-base">
               Spróbuj wpisać inne słowo, na przykład: MPZP, warunki zabudowy,
               uzbrojenie działki albo zakup działki.
             </p>

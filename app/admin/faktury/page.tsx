@@ -88,7 +88,7 @@ function getBuyerTypeBadgeClass(buyerType?: InvoiceBuyerType | null) {
     case "PRIVATE":
       return "bg-fg/10 text-fg/80 border border-fg/10";
     default:
-      return "bg-fg/5 text-fg/50 border border-fg/10";
+      return "bg-fg/5 text-fg/66 border border-fg/10";
   }
 }
 
@@ -262,7 +262,7 @@ export default async function FakturyAdminPage({
               name="q"
               defaultValue={q}
               placeholder="Numer, email, NIP, firma, nabywca..."
-              className="h-12 rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60 xl:col-span-2"
+              className="h-12 rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/66 focus:border-brand/60 xl:col-span-2"
             />
 
             <select
@@ -333,7 +333,7 @@ export default async function FakturyAdminPage({
 
         <section className="overflow-x-auto rounded-3xl border border-fg/10 bg-fg/5 backdrop-blur">
           {invoices.length === 0 ? (
-            <div className="px-6 py-12 text-center text-sm text-fg/55">
+            <div className="px-6 py-12 text-center text-sm text-fg/70">
               Brak faktur pasujących do filtrów.
             </div>
           ) : (

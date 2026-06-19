@@ -123,7 +123,7 @@ export default function OpisEditor({
 
       <div className="relative">
         {isEmpty && (
-          <div className="pointer-events-none absolute left-0 top-0 w-full text-fg/35 text-[18px] md:text-[19px] leading-relaxed">
+          <div className="pointer-events-none absolute left-0 top-0 w-full text-fg/55 text-[18px] md:text-[19px] leading-relaxed">
             {placeholder}
           </div>
         )}

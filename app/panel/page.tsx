@@ -283,9 +283,9 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 {user.name || "Panel użytkownika"}
               </div>
 
-              <div className="mt-2 text-sm text-fg/55">
+              <div className="mt-2 text-sm text-fg/70">
                 {user.email ? (
-                  <span className="truncate text-fg/60">{user.email}</span>
+                  <span className="truncate text-fg/72">{user.email}</span>
                 ) : null}
               </div>
             </div>
@@ -338,7 +338,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                   <span className="text-[11px] leading-none text-brand-bright">bez limitu</span>
                 ) : null}
               </div>
-              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/45">
+              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/62">
                 Publikacje
               </div>
             </div>
@@ -349,7 +349,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                   {user.featuredCredits}
                 </span>
               </div>
-              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/45">
+              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/62">
                 Wyróżnienia
               </div>
             </div>
@@ -360,7 +360,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                   {formatDatePL(user.createdAt)}
                 </span>
               </div>
-              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/45">
+              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/62">
                 Konto od
               </div>
             </div>
@@ -420,7 +420,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             </div>
 
             {activeTab === "ogloszenia" ? (
-              <div className="flex flex-wrap gap-4 pb-4 text-sm text-fg/50">
+              <div className="flex flex-wrap gap-4 pb-4 text-sm text-fg/66">
                 <div>
                   Ogłoszenia: <span className="text-fg">{items.length}</span>
                 </div>
@@ -486,7 +486,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[920px] text-sm">
                     <thead>
-                      <tr className="border-b border-fg/10 text-left text-fg/50">
+                      <tr className="border-b border-fg/10 text-left text-fg/66">
                         <th className="px-5 py-4 font-medium">Numer</th>
                         <th className="px-5 py-4 font-medium">Typ</th>
                         <th className="px-5 py-4 font-medium">Kwota</th>
