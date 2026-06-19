@@ -2,12 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
-
-const BG = '#131313';
-const FG = '#d9d9d9';
+import Logo from './Logo';
 
 function BurgerIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -103,33 +100,26 @@ export default function GlobalNav() {
   };
 
   const navBtnBase =
-    'relative inline-flex h-[72px] items-center justify-center font-display uppercase tracking-[0.20em] text-[14px] transition';
+    'relative inline-flex h-[72px] items-center justify-center text-[15px] font-medium tracking-[0.01em] transition';
 
   const navBtnWhite =
-    'text-white/85 hover:text-white after:absolute after:left-0 after:right-0 after:bottom-[18px] after:h-px after:origin-center after:scale-x-0 after:bg-white/70 after:transition-transform after:duration-200 hover:after:scale-x-100';
+    'text-fg/80 hover:text-fg after:absolute after:left-0 after:right-0 after:bottom-[20px] after:h-px after:origin-center after:scale-x-0 after:bg-fg/70 after:transition-transform after:duration-200 hover:after:scale-x-100';
 
   const navBtnGreen =
-    'text-[#7aa333] hover:text-[#9fd14b] after:absolute after:left-0 after:right-0 after:bottom-[18px] after:h-px after:origin-center after:scale-x-0 after:bg-[#7aa333] after:transition-transform after:duration-200 hover:after:scale-x-100';
+    'text-brand-text hover:text-brand-bright after:absolute after:left-0 after:right-0 after:bottom-[20px] after:h-px after:origin-center after:scale-x-0 after:bg-brand after:transition-transform after:duration-200 hover:after:scale-x-100';
 
   const linkMobile =
-    'w-full py-5 font-display uppercase tracking-[0.18em] text-[clamp(19px,5.5vw,28px)] leading-none text-white transition-colors hover:text-[#9fd14b]';
+    'w-full py-5 text-[clamp(20px,5.5vw,28px)] font-medium leading-none text-fg transition-colors hover:text-brand-bright';
 
   const linkMobileGreen =
-    'w-full py-5 font-display uppercase tracking-[0.18em] text-[clamp(19px,5.5vw,28px)] leading-none text-[#9fd14b] transition-colors hover:text-white';
+    'w-full py-5 text-[clamp(20px,5.5vw,28px)] font-medium leading-none text-brand-bright transition-colors hover:text-fg';
 
   return (
     <>
-      <header className="sticky top-0 left-0 z-[100] w-full border-b border-white/10 bg-[#131313] backdrop-blur">
+      <header className="sticky top-0 left-0 z-[100] w-full border-b border-fg/10 bg-bg backdrop-blur">
         <div className="flex h-[72px] w-full items-center justify-between px-4 sm:px-8">
-          <button onClick={() => go('/')} className="flex items-center">
-            <Image
-              src="/logo1.png"
-              alt="tylkodzialki.pl"
-              width={1024}
-              height={253}
-              priority
-              className="h-10 w-auto sm:h-12 md:h-12"
-            />
+          <button onClick={() => go('/')} className="flex items-center" aria-label="Strona główna">
+            <Logo className="text-[22px] sm:text-[26px]" />
           </button>
 
           <nav className="hidden items-center gap-10 md:flex">
@@ -139,8 +129,8 @@ export default function GlobalNav() {
                 className={`${navBtnBase} ${navBtnWhite} gap-2`}
                 aria-label="Ulubione działki"
               >
-                <HeartIcon className="h-4 w-4 text-[#7aa333]" />
-                <span>ULUBIONE</span>
+                <HeartIcon className="h-4 w-4 text-brand-text" />
+                <span>Ulubione</span>
               </button>
             ) : null}
 
@@ -148,28 +138,28 @@ export default function GlobalNav() {
               onClick={() => go('/')}
               className={`${navBtnBase} ${navBtnWhite}`}
             >
-              START
+              Start
             </button>
 
             <button
               onClick={() => go('/kup')}
               className={`${navBtnBase} ${navBtnWhite}`}
             >
-              SZUKAJ DZIAŁKI
+              Szukaj działki
             </button>
 
             <button
               onClick={() => go('/sprzedaj')}
               className={`${navBtnBase} ${navBtnWhite}`}
             >
-              DODAJ OGŁOSZENIE
+              Dodaj ogłoszenie
             </button>
 
             <button
               onClick={() => go('/dla-biur')}
               className={`${navBtnBase} ${navBtnWhite}`}
             >
-              DLA BIUR
+              Dla biur
             </button>
 
             {!isLogged ? (
@@ -177,7 +167,7 @@ export default function GlobalNav() {
                 onClick={goAuth}
                 className={`${navBtnBase} ${navBtnGreen}`}
               >
-                LOGOWANIE / REJESTRACJA
+                Zaloguj się
               </button>
             ) : (
               <div
@@ -191,7 +181,7 @@ export default function GlobalNav() {
                   onClick={() => setAccountOpen((v) => !v)}
                   className={`${navBtnBase} ${navBtnGreen}`}
                 >
-                  MOJE KONTO
+                  Moje konto
                 </button>
 
                 <AnimatePresence>
@@ -201,21 +191,21 @@ export default function GlobalNav() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.16 }}
-                      className="absolute right-0 top-[62px] w-60 overflow-hidden rounded-2xl border border-white/12 bg-[#0f0f0f]/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
+                      className="absolute right-0 top-[62px] w-60 overflow-hidden rounded-2xl border border-fg/12 bg-surface-2/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
                     >
-                      <div className="border-b border-white/10 px-4 py-3">
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+                      <div className="border-b border-fg/10 px-4 py-3">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-fg/45">
                           Zalogowano
                         </div>
 
-                        <div className="mt-1 truncate text-[13px] text-white/75">
+                        <div className="mt-1 truncate text-[13px] text-fg/75">
                           {session?.user?.email ?? '—'}
                         </div>
                       </div>
 
                       <button
                         onClick={() => go('/panel')}
-                        className="w-full px-4 py-3 text-left text-[13px] text-white/80 transition hover:bg-white/5 hover:text-white"
+                        className="w-full px-4 py-3 text-left text-[13px] text-fg/80 transition hover:bg-fg/5 hover:text-fg"
                       >
                         Panel klienta
                       </button>
@@ -225,7 +215,7 @@ export default function GlobalNav() {
                           setAccountOpen(false);
                           signOut({ callbackUrl: '/' });
                         }}
-                        className="w-full px-4 py-3 text-left text-[13px] text-white/80 transition hover:bg-white/5 hover:text-white"
+                        className="w-full px-4 py-3 text-left text-[13px] text-fg/80 transition hover:bg-fg/5 hover:text-fg"
                       >
                         Wyloguj
                       </button>
@@ -243,7 +233,7 @@ export default function GlobalNav() {
           type="button"
           aria-label="Ulubione działki"
           onClick={() => go('/ulubione')}
-          className="fixed right-[62px] top-4 z-[120] flex h-10 w-10 items-center justify-center text-[#7aa333] md:hidden"
+          className="fixed right-[62px] top-4 z-[120] flex h-10 w-10 items-center justify-center text-brand-text md:hidden"
         >
           <HeartIcon className="h-5 w-5" />
         </button>
@@ -252,10 +242,9 @@ export default function GlobalNav() {
       <motion.button
         aria-label={open ? 'Zamknij menu' : 'Otwórz menu'}
         onClick={() => setOpen((s) => !s)}
-        className="fixed right-4 top-4 z-[120] flex h-10 w-10 items-center justify-center p-0 md:hidden"
+        className="fixed right-4 top-4 z-[120] flex h-10 w-10 items-center justify-center p-0 text-fg/85 md:hidden"
         animate={{ rotate: open ? 180 : 0 }}
         transition={{ duration: 0.35 }}
-        style={{ color: FG }}
       >
         <div className="relative h-9 w-9">
           <motion.div
@@ -283,8 +272,7 @@ export default function GlobalNav() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '-100%', opacity: 0 }}
             transition={{ duration: 0.28 }}
-            className="fixed inset-0 z-[110] flex flex-col md:hidden"
-            style={{ backgroundColor: BG, color: FG }}
+            className="fixed inset-0 z-[110] flex flex-col bg-bg text-fg md:hidden"
           >
             <button
               aria-hidden
@@ -293,35 +281,28 @@ export default function GlobalNav() {
             />
 
             <div className="flex flex-1 flex-col items-center justify-center gap-10 px-6 text-center">
-              <Image
-                src="/logo.png"
-                alt="tylkodzialki.pl"
-                width={1024}
-                height={253}
-                priority
-                className="h-16 w-auto"
-              />
+              <Logo className="text-[34px]" />
 
-              <div className="flex w-full max-w-sm flex-col divide-y divide-white/10">
+              <div className="flex w-full max-w-sm flex-col divide-y divide-fg/10">
                 <button onClick={() => go('/')} className={linkMobile}>
-                  START
+                  Start
                 </button>
 
                 <button onClick={() => go('/kup')} className={linkMobile}>
-                  SZUKAJ DZIAŁKI
+                  Szukaj działki
                 </button>
 
                 <button onClick={() => go('/sprzedaj')} className={linkMobile}>
-                  DODAJ OGŁOSZENIE
+                  Dodaj ogłoszenie
                 </button>
 
                 <button onClick={() => go('/dla-biur')} className={linkMobile}>
-                  DLA BIUR
+                  Dla biur
                 </button>
 
                 {!isLogged ? (
                   <button onClick={goAuth} className={linkMobileGreen}>
-                    LOGOWANIE / REJESTRACJA
+                    Zaloguj się
                   </button>
                 ) : (
                   <>
@@ -329,7 +310,7 @@ export default function GlobalNav() {
                       onClick={() => go('/panel')}
                       className={linkMobileGreen}
                     >
-                      PANEL KLIENTA
+                      Panel klienta
                     </button>
 
                     <button
@@ -339,7 +320,7 @@ export default function GlobalNav() {
                       }}
                       className={linkMobileGreen}
                     >
-                      WYLOGUJ
+                      Wyloguj
                     </button>
                   </>
                 )}

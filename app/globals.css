@@ -1,11 +1,36 @@
 @import "tailwindcss";
 
-/* ====== THEME ====== */
+/* ====== TOKENY MOTYWU (jedno źródło prawdy) ======
+   Komponenty używają klas semantycznych: bg-bg / bg-surface / bg-surface-2,
+   text-fg (z opacity, np. text-fg/70), text-brand / text-brand-text /
+   text-brand-bright, border-fg/… Zamiana motywu (ciemny <-> jasny) to zmiana
+   wartości w :root poniżej, bez ruszania komponentów. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-bright: var(--brand-bright);
+  --color-brand-text: var(--brand-text);
+  --color-ink: var(--ink);
+}
+
 :root {
   color-scheme: dark;
 
   --bg: #131313;
+  --surface: #1b1b1b;
+  --surface-2: #0f0f0f;
   --fg: #f5f5f7;
+
+  --brand: #7aa333;
+  --brand-strong: #8dbb3a;
+  --brand-bright: #9fd14b;
+  --brand-text: #7aa333;
+  --ink: #14140f;
+
   --muted: rgba(245, 245, 247, 0.55);
   --line: rgba(245, 245, 247, 0.14);
   --line-strong: rgba(245, 245, 247, 0.22);
@@ -169,4 +194,9 @@ html {
 /* Nagłówki (globalna nawigacja, karta oferty, /ulubione) — ten sam krój co hero */
 .font-display {
   font-family: var(--font-bebas), sans-serif;
+}
+
+/* Wordmark marki (komponent Logo): cienki krój geometryczny z zielonym „d" */
+.font-logo {
+  font-family: var(--font-logo), var(--font-geist), system-ui, sans-serif;
 }
