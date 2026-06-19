@@ -60,7 +60,7 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
 
         {distance ? (
           <div className="absolute left-4 top-4 z-10">
-            <span className="inline-flex items-center rounded-full border border-fg/15 bg-black/55 px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-fg/85 backdrop-blur-sm">
+            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/55 px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-white/85 backdrop-blur-sm">
               {distance}
             </span>
           </div>

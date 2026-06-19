@@ -333,7 +333,7 @@ export default function PakietyPage() {
               <h3 className="text-[32px] font-semibold leading-none text-fg">
                 Pakiet 10
               </h3>
-              <p className="mt-3 text-sm text-[#c8d7a6]">
+              <p className="mt-3 text-sm text-brand-text">
                 Dla osób, które chcą publikować więcej i taniej.
               </p>
             </div>
@@ -348,7 +348,7 @@ export default function PakietyPage() {
                 : 'Lepsza cena za publikację'}
             </div>
 
-            <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-[#d6dec4]">
+            <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-brand-text">
               Najlepszy balans ceny i liczby publikacji.
             </p>
 
@@ -356,7 +356,7 @@ export default function PakietyPage() {
               <div className="text-sm font-medium text-fg">
                 Co otrzymujesz:
               </div>
-              <ul className="mt-3 space-y-2 text-sm text-[#d6dec4]">
+              <ul className="mt-3 space-y-2 text-sm text-brand-text">
                 <li>• 10 publikacji ogłoszeń</li>
                 <li>• 1 wyróżnienie do wykorzystania</li>
                 <li>• lepszą cenę za publikację</li>

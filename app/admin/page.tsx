@@ -375,13 +375,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
 
           {mailSent === "test" && (
-            <div className="mb-4 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-[#dff2b2]">
+            <div className="mb-4 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-brand-text">
               Testowy mail został wysłany poprawnie.
             </div>
           )}
 
           {mailSent === "all" && (
-            <div className="mb-4 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-[#dff2b2]">
+            <div className="mb-4 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-brand-text">
               Wysyłka zakończona. Wysłano: <strong>{sentCount}</strong>, błędy:{" "}
               <strong>{failedCount}</strong>.
             </div>
@@ -667,7 +667,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <td className="px-4 py-4 align-middle">
                         <Link
                           href={`/admin/crm/${user.id}`}
-                          className="inline-flex h-11 min-w-[138px] items-center justify-center rounded-2xl border border-brand/35 bg-brand/10 px-4 text-xs font-semibold text-fg shadow-[0_0_18px_rgba(122,163,51,0.08)] transition hover:border-brand-bright/70 hover:bg-brand/20 hover:text-[#f3ffd7]"
+                          className="inline-flex h-11 min-w-[138px] items-center justify-center rounded-2xl border border-brand/35 bg-brand/10 px-4 text-xs font-semibold text-fg shadow-[0_0_18px_rgba(122,163,51,0.08)] transition hover:border-brand-bright/70 hover:bg-brand/20 hover:text-brand-bright"
                         >
                           Konfiguruj CRM
                         </Link>

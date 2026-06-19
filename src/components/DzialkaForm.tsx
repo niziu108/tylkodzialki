@@ -1673,7 +1673,7 @@ export default function DzialkaForm({
                   </div>
                 )}
 
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-fg/10 bg-black/45 px-3 py-1 text-xs text-fg/80">
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-xs text-white/80">
                   Zdjęcia: {currentImages.length}{' '}
                   {uploadingPhotos ? <span className="text-fg/60">— wgrywam…</span> : null}
                 </div>
@@ -1763,7 +1763,7 @@ export default function DzialkaForm({
                               type="button"
                               onPointerDown={(e) => e.stopPropagation()}
                               onClick={() => removePhoto(idx)}
-                              className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-fg transition hover:bg-black"
+                              className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-white transition hover:bg-black"
                               title="Usuń zdjęcie"
                             >
                               ×

@@ -1416,7 +1416,7 @@ export default function KupSearch({
           <button
             type="button"
             onClick={applyAndSearch}
-            className="rounded-xl bg-white px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-fg/90 disabled:opacity-60"
+            className="rounded-xl bg-fg px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-bg transition hover:bg-fg/90 disabled:opacity-60"
             disabled={loading}
           >
             {loading ? 'Szukam…' : 'Szukaj'}

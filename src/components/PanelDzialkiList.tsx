@@ -874,7 +874,7 @@ function Carousel({
 
           {rent ? (
             <div className="absolute bottom-4 left-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-fg/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-fg shadow-lg backdrop-blur-sm">
+              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
                 NA WYNAJEM
               </span>
             </div>
@@ -885,7 +885,7 @@ function Carousel({
               <button
                 type="button"
                 onClick={prev}
-                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-fg opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ‹
               </button>
@@ -893,12 +893,12 @@ function Carousel({
               <button
                 type="button"
                 onClick={next}
-                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-fg opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ›
               </button>
 
-              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-fg backdrop-blur-sm">
+              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-sm">
                 <IconCamera className="h-3.5 w-3.5" />
                 {i + 1}/{list.length}
               </div>

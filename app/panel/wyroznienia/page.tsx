@@ -329,7 +329,7 @@ function WyroznieniaPageContent() {
               <h3 className="text-[32px] font-semibold leading-none text-fg">
                 Pakiet 3
               </h3>
-              <p className="mt-3 text-sm text-[#c8d7a6]">
+              <p className="mt-3 text-sm text-brand-text">
                 Dla osób, które chcą promować więcej ofert i taniej.
               </p>
             </div>
@@ -342,7 +342,7 @@ function WyroznieniaPageContent() {
               Najlepsza cena za wyróżnienie
             </div>
 
-            <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-[#d6dec4]">
+            <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-brand-text">
               Najlepszy balans ceny i liczby wyróżnień.
             </p>
 
@@ -350,7 +350,7 @@ function WyroznieniaPageContent() {
               <div className="text-sm font-medium text-fg">
                 Co otrzymujesz:
               </div>
-              <ul className="mt-3 space-y-2 text-sm text-[#d6dec4]">
+              <ul className="mt-3 space-y-2 text-sm text-brand-text">
                 <li>• 3 wyróżnienia do wykorzystania</li>
                 <li>• każde działa przez 7 dni</li>
                 <li>• wyższe pozycje na liście ofert</li>

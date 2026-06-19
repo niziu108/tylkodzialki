@@ -720,7 +720,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <button
                       type="button"
                       onClick={prev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-fg backdrop-blur-sm border border-fg/10 lg:flex"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10 lg:flex"
                       aria-label="Poprzednie"
                     >
                       ‹
@@ -728,13 +728,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <button
                       type="button"
                       onClick={next}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-fg backdrop-blur-sm border border-fg/10 lg:flex"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10 lg:flex"
                       aria-label="Następne"
                     >
                       ›
                     </button>
 
-                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-fg/85 border border-fg/10 backdrop-blur-sm">
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-white/85 border border-white/10 backdrop-blur-sm">
                       {idx + 1}/{photos.length}
                     </div>
                   </>
@@ -1022,7 +1022,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="absolute right-3 top-3 sm:right-4 sm:top-4 z-20 h-10 w-10 rounded-full border border-fg/20 bg-black/55 text-fg/90 hover:border-fg/40 transition flex items-center justify-center"
+                  className="absolute right-3 top-3 sm:right-4 sm:top-4 z-20 h-10 w-10 rounded-full border border-white/20 bg-black/55 text-white/90 hover:border-white/40 transition flex items-center justify-center"
                   aria-label="Zamknij galerię"
                 >
                   <span className="text-[20px] leading-none relative top-[-1px]">×</span>
@@ -1042,7 +1042,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         <button
                           type="button"
                           onClick={prev}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-fg border border-fg/10"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-white border border-white/10"
                           aria-label="Poprzednie"
                         >
                           ‹
@@ -1050,13 +1050,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         <button
                           type="button"
                           onClick={next}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-fg border border-fg/10"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-white border border-white/10"
                           aria-label="Następne"
                         >
                           ›
                         </button>
 
-                        <div className="absolute right-3 bottom-3 sm:right-4 sm:bottom-4 rounded-full bg-black/45 px-3 py-1 text-xs text-fg/80 border border-fg/10">
+                        <div className="absolute right-3 bottom-3 sm:right-4 sm:bottom-4 rounded-full bg-black/45 px-3 py-1 text-xs text-white/80 border border-white/10">
                           {idx + 1}/{photos.length}
                         </div>
                       </>

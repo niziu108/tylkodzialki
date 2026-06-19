@@ -130,7 +130,7 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
               )}
 
               {isRent && (
-                <span className="absolute left-3 bottom-3 rounded-full border border-fg/30 bg-black/65 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-fg backdrop-blur-sm">
+                <span className="absolute left-3 bottom-3 rounded-full border border-white/30 bg-black/65 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-white backdrop-blur-sm">
                   NA WYNAJEM
                 </span>
               )}
@@ -141,7 +141,7 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
                     type="button"
                     aria-label="Poprzednie zdjęcie"
                     onClick={(e) => go(-1, e)}
-                    className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-fg backdrop-blur-sm transition hover:bg-black/70"
+                    className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/70"
                   >
                     ‹
                   </button>
@@ -149,11 +149,11 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
                     type="button"
                     aria-label="Następne zdjęcie"
                     onClick={(e) => go(1, e)}
-                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-fg backdrop-blur-sm transition hover:bg-black/70"
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/70"
                   >
                     ›
                   </button>
-                  <div className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium tabular-nums text-fg backdrop-blur-sm">
+                  <div className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium tabular-nums text-white backdrop-blur-sm">
                     <IconCamera className="h-3 w-3" />
                     {i + 1}/{total}
                   </div>

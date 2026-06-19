@@ -342,7 +342,7 @@ export default function AdminCrmIntegrationEditor({
   return (
     <div className="space-y-6">
       {resultSuccess ? (
-        <div className="rounded-2xl border border-brand/20 bg-brand/10 px-4 py-3 text-sm leading-6 text-[#dce9bf]">
+        <div className="rounded-2xl border border-brand/20 bg-brand/10 px-4 py-3 text-sm leading-6 text-brand-text">
           {resultSuccess}
         </div>
       ) : null}
@@ -717,7 +717,7 @@ export default function AdminCrmIntegrationEditor({
                               {log.status}
                             </span>
                           </td>
-                          <td className="px-4 py-3 font-mono text-xs text-[#dce9bf]">
+                          <td className="px-4 py-3 font-mono text-xs text-brand-text">
                             {log.externalId || "—"}
                           </td>
                           <td className="px-4 py-3 text-fg/75">

@@ -3,8 +3,9 @@
 /* ====== TOKENY MOTYWU (jedno źródło prawdy) ======
    Komponenty używają klas semantycznych: bg-bg / bg-surface / bg-surface-2,
    text-fg (z opacity, np. text-fg/70), text-brand / text-brand-text /
-   text-brand-bright, border-fg/… Zamiana motywu (ciemny <-> jasny) to zmiana
-   wartości w :root poniżej, bez ruszania komponentów. */
+   text-brand-bright, border-fg/… Zamiana motywu = zmiana wartości poniżej.
+   JASNY = domyślny (:root). Ciemny zachowany pod [data-theme="dark"]
+   (łatwy powrót / ewentualny test A/B). */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -18,6 +19,25 @@
 }
 
 :root {
+  color-scheme: light;
+
+  --bg: #f6f7f3;
+  --surface: #ffffff;
+  --surface-2: #ffffff;
+  --fg: #1a1a17;
+
+  --brand: #7aa333;
+  --brand-strong: #6f9a2e;
+  --brand-bright: #4f7d1f;
+  --brand-text: #5e7f25;
+  --ink: #14140f;
+
+  --muted: rgba(20, 20, 18, 0.55);
+  --line: rgba(20, 20, 18, 0.12);
+  --line-strong: rgba(20, 20, 18, 0.20);
+}
+
+[data-theme="dark"] {
   color-scheme: dark;
 
   --bg: #131313;
@@ -57,7 +77,7 @@ a {
   text-decoration: none;
 }
 
-/* ====== FORM RESET (no złoto / no niebieski / no ramki) ====== */
+/* ====== FORM RESET (bez ramek, kolory z motywu) ====== */
 input,
 textarea,
 select {
@@ -68,10 +88,9 @@ select {
 }
 
 ::placeholder {
-  color: rgba(245, 245, 247, 0.35);
+  color: color-mix(in srgb, var(--fg) 38%, transparent);
 }
 
-/* focus = jasna linia, zero złota */
 input:focus,
 textarea:focus,
 select:focus {
@@ -79,10 +98,8 @@ select:focus {
   box-shadow: none;
 }
 
-/* autofill: przeglądarka maluje pole własnym (jasnym) tłem i kolorem tekstu,
-   co na ciemnym motywie wygląda jak wypełniony prostokąt z ramką. Poniżej
-   wymuszamy ciemne tło i jasny tekst, żeby autouzupełnione pole wyglądało
-   identycznie jak puste (linia pod spodem, bez wypełnienia). */
+/* autofill: wymuszamy tło i kolor tekstu z motywu, żeby przeglądarka nie
+   namalowała pola własnym (żółtym/jasnym) prostokątem. */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -95,15 +112,15 @@ input:-webkit-autofill:active {
 
 /* jednolity focus dla klikalnych */
 :focus-visible {
-  outline: 2px solid rgba(245, 245, 247, 0.28);
+  outline: 2px solid color-mix(in srgb, var(--fg) 28%, transparent);
   outline-offset: 3px;
   border-radius: 10px;
 }
 
-/* usuń niebieskie "accent" w radio/checkbox (Chrome/Edge) */
+/* checkbox/radio w kolorze marki */
 input[type="radio"],
 input[type="checkbox"] {
-  accent-color: rgba(245, 245, 247, 0.9);
+  accent-color: var(--brand);
 }
 
 /* helper klasy (opcjonalnie używamy w page) */
@@ -114,23 +131,24 @@ input[type="checkbox"] {
   border-bottom: 1px solid var(--line-strong);
 }
 
-/* Pola formularza „Dla biur" — luksusowa linia (przebija reset input{border:none}) */
+/* Pola formularza — luksusowa linia (przebija reset input{border:none}) */
 .field-line {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 1px solid color-mix(in srgb, var(--fg) 18%, transparent);
   transition: border-color 0.2s ease;
 }
 .field-line:focus {
-  border-bottom-color: #7aa333;
+  border-bottom-color: var(--brand);
 }
 
 input::placeholder { text-decoration: none !important; }
 textarea::placeholder { text-decoration: none !important; }
 
+/* Podpowiedzi Google Places — zgodne z motywem */
 .pac-container {
-  background: #131313 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: var(--surface) !important;
+  border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent) !important;
   border-radius: 16px !important;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18) !important;
   font-family: var(--font-geist), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
   overflow: hidden !important;
   z-index: 99999 !important;
@@ -138,36 +156,36 @@ textarea::placeholder { text-decoration: none !important; }
 
 .pac-item {
   padding: 12px 14px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
-  background: #131313 !important;
-  color: #f5f5f7 !important;
+  border-top: 1px solid color-mix(in srgb, var(--fg) 8%, transparent) !important;
+  background: var(--surface) !important;
+  color: var(--fg) !important;
   font-family: var(--font-geist), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
   font-size: 14px !important;
   cursor: pointer !important;
 }
 
 .pac-item:hover {
-  background: rgba(122, 163, 51, 0.12) !important;
+  background: color-mix(in srgb, var(--brand) 14%, transparent) !important;
 }
 
 .pac-item-selected {
-  background: rgba(122, 163, 51, 0.16) !important;
+  background: color-mix(in srgb, var(--brand) 18%, transparent) !important;
 }
 
 .pac-item-query {
-  color: #ffffff !important;
+  color: var(--fg) !important;
   font-size: 14px !important;
   font-weight: 600 !important;
   font-family: var(--font-geist), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
 }
 
 .pac-matched {
-  color: #9fd14b !important;
+  color: var(--brand-text) !important;
   font-weight: 700 !important;
 }
 
 .pac-icon {
-  filter: grayscale(1) brightness(1.4);
+  filter: grayscale(1) opacity(0.55);
 }
 
 .scrollbar-hide {
