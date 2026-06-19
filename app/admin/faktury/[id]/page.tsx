@@ -85,15 +85,15 @@ function getKsefStatusLabel(status: KsefStatus) {
 function getInvoiceStatusBadgeClass(status: InvoiceStatus) {
   switch (status) {
     case "PAID":
-      return "bg-[#7aa333]/20 text-[#9fd14b] border border-[#7aa333]/20";
+      return "bg-brand/20 text-brand-bright border border-brand/20";
     case "PENDING":
-      return "bg-white/10 text-white/80 border border-white/10";
+      return "bg-fg/10 text-fg/80 border border-fg/10";
     case "FAILED":
       return "bg-red-500/15 text-red-300 border border-red-500/20";
     case "REFUNDED":
       return "bg-orange-500/15 text-orange-300 border border-orange-500/20";
     default:
-      return "bg-white/10 text-white/80 border border-white/10";
+      return "bg-fg/10 text-fg/80 border border-fg/10";
   }
 }
 
@@ -102,9 +102,9 @@ function getBuyerTypeBadgeClass(buyerType?: InvoiceBuyerType | null) {
     case "COMPANY":
       return "bg-sky-500/15 text-sky-300 border border-sky-500/20";
     case "PRIVATE":
-      return "bg-white/10 text-white/80 border border-white/10";
+      return "bg-fg/10 text-fg/80 border border-fg/10";
     default:
-      return "bg-white/5 text-white/50 border border-white/10";
+      return "bg-fg/5 text-fg/50 border border-fg/10";
   }
 }
 
@@ -115,11 +115,11 @@ function getKsefStatusBadgeClass(status: KsefStatus) {
     case "SENT":
       return "bg-sky-500/15 text-sky-300 border border-sky-500/20";
     case "ACCEPTED":
-      return "bg-[#7aa333]/20 text-[#9fd14b] border border-[#7aa333]/20";
+      return "bg-brand/20 text-brand-bright border border-brand/20";
     case "ERROR":
       return "bg-red-500/15 text-red-300 border border-red-500/20";
     default:
-      return "bg-white/10 text-white/80 border border-white/10";
+      return "bg-fg/10 text-fg/80 border border-fg/10";
   }
 }
 
@@ -131,11 +131,11 @@ function DetailItem({
   value: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <div className="mb-1 text-xs uppercase tracking-wide text-[#8f8f8f]">
+    <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+      <div className="mb-1 text-xs uppercase tracking-wide text-fg/50">
         {label}
       </div>
-      <div className="text-sm text-white">{value || "—"}</div>
+      <div className="text-sm text-fg">{value || "—"}</div>
     </div>
   );
 }
@@ -187,23 +187,23 @@ export default async function FakturaDetailsPage({
       : invoice.buyerName || invoice.invoiceEmail || "Osoba prywatna";
 
   return (
-    <main className="min-h-screen bg-[#131313] px-6 py-10 text-[#d9d9d9]">
+    <main className="min-h-screen bg-bg px-6 py-10 text-fg/85">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-3">
               <Link
                 href="/admin/faktury"
-                className="text-sm text-[#bdbdbd] transition hover:text-white"
+                className="text-sm text-fg/70 transition hover:text-fg"
               >
                 ← Powrót do listy faktur
               </Link>
             </div>
 
-            <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Szczegóły faktury
             </h1>
-            <p className="mt-2 text-sm text-[#bdbdbd]">
+            <p className="mt-2 text-sm text-fg/70">
               Podgląd pełnych danych dokumentu, statusu płatności i gotowości do KSeF.
             </p>
           </div>
@@ -213,18 +213,18 @@ export default async function FakturaDetailsPage({
               href={`/api/invoices/${invoice.id}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#7aa333] px-5 text-sm font-semibold text-black transition hover:opacity-90"
+              className="inline-flex h-11 items-center justify-center rounded-2xl bg-brand px-5 text-sm font-semibold text-black transition hover:opacity-90"
             >
               Otwórz PDF
             </a>
           </div>
         </div>
 
-        <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        <section className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-5">
           <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <div className="text-sm text-[#8f8f8f]">Numer faktury</div>
-              <div className="mt-1 text-2xl font-semibold text-white">
+              <div className="text-sm text-fg/50">Numer faktury</div>
+              <div className="mt-1 text-2xl font-semibold text-fg">
                 {invoice.invoiceNumber || "—"}
               </div>
             </div>
@@ -273,8 +273,8 @@ export default async function FakturaDetailsPage({
         </section>
 
         <div className="mb-6 grid gap-6 xl:grid-cols-2">
-          <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <h2 className="mb-4 text-xl font-semibold text-white">
+          <section className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
+            <h2 className="mb-4 text-xl font-semibold text-fg">
               Dane nabywcy
             </h2>
 
@@ -298,8 +298,8 @@ export default async function FakturaDetailsPage({
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <h2 className="mb-4 text-xl font-semibold text-white">
+          <section className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
+            <h2 className="mb-4 text-xl font-semibold text-fg">
               Powiązanie z kontem i Stripe
             </h2>
 
@@ -322,7 +322,7 @@ export default async function FakturaDetailsPage({
                       href={invoice.stripeCheckoutUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="break-all text-[#9fd14b] hover:underline"
+                      className="break-all text-brand-bright hover:underline"
                     >
                       {invoice.stripeCheckoutUrl}
                     </a>
@@ -336,8 +336,8 @@ export default async function FakturaDetailsPage({
         </div>
 
         <div className="mb-6 grid gap-6 xl:grid-cols-2">
-          <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <h2 className="mb-4 text-xl font-semibold text-white">
+          <section className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
+            <h2 className="mb-4 text-xl font-semibold text-fg">
               KSeF
             </h2>
 
@@ -370,18 +370,18 @@ export default async function FakturaDetailsPage({
               />
             </div>
 
-            <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
-              <div className="mb-2 text-xs uppercase tracking-wide text-[#8f8f8f]">
+            <div className="mt-4 rounded-2xl border border-fg/10 bg-black/20 p-4">
+              <div className="mb-2 text-xs uppercase tracking-wide text-fg/50">
                 Komunikat błędu KSeF
               </div>
-              <div className="whitespace-pre-wrap break-words text-sm text-white">
+              <div className="whitespace-pre-wrap break-words text-sm text-fg">
                 {invoice.ksefErrorMessage || "Brak"}
               </div>
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <h2 className="mb-4 text-xl font-semibold text-white">
+          <section className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
+            <h2 className="mb-4 text-xl font-semibold text-fg">
               Plik PDF i techniczne
             </h2>
 
@@ -400,7 +400,7 @@ export default async function FakturaDetailsPage({
                 href={`/api/invoices/${invoice.id}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-5 text-sm font-semibold text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10 px-5 text-sm font-semibold text-fg transition hover:border-brand hover:bg-brand/15"
               >
                 Podgląd PDF
               </a>

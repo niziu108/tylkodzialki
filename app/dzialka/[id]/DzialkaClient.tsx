@@ -58,7 +58,7 @@ function cx(...s: Array<string | false | null | undefined>) {
 }
 
 function Hr({ className }: { className?: string }) {
-  return <div className={cx('border-b border-white/10', className)} />;
+  return <div className={cx('border-b border-fg/10', className)} />;
 }
 
 function formatPLN(value: number) {
@@ -200,7 +200,7 @@ function FieldBlock({
 }) {
   return (
     <div className="py-5">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">{label}</div>
+      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">{label}</div>
       <div className="mt-2">{children}</div>
     </div>
   );
@@ -587,25 +587,25 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             href="/kup"
             scroll={false}
             onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
+            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition"
           >
             <span className="relative top-[-1px]">←</span> Wróć do listy
           </Link>
 
           <div className="mt-6 grid gap-10 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
-              <div className="aspect-video animate-pulse bg-white/5" />
+            <div className="overflow-hidden rounded-3xl bg-surface-2/20">
+              <div className="aspect-video animate-pulse bg-fg/5" />
               <div className="p-6 space-y-4">
-                <div className="h-4 w-40 animate-pulse rounded bg-white/5" />
-                <div className="h-4 w-64 animate-pulse rounded bg-white/5" />
+                <div className="h-4 w-40 animate-pulse rounded bg-fg/5" />
+                <div className="h-4 w-64 animate-pulse rounded bg-fg/5" />
               </div>
             </div>
 
-            <div className="rounded-3xl bg-[#0f0f0f]/20 p-6 space-y-4">
-              <div className="h-5 w-64 animate-pulse rounded bg-white/5" />
-              <div className="h-4 w-48 animate-pulse rounded bg-white/5" />
-              <div className="h-4 w-56 animate-pulse rounded bg-white/5" />
-              <div className="h-4 w-72 animate-pulse rounded bg-white/5" />
+            <div className="rounded-3xl bg-surface-2/20 p-6 space-y-4">
+              <div className="h-5 w-64 animate-pulse rounded bg-fg/5" />
+              <div className="h-4 w-48 animate-pulse rounded bg-fg/5" />
+              <div className="h-4 w-56 animate-pulse rounded bg-fg/5" />
+              <div className="h-4 w-72 animate-pulse rounded bg-fg/5" />
             </div>
           </div>
         </div>
@@ -621,14 +621,14 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             href="/kup"
             scroll={false}
             onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
+            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition"
           >
             <span className="relative top-[-1px]">←</span> Wróć do listy
           </Link>
 
-          <div className="mt-6 rounded-3xl bg-[#0f0f0f]/20 p-6">
-            <div className="font-medium text-white/90">Nie udało się załadować ogłoszenia</div>
-            <div className="mt-2 text-sm text-white/60">{err ?? 'Brak danych'}</div>
+          <div className="mt-6 rounded-3xl bg-surface-2/20 p-6">
+            <div className="font-medium text-fg/90">Nie udało się załadować ogłoszenia</div>
+            <div className="mt-2 text-sm text-fg/60">{err ?? 'Brak danych'}</div>
           </div>
         </div>
       </main>
@@ -652,7 +652,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             href="/kup"
             scroll={false}
             onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-white/70 hover:text-white transition"
+            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition"
           >
             <span className="relative top-[-1px]">←</span> Wróć do listy
           </Link>
@@ -667,7 +667,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               aria-label={isFavorite ? 'W ulubionych' : 'Dodaj do ulubionych'}
               className={cx(
                 'group flex h-9 w-9 items-center justify-center transition disabled:cursor-wait disabled:opacity-60',
-                isFavorite ? 'text-[#7aa333]' : 'text-white/70 hover:text-[#7aa333]'
+                isFavorite ? 'text-brand-text' : 'text-fg/70 hover:text-brand-text'
               )}
             >
               <HeartIcon filled={isFavorite} />
@@ -677,7 +677,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               type="button"
               onClick={shareOffer}
               aria-label="Udostępnij ofertę"
-              className="group flex h-9 w-9 items-center justify-center text-white/70 transition hover:text-[#7aa333]"
+              className="group flex h-9 w-9 items-center justify-center text-fg/70 transition hover:text-brand-text"
             >
               <ShareIcon className="h-[21px] w-[21px]" />
             </button>
@@ -686,9 +686,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
         <div className="mt-6 grid gap-0 lg:gap-10 lg:grid-cols-2">
           <section className="min-w-0 lg:space-y-8">
-            <div className="min-w-0 -mx-4 overflow-hidden rounded-none bg-[#0f0f0f]/20 lg:mx-0 lg:rounded-3xl">
+            <div className="min-w-0 -mx-4 overflow-hidden rounded-none bg-surface-2/20 lg:mx-0 lg:rounded-3xl">
               <div
-                className="relative aspect-[4/3] touch-pan-y bg-white/5 lg:aspect-video"
+                className="relative aspect-[4/3] touch-pan-y bg-fg/5 lg:aspect-video"
                 onTouchStart={onTouchStart}
                 onTouchEnd={onTouchEnd}
               >
@@ -710,7 +710,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                   </>
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-white/50">
+                  <div className="flex h-full w-full items-center justify-center text-sm text-fg/50">
                     Brak zdjęć
                   </div>
                 )}
@@ -720,7 +720,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <button
                       type="button"
                       onClick={prev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10 lg:flex"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-fg backdrop-blur-sm border border-fg/10 lg:flex"
                       aria-label="Poprzednie"
                     >
                       ‹
@@ -728,13 +728,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <button
                       type="button"
                       onClick={next}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/10 lg:flex"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/40 text-fg backdrop-blur-sm border border-fg/10 lg:flex"
                       aria-label="Następne"
                     >
                       ›
                     </button>
 
-                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-white/85 border border-white/10 backdrop-blur-sm">
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-fg/85 border border-fg/10 backdrop-blur-sm">
                       {idx + 1}/{photos.length}
                     </div>
                   </>
@@ -757,7 +757,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       onClick={() => setIdx(i)}
                       className={cx(
                         'shrink-0 h-16 w-28 overflow-hidden rounded-2xl border transition',
-                        i === idx ? 'border-white/60' : 'border-white/10 opacity-85 hover:opacity-100'
+                        i === idx ? 'border-fg/60' : 'border-fg/10 opacity-85 hover:opacity-100'
                       )}
                       title={`Zdjęcie ${i + 1}`}
                     >
@@ -774,37 +774,37 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
             {opis ? (
               <div className="hidden lg:block">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Opis</div>
+                <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Opis</div>
                 <div
-                  className="td-opis mt-4 text-[15px] leading-relaxed text-white/85"
+                  className="td-opis mt-4 text-[15px] leading-relaxed text-fg/85"
                   dangerouslySetInnerHTML={{ __html: opis }}
                 />
               </div>
             ) : null}
           </section>
 
-          <aside className="min-w-0 -mx-4 rounded-none bg-[#0f0f0f]/20 lg:mx-0 lg:rounded-3xl">
+          <aside className="min-w-0 -mx-4 rounded-none bg-surface-2/20 lg:mx-0 lg:rounded-3xl">
             <div className="px-4 pb-6 pt-0 lg:p-7">
               {isRent ? (
-                <span className="mb-1 flex w-fit items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90 lg:mb-0">
+                <span className="mb-1 flex w-fit items-center rounded-full border border-fg/30 bg-fg/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-fg/90 lg:mb-0">
                   Na wynajem
                 </span>
               ) : null}
 
-              <h1 className="mt-0 text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words lg:mt-2">
+              <h1 className="mt-0 text-[24px] md:text-[28px] font-semibold tracking-tight text-fg leading-[1.12] break-words lg:mt-2">
                 {d.tytul}
               </h1>
 
               <Hr className="mt-6" />
 
               <FieldBlock label={isRent ? 'Cena najmu' : 'Cena'}>
-                <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 break-words">
+                <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-fg/95 break-words">
                   {formatPLN(d.cenaPln)}
                   {isRent ? (
-                    <span className="ml-1 text-[13px] text-white/60 font-normal">/mc</span>
+                    <span className="ml-1 text-[13px] text-fg/60 font-normal">/mc</span>
                   ) : null}
                   {zlZaM2 ? (
-                    <span className="ml-2 text-[12px] text-white/50 font-normal">
+                    <span className="ml-2 text-[12px] text-fg/50 font-normal">
                       ({formatIntPL(zlZaM2)} zł/m²)
                     </span>
                   ) : null}
@@ -814,7 +814,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               <Hr />
 
               <FieldBlock label="Powierzchnia">
-                <div className="text-[15px] md:text-[16px] font-medium text-white/95 break-words">
+                <div className="text-[15px] md:text-[16px] font-medium text-fg/95 break-words">
                   {formatIntPL(area)} m²
                 </div>
               </FieldBlock>
@@ -824,7 +824,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {przeznText ? (
                 <>
                   <FieldBlock label="Przeznaczenie">
-                    <div className="min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
+                    <div className="min-w-0 text-fg/90 text-[14px] leading-snug whitespace-normal break-words">
                       {przeznText}
                     </div>
                   </FieldBlock>
@@ -835,10 +835,10 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {sprzedajacyTyp === 'PRYWATNIE' ? (
                 <>
                   <FieldBlock label="Ogłoszenie prywatne">
-                    <div className="space-y-2 text-[14px] text-white/85">
+                    <div className="space-y-2 text-[14px] text-fg/85">
                       {sprzedajacyImie ? (
                         <div className="break-words">
-                          Imię: <span className="text-white/95">{sprzedajacyImie}</span>
+                          Imię: <span className="text-fg/95">{sprzedajacyImie}</span>
                         </div>
                       ) : null}
                     </div>
@@ -850,15 +850,15 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {sprzedajacyTyp === 'BIURO' ? (
                 <>
                   <FieldBlock label="Ogłoszenie biura nieruchomości">
-                    <div className="space-y-3 text-[14px] text-white/85">
+                    <div className="space-y-3 text-[14px] text-fg/85">
                       {biuroOpiekun ? (
                         <div className="break-words">
-                          Opiekun: <span className="text-white/95">{biuroOpiekun}</span>
+                          Opiekun: <span className="text-fg/95">{biuroOpiekun}</span>
                         </div>
                       ) : null}
 
                       {biuroLogoUrl ? (
-                        <div className="w-fit overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                        <div className="w-fit overflow-hidden rounded-2xl border border-fg/10 bg-fg/[0.03] p-3">
                           <img
                             src={biuroLogoUrl}
                             alt="Logo biura"
@@ -878,7 +878,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <a
                       href={`tel:${telefon.replace(/\s+/g, '')}`}
                       onClick={() => trackContact('phone')}
-                      className="min-w-0 text-[15px] md:text-[16px] font-medium text-white/95 underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
+                      className="min-w-0 text-[15px] md:text-[16px] font-medium text-fg/95 underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
                     >
                       {telefon}
                     </a>
@@ -890,7 +890,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {numerOferty ? (
                 <>
                   <FieldBlock label="Numer oferty">
-                    <div className="text-white/90 text-[14px] break-words">{numerOferty}</div>
+                    <div className="text-fg/90 text-[14px] break-words">{numerOferty}</div>
                   </FieldBlock>
                   <Hr />
                 </>
@@ -899,12 +899,12 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {hasUzbrojenie ? (
                 <>
                   <FieldBlock label="Uzbrojenie">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {prad ? <div>Prąd: <span className="text-white/95">{prad}</span></div> : null}
-                      {woda ? <div>Woda: <span className="text-white/95">{woda}</span></div> : null}
-                      {kan ? <div>Kanalizacja: <span className="text-white/95">{kan}</span></div> : null}
-                      {gaz ? <div>Gaz: <span className="text-white/95">{gaz}</span></div> : null}
-                      {sw ? <div>Światłowód: <span className="text-white/95">{sw}</span></div> : null}
+                    <div className="space-y-2 text-[14px] text-fg/85">
+                      {prad ? <div>Prąd: <span className="text-fg/95">{prad}</span></div> : null}
+                      {woda ? <div>Woda: <span className="text-fg/95">{woda}</span></div> : null}
+                      {kan ? <div>Kanalizacja: <span className="text-fg/95">{kan}</span></div> : null}
+                      {gaz ? <div>Gaz: <span className="text-fg/95">{gaz}</span></div> : null}
+                      {sw ? <div>Światłowód: <span className="text-fg/95">{sw}</span></div> : null}
                     </div>
                   </FieldBlock>
                   <Hr />
@@ -914,7 +914,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {hasDocs ? (
                 <>
                   <FieldBlock label="Dokumenty / plan">
-                    <div className="space-y-2 text-[14px] text-white/85">
+                    <div className="space-y-2 text-[14px] text-fg/85">
                       {d.mpzp ? <div>Obowiązuje MPZP</div> : null}
                       {d.wzWydane ? <div>Wydane warunki zabudowy</div> : null}
                       {d.projektDomu ? <div>Działka posiada projekt domu</div> : null}
@@ -927,10 +927,10 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {(klasaZiemi || wymiary || ksiega) ? (
                 <>
                   <FieldBlock label="Dodatkowe informacje">
-                    <div className="space-y-2 text-[14px] text-white/85">
-                      {klasaZiemi ? <div>Klasa ziemi: <span className="text-white/95">{klasaZiemi}</span></div> : null}
-                      {wymiary ? <div>Wymiary: <span className="text-white/95">{wymiary}</span></div> : null}
-                      {ksiega ? <div>Księga wieczysta: <span className="text-white/95">{ksiega}</span></div> : null}
+                    <div className="space-y-2 text-[14px] text-fg/85">
+                      {klasaZiemi ? <div>Klasa ziemi: <span className="text-fg/95">{klasaZiemi}</span></div> : null}
+                      {wymiary ? <div>Wymiary: <span className="text-fg/95">{wymiary}</span></div> : null}
+                      {ksiega ? <div>Księga wieczysta: <span className="text-fg/95">{ksiega}</span></div> : null}
                     </div>
                   </FieldBlock>
                   <Hr />
@@ -940,9 +940,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {opis ? (
                 <>
                   <div className="py-5 lg:hidden">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Opis</div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Opis</div>
                     <div
-                      className="td-opis mt-4 text-[15px] leading-relaxed text-white/85"
+                      className="td-opis mt-4 text-[15px] leading-relaxed text-fg/85"
                       dangerouslySetInnerHTML={{ __html: opis }}
                     />
                   </div>
@@ -952,16 +952,16 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
               {(loc || showMap || isApproxLocation) ? (
                 <div className="py-5">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Lokalizacja</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Lokalizacja</div>
 
                   {loc ? (
-                    <div className="mt-2 min-w-0 text-white/90 text-[14px] leading-snug whitespace-normal break-words">
+                    <div className="mt-2 min-w-0 text-fg/90 text-[14px] leading-snug whitespace-normal break-words">
                       {loc}
                     </div>
                   ) : null}
 
                   {isApproxLocation ? (
-                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-white/45">
+                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-fg/45">
                      Lokalizacja przybliżona
                    </div>
                   ) : null}
@@ -969,7 +969,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   {naszaMapaHref ? (
                     <Link
                       href={naszaMapaHref}
-                      className="mt-4 inline-flex text-[12px] tracking-[0.18em] uppercase text-white/70 hover:text-white transition underline decoration-white/20 underline-offset-8"
+                      className="mt-4 inline-flex text-[12px] tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition underline decoration-white/20 underline-offset-8"
                     >
                       ZOBACZ NA MAPIE OFERT
                     </Link>
@@ -979,7 +979,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   <Link
     href={naszaMapaHref}
     aria-label="Zobacz tę działkę na mapie ofert"
-    className="group mt-4 block overflow-hidden rounded-3xl bg-[#0f0f0f]/20"
+    className="group mt-4 block overflow-hidden rounded-3xl bg-surface-2/20"
   >
     <div className="relative aspect-video">
       {/* Mapa to tylko podgląd — klik nie ucieka do Google, otwiera naszą mapę ofert. */}
@@ -994,13 +994,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
       {isApproxLocation ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-44 w-44 rounded-full border-2 border-[#7aa333]/70 bg-[#7aa333]/20 shadow-[0_0_60px_rgba(122,163,51,0.28)]" />
+          <div className="h-44 w-44 rounded-full border-2 border-brand/70 bg-brand/20 shadow-[0_0_60px_rgba(122,163,51,0.28)]" />
         </div>
       ) : null}
 
       {/* Sygnał, że podgląd jest klikalny i prowadzi do mapy z ofertami w okolicy. */}
       <div className="pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-90 transition group-hover:opacity-100">
-        <span className="m-3 inline-flex items-center gap-2 rounded-full border border-[#7aa333]/60 bg-[#131313]/90 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white backdrop-blur">
+        <span className="m-3 inline-flex items-center gap-2 rounded-full border border-brand/60 bg-bg/90 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-fg backdrop-blur">
           Zobacz oferty w okolicy
         </span>
       </div>
@@ -1022,7 +1022,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="absolute right-3 top-3 sm:right-4 sm:top-4 z-20 h-10 w-10 rounded-full border border-white/20 bg-black/55 text-white/90 hover:border-white/40 transition flex items-center justify-center"
+                  className="absolute right-3 top-3 sm:right-4 sm:top-4 z-20 h-10 w-10 rounded-full border border-fg/20 bg-black/55 text-fg/90 hover:border-fg/40 transition flex items-center justify-center"
                   aria-label="Zamknij galerię"
                 >
                   <span className="text-[20px] leading-none relative top-[-1px]">×</span>
@@ -1042,7 +1042,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         <button
                           type="button"
                           onClick={prev}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-white border border-white/10"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-fg border border-fg/10"
                           aria-label="Poprzednie"
                         >
                           ‹
@@ -1050,13 +1050,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         <button
                           type="button"
                           onClick={next}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-white border border-white/10"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/40 text-fg border border-fg/10"
                           aria-label="Następne"
                         >
                           ›
                         </button>
 
-                        <div className="absolute right-3 bottom-3 sm:right-4 sm:bottom-4 rounded-full bg-black/45 px-3 py-1 text-xs text-white/80 border border-white/10">
+                        <div className="absolute right-3 bottom-3 sm:right-4 sm:bottom-4 rounded-full bg-black/45 px-3 py-1 text-xs text-fg/80 border border-fg/10">
                           {idx + 1}/{photos.length}
                         </div>
                       </>
@@ -1074,7 +1074,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       onClick={() => setIdx(i)}
                       className={cx(
                         'h-16 w-28 shrink-0 overflow-hidden rounded-2xl border transition',
-                        i === idx ? 'border-white/60' : 'border-white/10 opacity-85 hover:opacity-100'
+                        i === idx ? 'border-fg/60' : 'border-fg/10 opacity-85 hover:opacity-100'
                       )}
                       title={`Zdjęcie ${i + 1}`}
                     >
@@ -1089,12 +1089,12 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       ) : null}
 
             {telefon && telefonHref ? (
-  <div className="fixed bottom-0 left-0 right-0 z-[90] bg-[#131313]/88 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 backdrop-blur-xl md:hidden">
+  <div className="fixed bottom-0 left-0 right-0 z-[90] bg-bg/88 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 backdrop-blur-xl md:hidden">
     <div className="mx-auto grid max-w-[420px] grid-cols-2 gap-2">
       <a
         href={`tel:${telefonHref}`}
         onClick={() => trackContact('phone')}
-        className="flex h-12 items-center justify-center rounded-2xl border border-[#7aa333]/70 bg-[#0f0f0f]/92 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#D8D2DB] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
+        className="flex h-12 items-center justify-center rounded-2xl border border-brand/70 bg-surface-2/92 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/80 shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
       >
         Zadzwoń
       </a>
@@ -1103,7 +1103,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
         <a
           href={smsHref}
           onClick={() => trackContact('message')}
-          className="flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-[#7aa333]/95 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#131313] shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
+          className="flex h-12 items-center justify-center rounded-2xl border border-fg/15 bg-brand/95 text-[12px] font-semibold uppercase tracking-[0.18em] text-ink shadow-[0_0_28px_rgba(0,0,0,0.35)] transition active:scale-[0.98]"
         >
           Napisz
         </a>
@@ -1115,7 +1115,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
       {shareDone ? (
         <div className="fixed inset-x-0 bottom-24 z-[1000] flex justify-center px-4 md:bottom-10">
-          <div className="rounded-full border border-white/15 bg-[#1b1b1b] px-4 py-2 text-[13px] text-white/90 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+          <div className="rounded-full border border-fg/15 bg-surface px-4 py-2 text-[13px] text-fg/90 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
             Skopiowano link do oferty
           </div>
         </div>
@@ -1123,16 +1123,16 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
       {favoriteModalOpen ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 px-4 backdrop-blur-md">
-          <div className="w-full max-w-[480px] rounded-[28px] border border-white/10 bg-[#151515] px-6 py-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
-            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/10 text-[28px] text-[#7aa333]">
+          <div className="w-full max-w-[480px] rounded-[28px] border border-fg/10 bg-surface px-6 py-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/10 text-[28px] text-brand-text">
               ♡
             </div>
 
-            <div className="text-[25px] font-semibold uppercase tracking-[0.13em] text-white">
+            <div className="text-[25px] font-semibold uppercase tracking-[0.13em] text-fg">
               Zapisz ofertę
             </div>
 
-            <p className="mt-5 text-[14px] leading-relaxed text-white/58">
+            <p className="mt-5 text-[14px] leading-relaxed text-fg/58">
               Zaloguj się lub zarejestruj, aby dodać ofertę do ulubionych.
             </p>
 
@@ -1140,14 +1140,14 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               <button
                 type="button"
                 onClick={() => setFavoriteModalOpen(false)}
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.035] px-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-white/75 transition hover:bg-white/[0.06] hover:text-white"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-fg/12 bg-fg/[0.035] px-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/75 transition hover:bg-fg/[0.06] hover:text-fg"
               >
                 Przeglądaj dalej
               </button>
 
               <Link
                 href="/logowanie"
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#7aa333] px-4 text-[12px] font-black uppercase tracking-[0.18em] text-[#101010] transition hover:brightness-110"
+                className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-4 text-[12px] font-black uppercase tracking-[0.18em] text-ink transition hover:brightness-110"
               >
                 Przejdź do logowania
               </Link>

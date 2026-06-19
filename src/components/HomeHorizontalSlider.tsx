@@ -29,7 +29,7 @@ export default function HomeHorizontalSlider({
         <button
           type="button"
           onClick={() => scrollByAmount("left")}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-fg/10 bg-fg/[0.04] text-fg/70 transition hover:border-fg/20 hover:bg-fg/[0.08] hover:text-fg"
           aria-label="Przewiń w lewo"
         >
           ←
@@ -38,7 +38,7 @@ export default function HomeHorizontalSlider({
         <button
           type="button"
           onClick={() => scrollByAmount("right")}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-fg/10 bg-fg/[0.04] text-fg/70 transition hover:border-fg/20 hover:bg-fg/[0.08] hover:text-fg"
           aria-label="Przewiń w prawo"
         >
           →

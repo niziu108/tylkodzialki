@@ -222,7 +222,7 @@ export default function LocationPicker({ value, onChange }: Props) {
         ref={inputRef}
         placeholder="Wpisz miejscowość lub adres…"
         defaultValue={value?.locationLabel ?? ''}
-        className="w-full rounded-xl border border-white/15 bg-black/25 px-4 py-3 text-white outline-none placeholder:text-white/35 focus:border-[#7aa333]/60"
+        className="w-full rounded-xl border border-fg/15 bg-black/25 px-4 py-3 text-fg outline-none placeholder:text-fg/35 focus:border-brand/60"
       />
 
       <div className="flex flex-wrap gap-8">
@@ -235,7 +235,7 @@ export default function LocationPicker({ value, onChange }: Props) {
               type="button"
               onClick={() => setMode(v)}
               aria-pressed={active}
-              className={`text-[15px] font-semibold tracking-tight transition ${active ? 'text-white' : 'text-white/70 hover:text-white'}`}
+              className={`text-[15px] font-semibold tracking-tight transition ${active ? 'text-fg' : 'text-fg/70 hover:text-fg'}`}
               style={{
                 textDecoration: active ? 'underline' : 'none',
                 textUnderlineOffset: '10px',
@@ -251,17 +251,17 @@ export default function LocationPicker({ value, onChange }: Props) {
 
       <input
         placeholder="Numer działki / obręb (opcjonalnie)"
-        className="w-full rounded-xl border border-white/15 bg-black/25 px-4 py-3 text-white outline-none placeholder:text-white/35 focus:border-[#7aa333]/60"
+        className="w-full rounded-xl border border-fg/15 bg-black/25 px-4 py-3 text-fg outline-none placeholder:text-fg/35 focus:border-brand/60"
         value={parcelText}
         onChange={(e) => setParcelText(e.target.value)}
       />
 
-      <div className="overflow-hidden rounded-2xl border border-white/10">
+      <div className="overflow-hidden rounded-2xl border border-fg/10">
         <div ref={mapDivRef} className="h-80 w-full" />
       </div>
 
       {value?.lat != null && value?.lng != null && (
-        <p className="text-xs text-white/45">
+        <p className="text-xs text-fg/45">
           {mode === 'EXACT'
             ? 'Na mapie ogłoszenia pokażemy dokładny punkt.'
             : 'Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}

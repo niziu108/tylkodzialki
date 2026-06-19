@@ -106,7 +106,7 @@ const GREEN = '#7aa333';
 
 function SelectChevron() {
   return (
-    <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-white/55">
+    <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-fg/55">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="16"
@@ -204,7 +204,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
 
   if (!items?.length) {
     return (
-      <div className="rounded-3xl border border-white/12 bg-[#0f0f0f]/20 p-6 text-white/70">
+      <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6 text-fg/70">
         Nie masz jeszcze żadnych ogłoszeń.
       </div>
     );
@@ -212,10 +212,10 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4 md:p-5">
+      <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-4 md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="w-full xl:max-w-md">
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/45">
               Szukaj ogłoszenia
             </label>
 
@@ -224,13 +224,13 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Np. tytuł ogłoszenia, lokalizacja..."
-              className="h-[54px] w-full rounded-2xl border border-white/12 bg-black/20 px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#7aa333]/60 focus:bg-black/30"
+              className="h-[54px] w-full rounded-2xl border border-fg/12 bg-black/20 px-4 text-sm text-fg outline-none transition placeholder:text-fg/35 focus:border-brand/60 focus:bg-black/30"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-end">
             <div className="min-w-[190px]">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/45">
                 Status
               </label>
 
@@ -238,19 +238,19 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as FilterStatus)}
-                  className="h-[54px] w-full appearance-none rounded-2xl border border-white/12 bg-[#161616] px-4 pr-10 text-sm font-medium text-white outline-none transition focus:border-[#7aa333]/60"
+                  className="h-[54px] w-full appearance-none rounded-2xl border border-fg/12 bg-surface px-4 pr-10 text-sm font-medium text-fg outline-none transition focus:border-brand/60"
                   style={{ colorScheme: 'dark' }}
                 >
-                  <option value="all" className="bg-[#161616] text-white">
+                  <option value="all" className="bg-surface text-fg">
                     Wszystkie
                   </option>
-                  <option value="active" className="bg-[#161616] text-white">
+                  <option value="active" className="bg-surface text-fg">
                     Aktywne
                   </option>
-                  <option value="ended" className="bg-[#161616] text-white">
+                  <option value="ended" className="bg-surface text-fg">
                     Zakończone
                   </option>
-                  <option value="featured" className="bg-[#161616] text-white">
+                  <option value="featured" className="bg-surface text-fg">
                     Wyróżnione
                   </option>
                 </select>
@@ -259,7 +259,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
             </div>
 
             <div className="min-w-[250px]">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/45">
                 Sortowanie
               </label>
 
@@ -267,28 +267,28 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortOption)}
-                  className="h-[54px] w-full appearance-none rounded-2xl border border-white/12 bg-[#161616] px-4 pr-10 text-sm font-medium text-white outline-none transition focus:border-[#7aa333]/60"
+                  className="h-[54px] w-full appearance-none rounded-2xl border border-fg/12 bg-surface px-4 pr-10 text-sm font-medium text-fg outline-none transition focus:border-brand/60"
                   style={{ colorScheme: 'dark' }}
                 >
-                  <option value="newest" className="bg-[#161616] text-white">
+                  <option value="newest" className="bg-surface text-fg">
                     Najnowsze
                   </option>
-                  <option value="oldest" className="bg-[#161616] text-white">
+                  <option value="oldest" className="bg-surface text-fg">
                     Najstarsze
                   </option>
-                  <option value="price_high" className="bg-[#161616] text-white">
+                  <option value="price_high" className="bg-surface text-fg">
                     Cena: od najwyższej
                   </option>
-                  <option value="price_low" className="bg-[#161616] text-white">
+                  <option value="price_low" className="bg-surface text-fg">
                     Cena: od najniższej
                   </option>
-                  <option value="area_high" className="bg-[#161616] text-white">
+                  <option value="area_high" className="bg-surface text-fg">
                     Powierzchnia: od największej
                   </option>
-                  <option value="area_low" className="bg-[#161616] text-white">
+                  <option value="area_low" className="bg-surface text-fg">
                     Powierzchnia: od najmniejszej
                   </option>
-                  <option value="expiring" className="bg-[#161616] text-white">
+                  <option value="expiring" className="bg-surface text-fg">
                     Wygasają najszybciej
                   </option>
                 </select>
@@ -298,19 +298,19 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/8 pt-4 text-sm text-white/55">
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-fg/8 pt-4 text-sm text-fg/55">
           <span>
-            Znaleziono: <span className="font-semibold text-white">{filteredItems.length}</span>
+            Znaleziono: <span className="font-semibold text-fg">{filteredItems.length}</span>
           </span>
 
           {query.trim() ? (
-            <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[12px] text-white/70">
+            <span className="inline-flex rounded-full border border-fg/10 bg-fg/[0.04] px-3 py-1 text-[12px] text-fg/70">
               Szukasz: {query}
             </span>
           ) : null}
 
           {status !== 'all' ? (
-            <span className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[12px] text-[#9fd14b]">
+            <span className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] text-brand-bright">
               Filtr aktywny
             </span>
           ) : null}
@@ -318,7 +318,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
       </div>
 
       {!filteredItems.length ? (
-        <div className="rounded-3xl border border-white/12 bg-[#0f0f0f]/20 p-6 text-white/70">
+        <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6 text-fg/70">
           Nie znaleziono ogłoszeń dla wybranych filtrów.
         </div>
       ) : (
@@ -430,10 +430,10 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
       ref={cardRef}
       className={`group flex flex-col overflow-hidden rounded-3xl border transition ${
         effectiveStatus === 'ZAKONCZONE'
-          ? 'border-white/10 bg-[#0f0f0f]/15 opacity-85'
+          ? 'border-fg/10 bg-surface-2/15 opacity-85'
           : isFeaturedActive
-          ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
-          : 'border-white/14 bg-[#0f0f0f]/20 hover:border-white/30'
+          ? 'border-brand/45 bg-surface-2/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-brand/70'
+          : 'border-fg/14 bg-surface-2/20 hover:border-fg/30'
       }`}
     >
       {/* Klikalna oferta: te same elementy co karta na /kup. Karuzela i
@@ -465,7 +465,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
 
       {/* Narzedzia wlasciciela: wyniki, status i akcje. Poza <Link>, zeby
           klik w statystyki lub przyciski nie otwieral oferty. */}
-      <div className="mt-auto border-t border-white/8 px-5 pb-5 pt-5 md:px-6 md:pb-6">
+      <div className="mt-auto border-t border-fg/8 px-5 pb-5 pt-5 md:px-6 md:pb-6">
         <PanelStats
           viewsCount={viewsCount}
           detailViewsCount={detailViewsCount}
@@ -479,9 +479,9 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
 
           {effectiveStatus === 'AKTYWNE' ? (
             isIndefinite ? (
-              <span className="text-white/45">Widoczne bezterminowo</span>
+              <span className="text-fg/45">Widoczne bezterminowo</span>
             ) : (
-              <span className="text-white/45">
+              <span className="text-fg/45">
                 Widoczne do: {formatDatePL(d.expiresAt)}
                 {typeof daysLeft === 'number' && daysLeft >= 0
                   ? ` (${daysLeft} dni)`
@@ -562,7 +562,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
 
           {isFeaturedActive ? (
             <span
-              className="inline-flex min-h-[40px] items-center rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-4 text-[12px] font-semibold text-[#9fd14b]"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-brand/30 bg-brand/12 px-4 text-[12px] font-semibold text-brand-bright"
               title="Ogłoszenie jest aktualnie wyróżnione"
             >
               Wyróżnione do: {formatDatePL(d.featuredUntil)}
@@ -621,10 +621,10 @@ function PanelStats({
   return (
     <div>
       <div className="mb-3 flex items-center gap-3">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fg/40">
           Wyniki ogłoszenia
         </span>
-        <span className="h-px flex-1 bg-white/10" />
+        <span className="h-px flex-1 bg-fg/10" />
       </div>
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -658,17 +658,17 @@ function StatRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between gap-3 border-b border-white/8 pb-2.5 ${
+      className={`flex items-center justify-between gap-3 border-b border-fg/8 pb-2.5 ${
         full ? 'col-span-2' : ''
       }`}
     >
       <div className="min-w-0">
-        <div className="text-[12px] font-medium text-white/80">{label}</div>
-        <div className="text-[10px] leading-tight text-white/35">{hint}</div>
+        <div className="text-[12px] font-medium text-fg/80">{label}</div>
+        <div className="text-[10px] leading-tight text-fg/35">{hint}</div>
       </div>
       <div
         className={`text-[19px] font-semibold leading-none tabular-nums ${
-          accent ? 'text-[#9fd14b]' : 'text-white'
+          accent ? 'text-brand-bright' : 'text-fg'
         }`}
       >
         {formatIntPL(value)}
@@ -717,8 +717,8 @@ function ActionBtnAsLink({
       }}
       className={`inline-flex min-h-[40px] items-center justify-center rounded-full border px-4 text-[12px] font-semibold transition ${
         disabled
-          ? 'border-white/10 bg-white/[0.02] text-white/35'
-          : 'border-white/14 bg-white/[0.03] text-white/80 hover:border-white/28 hover:bg-white/[0.05] hover:text-white'
+          ? 'border-fg/10 bg-fg/[0.02] text-fg/35'
+          : 'border-fg/14 bg-fg/[0.03] text-fg/80 hover:border-fg/28 hover:bg-fg/[0.05] hover:text-fg'
       }`}
     >
       {label}
@@ -756,8 +756,8 @@ function ActionBtn({
         danger
           ? 'border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-400/35 hover:bg-red-500/15'
           : accent
-          ? 'border-[#7aa333]/30 bg-[#7aa333]/12 text-[#9fd14b] hover:border-[#7aa333]/50 hover:bg-[#7aa333]/18'
-          : 'border-white/14 bg-white/[0.03] text-white/80 hover:border-white/28 hover:bg-white/[0.05] hover:text-white'
+          ? 'border-brand/30 bg-brand/12 text-brand-bright hover:border-brand/50 hover:bg-brand/18'
+          : 'border-fg/14 bg-fg/[0.03] text-fg/80 hover:border-fg/28 hover:bg-fg/[0.05] hover:text-fg'
       }`}
     >
       {label}
@@ -846,7 +846,7 @@ function Carousel({
 
   return (
     <div
-      className="relative aspect-[16/10] overflow-hidden bg-white/5 md:aspect-video"
+      className="relative aspect-[16/10] overflow-hidden bg-fg/5 md:aspect-video"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -866,7 +866,7 @@ function Carousel({
 
           {featured ? (
             <div className="absolute left-4 top-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
+              <span className="inline-flex items-center rounded-full border border-brand/35 bg-brand/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
                 WYRÓŻNIONE
               </span>
             </div>
@@ -874,7 +874,7 @@ function Carousel({
 
           {rent ? (
             <div className="absolute bottom-4 left-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
+              <span className="inline-flex items-center rounded-full border border-fg/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-fg shadow-lg backdrop-blur-sm">
                 NA WYNAJEM
               </span>
             </div>
@@ -885,7 +885,7 @@ function Carousel({
               <button
                 type="button"
                 onClick={prev}
-                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-fg opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ‹
               </button>
@@ -893,12 +893,12 @@ function Carousel({
               <button
                 type="button"
                 onClick={next}
-                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-fg opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ›
               </button>
 
-              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-sm">
+              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-fg backdrop-blur-sm">
                 <IconCamera className="h-3.5 w-3.5" />
                 {i + 1}/{list.length}
               </div>
@@ -906,8 +906,8 @@ function Carousel({
           )}
         </>
       ) : (
-        <div className="flex h-full items-center justify-center bg-[#161616]">
-          <span className="text-[12px] tracking-[0.12em] text-white/30">Zdjęcie wkrótce</span>
+        <div className="flex h-full items-center justify-center bg-surface">
+          <span className="text-[12px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
         </div>
       )}
     </div>

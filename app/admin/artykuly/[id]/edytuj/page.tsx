@@ -43,20 +43,20 @@ export default async function EditArticlePage({
   }
 
   return (
-    <main className="min-h-screen bg-[#131313] px-6 py-10 text-[#d9d9d9]">
+    <main className="min-h-screen bg-bg px-6 py-10 text-fg/85">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
           <Link
             href="/admin/artykuly"
-            className="mb-3 inline-flex text-sm text-[#9f9f9f] transition hover:text-white"
+            className="mb-3 inline-flex text-sm text-fg/55 transition hover:text-fg"
           >
             ← Wróć do artykułów
           </Link>
 
-          <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+          <h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
             Edytuj artykuł
           </h1>
-          <p className="mt-2 text-sm text-[#bdbdbd]">
+          <p className="mt-2 text-sm text-fg/70">
             Zmieniaj treść, SEO i status publikacji wpisu.
           </p>
         </div>

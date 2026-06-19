@@ -80,66 +80,66 @@ export default async function AdminArticlesPage({
   ]);
 
   return (
-    <main className="min-h-screen bg-[#131313] px-6 py-10 text-[#d9d9d9]">
+    <main className="min-h-screen bg-bg px-6 py-10 text-fg/85">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <Link
               href="/admin"
-              className="mb-3 inline-flex text-sm text-[#9f9f9f] transition hover:text-white"
+              className="mb-3 inline-flex text-sm text-fg/55 transition hover:text-fg"
             >
               ← Wróć do panelu admina
             </Link>
 
-            <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Artykuły / blog
             </h1>
-            <p className="mt-2 text-sm text-[#bdbdbd]">
+            <p className="mt-2 text-sm text-fg/70">
               Zarządzaj treściami SEO, publikacjami i szkicami.
             </p>
           </div>
 
           <Link
             href="/admin/artykuly/nowy"
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#7aa333] px-5 text-sm font-semibold text-black transition hover:opacity-90"
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-brand px-5 text-sm font-semibold text-black transition hover:opacity-90"
           >
             + Dodaj artykuł
           </Link>
         </div>
 
         <section className="mb-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm text-[#9f9f9f]">Wszystkie artykuły</p>
-            <p className="mt-2 text-3xl font-semibold text-white">{totalCount}</p>
+          <div className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
+            <p className="text-sm text-fg/55">Wszystkie artykuły</p>
+            <p className="mt-2 text-3xl font-semibold text-fg">{totalCount}</p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm text-[#9f9f9f]">Opublikowane</p>
-            <p className="mt-2 text-3xl font-semibold text-[#9fd14b]">
+          <div className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
+            <p className="text-sm text-fg/55">Opublikowane</p>
+            <p className="mt-2 text-3xl font-semibold text-brand-bright">
               {publishedCount}
             </p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm text-[#9f9f9f]">Szkice</p>
-            <p className="mt-2 text-3xl font-semibold text-white">{draftCount}</p>
+          <div className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
+            <p className="text-sm text-fg/55">Szkice</p>
+            <p className="mt-2 text-3xl font-semibold text-fg">{draftCount}</p>
           </div>
         </section>
 
-        <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4">
+        <section className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-4">
           <form className="flex flex-col gap-3 xl:flex-row xl:items-center">
             <input
               type="text"
               name="q"
               defaultValue={q}
               placeholder="Szukaj po tytule lub slugu..."
-              className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
             />
 
             <select
               name="status"
               defaultValue={status}
-              className="h-12 min-w-[200px] rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition focus:border-[#7aa333]/60"
+              className="h-12 min-w-[200px] rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition focus:border-brand/60"
             >
               <option value="all">Wszystkie statusy</option>
               <option value="published">Tylko opublikowane</option>
@@ -149,14 +149,14 @@ export default async function AdminArticlesPage({
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="h-12 rounded-2xl bg-[#7aa333] px-5 text-sm font-semibold text-black transition hover:opacity-90"
+                className="h-12 rounded-2xl bg-brand px-5 text-sm font-semibold text-black transition hover:opacity-90"
               >
                 Filtruj
               </button>
 
               <Link
                 href="/admin/artykuly"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 text-sm font-medium transition hover:bg-white/10"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-medium transition hover:bg-fg/10"
               >
                 Wyczyść
               </Link>
@@ -164,13 +164,13 @@ export default async function AdminArticlesPage({
           </form>
         </section>
 
-        <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+        <section className="overflow-hidden rounded-3xl border border-fg/10 bg-fg/5">
           {articles.length === 0 ? (
             <div className="px-6 py-16 text-center">
-              <p className="text-lg font-medium text-white">
+              <p className="text-lg font-medium text-fg">
                 Brak artykułów pasujących do filtrowania
               </p>
-              <p className="mt-2 text-sm text-[#9f9f9f]">
+              <p className="mt-2 text-sm text-fg/55">
                 Zmień wyszukiwanie albo dodaj nowy wpis.
               </p>
             </div>
@@ -178,7 +178,7 @@ export default async function AdminArticlesPage({
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1180px] text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
+                  <tr className="border-b border-fg/10 text-left text-fg/70">
                     <th className="px-4 py-4 font-medium">Tytuł</th>
                     <th className="px-4 py-4 font-medium">Slug</th>
                     <th className="px-4 py-4 font-medium">Status</th>
@@ -192,20 +192,20 @@ export default async function AdminArticlesPage({
                   {articles.map((article) => (
                     <tr
                       key={article.id}
-                      className="border-b border-white/5 align-top hover:bg-white/[0.03]"
+                      className="border-b border-fg/5 align-top hover:bg-fg/[0.03]"
                     >
                       <td className="px-4 py-4">
                         <div className="max-w-[360px]">
-                          <div className="font-semibold text-white">
+                          <div className="font-semibold text-fg">
                             {article.title}
                           </div>
-                          <div className="mt-1 line-clamp-2 text-xs text-[#8f8f8f]">
+                          <div className="mt-1 line-clamp-2 text-xs text-fg/50">
                             {article.excerpt || "Brak zajawki artykułu."}
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-4 py-4 text-[#bdbdbd]">
+                      <td className="px-4 py-4 text-fg/70">
                         /blog/{article.slug}
                       </td>
 
@@ -213,19 +213,19 @@ export default async function AdminArticlesPage({
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                             article.isPublished
-                              ? "bg-[#7aa333]/20 text-[#9fd14b]"
-                              : "bg-white/10 text-[#d9d9d9]"
+                              ? "bg-brand/20 text-brand-bright"
+                              : "bg-fg/10 text-fg/85"
                           }`}
                         >
                           {article.isPublished ? "Opublikowany" : "Szkic"}
                         </span>
                       </td>
 
-                      <td className="px-4 py-4 text-[#bdbdbd]">
+                      <td className="px-4 py-4 text-fg/70">
                         {article.imageUrl ? "Tak" : "Nie"}
                       </td>
 
-                      <td className="px-4 py-4 text-[#bdbdbd]">
+                      <td className="px-4 py-4 text-fg/70">
                         {new Date(article.createdAt).toLocaleDateString("pl-PL")}
                       </td>
 
@@ -233,7 +233,7 @@ export default async function AdminArticlesPage({
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           <Link
                             href={`/admin/artykuly/${article.id}/edytuj`}
-                            className="inline-flex rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white transition hover:bg-white/10"
+                            className="inline-flex rounded-xl border border-fg/10 bg-fg/5 px-3 py-2 text-xs font-medium text-fg transition hover:bg-fg/10"
                           >
                             Edytuj
                           </Link>
@@ -242,7 +242,7 @@ export default async function AdminArticlesPage({
                             <input type="hidden" name="id" value={article.id} />
                             <button
                               type="submit"
-                              className="inline-flex rounded-xl border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-2 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/20"
+                              className="inline-flex rounded-xl border border-brand/25 bg-brand/10 px-3 py-2 text-xs font-medium text-fg transition hover:border-brand hover:bg-brand/20"
                             >
                               {article.isPublished
                                 ? "Cofnij publikację"
@@ -253,7 +253,7 @@ export default async function AdminArticlesPage({
                           <Link
                             href={`/blog/${article.slug}`}
                             target="_blank"
-                            className="inline-flex rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white transition hover:bg-white/10"
+                            className="inline-flex rounded-xl border border-fg/10 bg-fg/5 px-3 py-2 text-xs font-medium text-fg transition hover:bg-fg/10"
                           >
                             Podgląd
                           </Link>

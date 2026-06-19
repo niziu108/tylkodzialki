@@ -12,7 +12,7 @@ function SprzedajFallback() {
   return (
     <main className="min-h-screen" style={{ background: "#131313", color: "#F3EFF5" }}>
       <div className="flex min-h-screen items-center justify-center px-6">
-        <div className="text-white/60">Ładowanie…</div>
+        <div className="text-fg/60">Ładowanie…</div>
       </div>
     </main>
   );

@@ -15,10 +15,10 @@ const GOALS = [
 // Jawna właściwość border-bottom — globalny reset `input{border:none}` w globals.css
 // kasuje styl ramki, więc samo `border-b` Tailwinda renderowałoby się jako 0px.
 const inputClass =
-  'field-line w-full bg-transparent px-0 pb-2.5 text-[15px] text-white outline-none placeholder:text-white/25';
+  'field-line w-full bg-transparent px-0 pb-2.5 text-[15px] text-fg outline-none placeholder:text-fg/25';
 
 const labelClass =
-  'mb-2 block text-[12px] uppercase tracking-[0.16em] text-white/45';
+  'mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/45';
 
 const EMPTY = {
   agency: '',
@@ -129,7 +129,7 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
       <div className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
         <div>
           <label className={labelClass} htmlFor="email">
-            E-mail <span className="text-[#9fd14b]">*</span>
+            E-mail <span className="text-brand-bright">*</span>
           </label>
           <input
             id="email"
@@ -169,12 +169,12 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
             onChange={set('goal')}
           >
             {GOALS.map((g) => (
-              <option key={g.value} value={g.value} className="bg-[#131313]">
+              <option key={g.value} value={g.value} className="bg-bg">
                 {g.label}
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-white/40">
+          <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-fg/40">
             ▾
           </span>
         </div>
@@ -194,7 +194,7 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
       </div>
 
       {status === 'ok' ? (
-        <p className="rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 py-3 text-sm text-[#9fd14b]">
+        <p className="rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-brand-bright">
           Wiadomość wysłana. Odezwiemy się na podany adres e-mail.
         </p>
       ) : null}
@@ -209,12 +209,12 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
         <button
           type="submit"
           disabled={status === 'sending'}
-          className="inline-flex h-13 items-center justify-center rounded-2xl bg-[#7aa333] px-8 py-4 text-[15px] font-semibold text-[#0d0d0d] transition hover:bg-[#9fd14b] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-13 items-center justify-center rounded-2xl bg-brand px-8 py-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright disabled:cursor-not-allowed disabled:opacity-60"
         >
           {status === 'sending' ? 'Wysyłanie…' : 'Wyślij zapytanie'}
         </button>
 
-        <p className="text-[12px] leading-relaxed text-white/40 sm:max-w-xs">
+        <p className="text-[12px] leading-relaxed text-fg/40 sm:max-w-xs">
           Wysyłając formularz, zgadzasz się na kontakt w sprawie współpracy.
         </p>
       </div>

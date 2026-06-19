@@ -124,7 +124,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
 
   if (state === 'ok' || state === 'exists') {
     return (
-      <div className="flex items-center gap-2 text-[13px] text-[#9fd14b]">
+      <div className="flex items-center gap-2 text-[13px] text-brand-bright">
         <BellIcon />
         <span>{state === 'exists' ? 'Masz już takie powiadomienie.' : 'Powiadomienia włączone.'}</span>
       </div>
@@ -138,16 +138,16 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
           type="button"
           onClick={handleClick}
           disabled={state === 'sending'}
-          className="inline-flex items-center gap-2 text-[13px] font-medium text-white/75 transition hover:text-white disabled:opacity-60"
+          className="inline-flex items-center gap-2 text-[13px] font-medium text-fg/75 transition hover:text-fg disabled:opacity-60"
         >
-          <span className="text-[#9fd14b]">
+          <span className="text-brand-bright">
             <BellIcon />
           </span>
           {state === 'sending' ? 'Włączam…' : 'Powiadom mnie o nowych ofertach'}
         </button>
 
         {/* Kontekst pod przyciskiem (w tym samym miejscu): na mobile zawsze, na desktopie na hover. */}
-        <span className="block pl-6 text-[12px] leading-snug text-white/45 sm:hidden sm:group-hover:block">
+        <span className="block pl-6 text-[12px] leading-snug text-fg/45 sm:hidden sm:group-hover:block">
           {label}
         </span>
 
@@ -158,16 +158,16 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
 
       {loginPromptOpen ? (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/65 px-5 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-white/12 bg-[#131313] p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/12 text-[#9fd14b]">
+          <div className="w-full max-w-md rounded-3xl border border-fg/12 bg-bg p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/12 text-brand-bright">
               <BellIcon className="h-6 w-6" />
             </div>
 
-            <h2 className="mt-5 text-[22px] font-semibold leading-tight text-white">
+            <h2 className="mt-5 text-[22px] font-semibold leading-tight text-fg">
               Powiadomienia o nowych ofertach
             </h2>
 
-            <p className="mt-3 text-sm leading-6 text-white/65">
+            <p className="mt-3 text-sm leading-6 text-fg/65">
               Zaloguj się, aby otrzymywać e-mail, gdy pojawi się nowa działka pasująca do Twoich filtrów.
             </p>
 
@@ -175,7 +175,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
               <button
                 type="button"
                 onClick={() => setLoginPromptOpen(false)}
-                className="h-12 rounded-2xl border border-white/14 bg-transparent px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-white/75 transition hover:border-white/30 hover:text-white"
+                className="h-12 rounded-2xl border border-fg/14 bg-transparent px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/75 transition hover:border-fg/30 hover:text-fg"
               >
                 Może później
               </button>
@@ -183,7 +183,7 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
               <button
                 type="button"
                 onClick={goToLogin}
-                className="h-12 rounded-2xl border border-[#7aa333]/60 bg-[#7aa333] px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#131313] transition hover:bg-[#8dbb3a]"
+                className="h-12 rounded-2xl border border-brand/60 bg-brand px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-ink transition hover:bg-brand-strong"
               >
                 Zaloguj się
               </button>

@@ -59,23 +59,23 @@ export function CardBody({
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             {price ? (
-              <span className={`${compact ? 'text-[19px]' : 'text-[22px]'} font-semibold leading-none text-white`}>
+              <span className={`${compact ? 'text-[19px]' : 'text-[22px]'} font-semibold leading-none text-fg`}>
                 {price}
-                {isRent ? <span className="text-[13px] font-normal text-white/60">/mc</span> : null}
+                {isRent ? <span className="text-[13px] font-normal text-fg/60">/mc</span> : null}
               </span>
             ) : (
-              <span className="rounded-full bg-[#7aa333]/15 px-3 py-1 text-[14px] font-medium leading-none text-[#9fd14b]">
+              <span className="rounded-full bg-brand/15 px-3 py-1 text-[14px] font-medium leading-none text-brand-bright">
                 Zapytaj o cenę
               </span>
             )}
-            {zlM2 ? <span className="text-[13px] leading-none text-white/45">· {formatIntPL(zlM2)} zł/m²</span> : null}
+            {zlM2 ? <span className="text-[13px] leading-none text-fg/45">· {formatIntPL(zlM2)} zł/m²</span> : null}
           </div>
           {heartSlot ? <div className="-mt-1 shrink-0">{heartSlot}</div> : null}
         </div>
 
         {tytul ? (
           <div
-            className={`mt-2 line-clamp-2 font-medium leading-snug text-white/95 ${
+            className={`mt-2 line-clamp-2 font-medium leading-snug text-fg/95 ${
               compact ? 'text-[15px]' : 'text-[16px] md:text-[17px]'
             }`}
           >
@@ -84,32 +84,32 @@ export function CardBody({
         ) : null}
 
         <div
-          className={`flex items-center gap-1.5 text-white/45 ${tytul ? 'mt-2' : 'mt-2.5'} ${
+          className={`flex items-center gap-1.5 text-fg/45 ${tytul ? 'mt-2' : 'mt-2.5'} ${
             compact ? 'text-[13px]' : 'text-[15px]'
           }`}
         >
-          <IconPin className={`${ic} shrink-0 text-white/40`} />
+          <IconPin className={`${ic} shrink-0 text-fg/40`} />
           <span className="truncate">{loc}</span>
         </div>
 
         <div
-          className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-white/90 ${
+          className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-fg/90 ${
             compact ? 'mt-2.5 text-[12px]' : 'mt-3 text-[14px]'
           }`}
         >
           <span className="inline-flex items-center gap-1.5">
-            <IconArea className={`${ic} shrink-0 text-white/75`} />
+            <IconArea className={`${ic} shrink-0 text-fg/75`} />
             {formatIntPL(area)} m²
           </span>
           {przezn && przezn !== '—' ? (
             <span className="inline-flex items-center gap-1.5">
-              <IconLayers className={`${ic} shrink-0 text-white/75`} />
+              <IconLayers className={`${ic} shrink-0 text-fg/75`} />
               {przezn}
             </span>
           ) : null}
           {media ? (
             <span className="inline-flex items-center gap-1.5">
-              <IconPlug className={`${ic} shrink-0 text-white/75`} />
+              <IconPlug className={`${ic} shrink-0 text-fg/75`} />
               {media}
             </span>
           ) : null}
@@ -120,7 +120,7 @@ export function CardBody({
 
       {sellerType ? (
         <div
-          className={`mt-4 flex items-center gap-2.5 border-t border-white/10 pt-3.5 ${
+          className={`mt-4 flex items-center gap-2.5 border-t border-fg/10 pt-3.5 ${
             horizontal ? 'lg:mt-auto' : ''
           }`}
         >
@@ -134,12 +134,12 @@ export function CardBody({
                 loading="lazy"
               />
             ) : (
-              <IconBuilding className="h-4 w-4 shrink-0 text-white/50" />
+              <IconBuilding className="h-4 w-4 shrink-0 text-fg/50" />
             )
           ) : (
-            <IconUser className="h-4 w-4 shrink-0 text-white/50" />
+            <IconUser className="h-4 w-4 shrink-0 text-fg/50" />
           )}
-          <span className="text-[13px] text-white/55">
+          <span className="text-[13px] text-fg/55">
             {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
           </span>
         </div>

@@ -86,15 +86,15 @@ function getInvoiceStatusLabel(status: string) {
 function getInvoiceStatusBadgeClass(status: string) {
   switch (status) {
     case "PAID":
-      return "bg-[#7aa333]/20 text-[#9fd14b]";
+      return "bg-brand/20 text-brand-bright";
     case "PENDING":
-      return "bg-white/10 text-white/70";
+      return "bg-fg/10 text-fg/70";
     case "FAILED":
       return "bg-red-500/15 text-red-300";
     case "REFUNDED":
       return "bg-orange-500/15 text-orange-300";
     default:
-      return "bg-white/10 text-white/70";
+      return "bg-fg/10 text-fg/70";
   }
 }
 
@@ -244,14 +244,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     });
 
   return (
-    <main className="min-h-screen bg-[#131313] px-6 py-10 text-[#d9d9d9]">
+    <main className="min-h-screen bg-bg px-6 py-10 text-fg/85">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
               Panel admina
             </h1>
-            <p className="mt-2 text-sm text-[#bdbdbd]">
+            <p className="mt-2 text-sm text-fg/70">
               Zarządzanie użytkownikami, sprzedażą i treściami tylkodzialki.pl
             </p>
           </div>
@@ -259,32 +259,32 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <div className="flex flex-wrap gap-3">
             <Link
               href="/admin/crm"
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 text-sm font-semibold text-white transition hover:bg-white/10"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-semibold text-fg transition hover:bg-fg/10"
             >
               Monitoring CRM
             </Link>
 
             <Link
               href="/admin/faktury"
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 text-sm font-semibold text-white transition hover:bg-white/10"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-semibold text-fg transition hover:bg-fg/10"
             >
               Faktury
             </Link>
 
             <Link
               href="/admin/artykuly"
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#7aa333] px-5 text-sm font-semibold text-black transition hover:opacity-90"
+              className="inline-flex h-11 items-center justify-center rounded-2xl bg-brand px-5 text-sm font-semibold text-black transition hover:opacity-90"
             >
               Zarządzaj artykułami
             </Link>
           </div>
         </div>
 
-        <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4">
+        <section className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-white">Monetyzacja</h2>
-              <p className="mt-1 text-sm text-[#bdbdbd]">
+              <h2 className="text-lg font-semibold text-fg">Monetyzacja</h2>
+              <p className="mt-1 text-sm text-fg/70">
                 Globalne sterowanie systemem płatnych ogłoszeń.
               </p>
             </div>
@@ -293,8 +293,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <span
                 className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                   config.paymentsEnabled
-                    ? "bg-[#7aa333]/20 text-[#9fd14b]"
-                    : "bg-white/10 text-[#d9d9d9]"
+                    ? "bg-brand/20 text-brand-bright"
+                    : "bg-fg/10 text-fg/85"
                 }`}
               >
                 {config.paymentsEnabled
@@ -307,8 +307,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   type="submit"
                   className={`h-11 rounded-2xl px-5 text-sm font-semibold transition ${
                     config.paymentsEnabled
-                      ? "bg-red-500 text-white hover:bg-red-600"
-                      : "bg-[#7aa333] text-black hover:opacity-90"
+                      ? "bg-red-500 text-fg hover:bg-red-600"
+                      : "bg-brand text-black hover:opacity-90"
                   }`}
                 >
                   {config.paymentsEnabled
@@ -320,12 +320,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
         </section>
 
-        <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
+        <section className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-4 md:p-5">
           <div className="mb-4">
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-fg">
               Cennik pakietów i wyróżnień
             </h2>
-            <p className="mt-1 text-sm text-[#bdbdbd]">
+            <p className="mt-1 text-sm text-fg/70">
               Zmieniasz ceny tutaj, a checkout Stripe pobiera je automatycznie z bazy.
             </p>
           </div>
@@ -338,8 +338,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               ["Wyróżnienie 1", "featuredSinglePrice", config.featuredSinglePriceGrossPln],
               ["Pakiet 3 wyróżnień", "featuredPack3Price", config.featuredPack3PriceGrossPln],
             ].map(([label, name, value]) => (
-              <div key={String(name)} className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <label className="mb-2 block text-sm font-medium text-white">
+              <div key={String(name)} className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+                <label className="mb-2 block text-sm font-medium text-fg">
                   {label}
                 </label>
                 <input
@@ -348,7 +348,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   min="1"
                   step="0.01"
                   defaultValue={formatPlnFromGrosze(Number(value))}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none focus:border-[#7aa333]/60"
+                  className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none focus:border-brand/60"
                 />
               </div>
             ))}
@@ -356,7 +356,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <div className="flex items-end">
               <button
                 type="submit"
-                className="h-12 w-full rounded-2xl bg-[#7aa333] px-5 text-sm font-semibold text-black transition hover:opacity-90"
+                className="h-12 w-full rounded-2xl bg-brand px-5 text-sm font-semibold text-black transition hover:opacity-90"
               >
                 Zapisz ceny
               </button>
@@ -364,24 +364,24 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </form>
         </section>
 
-        <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
+        <section className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-4 md:p-5">
           <div className="mb-4">
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-fg">
               Maile / komunikacja
             </h2>
-            <p className="mt-1 text-sm text-[#bdbdbd]">
+            <p className="mt-1 text-sm text-fg/70">
               Napisz własną wiadomość, wybierz odbiorców, sprawdź podgląd i wyślij ręcznie.
             </p>
           </div>
 
           {mailSent === "test" && (
-            <div className="mb-4 rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 py-3 text-sm text-[#dff2b2]">
+            <div className="mb-4 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-[#dff2b2]">
               Testowy mail został wysłany poprawnie.
             </div>
           )}
 
           {mailSent === "all" && (
-            <div className="mb-4 rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 py-3 text-sm text-[#dff2b2]">
+            <div className="mb-4 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-[#dff2b2]">
               Wysyłka zakończona. Wysłano: <strong>{sentCount}</strong>, błędy:{" "}
               <strong>{failedCount}</strong>.
             </div>
@@ -396,39 +396,39 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <AdminMailComposer />
         </section>
 
-        <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
+        <section className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-4 md:p-5">
           <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">
+              <h2 className="text-xl font-semibold text-fg">
                 Artykuły / blog
               </h2>
-              <p className="mt-1 text-sm text-[#bdbdbd]">
+              <p className="mt-1 text-sm text-fg/70">
                 Treści pod SEO, ekspercki blog i ruch z Google.
               </p>
             </div>
 
             <Link
               href="/admin/artykuly"
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-5 text-sm font-semibold text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10 px-5 text-sm font-semibold text-fg transition hover:border-brand hover:bg-brand/15"
             >
               Przejdź do artykułów
             </Link>
           </div>
 
           {articles.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-5 py-8 text-sm text-[#9f9f9f]">
+            <div className="rounded-2xl border border-dashed border-fg/10 bg-black/20 px-5 py-8 text-sm text-fg/55">
               Nie masz jeszcze żadnych artykułów. Dodaj pierwszy wpis i zacznij budować SEO portalu.
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {articles.map((article) => (
-                <div key={article.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div key={article.id} className="rounded-2xl border border-fg/10 bg-black/20 p-4">
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="line-clamp-2 text-base font-semibold text-white">
+                      <h3 className="line-clamp-2 text-base font-semibold text-fg">
                         {article.title}
                       </h3>
-                      <p className="mt-1 text-xs text-[#8f8f8f]">
+                      <p className="mt-1 text-xs text-fg/50">
                         /blog/{article.slug}
                       </p>
                     </div>
@@ -436,24 +436,24 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <span
                       className={`inline-flex shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${
                         article.isPublished
-                          ? "bg-[#7aa333]/20 text-[#9fd14b]"
-                          : "bg-white/10 text-[#d9d9d9]"
+                          ? "bg-brand/20 text-brand-bright"
+                          : "bg-fg/10 text-fg/85"
                       }`}
                     >
                       {article.isPublished ? "Opublikowany" : "Szkic"}
                     </span>
                   </div>
 
-                  <p className="line-clamp-3 text-sm text-[#bdbdbd]">
+                  <p className="line-clamp-3 text-sm text-fg/70">
                     {article.excerpt || "Brak zajawki artykułu."}
                   </p>
 
-                  <div className="mt-4 flex items-center justify-between text-xs text-[#8f8f8f]">
+                  <div className="mt-4 flex items-center justify-between text-xs text-fg/50">
                     <span>{new Date(article.createdAt).toLocaleDateString("pl-PL")}</span>
 
                     <Link
                       href="/admin/artykuly"
-                      className="font-semibold text-white transition hover:text-[#9fd14b]"
+                      className="font-semibold text-fg transition hover:text-brand-bright"
                     >
                       Zarządzaj →
                     </Link>
@@ -464,53 +464,53 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           )}
         </section>
 
-        <div className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4">
+        <div className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-4">
           <form className="flex flex-col gap-3 md:flex-row md:items-center">
             <input
               type="text"
               name="q"
               defaultValue={q}
               placeholder="Szukaj po mailu lub imieniu..."
-              className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+              className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
             />
 
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="h-12 rounded-2xl bg-[#7aa333] px-5 text-sm font-semibold text-black transition hover:opacity-90"
+                className="h-12 rounded-2xl bg-brand px-5 text-sm font-semibold text-black transition hover:opacity-90"
               >
                 Szukaj
               </button>
 
               <a
                 href="/admin"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 text-sm font-medium transition hover:bg-white/10"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-medium transition hover:bg-fg/10"
               >
                 Wyczyść
               </a>
             </div>
           </form>
 
-          <div className="mt-3 text-sm text-[#bdbdbd]">
+          <div className="mt-3 text-sm text-fg/70">
             {q ? (
               <>
-                Wyniki dla: <span className="text-white">„{q}”</span> —
-                znaleziono <span className="text-white">{usersWithStats.length}</span>
+                Wyniki dla: <span className="text-fg">„{q}”</span> —
+                znaleziono <span className="text-fg">{usersWithStats.length}</span>
               </>
             ) : (
               <>
                 Wszystkich użytkowników:{" "}
-                <span className="text-white">{usersWithStats.length}</span>
+                <span className="text-fg">{usersWithStats.length}</span>
               </>
             )}
           </div>
         </div>
 
-        <div className="mb-8 rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
+        <div className="mb-8 rounded-3xl border border-fg/10 bg-fg/5 backdrop-blur">
           <div className="max-h-[72vh] overflow-auto overscroll-contain rounded-3xl">
             <table className="w-full min-w-[1980px] text-sm">
-              <thead className="sticky top-0 z-20 bg-[#1b1b1b] shadow-[0_1px_0_rgba(255,255,255,0.08)]">
-                <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
+              <thead className="sticky top-0 z-20 bg-surface shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+                <tr className="border-b border-fg/10 text-left text-fg/70">
                   <th className="px-4 py-4 font-medium">Email</th>
                   <th className="px-4 py-4 font-medium">Telefon</th>
                   <th className="px-4 py-4 font-medium">CRM</th>
@@ -531,15 +531,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <tbody>
                 {usersWithStats.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-[#9f9f9f]">
+                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-fg/55">
                       Brak użytkowników pasujących do wyszukiwania.
                     </td>
                   </tr>
                 ) : (
                   usersWithStats.map((user) => (
-                    <tr key={user.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                    <tr key={user.id} className="border-b border-fg/5 hover:bg-fg/[0.03]">
                       <td className="px-4 py-4 align-middle">
-                        <div className="font-medium text-[#f3f3f3]">
+                        <div className="font-medium text-fg">
                           {user.email || "Brak emaila"}
                         </div>
                       </td>
@@ -548,12 +548,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         {user.phoneFromListings ? (
                           <a
                             href={`tel:${user.phoneFromListings}`}
-                            className="font-medium text-white transition hover:text-[#9fd14b]"
+                            className="font-medium text-fg transition hover:text-brand-bright"
                           >
                             {user.phoneFromListings}
                           </a>
                         ) : (
-                          <span className="text-[#8f8f8f]">—</span>
+                          <span className="text-fg/50">—</span>
                         )}
                       </td>
 
@@ -562,27 +562,27 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                               user.crmIntegration.isActive
-                                ? "bg-[#7aa333]/20 text-[#9fd14b]"
+                                ? "bg-brand/20 text-brand-bright"
                                 : "bg-red-500/15 text-red-300"
                             }`}
                           >
                             {user.crmIntegration.isActive ? "Aktywna" : "Wyłączona"}
                           </span>
                         ) : (
-                          <span className="text-[#8f8f8f]">Brak</span>
+                          <span className="text-fg/50">Brak</span>
                         )}
                       </td>
 
                       <td className="px-4 py-4 align-middle">
-                        <span className="font-semibold text-white">{user._count.dzialki}</span>
+                        <span className="font-semibold text-fg">{user._count.dzialki}</span>
                       </td>
 
                       <td className="px-4 py-4 align-middle">
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                             user.activeListings > 0
-                              ? "bg-[#7aa333]/20 text-[#9fd14b]"
-                              : "bg-white/10 text-[#bdbdbd]"
+                              ? "bg-brand/20 text-brand-bright"
+                              : "bg-fg/10 text-fg/70"
                           }`}
                         >
                           {user.activeListings}
@@ -592,7 +592,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <td className="px-4 py-4 align-middle">
                         <form
                           action={saveUserAgencyLogoAction}
-                          className="flex min-w-[360px] flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-3"
+                          className="flex min-w-[360px] flex-col gap-2 rounded-2xl border border-fg/10 bg-black/20 p-3"
                         >
                           <input type="hidden" name="userId" value={user.id} />
 
@@ -601,14 +601,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             name="logoUrl"
                             defaultValue={user.defaultBiuroLogoUrl || ""}
                             placeholder="URL logo albo wgraj plik poniżej"
-                            className="h-10 w-full rounded-xl border border-white/10 bg-[#1b1b1b] px-3 text-xs text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+                            className="h-10 w-full rounded-xl border border-fg/10 bg-surface px-3 text-xs text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
                           />
 
                           <input
                             type="file"
                             name="logoFile"
                             accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                            className="block w-full text-xs text-[#bdbdbd] file:mr-3 file:h-10 file:rounded-xl file:border-0 file:bg-white/10 file:px-3 file:text-xs file:font-semibold file:text-white hover:file:bg-white/15"
+                            className="block w-full text-xs text-fg/70 file:mr-3 file:h-10 file:rounded-xl file:border-0 file:bg-fg/10 file:px-3 file:text-xs file:font-semibold file:text-fg hover:file:bg-fg/15"
                           />
 
                           <div className="flex items-center justify-between gap-2">
@@ -617,14 +617,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                 type="checkbox"
                                 name="removeLogo"
                                 value="1"
-                                className="h-4 w-4 accent-[#7aa333]"
+                                className="h-4 w-4 accent-brand"
                               />
                               Usuń logo
                             </label>
 
                             <button
                               type="submit"
-                              className="h-10 shrink-0 rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                              className="h-10 shrink-0 rounded-xl border border-brand/30 bg-brand/10 px-4 text-xs font-medium text-fg transition hover:border-brand hover:bg-brand/15"
                             >
                               Zapisz
                             </button>
@@ -632,7 +632,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         </form>
 
                         {user.defaultBiuroLogoUrl ? (
-                          <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-2">
+                          <div className="mt-2 rounded-xl border border-fg/10 bg-fg/5 p-2">
                             <img
                               src={user.defaultBiuroLogoUrl}
                               alt="Logo biura"
@@ -642,23 +642,23 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         ) : null}
                       </td>
 
-                      <td className="px-4 py-4 align-middle font-semibold text-white">
+                      <td className="px-4 py-4 align-middle font-semibold text-fg">
                         {user.totalViews}
                       </td>
 
-                      <td className="px-4 py-4 align-middle font-semibold text-white">
+                      <td className="px-4 py-4 align-middle font-semibold text-fg">
                         {user.totalDetailViews}
                       </td>
 
-                      <td className="px-4 py-4 align-middle font-semibold text-[#9fd14b]">
+                      <td className="px-4 py-4 align-middle font-semibold text-brand-bright">
                         {user.totalPhoneClicks}
                       </td>
 
-                      <td className="px-4 py-4 align-middle font-semibold text-[#9fd14b]">
+                      <td className="px-4 py-4 align-middle font-semibold text-brand-bright">
                         {user.totalMessageClicks}
                       </td>
 
-                      <td className="px-4 py-4 align-middle font-semibold text-white">
+                      <td className="px-4 py-4 align-middle font-semibold text-fg">
                         {user.totalFavorites}
                       </td>
 
@@ -667,7 +667,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <td className="px-4 py-4 align-middle">
                         <Link
                           href={`/admin/crm/${user.id}`}
-                          className="inline-flex h-11 min-w-[138px] items-center justify-center rounded-2xl border border-[#7aa333]/35 bg-[#7aa333]/10 px-4 text-xs font-semibold text-white shadow-[0_0_18px_rgba(122,163,51,0.08)] transition hover:border-[#9fd14b]/70 hover:bg-[#7aa333]/20 hover:text-[#f3ffd7]"
+                          className="inline-flex h-11 min-w-[138px] items-center justify-center rounded-2xl border border-brand/35 bg-brand/10 px-4 text-xs font-semibold text-fg shadow-[0_0_18px_rgba(122,163,51,0.08)] transition hover:border-brand-bright/70 hover:bg-brand/20 hover:text-[#f3ffd7]"
                         >
                           Konfiguruj CRM
                         </Link>
@@ -684,34 +684,34 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
         </div>
 
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
+        <section className="rounded-3xl border border-fg/10 bg-fg/5 p-4 md:p-5">
           <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">
+              <h2 className="text-xl font-semibold text-fg">
                 Faktury i sprzedaż
               </h2>
-              <p className="mt-1 text-sm text-[#bdbdbd]">
+              <p className="mt-1 text-sm text-fg/70">
                 Ostatnie dokumenty sprzedażowe wygenerowane w systemie.
               </p>
             </div>
 
             <Link
               href="/admin/faktury"
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-5 text-sm font-semibold text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10 px-5 text-sm font-semibold text-fg transition hover:border-brand hover:bg-brand/15"
             >
               Zobacz wszystkie faktury
             </Link>
           </div>
 
           {invoices.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-10 text-center text-sm text-[#9f9f9f]">
+            <div className="rounded-2xl border border-fg/10 bg-black/20 px-5 py-10 text-center text-sm text-fg/55">
               Brak faktur w systemie.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/20">
+            <div className="overflow-x-auto rounded-2xl border border-fg/10 bg-black/20">
               <table className="w-full min-w-[1360px] text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
+                  <tr className="border-b border-fg/10 text-left text-fg/70">
                     <th className="px-4 py-4 font-medium">Numer</th>
                     <th className="px-4 py-4 font-medium">Typ</th>
                     <th className="px-4 py-4 font-medium">Kwota</th>
@@ -728,16 +728,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                 <tbody>
                   {invoices.map((invoice) => (
-                    <tr key={invoice.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                      <td className="px-4 py-4 font-medium text-white">
+                    <tr key={invoice.id} className="border-b border-fg/5 hover:bg-fg/[0.03]">
+                      <td className="px-4 py-4 font-medium text-fg">
                         {invoice.invoiceNumber || "—"}
                       </td>
 
-                      <td className="px-4 py-4 text-white/80">
+                      <td className="px-4 py-4 text-fg/80">
                         {getInvoiceTypeLabel(invoice.type)}
                       </td>
 
-                      <td className="px-4 py-4 text-white/80">
+                      <td className="px-4 py-4 text-fg/80">
                         {(invoice.amountGross / 100).toFixed(2)} {invoice.currency}
                       </td>
 
@@ -751,32 +751,32 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         </span>
                       </td>
 
-                      <td className="px-4 py-4 text-white/80">
+                      <td className="px-4 py-4 text-fg/80">
                         {invoice.buyerType === "COMPANY"
                           ? invoice.companyName || "Faktura firmowa"
                           : invoice.buyerName || invoice.invoiceEmail || "Osoba prywatna"}
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">
+                      <td className="px-4 py-4 text-fg/70">
                         {invoice.invoiceEmail || "—"}
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">
+                      <td className="px-4 py-4 text-fg/70">
                         {invoice.user?.email || "—"}
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">
+                      <td className="px-4 py-4 text-fg/70">
                         {new Date(invoice.issuedAt || invoice.createdAt).toLocaleDateString("pl-PL")}
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">{invoice.source}</td>
+                      <td className="px-4 py-4 text-fg/70">{invoice.source}</td>
 
-                      <td className="px-4 py-4 text-white/70">
+                      <td className="px-4 py-4 text-fg/70">
                         <a
                           href={`/api/invoices/${invoice.id}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex rounded-full border border-[#7aa333]/35 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-[#7aa333] hover:bg-white/[0.04]"
+                          className="inline-flex rounded-full border border-brand/35 px-3 py-1.5 text-xs font-semibold text-fg transition hover:border-brand hover:bg-fg/[0.04]"
                         >
                           PDF
                         </a>
@@ -785,7 +785,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <td className="px-4 py-4 text-right">
                         <Link
                           href={`/admin/faktury/${invoice.id}`}
-                          className="inline-flex rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/[0.04]"
+                          className="inline-flex rounded-full border border-fg/10 px-3 py-1.5 text-xs font-semibold text-fg transition hover:bg-fg/[0.04]"
                         >
                           Szczegóły
                         </Link>

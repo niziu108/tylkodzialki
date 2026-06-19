@@ -1,10 +1,20 @@
 let loadingPromise: Promise<void> | null = null;
 
+/**
+ * Jedyna ładowarka Google Maps JS API w całym portalu (mapa /kup + autocomplete
+ * lokalizacji w KupSearch i HeroSearchBar). Ładuje też `libraries=places`, więc
+ * obsługuje zarówno mapę, jak i Autocomplete/Geocoder. Wszystko musi przechodzić
+ * przez tę funkcję — inaczej skrypt doklei się drugi raz i Google rzuci
+ * „You have included the Google Maps JavaScript API multiple times on this page".
+ *
+ * Strażnik jest podwójny: `window.google?.maps` (już załadowane) oraz marker
+ * `data-google-maps="1"` na tagu <script> (skrypt już doklejony, np. po nawigacji
+ * client-side, gdy DOM przeżył, a stan modułu się zresetował).
+ */
 export function loadGoogleMaps(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
 
   // już jest
-  // @ts-ignore
   if (window.google?.maps) return Promise.resolve();
 
   if (loadingPromise) return loadingPromise;
@@ -15,10 +25,21 @@ export function loadGoogleMaps(): Promise<void> {
   }
 
   loadingPromise = new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector('script[data-google-maps="1"]');
+    // Skrypt już w DOM (poprzednia instancja modułu / nawigacja client-side),
+    // ale API jeszcze się nie wczytało — poczekaj na jego load zamiast od razu
+    // rozwiązywać promise (inaczej konsument użyłby google.maps zanim będzie gotowe).
+    const existing = document.querySelector<HTMLScriptElement>('script[data-google-maps="1"]');
     if (existing) {
-      existing.addEventListener('load', () => resolve());
-      resolve();
+      if (window.google?.maps) {
+        resolve();
+        return;
+      }
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener(
+        'error',
+        () => reject(new Error('Nie udało się załadować Google Maps JS')),
+        { once: true },
+      );
       return;
     }
 
@@ -26,7 +47,7 @@ export function loadGoogleMaps(): Promise<void> {
     script.dataset.googleMaps = '1';
     script.async = true;
     script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&v=weekly`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&language=pl&v=weekly`;
 
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Nie udało się załadować Google Maps JS'));

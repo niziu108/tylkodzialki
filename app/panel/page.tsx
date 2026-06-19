@@ -47,15 +47,15 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
   if (!email) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#131313] px-6 text-white">
-        <div className="rounded-3xl border border-white/10 bg-white/5 px-8 py-10 text-center">
-          <div className="text-xl font-semibold text-white">Brak dostępu</div>
-          <div className="mt-2 text-white/70">
+      <main className="flex min-h-screen items-center justify-center bg-bg px-6 text-fg">
+        <div className="rounded-3xl border border-fg/10 bg-fg/5 px-8 py-10 text-center">
+          <div className="text-xl font-semibold text-fg">Brak dostępu</div>
+          <div className="mt-2 text-fg/70">
             Zaloguj się, aby przejść do panelu klienta.
           </div>
           <Link
             href="/logowanie"
-            className="mt-6 inline-flex rounded-full bg-[#7aa333] px-6 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+            className="mt-6 inline-flex rounded-full bg-brand px-6 py-3 text-sm font-semibold text-black transition hover:opacity-90"
           >
             Przejdź do logowania
           </Link>
@@ -73,8 +73,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
   if (!rawUser?.id) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#131313] px-6 text-white">
-        <div className="rounded-3xl border border-white/10 bg-white/5 px-8 py-10 text-center text-white/80">
+      <main className="flex min-h-screen items-center justify-center bg-bg px-6 text-fg">
+        <div className="rounded-3xl border border-fg/10 bg-fg/5 px-8 py-10 text-center text-fg/80">
           Nie znaleziono użytkownika w bazie.
         </div>
       </main>
@@ -269,23 +269,23 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
       : 0;
 
   return (
-    <main className="min-h-screen bg-[#131313] text-[#d9d9d9]">
+    <main className="min-h-screen bg-bg text-fg/85">
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-8">
         <div className="mb-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9fd14b]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-bright">
                 Panel klienta
               </div>
-              <div className="mt-2 h-px w-12 bg-[#7aa333]/55" />
+              <div className="mt-2 h-px w-12 bg-brand/55" />
 
-              <div className="mt-4 text-[28px] font-semibold leading-tight text-white md:text-[34px]">
+              <div className="mt-4 text-[28px] font-semibold leading-tight text-fg md:text-[34px]">
                 {user.name || "Panel użytkownika"}
               </div>
 
-              <div className="mt-2 text-sm text-white/55">
+              <div className="mt-2 text-sm text-fg/55">
                 {user.email ? (
-                  <span className="truncate text-white/60">{user.email}</span>
+                  <span className="truncate text-fg/60">{user.email}</span>
                 ) : null}
               </div>
             </div>
@@ -302,7 +302,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               {paymentsEnabled ? (
                 <Link
                   href="/panel/pakiety"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-white/14 bg-white/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition hover:border-white/28 hover:bg-white/[0.05]"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-fg/14 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-fg/28 hover:bg-fg/[0.05]"
                 >
                   Kup pakiet
                 </Link>
@@ -310,57 +310,57 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
               <Link
                 href="/panel/wyroznienia"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#7aa333]/35 bg-white/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition hover:border-[#7aa333]/60 hover:bg-white/[0.05]"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-brand/35 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-brand/60 hover:bg-fg/[0.05]"
               >
                 Kup wyróżnienie
               </Link>
             </div>
           </div>
 
-          <div className="mt-7 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-white/10 pt-6 sm:grid-cols-4">
+          <div className="mt-7 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-fg/10 pt-6 sm:grid-cols-4">
             <div>
               <div className="flex min-h-[34px] items-end">
-                <span className="text-[28px] font-semibold leading-none text-[#9fd14b]">
+                <span className="text-[28px] font-semibold leading-none text-brand-bright">
                   {activeCount}
                 </span>
               </div>
-              <div className="mt-3 inline-block whitespace-nowrap border-b border-[#7aa333]/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]/80">
+              <div className="mt-3 inline-block whitespace-nowrap border-b border-brand/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-bright/80">
                 Aktywne oferty
               </div>
             </div>
 
             <div>
               <div className="flex min-h-[34px] items-end gap-2">
-                <span className="text-[28px] font-semibold leading-none text-white">
+                <span className="text-[28px] font-semibold leading-none text-fg">
                   {paymentsEnabled ? user.listingCredits : "∞"}
                 </span>
                 {!paymentsEnabled ? (
-                  <span className="text-[11px] leading-none text-[#9fd14b]">bez limitu</span>
+                  <span className="text-[11px] leading-none text-brand-bright">bez limitu</span>
                 ) : null}
               </div>
-              <div className="mt-3 inline-block border-b border-white/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/45">
                 Publikacje
               </div>
             </div>
 
             <div>
               <div className="flex min-h-[34px] items-end">
-                <span className="text-[28px] font-semibold leading-none text-white">
+                <span className="text-[28px] font-semibold leading-none text-fg">
                   {user.featuredCredits}
                 </span>
               </div>
-              <div className="mt-3 inline-block border-b border-white/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/45">
                 Wyróżnienia
               </div>
             </div>
 
             <div>
               <div className="flex min-h-[34px] items-end">
-                <span className="text-[19px] font-medium leading-none text-white/90 md:text-[21px]">
+                <span className="text-[19px] font-medium leading-none text-fg/90 md:text-[21px]">
                   {formatDatePL(user.createdAt)}
                 </span>
               </div>
-              <div className="mt-3 inline-block border-b border-white/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/45">
                 Konto od
               </div>
             </div>
@@ -371,15 +371,15 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           <AutoFeaturedAfterPurchase dzialkaId={autoFeaturedDzialkaId} />
         ) : null}
 
-        <div className="mb-8 border-b border-white/12">
+        <div className="mb-8 border-b border-fg/12">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="flex flex-wrap gap-7 text-[15px] md:text-[16px]">
               <Link
                 href="/panel"
                 className={`pb-4 transition ${
                   activeTab === "ogloszenia"
-                    ? "border-b-2 border-[#7aa333] text-white"
-                    : "text-white/68 hover:text-white"
+                    ? "border-b-2 border-brand text-fg"
+                    : "text-fg/68 hover:text-fg"
                 }`}
               >
                 Twoje ogłoszenia
@@ -389,8 +389,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 href="/panel?tab=faktury"
                 className={`pb-4 transition ${
                   activeTab === "faktury"
-                    ? "border-b-2 border-[#7aa333] text-white"
-                    : "text-white/68 hover:text-white"
+                    ? "border-b-2 border-brand text-fg"
+                    : "text-fg/68 hover:text-fg"
                 }`}
               >
                 Faktury
@@ -400,8 +400,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 href="/panel?tab=crm"
                 className={`pb-4 transition ${
                   activeTab === "crm"
-                    ? "border-b-2 border-[#7aa333] text-white"
-                    : "text-white/68 hover:text-white"
+                    ? "border-b-2 border-brand text-fg"
+                    : "text-fg/68 hover:text-fg"
                 }`}
               >
                 Integracje CRM
@@ -411,8 +411,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 href="/panel?tab=alerty"
                 className={`pb-4 transition ${
                   activeTab === "alerty"
-                    ? "border-b-2 border-[#7aa333] text-white"
-                    : "text-white/68 hover:text-white"
+                    ? "border-b-2 border-brand text-fg"
+                    : "text-fg/68 hover:text-fg"
                 }`}
               >
                 Alerty
@@ -420,12 +420,12 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             </div>
 
             {activeTab === "ogloszenia" ? (
-              <div className="flex flex-wrap gap-4 pb-4 text-sm text-white/50">
+              <div className="flex flex-wrap gap-4 pb-4 text-sm text-fg/50">
                 <div>
-                  Ogłoszenia: <span className="text-white">{items.length}</span>
+                  Ogłoszenia: <span className="text-fg">{items.length}</span>
                 </div>
                 <div>
-                  Aktywne: <span className="text-[#7aa333]">{activeCount}</span>
+                  Aktywne: <span className="text-brand-text">{activeCount}</span>
                 </div>
                 <div>
                   Zakończone: <span className="text-red-300">{endedCount}</span>
@@ -438,7 +438,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
         {activeTab === "ogloszenia" ? (
           <>
             <div className="mb-5 flex items-center justify-between gap-4">
-              <div className="text-[19px] font-medium text-white">
+              <div className="text-[19px] font-medium text-fg">
                 Twoje ogłoszenia
               </div>
             </div>
@@ -447,17 +447,17 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           </>
         ) : activeTab === "faktury" ? (
           <>
-            <div className="mb-5 text-[19px] font-medium text-white">
+            <div className="mb-5 text-[19px] font-medium text-fg">
               Faktury
             </div>
 
             {invoices.length === 0 ? (
-              <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 md:p-10">
+              <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
                 <div className="max-w-2xl">
-                  <h2 className="text-xl font-semibold text-white">
+                  <h2 className="text-xl font-semibold text-fg">
                     Brak faktur
                   </h2>
-                  <p className="mt-3 leading-7 text-white/65">
+                  <p className="mt-3 leading-7 text-fg/65">
                     Nie masz jeszcze żadnych dokumentów. Gdy kupisz pakiet lub
                     wyróżnienie, pojawią się właśnie tutaj.
                   </p>
@@ -466,7 +466,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                     {paymentsEnabled ? (
                       <Link
                         href="/panel/pakiety"
-                        className="inline-flex rounded-full border border-[#7aa333]/50 px-5 py-3 text-sm font-semibold text-white transition hover:border-[#7aa333]"
+                        className="inline-flex rounded-full border border-brand/50 px-5 py-3 text-sm font-semibold text-fg transition hover:border-brand"
                       >
                         Zobacz pakiety
                       </Link>
@@ -474,7 +474,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
                     <Link
                       href="/panel/wyroznienia"
-                      className="inline-flex rounded-full border border-[#7aa333]/50 px-5 py-3 text-sm font-semibold text-white transition hover:border-[#7aa333]"
+                      className="inline-flex rounded-full border border-brand/50 px-5 py-3 text-sm font-semibold text-fg transition hover:border-brand"
                     >
                       Zobacz wyróżnienia
                     </Link>
@@ -482,11 +482,11 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 </div>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03]">
+              <div className="overflow-hidden rounded-[28px] border border-fg/10 bg-fg/[0.03]">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[920px] text-sm">
                     <thead>
-                      <tr className="border-b border-white/10 text-left text-white/50">
+                      <tr className="border-b border-fg/10 text-left text-fg/50">
                         <th className="px-5 py-4 font-medium">Numer</th>
                         <th className="px-5 py-4 font-medium">Typ</th>
                         <th className="px-5 py-4 font-medium">Kwota</th>
@@ -500,17 +500,17 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                       {invoices.map((invoice) => (
                         <tr
                           key={invoice.id}
-                          className="border-b border-white/5 hover:bg-white/[0.03]"
+                          className="border-b border-fg/5 hover:bg-fg/[0.03]"
                         >
-                          <td className="px-5 py-4 font-medium text-white">
+                          <td className="px-5 py-4 font-medium text-fg">
                             {invoice.invoiceNumber || "—"}
                           </td>
-                          <td className="px-5 py-4 text-white/80">
+                          <td className="px-5 py-4 text-fg/80">
                             {invoice.type === "FEATURED_PACKAGE"
                               ? "Wyróżnienie"
                               : "Pakiet publikacji"}
                           </td>
-                          <td className="px-5 py-4 text-white/80">
+                          <td className="px-5 py-4 text-fg/80">
                             {(invoice.amountGross / 100).toFixed(2)}{" "}
                             {invoice.currency}
                           </td>
@@ -518,9 +518,9 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                             <span
                               className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
                                 invoice.status === "PAID"
-                                  ? "bg-[#7aa333]/20 text-[#9fd14b]"
+                                  ? "bg-brand/20 text-brand-bright"
                                   : invoice.status === "PENDING"
-                                  ? "bg-white/10 text-white/70"
+                                  ? "bg-fg/10 text-fg/70"
                                   : "bg-red-500/15 text-red-300"
                               }`}
                             >
@@ -531,22 +531,22 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                                 : "Błąd"}
                             </span>
                           </td>
-                          <td className="px-5 py-4 text-white/70">
+                          <td className="px-5 py-4 text-fg/70">
                             {new Date(
                               invoice.issuedAt || invoice.createdAt
                             ).toLocaleDateString("pl-PL")}
                           </td>
-                          <td className="px-5 py-4 text-white/70">
+                          <td className="px-5 py-4 text-fg/70">
                             {invoice.buyerType === "COMPANY"
                               ? invoice.companyName || "Faktura firmowa"
                               : "Osoba prywatna"}
                           </td>
-                          <td className="px-5 py-4 text-white/70">
+                          <td className="px-5 py-4 text-fg/70">
                             <a
                               href={`/api/invoices/${invoice.id}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex rounded-full border border-[#7aa333]/35 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-[#7aa333] hover:bg-white/[0.04]"
+                              className="inline-flex rounded-full border border-brand/35 px-3 py-1.5 text-xs font-semibold text-fg transition hover:border-brand hover:bg-fg/[0.04]"
                             >
                               Pobierz PDF
                             </a>
@@ -561,7 +561,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           </>
         ) : activeTab === "crm" ? (
           <>
-            <div className="mb-5 text-[19px] font-medium text-white">
+            <div className="mb-5 text-[19px] font-medium text-fg">
               Integracje CRM
             </div>
 
@@ -574,7 +574,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           </>
         ) : (
           <>
-            <div className="mb-5 text-[19px] font-medium text-white">
+            <div className="mb-5 text-[19px] font-medium text-fg">
               Moje alerty
             </div>
 

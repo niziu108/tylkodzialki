@@ -21,17 +21,17 @@ export default function ArticleMeta({
   return (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 ${className}`}>
       {label ? (
-        <span className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-2.5 py-1 text-[11px] font-semibold text-[#9fd14b]">
+        <span className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-2.5 py-1 text-[11px] font-semibold text-brand-bright">
           {label}
         </span>
       ) : null}
 
-      <span className="text-[12px] uppercase tracking-[0.12em] text-white/45">
+      <span className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
         {date}
       </span>
 
       {readingTime ? (
-        <span className="text-[12px] uppercase tracking-[0.12em] text-white/45">
+        <span className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
           · {readingTime} min czytania
         </span>
       ) : null}

@@ -418,7 +418,7 @@ export default function KupMap({
           <button
             type="button"
             onClick={handleSearchArea}
-            className="pointer-events-auto rounded-full border border-[#7aa333]/60 bg-[#131313]/95 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur transition hover:border-[#7aa333] hover:bg-[#1b1b1b] sm:px-5 sm:py-2.5 sm:text-[12px]"
+            className="pointer-events-auto rounded-full border border-brand/60 bg-bg/95 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-fg shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur transition hover:border-brand hover:bg-surface sm:px-5 sm:py-2.5 sm:text-[12px]"
           >
             Szukaj w tym obszarze
           </button>
@@ -427,7 +427,7 @@ export default function KupMap({
 
       {/* Licznik pinów (chowany, gdy otwarta karta) */}
       {ready && !error && !selectedPoint && (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-[5] rounded-full bg-[#131313]/90 px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-white/70 backdrop-blur">
+        <div className="pointer-events-none absolute bottom-3 left-3 z-[5] rounded-full bg-bg/90 px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-fg/70 backdrop-blur">
           {loading ? 'Ładowanie…' : `${formatIntPL(points.length)} na mapie`}
         </div>
       )}
@@ -454,14 +454,14 @@ export default function KupMap({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-[6] flex items-center gap-2 rounded-full border border-white/20 bg-[#131313]/95 px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.16em] text-white shadow-lg backdrop-blur transition hover:border-white/40"
+          className="absolute right-3 top-3 z-[6] flex items-center gap-2 rounded-full border border-fg/20 bg-bg/95 px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.16em] text-fg shadow-lg backdrop-blur transition hover:border-fg/40"
         >
           <span className="text-[15px] leading-none">×</span> Lista
         </button>
       )}
 
       {error && (
-        <div className="absolute inset-0 z-[7] flex items-center justify-center bg-[#131313] p-6 text-center text-sm text-white/60">
+        <div className="absolute inset-0 z-[7] flex items-center justify-center bg-bg p-6 text-center text-sm text-fg/60">
           {error}
         </div>
       )}

@@ -81,31 +81,31 @@ export default async function AdminCrmUserPage({ params }: PageProps) {
   const userLabel = user.name?.trim() || user.email || user.id;
 
   return (
-    <main className="min-h-screen bg-[#131313] px-6 py-10 text-[#d9d9d9]">
+    <main className="min-h-screen bg-bg px-6 py-10 text-fg/85">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="text-sm text-white/55">
-              <Link href="/admin" className="transition hover:text-white">
+            <div className="text-sm text-fg/55">
+              <Link href="/admin" className="transition hover:text-fg">
                 Panel admina
               </Link>
               <span className="mx-2">/</span>
               <span>CRM użytkownika</span>
             </div>
 
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl text-white">
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl text-fg">
               Konfiguracja CRM
             </h1>
 
-            <p className="mt-2 text-sm text-[#bdbdbd]">
+            <p className="mt-2 text-sm text-fg/70">
               Zarządzanie integracją FTP / DOMY.PL dla użytkownika{" "}
-              <span className="text-white">{userLabel}</span>
+              <span className="text-fg">{userLabel}</span>
             </p>
           </div>
 
           <Link
             href="/admin"
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 text-sm font-semibold text-white transition hover:bg-white/10"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-semibold text-fg transition hover:bg-fg/10"
           >
             Wróć do admina
           </Link>

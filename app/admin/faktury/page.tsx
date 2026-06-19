@@ -86,24 +86,24 @@ function getBuyerTypeBadgeClass(buyerType?: InvoiceBuyerType | null) {
     case "COMPANY":
       return "bg-sky-500/15 text-sky-300 border border-sky-500/20";
     case "PRIVATE":
-      return "bg-white/10 text-white/80 border border-white/10";
+      return "bg-fg/10 text-fg/80 border border-fg/10";
     default:
-      return "bg-white/5 text-white/50 border border-white/10";
+      return "bg-fg/5 text-fg/50 border border-fg/10";
   }
 }
 
 function getInvoiceStatusBadgeClass(status: InvoiceStatus) {
   switch (status) {
     case "PAID":
-      return "bg-[#7aa333]/20 text-[#9fd14b] border border-[#7aa333]/20";
+      return "bg-brand/20 text-brand-bright border border-brand/20";
     case "PENDING":
-      return "bg-white/10 text-white/80 border border-white/10";
+      return "bg-fg/10 text-fg/80 border border-fg/10";
     case "FAILED":
       return "bg-red-500/15 text-red-300 border border-red-500/20";
     case "REFUNDED":
       return "bg-orange-500/15 text-orange-300 border border-orange-500/20";
     default:
-      return "bg-white/10 text-white/80 border border-white/10";
+      return "bg-fg/10 text-fg/80 border border-fg/10";
   }
 }
 
@@ -114,11 +114,11 @@ function getKsefStatusBadgeClass(status: KsefStatus) {
     case "SENT":
       return "bg-sky-500/15 text-sky-300 border border-sky-500/20";
     case "ACCEPTED":
-      return "bg-[#7aa333]/20 text-[#9fd14b] border border-[#7aa333]/20";
+      return "bg-brand/20 text-brand-bright border border-brand/20";
     case "ERROR":
       return "bg-red-500/15 text-red-300 border border-red-500/20";
     default:
-      return "bg-white/10 text-white/80 border border-white/10";
+      return "bg-fg/10 text-fg/80 border border-fg/10";
   }
 }
 
@@ -233,42 +233,42 @@ export default async function FakturyAdminPage({
   });
 
   return (
-    <main className="min-h-screen bg-[#131313] px-6 py-10 text-[#d9d9d9]">
+    <main className="min-h-screen bg-bg px-6 py-10 text-fg/85">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-2">
               <Link
                 href="/admin"
-                className="text-sm text-[#bdbdbd] transition hover:text-white"
+                className="text-sm text-fg/70 transition hover:text-fg"
               >
                 ← Powrót do panelu admina
               </Link>
             </div>
 
-            <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Faktury
             </h1>
-            <p className="mt-2 text-sm text-[#bdbdbd]">
+            <p className="mt-2 text-sm text-fg/70">
               Zarządzanie dokumentami sprzedażowymi, statusem KSeF i podglądem PDF.
             </p>
           </div>
         </div>
 
-        <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
+        <section className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-4 md:p-5">
           <form className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <input
               type="text"
               name="q"
               defaultValue={q}
               placeholder="Numer, email, NIP, firma, nabywca..."
-              className="h-12 rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60 xl:col-span-2"
+              className="h-12 rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60 xl:col-span-2"
             />
 
             <select
               name="buyerType"
               defaultValue={buyerType}
-              className="h-12 rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition focus:border-[#7aa333]/60"
+              className="h-12 rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition focus:border-brand/60"
             >
               <option value="">Typ nabywcy: wszystkie</option>
               <option value="PRIVATE">Osoba prywatna</option>
@@ -278,7 +278,7 @@ export default async function FakturyAdminPage({
             <select
               name="ksefStatus"
               defaultValue={ksefStatus}
-              className="h-12 rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition focus:border-[#7aa333]/60"
+              className="h-12 rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition focus:border-brand/60"
             >
               <option value="">KSeF: wszystkie</option>
               <option value="READY">READY</option>
@@ -290,7 +290,7 @@ export default async function FakturyAdminPage({
             <select
               name="status"
               defaultValue={status}
-              className="h-12 rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition focus:border-[#7aa333]/60"
+              className="h-12 rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition focus:border-brand/60"
             >
               <option value="">Status płatności: wszystkie</option>
               <option value="PAID">PAID</option>
@@ -302,7 +302,7 @@ export default async function FakturyAdminPage({
             <select
               name="type"
               defaultValue={type}
-              className="h-12 rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition focus:border-[#7aa333]/60"
+              className="h-12 rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition focus:border-brand/60"
             >
               <option value="">Typ dokumentu: wszystkie</option>
               <option value="LISTING_PACKAGE">Pakiet publikacji</option>
@@ -312,34 +312,34 @@ export default async function FakturyAdminPage({
             <div className="flex gap-2 md:col-span-2 xl:col-span-5">
               <button
                 type="submit"
-                className="h-12 rounded-2xl bg-[#7aa333] px-5 text-sm font-semibold text-black transition hover:opacity-90"
+                className="h-12 rounded-2xl bg-brand px-5 text-sm font-semibold text-black transition hover:opacity-90"
               >
                 Filtruj
               </button>
 
               <Link
                 href="/admin/faktury"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 text-sm font-medium transition hover:bg-white/10"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-medium transition hover:bg-fg/10"
               >
                 Wyczyść
               </Link>
             </div>
           </form>
 
-          <div className="mt-4 text-sm text-[#bdbdbd]">
-            Znaleziono: <span className="text-white">{invoices.length}</span> faktur
+          <div className="mt-4 text-sm text-fg/70">
+            Znaleziono: <span className="text-fg">{invoices.length}</span> faktur
           </div>
         </section>
 
-        <section className="overflow-x-auto rounded-3xl border border-white/10 bg-white/5 backdrop-blur">
+        <section className="overflow-x-auto rounded-3xl border border-fg/10 bg-fg/5 backdrop-blur">
           {invoices.length === 0 ? (
-            <div className="px-6 py-12 text-center text-sm text-[#9f9f9f]">
+            <div className="px-6 py-12 text-center text-sm text-fg/55">
               Brak faktur pasujących do filtrów.
             </div>
           ) : (
             <table className="w-full min-w-[1500px] text-sm">
               <thead>
-                <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
+                <tr className="border-b border-fg/10 text-left text-fg/70">
                   <th className="px-4 py-4 font-medium">Numer</th>
                   <th className="px-4 py-4 font-medium">Typ</th>
                   <th className="px-4 py-4 font-medium">Kwota</th>
@@ -368,17 +368,17 @@ export default async function FakturyAdminPage({
                   return (
                     <tr
                       key={invoice.id}
-                      className="border-b border-white/5 hover:bg-white/[0.03]"
+                      className="border-b border-fg/5 hover:bg-fg/[0.03]"
                     >
-                      <td className="px-4 py-4 font-medium text-white">
+                      <td className="px-4 py-4 font-medium text-fg">
                         {invoice.invoiceNumber || "—"}
                       </td>
 
-                      <td className="px-4 py-4 text-white/80">
+                      <td className="px-4 py-4 text-fg/80">
                         {getInvoiceTypeLabel(invoice.type)}
                       </td>
 
-                      <td className="px-4 py-4 text-white/80">
+                      <td className="px-4 py-4 text-fg/80">
                         {formatMoney(invoice.amountGross, invoice.currency)}
                       </td>
 
@@ -402,19 +402,19 @@ export default async function FakturyAdminPage({
                         </span>
                       </td>
 
-                      <td className="px-4 py-4 text-white/80">
+                      <td className="px-4 py-4 text-fg/80">
                         {buyerDisplay}
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">
+                      <td className="px-4 py-4 text-fg/70">
                         {invoice.nip || "—"}
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">
+                      <td className="px-4 py-4 text-fg/70">
                         {invoice.invoiceEmail || "—"}
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">
+                      <td className="px-4 py-4 text-fg/70">
                         {invoice.user?.email || "—"}
                       </td>
 
@@ -428,11 +428,11 @@ export default async function FakturyAdminPage({
                         </span>
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">
+                      <td className="px-4 py-4 text-fg/70">
                         {invoice.ksefReferenceNumber || "—"}
                       </td>
 
-                      <td className="px-4 py-4 text-white/70">
+                      <td className="px-4 py-4 text-fg/70">
                         {formatDate(invoice.issuedAt || invoice.createdAt)}
                       </td>
 
@@ -440,7 +440,7 @@ export default async function FakturyAdminPage({
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/admin/faktury/${invoice.id}`}
-                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10"
+                            className="rounded-xl border border-fg/10 bg-fg/5 px-3 py-2 text-xs font-medium transition hover:bg-fg/10"
                           >
                             Szczegóły
                           </Link>
@@ -449,7 +449,7 @@ export default async function FakturyAdminPage({
                             href={`/api/invoices/${invoice.id}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded-xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 py-2 text-xs font-medium text-white transition hover:border-[#7aa333] hover:bg-[#7aa333]/15"
+                            className="rounded-xl border border-brand/30 bg-brand/10 px-3 py-2 text-xs font-medium text-fg transition hover:border-brand hover:bg-brand/15"
                           >
                             PDF
                           </a>

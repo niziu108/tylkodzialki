@@ -17,50 +17,50 @@ function Section({
 }) {
   return (
     <section id={id} className="scroll-mt-28 space-y-4">
-      <h2 className="text-xl font-semibold text-white sm:text-2xl">{title}</h2>
-      <div className="space-y-4 text-[15px] leading-8 text-white/72">{children}</div>
+      <h2 className="text-xl font-semibold text-fg sm:text-2xl">{title}</h2>
+      <div className="space-y-4 text-[15px] leading-8 text-fg/72">{children}</div>
     </section>
   );
 }
 
 export default function RegulaminPage() {
   return (
-    <main className="min-h-screen bg-[#131313] text-white">
+    <main className="min-h-screen bg-bg text-fg">
       <div className="mx-auto max-w-5xl px-5 pb-24 pt-16 sm:px-6 lg:px-8 lg:pt-20">
-        <div className="mb-12 space-y-5 border-b border-white/10 pb-8">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#7aa333]">
+        <div className="mb-12 space-y-5 border-b border-fg/10 pb-8">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-brand-text">
             Dokument prawny
           </p>
 
-          <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
             Regulamin serwisu tylkodzialki.pl
           </h1>
 
-          <p className="max-w-3xl text-[15px] leading-8 text-white/65">
+          <p className="max-w-3xl text-[15px] leading-8 text-fg/65">
             Niniejszy regulamin określa zasady korzystania z serwisu internetowego
             tylkodzialki.pl, w szczególności zasady tworzenia kont, publikowania ogłoszeń,
             korzystania z usług bezpłatnych i płatnych oraz zasady odpowiedzialności
             użytkowników i operatora serwisu.
           </p>
 
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 text-sm leading-7 text-white/70">
+          <div className="rounded-3xl border border-fg/10 bg-fg/[0.03] p-5 text-sm leading-7 text-fg/70">
             <p>
-              <span className="text-white">Operator serwisu:</span> Ultima Reality Sp. z o.o.
+              <span className="text-fg">Operator serwisu:</span> Ultima Reality Sp. z o.o.
             </p>
             <p>
-              <span className="text-white">Adres siedziby:</span> Łódź, 90-265, Piotrkowska 44/10
+              <span className="text-fg">Adres siedziby:</span> Łódź, 90-265, Piotrkowska 44/10
             </p>
             <p>
-              <span className="text-white">NIP:</span> 7252337429
+              <span className="text-fg">NIP:</span> 7252337429
             </p>
             <p>
-              <span className="text-white">KRS:</span> 0001068696
+              <span className="text-fg">KRS:</span> 0001068696
             </p>
             <p>
-              <span className="text-white">E-mail kontaktowy:</span>{' '}
+              <span className="text-fg">E-mail kontaktowy:</span>{' '}
               <a
                 href="mailto:kontakt@tylkodzialki.pl"
-                className="text-[#7aa333] transition hover:opacity-80"
+                className="text-brand-text transition hover:opacity-80"
               >
                 kontakt@tylkodzialki.pl
               </a>
@@ -68,35 +68,35 @@ export default function RegulaminPage() {
           </div>
         </div>
 
-        <div className="mb-12 grid gap-3 rounded-3xl border border-white/10 bg-white/[0.02] p-5 text-sm text-white/65 sm:grid-cols-2">
-          <Link href="#postanowienia-ogolne" className="transition hover:text-white">
+        <div className="mb-12 grid gap-3 rounded-3xl border border-fg/10 bg-fg/[0.02] p-5 text-sm text-fg/65 sm:grid-cols-2">
+          <Link href="#postanowienia-ogolne" className="transition hover:text-fg">
             §1. Postanowienia ogólne
           </Link>
-          <Link href="#definicje" className="transition hover:text-white">
+          <Link href="#definicje" className="transition hover:text-fg">
             §2. Definicje
           </Link>
-          <Link href="#konto" className="transition hover:text-white">
+          <Link href="#konto" className="transition hover:text-fg">
             §3. Konto użytkownika
           </Link>
-          <Link href="#ogloszenia" className="transition hover:text-white">
+          <Link href="#ogloszenia" className="transition hover:text-fg">
             §4. Zasady publikacji ogłoszeń
           </Link>
-          <Link href="#uslugi-platne" className="transition hover:text-white">
+          <Link href="#uslugi-platne" className="transition hover:text-fg">
             §5. Usługi bezpłatne i płatne
           </Link>
-          <Link href="#odstapienie" className="transition hover:text-white">
+          <Link href="#odstapienie" className="transition hover:text-fg">
             §6. Odstąpienie od umowy i zwroty
           </Link>
-          <Link href="#reklamacje" className="transition hover:text-white">
+          <Link href="#reklamacje" className="transition hover:text-fg">
             §7. Reklamacje
           </Link>
-          <Link href="#odpowiedzialnosc" className="transition hover:text-white">
+          <Link href="#odpowiedzialnosc" className="transition hover:text-fg">
             §8. Odpowiedzialność
           </Link>
-          <Link href="#dane" className="transition hover:text-white">
+          <Link href="#dane" className="transition hover:text-fg">
             §9. Dane i kontakt
           </Link>
-          <Link href="#postanowienia-koncowe" className="transition hover:text-white">
+          <Link href="#postanowienia-koncowe" className="transition hover:text-fg">
             §10. Postanowienia końcowe
           </Link>
         </div>
@@ -279,7 +279,7 @@ export default function RegulaminPage() {
               2. Reklamacje należy przesyłać na adres:{' '}
               <a
                 href="mailto:kontakt@tylkodzialki.pl"
-                className="text-[#7aa333] transition hover:opacity-80"
+                className="text-brand-text transition hover:opacity-80"
               >
                 kontakt@tylkodzialki.pl
               </a>
@@ -339,7 +339,7 @@ export default function RegulaminPage() {
               3. Kontakt z operatorem możliwy jest pod adresem:{' '}
               <a
                 href="mailto:kontakt@tylkodzialki.pl"
-                className="text-[#7aa333] transition hover:opacity-80"
+                className="text-brand-text transition hover:opacity-80"
               >
                 kontakt@tylkodzialki.pl
               </a>

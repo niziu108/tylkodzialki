@@ -86,7 +86,7 @@ export default function ArticleForm({
   return (
     <form
       action={action}
-      className="rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6"
+      className="rounded-3xl border border-fg/10 bg-fg/5 p-5 md:p-6"
     >
       {mode === 'edit' && initialData?.id ? (
         <input type="hidden" name="id" value={initialData.id} />
@@ -96,7 +96,7 @@ export default function ArticleForm({
 
       <div className="grid gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-white">
+          <label className="mb-2 block text-sm font-medium text-fg">
             Tytuł artykułu
           </label>
           <input
@@ -104,13 +104,13 @@ export default function ArticleForm({
             name="title"
             defaultValue={initialData?.title || ''}
             placeholder="Np. MPZP – co to jest i jak sprawdzić plan dla działki?"
-            className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
             required
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-white">
+          <label className="mb-2 block text-sm font-medium text-fg">
             Slug
           </label>
           <input
@@ -118,21 +118,21 @@ export default function ArticleForm({
             name="slug"
             defaultValue={initialData?.slug || ''}
             placeholder="Np. mpzp-co-to-jest"
-            className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
           />
-          <p className="mt-2 text-xs text-[#8f8f8f]">
+          <p className="mt-2 text-xs text-fg/50">
             Możesz zostawić puste — system wygeneruje slug z tytułu.
           </p>
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-white">
+          <label className="mb-2 block text-sm font-medium text-fg">
             Zdjęcie główne artykułu
           </label>
 
-          <div className="rounded-2xl border border-white/10 bg-[#1b1b1b] p-3">
+          <div className="rounded-2xl border border-fg/10 bg-surface p-3">
             {imageUrl ? (
-              <div className="overflow-hidden rounded-2xl border border-white/10">
+              <div className="overflow-hidden rounded-2xl border border-fg/10">
                 <img
                   src={imageUrl}
                   alt="Podgląd zdjęcia artykułu"
@@ -140,13 +140,13 @@ export default function ArticleForm({
                 />
               </div>
             ) : (
-              <div className="flex h-44 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 text-sm text-[#8f8f8f]">
+              <div className="flex h-44 items-center justify-center rounded-2xl border border-dashed border-fg/10 bg-black/20 text-sm text-fg/50">
                 Brak zdjęcia głównego
               </div>
             )}
 
             <div className="mt-3 flex flex-wrap gap-2">
-              <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl bg-[#7aa333] px-4 py-2.5 text-sm font-semibold text-black transition hover:opacity-90">
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl bg-brand px-4 py-2.5 text-sm font-semibold text-black transition hover:opacity-90">
                 {uploading ? 'Wgrywam...' : imageUrl ? 'Podmień zdjęcie' : 'Wgraj zdjęcie'}
                 <input
                   ref={fileInputRef}
@@ -161,7 +161,7 @@ export default function ArticleForm({
                 <button
                   type="button"
                   onClick={() => setImageUrl('')}
-                  className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+                  className="inline-flex items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-fg/10"
                 >
                   Usuń zdjęcie
                 </button>
@@ -175,13 +175,13 @@ export default function ArticleForm({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-white">
+          <label className="mb-2 block text-sm font-medium text-fg">
             Kategoria
           </label>
           <select
             name="category"
             defaultValue={initialData?.category || ''}
-            className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition focus:border-[#7aa333]/60"
+            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition focus:border-brand/60"
           >
             <option value="">Bez kategorii</option>
             {ARTICLE_CATEGORIES.map((c) => (
@@ -190,13 +190,13 @@ export default function ArticleForm({
               </option>
             ))}
           </select>
-          <p className="mt-2 text-xs text-[#8f8f8f]">
+          <p className="mt-2 text-xs text-fg/50">
             Steruje chipem na karcie i (wkrótce) ikoną na grafice.
           </p>
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-white">
+          <label className="mb-2 block text-sm font-medium text-fg">
             Czas czytania (min)
           </label>
           <input
@@ -205,15 +205,15 @@ export default function ArticleForm({
             min={1}
             defaultValue={initialData?.readingTime ?? ''}
             placeholder={`Auto: ${readingEstimate} min`}
-            className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+            className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
           />
-          <p className="mt-2 text-xs text-[#8f8f8f]">
+          <p className="mt-2 text-xs text-fg/50">
             Zostaw puste — policzymy z treści ({readingEstimate} min).
           </p>
         </div>
 
         <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-white">
+          <label className="mb-2 block text-sm font-medium text-fg">
             Zajawka / excerpt
           </label>
           <textarea
@@ -221,12 +221,12 @@ export default function ArticleForm({
             rows={4}
             defaultValue={initialData?.excerpt || ''}
             placeholder="Krótki opis artykułu widoczny na liście bloga i w panelu admina..."
-            className="w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+            className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
           />
         </div>
 
         <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-white">
+          <label className="mb-2 block text-sm font-medium text-fg">
             Treść artykułu
           </label>
           <textarea
@@ -247,27 +247,27 @@ Miejscowy plan zagospodarowania przestrzennego to...
 1. Wejdź na stronę urzędu...
 2. Sprawdź numer działki...
 `}
-            className="w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 py-3 text-sm leading-7 text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+            className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm leading-7 text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
             required
           />
-          <p className="mt-2 text-xs text-[#8f8f8f]">
+          <p className="mt-2 text-xs text-fg/50">
             Możesz pisać normalny tekst albo prosty markdown.
           </p>
         </div>
 
-        <details className="rounded-2xl border border-white/10 bg-black/20 p-4 md:col-span-2">
-          <summary className="cursor-pointer select-none text-sm font-medium text-white">
+        <details className="rounded-2xl border border-fg/10 bg-black/20 p-4 md:col-span-2">
+          <summary className="cursor-pointer select-none text-sm font-medium text-fg">
             SEO (tytuł i opis w Google) — opcjonalne
           </summary>
 
           <div className="mt-4 grid gap-4">
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <label className="block text-sm font-medium text-white">
+                <label className="block text-sm font-medium text-fg">
                   SEO title
                 </label>
                 <span
-                  className={`text-xs ${seoTitleLen > 60 ? 'text-amber-300' : 'text-[#8f8f8f]'}`}
+                  className={`text-xs ${seoTitleLen > 60 ? 'text-amber-300' : 'text-fg/50'}`}
                 >
                   {seoTitleLen}/60
                 </span>
@@ -278,17 +278,17 @@ Miejscowy plan zagospodarowania przestrzennego to...
                 defaultValue={initialData?.seoTitle || ''}
                 onChange={(e) => setSeoTitleLen(e.target.value.length)}
                 placeholder="Domyślnie: tytuł artykułu"
-                className="h-12 w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+                className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
               />
             </div>
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <label className="block text-sm font-medium text-white">
+                <label className="block text-sm font-medium text-fg">
                   SEO description
                 </label>
                 <span
-                  className={`text-xs ${seoDescLen > 160 ? 'text-amber-300' : 'text-[#8f8f8f]'}`}
+                  className={`text-xs ${seoDescLen > 160 ? 'text-amber-300' : 'text-fg/50'}`}
                 >
                   {seoDescLen}/160
                 </span>
@@ -299,30 +299,30 @@ Miejscowy plan zagospodarowania przestrzennego to...
                 defaultValue={initialData?.seoDescription || ''}
                 onChange={(e) => setSeoDescLen(e.target.value.length)}
                 placeholder="Domyślnie: zajawka artykułu"
-                className="w-full rounded-2xl border border-white/10 bg-[#1b1b1b] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#8f8f8f] focus:border-[#7aa333]/60"
+                className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm text-fg outline-none transition placeholder:text-fg/50 focus:border-brand/60"
               />
             </div>
           </div>
         </details>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
-        <label className="flex items-center gap-3 text-sm text-white">
+      <div className="mt-6 rounded-2xl border border-fg/10 bg-black/20 p-4">
+        <label className="flex items-center gap-3 text-sm text-fg">
           <input
             type="checkbox"
             name="isPublished"
             defaultChecked={initialData?.isPublished || false}
-            className="h-4 w-4 rounded border-white/20 bg-[#1b1b1b]"
+            className="h-4 w-4 rounded border-fg/20 bg-surface"
           />
           {mode === 'create' ? 'Opublikuj od razu' : 'Artykuł opublikowany'}
         </label>
-        <p className="mt-2 text-xs text-[#8f8f8f]">
+        <p className="mt-2 text-xs text-fg/50">
           Jeśli zostawisz odznaczone, artykuł zapisze się jako szkic.
         </p>
       </div>
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-2 text-xs text-[#8f8f8f] sm:text-sm">
+        <div className="flex flex-col gap-2 text-xs text-fg/50 sm:text-sm">
           {mode === 'edit' && initialData?.createdAt ? (
             <span>Utworzono: {initialData.createdAt}</span>
           ) : null}
@@ -334,7 +334,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link
             href="/admin/artykuly"
-            className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition hover:bg-white/10"
+            className="inline-flex h-12 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-6 text-sm font-medium text-fg transition hover:bg-fg/10"
           >
             Anuluj
           </Link>
@@ -342,7 +342,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
           <button
             type="submit"
             disabled={uploading}
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#7aa333] px-6 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-6 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {uploading
               ? 'Poczekaj, trwa upload...'

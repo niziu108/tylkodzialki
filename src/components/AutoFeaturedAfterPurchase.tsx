@@ -56,10 +56,10 @@ export default function AutoFeaturedAfterPurchase({
     <div
       className={`mb-6 rounded-2xl border px-4 py-3 text-sm ${
         status === 'success'
-          ? 'border-[#7aa333]/35 bg-[#7aa333]/10 text-[#b6e35e]'
+          ? 'border-brand/35 bg-brand/10 text-[#b6e35e]'
           : status === 'error'
           ? 'border-red-400/25 bg-red-500/10 text-red-200'
-          : 'border-white/10 bg-white/[0.04] text-white/80'
+          : 'border-fg/10 bg-fg/[0.04] text-fg/80'
       }`}
     >
       {message}

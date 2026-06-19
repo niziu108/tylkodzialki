@@ -252,11 +252,11 @@ function sleep(ms: number) {
 }
 
 function Hr({ className }: { className?: string }) {
-  return <div className={cx('border-b border-white/10', className)} />;
+  return <div className={cx('border-b border-fg/10', className)} />;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight text-white">{children}</h2>;
+  return <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight text-fg">{children}</h2>;
 }
 
 function onlyDigits(input: string) {
@@ -325,13 +325,13 @@ function UnderlineField({
       <div className="flex items-end justify-between gap-4">
         <div className={cx(
           'text-[11px] uppercase tracking-[0.18em]',
-          error ? 'text-red-400/90' : 'text-white/55'
+          error ? 'text-red-400/90' : 'text-fg/55'
         )}>
           {label}
-          {required ? <span className={error ? 'text-red-400' : 'text-[#9fd14b]'}> *</span> : null}
+          {required ? <span className={error ? 'text-red-400' : 'text-brand-bright'}> *</span> : null}
         </div>
         {showCounter && typeof maxLength === 'number' ? (
-          <div className="text-[11px] tracking-[0.12em] text-white/40">
+          <div className="text-[11px] tracking-[0.12em] text-fg/40">
             {value.length}/{maxLength}
           </div>
         ) : null}
@@ -346,15 +346,15 @@ function UnderlineField({
         placeholder={placeholder}
         maxLength={maxLength}
         className={cx(
-          'mt-2 w-full bg-transparent text-[18px] md:text-[19px] text-white/90',
-          error ? 'border-0 border-b border-red-400/70 pb-2' : 'border-0 border-b border-white/20 pb-2',
-          'placeholder:text-white/35',
-          error ? 'outline-none focus:border-red-400/90 focus:ring-0' : 'outline-none focus:border-white/70 focus:ring-0',
+          'mt-2 w-full bg-transparent text-[18px] md:text-[19px] text-fg/90',
+          error ? 'border-0 border-b border-red-400/70 pb-2' : 'border-0 border-b border-fg/20 pb-2',
+          'placeholder:text-fg/35',
+          error ? 'outline-none focus:border-red-400/90 focus:ring-0' : 'outline-none focus:border-fg/70 focus:ring-0',
           error
             ? 'underline decoration-red-400/55 decoration-[1px] underline-offset-[10px]'
             : 'underline decoration-white/55 decoration-[1px] underline-offset-[10px]',
           error ? 'focus:decoration-red-400/80' : 'focus:decoration-white/85',
-          'selection:bg-white/20 selection:text-white'
+          'selection:bg-fg/20 selection:text-fg'
         )}
       />
 
@@ -392,7 +392,7 @@ function Tabs({
             type="button"
             onClick={() => onChange(o.value)}
             aria-pressed={active}
-            className={cx('text-[15px] font-semibold tracking-tight transition', active ? 'text-white' : 'text-white/70 hover:text-white')}
+            className={cx('text-[15px] font-semibold tracking-tight transition', active ? 'text-fg' : 'text-fg/70 hover:text-fg')}
             style={{
               textDecoration: active ? 'underline' : 'none',
               textUnderlineOffset: '10px',
@@ -429,7 +429,7 @@ function MultiTabs({
             aria-pressed={active}
             className={cx(
               'text-[13px] md:text-[14px] font-semibold uppercase tracking-[0.08em] transition',
-              active ? 'text-white' : 'text-white/65 hover:text-white'
+              active ? 'text-fg' : 'text-fg/65 hover:text-fg'
             )}
             style={{
               textDecoration: active ? 'underline' : 'none',
@@ -465,7 +465,7 @@ function ChoiceRow({
             type="button"
             onClick={() => onChange(o.value)}
             aria-pressed={active}
-            className={cx('text-[14px] md:text-[15px] font-semibold tracking-tight transition', active ? 'text-white' : 'text-white/70 hover:text-white')}
+            className={cx('text-[14px] md:text-[15px] font-semibold tracking-tight transition', active ? 'text-fg' : 'text-fg/70 hover:text-fg')}
             style={{
               textDecoration: active ? 'underline' : 'none',
               textUnderlineOffset: '10px',
@@ -1403,24 +1403,24 @@ export default function DzialkaForm({
     return (
       <main className="min-h-screen" style={{ background: BG, color: FG }}>
         <div className="mx-auto max-w-3xl px-6 py-20">
-          <div className="rounded-[32px] border border-[#7aa333]/25 bg-white/[0.03] p-8 md:p-10">
-            <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+          <div className="rounded-[32px] border border-brand/25 bg-fg/[0.03] p-8 md:p-10">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
               Oferta gotowa
             </div>
 
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Zarejestruj się, aby opublikować ofertę
             </h1>
 
-            <p className="mt-4 text-base leading-7 text-white/65">
-              Twoja oferta <span className="text-white">{pendingLogin.title}</span> jest przygotowana i zapisana.
-              Zaloguj się lub załóż <span className="text-white">darmowe</span> konto — opublikujemy ją automatycznie, bez wypełniania formularza ponownie.
+            <p className="mt-4 text-base leading-7 text-fg/65">
+              Twoja oferta <span className="text-fg">{pendingLogin.title}</span> jest przygotowana i zapisana.
+              Zaloguj się lub załóż <span className="text-fg">darmowe</span> konto — opublikujemy ją automatycznie, bez wypełniania formularza ponownie.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href={`/logowanie?callbackUrl=${encodeURIComponent('/sprzedaj?autopublish=1')}`}
-                className="inline-flex items-center justify-center rounded-2xl bg-[#7aa333] px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
+                className="inline-flex items-center justify-center rounded-2xl bg-brand px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
               >
                 Zaloguj się / Zarejestruj
               </Link>
@@ -1428,7 +1428,7 @@ export default function DzialkaForm({
               <button
                 type="button"
                 onClick={() => setPendingLogin(null)}
-                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-6 py-4 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.05]"
+                className="inline-flex items-center justify-center rounded-2xl border border-fg/15 bg-fg/[0.03] px-6 py-4 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
               >
                 Wróć do edycji
               </button>
@@ -1443,24 +1443,24 @@ export default function DzialkaForm({
     return (
       <main className="min-h-screen" style={{ background: BG, color: FG }}>
         <div className="mx-auto max-w-3xl px-6 py-20">
-          <div className="rounded-[32px] border border-[#7aa333]/25 bg-white/[0.03] p-8 md:p-10">
-            <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+          <div className="rounded-[32px] border border-brand/25 bg-fg/[0.03] p-8 md:p-10">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
               Oferta gotowa
             </div>
 
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Aby opublikować ogłoszenie, kup pakiet
             </h1>
 
-            <p className="mt-4 text-base leading-7 text-white/65">
-              Twoja oferta <span className="text-white">{pendingPublicationCheckout.title}</span> została przygotowana i zapisana.
+            <p className="mt-4 text-base leading-7 text-fg/65">
+              Twoja oferta <span className="text-fg">{pendingPublicationCheckout.title}</span> została przygotowana i zapisana.
               Po zakupie pakietu będziesz mógł opublikować ją od razu, bez wypełniania formularza ponownie.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/panel/pakiety"
-                className="inline-flex items-center justify-center rounded-2xl bg-[#7aa333] px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
+                className="inline-flex items-center justify-center rounded-2xl bg-brand px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
               >
                 Przejdź do pakietów
               </Link>
@@ -1468,7 +1468,7 @@ export default function DzialkaForm({
               <button
                 type="button"
                 onClick={() => setPendingPublicationCheckout(null)}
-                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-6 py-4 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.05]"
+                className="inline-flex items-center justify-center rounded-2xl border border-fg/15 bg-fg/[0.03] px-6 py-4 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
               >
                 Wróć do edycji
               </button>
@@ -1483,17 +1483,17 @@ export default function DzialkaForm({
     return (
       <main className="min-h-screen" style={{ background: BG, color: FG }}>
         <div className="mx-auto max-w-3xl px-6 py-20">
-          <div className="rounded-[32px] border border-[#7aa333]/25 bg-white/[0.03] p-8 md:p-10">
-            <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+          <div className="rounded-[32px] border border-brand/25 bg-fg/[0.03] p-8 md:p-10">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
               Sukces
             </div>
 
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Ogłoszenie zostało dodane
             </h1>
 
-            <p className="mt-4 text-base leading-7 text-white/65">
-              Twoja oferta <span className="text-white">{createdListing.title}</span> jest już zapisana.
+            <p className="mt-4 text-base leading-7 text-fg/65">
+              Twoja oferta <span className="text-fg">{createdListing.title}</span> jest już zapisana.
               Teraz możesz przejść do podglądu ogłoszenia albo wrócić do panelu klienta.
             </p>
 
@@ -1502,14 +1502,14 @@ export default function DzialkaForm({
                 href={`/dzialka/${createdListing.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-2xl bg-[#7aa333] px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
+                className="inline-flex items-center justify-center rounded-2xl bg-brand px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
               >
                 Przejdź do ogłoszenia
               </Link>
 
               <Link
                 href="/panel"
-                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-6 py-4 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.05]"
+                className="inline-flex items-center justify-center rounded-2xl border border-fg/15 bg-fg/[0.03] px-6 py-4 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
               >
                 Przejdź do panelu
               </Link>
@@ -1522,18 +1522,18 @@ export default function DzialkaForm({
 
   return (
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
-      <header className="border-b border-white/10">
+      <header className="border-b border-fg/10">
         <div className="mx-auto max-w-5xl px-6 pb-5 pt-7 md:px-10">
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-fg/45">
                 {mode === 'edit' ? 'Edycja ogłoszenia' : 'Dodaj działkę'}
               </div>
-              <h1 className="mt-1.5 truncate text-[24px] font-semibold leading-tight tracking-tight text-white md:text-[30px]">
+              <h1 className="mt-1.5 truncate text-[24px] font-semibold leading-tight tracking-tight text-fg md:text-[30px]">
                 {STEPS[step].title}
               </h1>
             </div>
-            <div className="hidden shrink-0 text-right text-[13px] font-medium text-white/45 sm:block">
+            <div className="hidden shrink-0 text-right text-[13px] font-medium text-fg/45 sm:block">
               Krok {step + 1} / {STEPS.length}
             </div>
           </div>
@@ -1558,10 +1558,10 @@ export default function DzialkaForm({
                       className={cx(
                         'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[14px] font-semibold transition',
                         active
-                          ? 'border-[#9fd14b] bg-[#7aa333] text-black'
+                          ? 'border-brand-bright bg-brand text-black'
                           : done
-                          ? 'border-[#7aa333]/60 bg-[#7aa333]/15 text-[#9fd14b]'
-                          : 'border-white/20 bg-white/[0.03] text-white/50 group-hover:border-white/35'
+                          ? 'border-brand/60 bg-brand/15 text-brand-bright'
+                          : 'border-fg/20 bg-fg/[0.03] text-fg/50 group-hover:border-fg/35'
                       )}
                     >
                       {done ? '✓' : i + 1}
@@ -1569,7 +1569,7 @@ export default function DzialkaForm({
                     <span
                       className={cx(
                         'whitespace-nowrap text-[13px] font-semibold tracking-tight transition',
-                        active ? 'text-white' : done ? 'text-white/70 group-hover:text-white' : 'text-white/40 group-hover:text-white/70'
+                        active ? 'text-fg' : done ? 'text-fg/70 group-hover:text-fg' : 'text-fg/40 group-hover:text-fg/70'
                       )}
                     >
                       {s.short}
@@ -1577,7 +1577,7 @@ export default function DzialkaForm({
                   </button>
 
                   {i < STEPS.length - 1 ? (
-                    <span className={cx('mx-3 h-px flex-1 transition', i < step ? 'bg-[#7aa333]/50' : 'bg-white/10')} />
+                    <span className={cx('mx-3 h-px flex-1 transition', i < step ? 'bg-brand/50' : 'bg-fg/10')} />
                   ) : null}
                 </li>
               );
@@ -1587,12 +1587,12 @@ export default function DzialkaForm({
           {/* Pasek postępu — mobile */}
           <div className="mt-5 md:hidden">
             <div className="flex items-center justify-between text-[12px] font-medium">
-              <span className="text-white/75">{STEPS[step].short}</span>
-              <span className="text-white/45">{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
+              <span className="text-fg/75">{STEPS[step].short}</span>
+              <span className="text-fg/45">{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
             </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-fg/10">
               <div
-                className="h-full rounded-full bg-[#7aa333] transition-all duration-300"
+                className="h-full rounded-full bg-brand transition-all duration-300"
                 style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
               />
             </div>
@@ -1602,8 +1602,8 @@ export default function DzialkaForm({
 
       <div className="mx-auto max-w-5xl px-6 pb-24 pt-10 md:px-10">
         <form onSubmit={onSubmit} className="space-y-10">
-          <div className="text-xs text-white/40">
-            <span className="text-[#9fd14b]">*</span> pole wymagane
+          <div className="text-xs text-fg/40">
+            <span className="text-brand-bright">*</span> pole wymagane
           </div>
 
           {validationErrors.length > 0 ? (
@@ -1626,7 +1626,7 @@ export default function DzialkaForm({
           {step === 0 && (
           <div className="space-y-6">
             <SectionTitle>
-              Tytuł ogłoszenia <span className="text-[#9fd14b]">*</span>
+              Tytuł ogłoszenia <span className="text-brand-bright">*</span>
             </SectionTitle>
 
             <UnderlineField
@@ -1648,44 +1648,44 @@ export default function DzialkaForm({
           <div className="space-y-6">
             <div className="flex items-end justify-between gap-4">
               <SectionTitle>
-                Zdjęcia <span className="text-[#9fd14b]">*</span>
+                Zdjęcia <span className="text-brand-bright">*</span>
               </SectionTitle>
-              <div className="text-[13px] font-medium text-white/55">
+              <div className="text-[13px] font-medium text-fg/55">
                 minimum 1 zdjęcie, maksymalnie {MAX_PHOTOS}
               </div>
             </div>
 
             <div className={cx(
-              'overflow-hidden rounded-3xl border bg-white/[0.03]',
-              fieldErrors.has('photos') ? 'border-red-400/50' : 'border-white/10'
+              'overflow-hidden rounded-3xl border bg-fg/[0.03]',
+              fieldErrors.has('photos') ? 'border-red-400/50' : 'border-fg/10'
             )}>
               <div className="relative aspect-[16/9] bg-black/25">
                 {previewUrl ? (
                   <img src={previewUrl} alt="" className="h-full w-full object-contain" />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-white/70">
+                  <div className="flex h-full items-center justify-center text-fg/70">
                     <div className="text-center">
                       <div className="text-[16px] font-semibold">Dodaj zdjęcia ogłoszenia</div>
-                      <div className="mt-2 text-[13px] text-white/45">
+                      <div className="mt-2 text-[13px] text-fg/45">
                         Możesz dodawać zdjęcia kilka razy i usuwać pojedyncze miniatury
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-xs text-white/80">
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-fg/10 bg-black/45 px-3 py-1 text-xs text-fg/80">
                   Zdjęcia: {currentImages.length}{' '}
-                  {uploadingPhotos ? <span className="text-white/60">— wgrywam…</span> : null}
+                  {uploadingPhotos ? <span className="text-fg/60">— wgrywam…</span> : null}
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 border-t border-white/10 p-4">
+              <div className="flex flex-wrap items-center gap-3 border-t border-fg/10 p-4">
                 <label
                   className={cx(
                     'inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition',
                     uploaded.length >= MAX_PHOTOS
-                      ? 'cursor-not-allowed bg-white/10 text-white/45'
-                      : 'cursor-pointer bg-[#7aa333] text-black hover:opacity-90'
+                      ? 'cursor-not-allowed bg-fg/10 text-fg/45'
+                      : 'cursor-pointer bg-brand text-black hover:opacity-90'
                   )}
                 >
                   {uploaded.length >= MAX_PHOTOS ? `Limit ${MAX_PHOTOS} zdjęć` : 'Dodaj zdjęcia'}
@@ -1707,7 +1707,7 @@ export default function DzialkaForm({
                       setUploaded([]);
                       setActiveIdx(0);
                     }}
-                    className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.05]"
+                    className="inline-flex items-center justify-center rounded-2xl border border-fg/15 bg-fg/[0.03] px-5 py-3 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
                   >
                     Usuń wszystkie
                   </button>
@@ -1716,9 +1716,9 @@ export default function DzialkaForm({
 
               {uploaded.length > 0 && (
                 <>
-                  <div className="px-3 pt-2 text-[12px] leading-relaxed text-white/55">
+                  <div className="px-3 pt-2 text-[12px] leading-relaxed text-fg/55">
                     Przeciągnij miniatury, aby zmienić kolejność.{' '}
-                    <span className="text-[#9fd14b]">Pierwsze zdjęcie będzie zdjęciem głównym.</span>
+                    <span className="text-brand-bright">Pierwsze zdjęcie będzie zdjęciem głównym.</span>
                   </div>
 
                   <div ref={stripRef} className="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 md:grid-cols-6">
@@ -1742,8 +1742,8 @@ export default function DzialkaForm({
                           <div
                             className={cx(
                               'relative overflow-hidden rounded-xl border-2',
-                              isMain ? 'border-[#9fd14b]' : 'border-white/10',
-                              dragging ? 'ring-2 ring-white/40' : ''
+                              isMain ? 'border-brand-bright' : 'border-fg/10',
+                              dragging ? 'ring-2 ring-fg/40' : ''
                             )}
                           >
                             <img
@@ -1754,7 +1754,7 @@ export default function DzialkaForm({
                             />
 
                             {isMain ? (
-                              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[#7aa333] py-[2px] text-center text-[9px] font-semibold uppercase tracking-[0.1em] text-black">
+                              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-brand py-[2px] text-center text-[9px] font-semibold uppercase tracking-[0.1em] text-black">
                                 Główne
                               </div>
                             ) : null}
@@ -1763,7 +1763,7 @@ export default function DzialkaForm({
                               type="button"
                               onPointerDown={(e) => e.stopPropagation()}
                               onClick={() => removePhoto(idx)}
-                              className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-white transition hover:bg-black"
+                              className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-fg transition hover:bg-black"
                               title="Usuń zdjęcie"
                             >
                               ×
@@ -1787,7 +1787,7 @@ export default function DzialkaForm({
             <SectionTitle>Podstawowe informacje</SectionTitle>
 
             <div>
-              <div className="mb-3 text-[12px] uppercase tracking-[0.22em] text-white/50">Typ oferty</div>
+              <div className="mb-3 text-[12px] uppercase tracking-[0.22em] text-fg/50">Typ oferty</div>
               <Tabs
                 value={transakcja}
                 onChange={(v) => setTransakcja(v as 'SPRZEDAZ' | 'WYNAJEM')}
@@ -1893,15 +1893,15 @@ export default function DzialkaForm({
                 </div>
 
                 <div className="space-y-4">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Logo biura</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Logo biura</div>
 
                   <div className="flex flex-wrap items-center gap-4">
                     <label
                       className={cx(
                         'inline-flex cursor-pointer items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition',
                         uploadingLogo
-                          ? 'bg-white/10 text-white/45'
-                          : 'bg-[#7aa333] text-black hover:opacity-90'
+                          ? 'bg-fg/10 text-fg/45'
+                          : 'bg-brand text-black hover:opacity-90'
                       )}
                     >
                       {uploadingLogo ? 'Wgrywam logo…' : 'Wgraj logo'}
@@ -1919,7 +1919,7 @@ export default function DzialkaForm({
                       <button
                         type="button"
                         onClick={() => setBiuroLogoUrl('')}
-                        className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.05]"
+                        className="inline-flex items-center justify-center rounded-2xl border border-fg/15 bg-fg/[0.03] px-5 py-3 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
                       >
                         Usuń logo
                       </button>
@@ -1927,11 +1927,11 @@ export default function DzialkaForm({
                   </div>
 
                   {biuroLogoUrl ? (
-                    <div className="inline-flex overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="inline-flex overflow-hidden rounded-2xl border border-fg/10 bg-fg/[0.03] p-3">
                       <img src={biuroLogoUrl} alt="Logo biura" className="h-16 w-auto max-w-[180px] object-contain" />
                     </div>
                   ) : (
-                    <div className="text-sm text-white/45">Logo jest opcjonalne, ale warto je dodać.</div>
+                    <div className="text-sm text-fg/45">Logo jest opcjonalne, ale warto je dodać.</div>
                   )}
                 </div>
               </div>
@@ -1945,7 +1945,7 @@ export default function DzialkaForm({
           {step === 0 && (
           <div className="space-y-6">
             <SectionTitle>
-              Przeznaczenie <span className="text-[#9fd14b]">*</span>
+              Przeznaczenie <span className="text-brand-bright">*</span>
             </SectionTitle>
 
             <MultiTabs
@@ -2069,7 +2069,7 @@ export default function DzialkaForm({
                   type="button"
                   onClick={() => x.set((p: boolean) => !p)}
                   aria-pressed={x.v}
-                  className={cx('text-[14px] font-semibold tracking-tight transition', x.v ? 'text-white' : 'text-white/70 hover:text-white')}
+                  className={cx('text-[14px] font-semibold tracking-tight transition', x.v ? 'text-fg' : 'text-fg/70 hover:text-fg')}
                   style={{
                     textDecoration: x.v ? 'underline' : 'none',
                     textUnderlineOffset: '10px',
@@ -2108,7 +2108,7 @@ export default function DzialkaForm({
               />
             </div>
 
-            <div className="text-[12px] tracking-[0.12em] text-white/40">
+            <div className="text-[12px] tracking-[0.12em] text-fg/40">
               Opis: {opis.length}/{MAX_OPIS_CHARS}
             </div>
 
@@ -2218,7 +2218,7 @@ export default function DzialkaForm({
           <div className="space-y-6">
             <Hr className="mt-8" />
             <SectionTitle>
-              Lokalizacja <span className="text-[#9fd14b]">*</span>
+              Lokalizacja <span className="text-brand-bright">*</span>
             </SectionTitle>
 
             <div className="mt-2">
@@ -2235,16 +2235,16 @@ export default function DzialkaForm({
           )}
 
           {err && <div className="text-sm font-medium text-red-300">{err}</div>}
-          {ok && <div className="text-sm font-medium text-white/85 underline decoration-white/40 underline-offset-8">{ok}</div>}
+          {ok && <div className="text-sm font-medium text-fg/85 underline decoration-white/40 underline-offset-8">{ok}</div>}
 
           {step === LAST_STEP && mode === 'create' && (
-            <div className="text-xs text-white/35">
+            <div className="text-xs text-fg/35">
               Po kliknięciu zapiszesz ofertę.
             </div>
           )}
 
           {/* Nawigacja kreatora — przyklejona do dołu ekranu */}
-          <div className="-mx-6 border-t border-white/10 px-6 pt-6 md:-mx-10 md:px-10">
+          <div className="-mx-6 border-t border-fg/10 px-6 pt-6 md:-mx-10 md:px-10">
             <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
@@ -2253,14 +2253,14 @@ export default function DzialkaForm({
                 className={cx(
                   'inline-flex items-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold transition',
                   step === 0
-                    ? 'cursor-not-allowed border-white/10 text-white/30'
-                    : 'border-white/15 bg-white/[0.03] text-white hover:border-white/30 hover:bg-white/[0.05]'
+                    ? 'cursor-not-allowed border-fg/10 text-fg/30'
+                    : 'border-fg/15 bg-fg/[0.03] text-fg hover:border-fg/30 hover:bg-fg/[0.05]'
                 )}
               >
                 ← Wstecz
               </button>
 
-              <div className="hidden text-[13px] font-medium text-white/40 sm:block">
+              <div className="hidden text-[13px] font-medium text-fg/40 sm:block">
                 Krok {step + 1} z {STEPS.length}
               </div>
 
@@ -2269,7 +2269,7 @@ export default function DzialkaForm({
                   key="wizard-next"
                   type="button"
                   onClick={goNext}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-[#7aa333] px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-brand px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90"
                 >
                   Dalej →
                 </button>
@@ -2279,7 +2279,7 @@ export default function DzialkaForm({
                   type="button"
                   onClick={() => void submitListing(false, 0)}
                   disabled={loading || uploadingPhotos || uploadingLogo}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-[#7aa333] px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-brand px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
                 >
                   {uploadingPhotos
                     ? 'Wgrywam zdjęcia…'

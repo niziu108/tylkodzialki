@@ -38,9 +38,9 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
   return (
     <Link
       href={`/dzialka/${d.id}`}
-      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/40 transition duration-200 hover:border-white/30 md:min-w-[360px] xl:min-w-[380px]"
+      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-fg/14 bg-surface-2/40 transition duration-200 hover:border-fg/30 md:min-w-[360px] xl:min-w-[380px]"
     >
-      <div className="relative aspect-video overflow-hidden bg-white/5">
+      <div className="relative aspect-video overflow-hidden bg-fg/5">
         {cover ? (
           <>
             <img
@@ -53,14 +53,14 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
           </>
         ) : (
-          <div className="flex h-full items-center justify-center bg-[#161616]">
-            <span className="text-[12px] tracking-[0.12em] text-white/30">Zdjęcie wkrótce</span>
+          <div className="flex h-full items-center justify-center bg-surface">
+            <span className="text-[12px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
           </div>
         )}
 
         {distance ? (
           <div className="absolute left-4 top-4 z-10">
-            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/55 px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-white/85 backdrop-blur-sm">
+            <span className="inline-flex items-center rounded-full border border-fg/15 bg-black/55 px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-fg/85 backdrop-blur-sm">
               {distance}
             </span>
           </div>
@@ -98,13 +98,13 @@ export default function SimilarOffers({ items }: { items: SimilarDzialka[] }) {
     : 'Podobne działki na sprzedaż';
 
   return (
-    <section aria-labelledby="podobne-oferty" className="border-t border-white/5">
+    <section aria-labelledby="podobne-oferty" className="border-t border-fg/5">
       <div className="mx-auto max-w-7xl px-6 py-12 md:px-10">
-        <div className="text-[12px] uppercase tracking-[0.16em] text-[#9fd14b]">Zobacz też</div>
+        <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">Zobacz też</div>
 
         <h2
           id="podobne-oferty"
-          className="mt-2 text-[22px] font-semibold text-white md:text-[28px]"
+          className="mt-2 text-[22px] font-semibold text-fg md:text-[28px]"
         >
           {heading}
         </h2>
@@ -120,7 +120,7 @@ export default function SimilarOffers({ items }: { items: SimilarDzialka[] }) {
         <div className="mt-6 flex justify-center md:justify-start">
           <Link
             href="/kup"
-            className="inline-flex text-sm text-white/60 transition hover:text-white"
+            className="inline-flex text-sm text-fg/60 transition hover:text-fg"
           >
             Przeglądaj wszystkie działki →
           </Link>

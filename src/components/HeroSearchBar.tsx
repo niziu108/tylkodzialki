@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { loadGoogleMaps } from '@/lib/googleMaps';
 import type { Przeznaczenie } from '@prisma/client';
 
 const KM_OPTIONS = [5, 10, 20, 40] as const;
@@ -13,23 +14,9 @@ const QUICK_PRZEZN: { key: Przeznaczenie; label: string }[] = [
   { key: 'INWESTYCYJNA', label: 'Inwestycyjna' },
 ];
 
-function loadPlaces(apiKey: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (window.google?.maps?.places) return resolve();
-
-    const id = 'google-places-js';
-    if (document.getElementById(id)) return resolve();
-
-    const s = document.createElement('script');
-    s.id = id;
-    s.async = true;
-    s.defer = true;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&language=pl`;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Google Places load failed'));
-    document.head.appendChild(s);
-  });
-}
+// Ładowanie Maps JS (z libraries=places) idzie przez jedną współdzieloną funkcję
+// loadGoogleMaps() z @/lib/googleMaps — wspólny strażnik z mapą KupMap, żeby skrypt
+// nie doklejał się drugi raz („multiple times on this page").
 
 async function geocodeText(text: string): Promise<{ lat: number; lng: number } | null> {
   if (!window.google?.maps?.Geocoder) return null;
@@ -67,7 +54,7 @@ export default function HeroSearchBar() {
     if (!key) return;
 
     // Store the promise so handleSearch can await Maps before geocoding
-    mapsLoadedRef.current = loadPlaces(key)
+    mapsLoadedRef.current = loadGoogleMaps()
       .then(() => {
         if (!inputRef.current) return;
 
@@ -126,7 +113,7 @@ export default function HeroSearchBar() {
 
   return (
     <div className="pointer-events-auto w-full max-w-2xl">
-      <div className="flex gap-2 rounded-2xl border border-white/20 bg-black/55 p-2 shadow-2xl backdrop-blur-md">
+      <div className="flex gap-2 rounded-2xl border border-fg/20 bg-black/55 p-2 shadow-2xl backdrop-blur-md">
         <input
           ref={inputRef}
           value={locText}
@@ -139,17 +126,17 @@ export default function HeroSearchBar() {
           }}
           type="text"
           placeholder="Wpisz miasto lub region…"
-          className="min-w-0 flex-1 bg-transparent px-3 py-3 text-white outline-none placeholder:text-white/45 md:text-[15px]"
+          className="min-w-0 flex-1 bg-transparent px-3 py-3 text-fg outline-none placeholder:text-fg/45 md:text-[15px]"
         />
 
         <select
           value={radiusKm}
           onChange={(e) => setRadiusKm(Number(e.target.value) as (typeof KM_OPTIONS)[number])}
-          className="shrink-0 cursor-pointer bg-transparent py-2 pr-1 text-sm text-white/60 outline-none"
+          className="shrink-0 cursor-pointer bg-transparent py-2 pr-1 text-sm text-fg/60 outline-none"
           aria-label="Zasięg wyszukiwania"
         >
           {KM_OPTIONS.map((km) => (
-            <option key={km} value={km} className="bg-[#131313] text-white">
+            <option key={km} value={km} className="bg-bg text-fg">
               +{km} km
             </option>
           ))}
@@ -159,7 +146,7 @@ export default function HeroSearchBar() {
           type="button"
           onClick={() => void handleSearch()}
           disabled={searching}
-          className="shrink-0 rounded-xl bg-[#7aa333] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#9fd14b] disabled:opacity-60 md:px-6 md:text-[15px]"
+          className="shrink-0 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-black transition hover:bg-brand-bright disabled:opacity-60 md:px-6 md:text-[15px]"
         >
           {searching ? 'Szukam…' : 'Szukaj'}
         </button>
@@ -176,8 +163,8 @@ export default function HeroSearchBar() {
               className={[
                 'rounded-full border px-4 py-1.5 text-xs font-medium uppercase tracking-[0.12em] backdrop-blur-sm transition',
                 active
-                  ? 'border-[#7aa333]/80 bg-[#7aa333]/20 text-white'
-                  : 'border-white/25 bg-black/30 text-white/65 hover:border-white/45 hover:text-white',
+                  ? 'border-brand/80 bg-brand/20 text-fg'
+                  : 'border-fg/25 bg-black/30 text-fg/65 hover:border-fg/45 hover:text-fg',
               ].join(' ')}
             >
               {label}

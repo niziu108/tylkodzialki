@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
 import KupMap, { type MapPoint } from '@/components/KupMap';
+import { loadGoogleMaps } from '@/lib/googleMaps';
 import type { AlertCriteria } from '@/lib/alertCriteria';
 import type { Przeznaczenie, TransakcjaTyp } from '@prisma/client';
 
@@ -118,32 +119,9 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'area_desc', label: 'Pow. malejąco' },
 ];
 
-function loadPlaces(apiKey: string) {
-  return new Promise<void>((resolve, reject) => {
-    if (window.google?.maps?.places) return resolve();
-
-    const id = 'google-places-js';
-    const existing = document.getElementById(id) as HTMLScriptElement | null;
-    if (existing) {
-      // Script tag exists but Maps not ready yet (Next.js client-side nav keeps DOM alive).
-      // Attach to the existing script's load/error events instead of resolving immediately.
-      existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener('error', () => reject(new Error('Google Places load failed')), { once: true });
-      return;
-    }
-
-    const s = document.createElement('script');
-    s.id = id;
-    s.async = true;
-    s.defer = true;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
-      apiKey
-    )}&libraries=places&language=pl`;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Nie udało się załadować Google Places.'));
-    document.head.appendChild(s);
-  });
-}
+// Ładowanie Maps JS (z libraries=places) idzie przez jedną współdzieloną funkcję
+// loadGoogleMaps() z @/lib/googleMaps — wspólny strażnik z mapą KupMap, żeby skrypt
+// nie doklejał się drugi raz („multiple times on this page").
 
 async function geocodeTypedLocation(
   text: string
@@ -499,7 +477,7 @@ function PagerResponsive({
             aria-label="Poprzednia strona"
             className={[
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[30px] leading-none transition',
-              page <= 1 ? 'text-white/25' : 'text-white/80 hover:bg-white/10 hover:text-white',
+              page <= 1 ? 'text-fg/25' : 'text-fg/80 hover:bg-fg/10 hover:text-fg',
             ].join(' ')}
           >
             ‹
@@ -511,7 +489,7 @@ function PagerResponsive({
                 return (
                   <span
                     key={`dots-${idx}`}
-                    className="shrink-0 px-0.5 text-[13px] tracking-[0.04em] text-white/35"
+                    className="shrink-0 px-0.5 text-[13px] tracking-[0.04em] text-fg/35"
                   >
                     …
                   </span>
@@ -527,7 +505,7 @@ function PagerResponsive({
                   onClick={() => onGo(x)}
                   className={[
                     'shrink-0 min-w-[25px] px-1 text-center text-[13px] tracking-[0.04em] transition',
-                    active ? 'text-white' : 'text-white/60 hover:text-white',
+                    active ? 'text-fg' : 'text-fg/60 hover:text-fg',
                   ].join(' ')}
                   style={{
                     textDecoration: active ? 'underline' : 'none',
@@ -549,7 +527,7 @@ function PagerResponsive({
             aria-label="Następna strona"
             className={[
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[30px] leading-none transition',
-              page >= totalPages ? 'text-white/25' : 'text-white/80 hover:bg-white/10 hover:text-white',
+              page >= totalPages ? 'text-fg/25' : 'text-fg/80 hover:bg-fg/10 hover:text-fg',
             ].join(' ')}
           >
             ›
@@ -565,7 +543,7 @@ function PagerResponsive({
             disabled={page <= 1}
             className={[
               'text-[12px] tracking-[0.22em] uppercase transition',
-              page <= 1 ? 'text-white/30' : 'text-white/70 hover:text-white',
+              page <= 1 ? 'text-fg/30' : 'text-fg/70 hover:text-fg',
             ].join(' ')}
             style={{
               textDecoration: 'underline',
@@ -578,7 +556,7 @@ function PagerResponsive({
             Poprzednia
           </button>
 
-          <div className="text-white/55 text-[12px] tracking-[0.22em] uppercase">
+          <div className="text-fg/55 text-[12px] tracking-[0.22em] uppercase">
             {page}/{totalPages}
           </div>
 
@@ -588,7 +566,7 @@ function PagerResponsive({
             disabled={page >= totalPages}
             className={[
               'text-[12px] tracking-[0.22em] uppercase transition',
-              page >= totalPages ? 'text-white/30' : 'text-white/70 hover:text-white',
+              page >= totalPages ? 'text-fg/30' : 'text-fg/70 hover:text-fg',
             ].join(' ')}
             style={{
               textDecoration: 'underline',
@@ -603,13 +581,13 @@ function PagerResponsive({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-white/35 text-[11px] tracking-[0.22em] uppercase">Idź do</div>
+          <div className="text-fg/35 text-[11px] tracking-[0.22em] uppercase">Idź do</div>
 
           <input
             value={val}
             onChange={(e) => setVal(e.target.value.replace(/[^\d]/g, ''))}
             inputMode="numeric"
-            className="w-[72px] rounded-xl border border-white/20 bg-transparent px-3 py-2 text-center text-[13px] text-white/85 outline-none focus:border-white/45 selection:bg-white/20 selection:text-white"
+            className="w-[72px] rounded-xl border border-fg/20 bg-transparent px-3 py-2 text-center text-[13px] text-fg/85 outline-none focus:border-fg/45 selection:bg-fg/20 selection:text-fg"
             placeholder="…"
             onKeyDown={(e) => {
               if (e.key === 'Enter') go();
@@ -619,7 +597,7 @@ function PagerResponsive({
           <button
             type="button"
             onClick={go}
-            className="rounded-xl border border-white/20 px-3 py-2 text-[11px] tracking-[0.22em] uppercase text-white/75 transition hover:border-white/40"
+            className="rounded-xl border border-fg/20 px-3 py-2 text-[11px] tracking-[0.22em] uppercase text-fg/75 transition hover:border-fg/40"
           >
             Idź
           </button>
@@ -896,7 +874,7 @@ export default function KupSearch({
 
       // Load Maps — needed for autocomplete (all modes) and Case B geocoding
       if (key) {
-        await loadPlaces(key).catch(() => {});
+        await loadGoogleMaps().catch(() => {});
       }
 
       // Autocomplete widget — attach after Maps loads, works in both navigationMode and /kup
@@ -1211,10 +1189,10 @@ export default function KupSearch({
       {/* Row 1: Lokalizacja + Zasięg — always visible */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_200px]">
         <div>
-          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+          <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
             Lokalizacja
           </label>
-          <div className={`mt-3 rounded-xl border bg-transparent ${locError ? 'border-red-400/70' : 'border-white/25'}`}>
+          <div className={`mt-3 rounded-xl border bg-transparent ${locError ? 'border-red-400/70' : 'border-fg/25'}`}>
             <input
               ref={inputRef}
               value={locText}
@@ -1224,7 +1202,7 @@ export default function KupSearch({
                 if (locError) setLocError(null);
               }}
               placeholder="Wpisz lokalizację"
-              className="w-full bg-transparent px-4 py-3 text-white/90 outline-none placeholder:text-white/35"
+              className="w-full bg-transparent px-4 py-3 text-fg/90 outline-none placeholder:text-fg/35"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') applyAndSearch();
               }}
@@ -1236,17 +1214,17 @@ export default function KupSearch({
         </div>
 
         <div>
-          <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+          <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
             Zasięg
           </label>
-          <div className="mt-3 rounded-xl border border-white/25">
+          <div className="mt-3 rounded-xl border border-fg/25">
             <select
               value={radiusKm}
               onChange={(e) => setRadiusKm(Number(e.target.value) as (typeof KM_OPTIONS)[number])}
-              className="w-full bg-transparent px-4 py-3 text-white/90 outline-none"
+              className="w-full bg-transparent px-4 py-3 text-fg/90 outline-none"
             >
               {KM_OPTIONS.map((km) => (
-                <option key={km} value={km} className="bg-[#131313]">
+                <option key={km} value={km} className="bg-bg">
                   + {km} km
                 </option>
               ))}
@@ -1260,7 +1238,7 @@ export default function KupSearch({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-white/50 transition hover:text-white/80"
+          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-fg/50 transition hover:text-fg/80"
         >
           <span className="text-[8px]">{expanded ? '▲' : '▼'}</span>
           {expanded ? 'Mniej filtrów' : 'Więcej filtrów'}
@@ -1272,31 +1250,31 @@ export default function KupSearch({
         <div className="mt-5 space-y-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+              <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
                 Powierzchnia
               </label>
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="relative rounded-xl border border-white/25">
+                <div className="relative rounded-xl border border-fg/25">
                   <input
                     value={areaMin}
                     onChange={makeAutoPLHandler(setAreaMin)}
                     inputMode="numeric"
                     placeholder="od"
-                    className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
+                    className="w-full bg-transparent px-4 py-3 pr-16 text-fg/90 outline-none placeholder:text-fg/35"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/60">
                     m²
                   </span>
                 </div>
-                <div className="relative rounded-xl border border-white/25">
+                <div className="relative rounded-xl border border-fg/25">
                   <input
                     value={areaMax}
                     onChange={makeAutoPLHandler(setAreaMax)}
                     inputMode="numeric"
                     placeholder="do"
-                    className="w-full bg-transparent px-4 py-3 pr-16 text-white/90 outline-none placeholder:text-white/35"
+                    className="w-full bg-transparent px-4 py-3 pr-16 text-fg/90 outline-none placeholder:text-fg/35"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/60">
                     m²
                   </span>
                 </div>
@@ -1304,31 +1282,31 @@ export default function KupSearch({
             </div>
 
             <div>
-              <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+              <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
                 Cena
               </label>
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="relative rounded-xl border border-white/25">
+                <div className="relative rounded-xl border border-fg/25">
                   <input
                     value={priceMin}
                     onChange={makeAutoPLHandler(setPriceMin)}
                     inputMode="numeric"
                     placeholder="od"
-                    className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
+                    className="w-full bg-transparent px-4 py-3 pr-14 text-fg/90 outline-none placeholder:text-fg/35"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/60">
                     zł
                   </span>
                 </div>
-                <div className="relative rounded-xl border border-white/25">
+                <div className="relative rounded-xl border border-fg/25">
                   <input
                     value={priceMax}
                     onChange={makeAutoPLHandler(setPriceMax)}
                     inputMode="numeric"
                     placeholder="do"
-                    className="w-full bg-transparent px-4 py-3 pr-14 text-white/90 outline-none placeholder:text-white/35"
+                    className="w-full bg-transparent px-4 py-3 pr-14 text-fg/90 outline-none placeholder:text-fg/35"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/60">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-fg/60">
                     zł
                   </span>
                 </div>
@@ -1337,7 +1315,7 @@ export default function KupSearch({
           </div>
 
           <div>
-            <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
               Typ oferty
             </label>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -1351,8 +1329,8 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-[#7aa333] bg-[#7aa333]/20 text-[#9fd14b]'
-                        : 'border-white/25 text-white/70 hover:border-white/45',
+                        ? 'border-brand bg-brand/20 text-brand-bright'
+                        : 'border-fg/25 text-fg/70 hover:border-fg/45',
                     ].join(' ')}
                   >
                     {t.label}
@@ -1363,7 +1341,7 @@ export default function KupSearch({
           </div>
 
           <div>
-            <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
               Przeznaczenie
             </label>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -1377,8 +1355,8 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-[#7aa333] bg-[#7aa333]/20 text-[#9fd14b]'
-                        : 'border-white/25 text-white/70 hover:border-white/45',
+                        ? 'border-brand bg-brand/20 text-brand-bright'
+                        : 'border-fg/25 text-fg/70 hover:border-fg/45',
                     ].join(' ')}
                   >
                     {p.label}
@@ -1389,7 +1367,7 @@ export default function KupSearch({
           </div>
 
           <div>
-            <label className="block text-[12px] uppercase tracking-[0.26em] text-white/85">
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg/85">
               Media
             </label>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -1403,8 +1381,8 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-[#7aa333] bg-[#7aa333]/20 text-[#9fd14b]'
-                        : 'border-white/25 text-white/70 hover:border-white/45',
+                        ? 'border-brand bg-brand/20 text-brand-bright'
+                        : 'border-fg/25 text-fg/70 hover:border-fg/45',
                     ].join(' ')}
                   >
                     {m.label}
@@ -1420,7 +1398,7 @@ export default function KupSearch({
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         {/* Results count (only on /kup) */}
         {!navigationMode ? (
-          <div className="text-[12px] uppercase tracking-[0.18em] text-white/55">
+          <div className="text-[12px] uppercase tracking-[0.18em] text-fg/55">
             {loading && items.length === 0 ? 'Ładowanie ofert...' : `Wyniki: ${count}`}
           </div>
         ) : (
@@ -1431,14 +1409,14 @@ export default function KupSearch({
           <button
             type="button"
             onClick={reset}
-            className="rounded-xl border border-white/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-white/75 transition hover:border-white/40"
+            className="rounded-xl border border-fg/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-fg/75 transition hover:border-fg/40"
           >
             Wyczyść
           </button>
           <button
             type="button"
             onClick={applyAndSearch}
-            className="rounded-xl bg-white px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:opacity-60"
+            className="rounded-xl bg-white px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-black transition hover:bg-fg/90 disabled:opacity-60"
             disabled={loading}
           >
             {loading ? 'Szukam…' : 'Szukaj'}
@@ -1450,7 +1428,7 @@ export default function KupSearch({
 
   if (navigationMode) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-[#0b0b0b]/78 p-5 backdrop-blur-sm md:p-8">
+      <div className="rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
         {filterContent}
       </div>
     );
@@ -1471,7 +1449,7 @@ export default function KupSearch({
         <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/0" />
 
         <div className="relative mx-auto max-w-6xl px-3 py-10 md:px-4 md:py-14">
-          <div className="rounded-2xl border border-white/10 bg-[#0b0b0b]/78 p-5 backdrop-blur-sm md:p-8">
+          <div className="rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
             {filterContent}
           </div>
 
@@ -1483,17 +1461,17 @@ export default function KupSearch({
       <div className="pt-8 pb-20">
       <section className="mx-auto max-w-6xl px-3 md:px-4">
         <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
-          <span className="text-[11px] uppercase tracking-[0.22em] text-white/35">Sortuj:</span>
+          <span className="text-[11px] uppercase tracking-[0.22em] text-fg/35">Sortuj:</span>
           <button
             type="button"
             onClick={() => setSortOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-xl border border-white/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-white/80 transition hover:border-white/40"
+            className="flex items-center gap-2 rounded-xl border border-fg/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-fg/80 transition hover:border-fg/40"
           >
             {SORT_OPTIONS.find((o) => o.value === applied.sort)?.label ?? 'Najnowsze'}
-            <span className="text-[8px] text-white/40">{sortOpen ? '▲' : '▼'}</span>
+            <span className="text-[8px] text-fg/40">{sortOpen ? '▲' : '▼'}</span>
           </button>
           {sortOpen && (
-            <div className="absolute left-[5.5rem] top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-white/12 bg-[#181818] py-1.5 shadow-2xl">
+            <div className="absolute left-[5.5rem] top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-fg/12 bg-surface py-1.5 shadow-2xl">
               {SORT_OPTIONS.map((opt) => {
                 const active = applied.sort === opt.value;
                 return (
@@ -1506,10 +1484,10 @@ export default function KupSearch({
                     }}
                     className={[
                       'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.18em] transition',
-                      active ? 'text-white' : 'text-white/50 hover:text-white/85',
+                      active ? 'text-fg' : 'text-fg/50 hover:text-fg/85',
                     ].join(' ')}
                   >
-                    <span className={active ? 'text-white/60 text-[7px]' : 'w-[0.7em]'}>
+                    <span className={active ? 'text-fg/60 text-[7px]' : 'w-[0.7em]'}>
                       {active ? '●' : ''}
                     </span>
                     {opt.label}
@@ -1563,7 +1541,7 @@ export default function KupSearch({
           <button
             type="button"
             onClick={openMap}
-            className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#7aa333]/60 bg-[#131313]/95 px-6 py-3 text-[13px] font-medium uppercase tracking-[0.16em] text-white shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur transition hover:border-[#7aa333] hover:bg-[#1b1b1b]"
+            className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-full border border-brand/60 bg-bg/95 px-6 py-3 text-[13px] font-medium uppercase tracking-[0.16em] text-fg shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur transition hover:border-brand hover:bg-surface"
           >
             <MapGlyph />
             Mapa

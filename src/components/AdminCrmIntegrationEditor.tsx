@@ -342,7 +342,7 @@ export default function AdminCrmIntegrationEditor({
   return (
     <div className="space-y-6">
       {resultSuccess ? (
-        <div className="rounded-2xl border border-[#7aa333]/20 bg-[#7aa333]/10 px-4 py-3 text-sm leading-6 text-[#dce9bf]">
+        <div className="rounded-2xl border border-brand/20 bg-brand/10 px-4 py-3 text-sm leading-6 text-[#dce9bf]">
           {resultSuccess}
         </div>
       ) : null}
@@ -354,18 +354,18 @@ export default function AdminCrmIntegrationEditor({
       ) : null}
 
       {!currentIntegration ? (
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 md:p-10">
+        <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
           <div className="max-w-3xl">
-            <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
               Brak integracji
             </div>
 
-            <h2 className="mt-4 text-2xl font-semibold text-white">
+            <h2 className="mt-4 text-2xl font-semibold text-fg">
               Konfiguracja CRM dla użytkownika
             </h2>
 
-            <p className="mt-3 leading-7 text-white/65">
-              Użytkownik: <span className="text-white">{userLabel}</span>
+            <p className="mt-3 leading-7 text-fg/65">
+              Użytkownik: <span className="text-fg">{userLabel}</span>
             </p>
 
             <div className="mt-6">
@@ -373,7 +373,7 @@ export default function AdminCrmIntegrationEditor({
                 type="button"
                 onClick={handleCreateIntegration}
                 disabled={loading}
-                className="inline-flex rounded-full bg-[#7aa333] px-6 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex rounded-full bg-brand px-6 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "Tworzenie..." : "Utwórz integrację FTP"}
               </button>
@@ -382,28 +382,28 @@ export default function AdminCrmIntegrationEditor({
         </div>
       ) : (
         <>
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 md:p-10">
+          <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="max-w-3xl">
-                <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+                <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
                   CRM użytkownika
                 </div>
 
-                <h2 className="mt-4 text-2xl font-semibold text-white">
+                <h2 className="mt-4 text-2xl font-semibold text-fg">
                   Konfiguracja integracji CRM
                 </h2>
 
-                <p className="mt-3 leading-7 text-white/65">
-                  Użytkownik: <span className="text-white">{userLabel}</span>
+                <p className="mt-3 leading-7 text-fg/65">
+                  Użytkownik: <span className="text-fg">{userLabel}</span>
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
-                <div className="text-white/45">Status</div>
+              <div className="rounded-2xl border border-fg/10 bg-black/20 px-4 py-3 text-sm">
+                <div className="text-fg/45">Status</div>
                 <div
                   className={`mt-1 font-semibold ${
                     currentIntegration.isActive
-                      ? "text-[#9fd14b]"
+                      ? "text-brand-bright"
                       : "text-red-300"
                   }`}
                 >
@@ -413,63 +413,63 @@ export default function AdminCrmIntegrationEditor({
             </div>
 
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+              <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
                   Ostatnia synchronizacja
                 </div>
-                <div className="mt-2 text-base font-semibold text-white">
+                <div className="mt-2 text-base font-semibold text-fg">
                   {formatDate(currentIntegration.lastSyncAt)}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+              <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
                   Ostatni sukces
                 </div>
-                <div className="mt-2 text-base font-semibold text-white">
+                <div className="mt-2 text-base font-semibold text-fg">
                   {formatDate(currentIntegration.lastSuccessAt)}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+              <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
                   Ostatnio zaimportowano
                 </div>
-                <div className="mt-2 text-2xl font-semibold text-white">
+                <div className="mt-2 text-2xl font-semibold text-fg">
                   {currentIntegration.lastImportedOffers}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+              <div className="rounded-2xl border border-fg/10 bg-black/20 p-4">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
                   Błędy
                 </div>
-                <div className="mt-2 text-2xl font-semibold text-white">
+                <div className="mt-2 text-2xl font-semibold text-fg">
                   {currentIntegration.lastErrorCount}
                 </div>
               </div>
             </div>
 
             <div className="mt-8 grid gap-4 xl:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-                <div className="text-sm font-semibold text-white">
+              <div className="rounded-2xl border border-fg/10 bg-black/20 p-5">
+                <div className="text-sm font-semibold text-fg">
                   Ustawienia ogólne
                 </div>
 
                 <div className="mt-4 space-y-4">
                   <label className="block">
-                    <div className="mb-2 text-sm text-white/70">Nazwa integracji</div>
+                    <div className="mb-2 text-sm text-fg/70">Nazwa integracji</div>
                     <input
                       value={form.name}
                       onChange={(e) =>
                         setForm((prev) => ({ ...prev, name: e.target.value }))
                       }
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                      className="w-full rounded-2xl border border-fg/10 bg-fg/[0.04] px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                     />
                   </label>
 
                   <label className="block">
-                    <div className="mb-2 text-sm text-white/70">Provider</div>
+                    <div className="mb-2 text-sm text-fg/70">Provider</div>
                     <select
                       value={form.provider}
                       onChange={(e) =>
@@ -483,7 +483,7 @@ export default function AdminCrmIntegrationEditor({
                             | "GALACTICA",
                         }))
                       }
-                      className="w-full rounded-2xl border border-white/10 bg-[#1a1a1a] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                      className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                     >
                       <option value="GALACTICA">GALACTICA</option>
                       <option value="GENERIC">GENERIC</option>
@@ -493,7 +493,7 @@ export default function AdminCrmIntegrationEditor({
                     </select>
                   </label>
 
-                  <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <label className="flex items-center gap-3 rounded-2xl border border-fg/10 bg-fg/[0.03] px-4 py-3">
                     <input
                       type="checkbox"
                       checked={form.isActive}
@@ -504,10 +504,10 @@ export default function AdminCrmIntegrationEditor({
                         }))
                       }
                     />
-                    <span className="text-sm text-white">Integracja aktywna</span>
+                    <span className="text-sm text-fg">Integracja aktywna</span>
                   </label>
 
-                  <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <label className="flex items-center gap-3 rounded-2xl border border-fg/10 bg-fg/[0.03] px-4 py-3">
                     <input
                       type="checkbox"
                       checked={form.fullImportMode}
@@ -518,45 +518,45 @@ export default function AdminCrmIntegrationEditor({
                         }))
                       }
                     />
-                    <span className="text-sm text-white">
+                    <span className="text-sm text-fg">
                       Pełny import (oferty, których nie ma w eksporcie, są kończone)
                     </span>
                   </label>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-                <div className="text-sm font-semibold text-white">
+              <div className="rounded-2xl border border-fg/10 bg-black/20 p-5">
+                <div className="text-sm font-semibold text-fg">
                   Połączenie FTP
                 </div>
 
                 <div className="mt-4 space-y-4">
                   <label className="block">
-                    <div className="mb-2 text-sm text-white/70">Host FTP</div>
+                    <div className="mb-2 text-sm text-fg/70">Host FTP</div>
                     <input
                       value={form.ftpHost}
                       onChange={(e) =>
                         setForm((prev) => ({ ...prev, ftpHost: e.target.value }))
                       }
                       placeholder="ftp.twojadomena.pl"
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                      className="w-full rounded-2xl border border-fg/10 bg-fg/[0.04] px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                     />
                   </label>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="block">
-                      <div className="mb-2 text-sm text-white/70">Port FTP</div>
+                      <div className="mb-2 text-sm text-fg/70">Port FTP</div>
                       <input
                         value={form.ftpPort}
                         onChange={(e) =>
                           setForm((prev) => ({ ...prev, ftpPort: e.target.value }))
                         }
                         placeholder="21"
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                        className="w-full rounded-2xl border border-fg/10 bg-fg/[0.04] px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                       />
                     </label>
 
-                    <label className="flex items-end gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                    <label className="flex items-end gap-3 rounded-2xl border border-fg/10 bg-fg/[0.03] px-4 py-3">
                       <input
                         type="checkbox"
                         checked={form.ftpPassive}
@@ -567,12 +567,12 @@ export default function AdminCrmIntegrationEditor({
                           }))
                         }
                       />
-                      <span className="text-sm text-white">Tryb pasywny FTP</span>
+                      <span className="text-sm text-fg">Tryb pasywny FTP</span>
                     </label>
                   </div>
 
                   <label className="block">
-                    <div className="mb-2 text-sm text-white/70">Login FTP</div>
+                    <div className="mb-2 text-sm text-fg/70">Login FTP</div>
                     <input
                       value={form.ftpUsername}
                       onChange={(e) =>
@@ -581,12 +581,12 @@ export default function AdminCrmIntegrationEditor({
                           ftpUsername: e.target.value,
                         }))
                       }
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                      className="w-full rounded-2xl border border-fg/10 bg-fg/[0.04] px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                     />
                   </label>
 
                   <label className="block">
-                    <div className="mb-2 text-sm text-white/70">Hasło FTP</div>
+                    <div className="mb-2 text-sm text-fg/70">Hasło FTP</div>
                     <input
                       type="password"
                       value={form.ftpPassword}
@@ -597,12 +597,12 @@ export default function AdminCrmIntegrationEditor({
                         }))
                       }
                       placeholder="Wpisz nowe hasło tylko jeśli chcesz je zmienić."
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                      className="w-full rounded-2xl border border-fg/10 bg-fg/[0.04] px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                     />
                   </label>
 
                   <label className="block">
-                    <div className="mb-2 text-sm text-white/70">Katalog FTP</div>
+                    <div className="mb-2 text-sm text-fg/70">Katalog FTP</div>
                     <input
                       value={form.ftpRemotePath}
                       onChange={(e) =>
@@ -612,12 +612,12 @@ export default function AdminCrmIntegrationEditor({
                         }))
                       }
                       placeholder="/"
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                      className="w-full rounded-2xl border border-fg/10 bg-fg/[0.04] px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                     />
                   </label>
 
                   <label className="block">
-                    <div className="mb-2 text-sm text-white/70">Wzorzec pliku</div>
+                    <div className="mb-2 text-sm text-fg/70">Wzorzec pliku</div>
                     <input
                       value={form.expectedFilePattern}
                       onChange={(e) =>
@@ -627,7 +627,7 @@ export default function AdminCrmIntegrationEditor({
                         }))
                       }
                       placeholder="oferty_*.zip"
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-[#7aa333]/50"
+                      className="w-full rounded-2xl border border-fg/10 bg-fg/[0.04] px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                     />
                   </label>
                 </div>
@@ -639,7 +639,7 @@ export default function AdminCrmIntegrationEditor({
                 type="button"
                 onClick={handleSaveIntegration}
                 disabled={saving}
-                className="inline-flex rounded-full bg-[#7aa333] px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex rounded-full bg-brand px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Zapisywanie..." : "Zapisz konfigurację"}
               </button>
@@ -648,7 +648,7 @@ export default function AdminCrmIntegrationEditor({
                 type="button"
                 onClick={handleSyncNow}
                 disabled={syncing || !canSync}
-                className="inline-flex rounded-full border border-[#7aa333]/35 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:border-[#7aa333]/60 hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex rounded-full border border-brand/35 bg-fg/[0.03] px-5 py-3 text-sm font-semibold text-fg transition hover:border-brand/60 hover:bg-fg/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {syncing ? "Synchronizacja..." : "Synchronizuj teraz"}
               </button>
@@ -664,31 +664,31 @@ export default function AdminCrmIntegrationEditor({
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 md:p-10">
-            <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+          <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
               Logi synchronizacji
             </div>
 
-            <h3 className="mt-4 text-2xl font-semibold text-white">
+            <h3 className="mt-4 text-2xl font-semibold text-fg">
               Ostatnie zdarzenia CRM
             </h3>
 
             {logsLoading ? (
-              <div className="mt-5 text-sm text-white/60">Ładowanie logów...</div>
+              <div className="mt-5 text-sm text-fg/60">Ładowanie logów...</div>
             ) : logsError ? (
               <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
                 {logsError}
               </div>
             ) : logs.length === 0 ? (
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/65">
+              <div className="mt-5 rounded-2xl border border-fg/10 bg-black/20 p-4 text-sm text-fg/65">
                 Brak logów.
               </div>
             ) : (
-              <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
+              <div className="mt-5 overflow-hidden rounded-2xl border border-fg/10">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[760px] text-sm">
                     <thead>
-                      <tr className="border-b border-white/10 bg-black/20 text-left text-white/50">
+                      <tr className="border-b border-fg/10 bg-black/20 text-left text-fg/50">
                         <th className="px-4 py-3 font-medium">Data</th>
                         <th className="px-4 py-3 font-medium">Akcja</th>
                         <th className="px-4 py-3 font-medium">Status</th>
@@ -700,17 +700,17 @@ export default function AdminCrmIntegrationEditor({
                       {logs.map((log) => (
                         <tr
                           key={log.id}
-                          className="border-b border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+                          className="border-b border-fg/5 bg-fg/[0.02] hover:bg-fg/[0.04]"
                         >
-                          <td className="px-4 py-3 text-white/70">
+                          <td className="px-4 py-3 text-fg/70">
                             {formatDate(log.createdAt)}
                           </td>
-                          <td className="px-4 py-3 text-white">{log.action}</td>
+                          <td className="px-4 py-3 text-fg">{log.action}</td>
                           <td className="px-4 py-3">
                             <span
                               className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                                 log.status === "SUCCESS"
-                                  ? "bg-[#7aa333]/20 text-[#9fd14b]"
+                                  ? "bg-brand/20 text-brand-bright"
                                   : "bg-red-500/15 text-red-300"
                               }`}
                             >
@@ -720,7 +720,7 @@ export default function AdminCrmIntegrationEditor({
                           <td className="px-4 py-3 font-mono text-xs text-[#dce9bf]">
                             {log.externalId || "—"}
                           </td>
-                          <td className="px-4 py-3 text-white/75">
+                          <td className="px-4 py-3 text-fg/75">
                             {log.message || "—"}
                           </td>
                         </tr>

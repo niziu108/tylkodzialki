@@ -193,21 +193,21 @@ export default function CookieConsent() {
     <>
       {showBanner && (
         <div className="fixed inset-x-0 bottom-0 z-[160] px-4 pb-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-5xl rounded-[28px] border border-white/10 bg-[#111111]/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-6">
+          <div className="mx-auto max-w-5xl rounded-[28px] border border-fg/10 bg-surface-2/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-6">
             <div className="grid gap-5 lg:grid-cols-[1.5fr_auto] lg:items-end">
               <div className="space-y-3">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#7aa333]">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-brand-text">
                   Pliki cookies
                 </p>
 
-                <p className="text-sm leading-7 text-white/72">
+                <p className="text-sm leading-7 text-fg/72">
                   Używamy niezbędnych plików cookies, aby serwis działał
                   prawidłowo. Za Twoją zgodą możemy także używać cookies
                   analitycznych i marketingowych. Możesz zaakceptować, odrzucić
                   opcjonalne albo ustawić swoje preferencje.
                 </p>
 
-                <p className="text-xs leading-6 text-white/45">
+                <p className="text-xs leading-6 text-fg/45">
                   Więcej informacji znajdziesz w Polityce cookies i Polityce
                   prywatności.
                 </p>
@@ -217,7 +217,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={rejectOptional}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-white/12 px-5 text-sm text-white/80 transition hover:bg-white/5 hover:text-white"
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-fg/12 px-5 text-sm text-fg/80 transition hover:bg-fg/5 hover:text-fg"
                 >
                   Odrzucam opcjonalne
                 </button>
@@ -228,7 +228,7 @@ export default function CookieConsent() {
                     setShowSettings(true);
                     setShowBanner(false);
                   }}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-white/12 px-5 text-sm text-white/80 transition hover:bg-white/5 hover:text-white"
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-fg/12 px-5 text-sm text-fg/80 transition hover:bg-fg/5 hover:text-fg"
                 >
                   Ustawienia
                 </button>
@@ -236,7 +236,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={acceptAll}
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-[#7aa333] px-5 text-sm font-medium text-white transition hover:opacity-90"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-fg transition hover:opacity-90"
                 >
                   Akceptuję wszystkie
                 </button>
@@ -248,16 +248,16 @@ export default function CookieConsent() {
 
       {showSettings && (
         <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/70 px-4 py-6">
-          <div className="w-full max-w-2xl rounded-[32px] border border-white/10 bg-[#111111] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5)] sm:p-7">
+          <div className="w-full max-w-2xl rounded-[32px] border border-fg/10 bg-surface-2 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5)] sm:p-7">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div className="space-y-2">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#7aa333]">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-brand-text">
                   Ustawienia cookies
                 </p>
-                <h2 className="text-2xl font-semibold text-white">
+                <h2 className="text-2xl font-semibold text-fg">
                   Zarządzaj zgodą
                 </h2>
-                <p className="text-sm leading-7 text-white/65">
+                <p className="text-sm leading-7 text-fg/65">
                   Możesz w każdej chwili zmienić swoje preferencje. Cookies
                   niezbędne są zawsze aktywne, ponieważ odpowiadają za podstawowe
                   działanie serwisu.
@@ -271,7 +271,7 @@ export default function CookieConsent() {
                   setShowSettings(false);
                   if (!existing) setShowBanner(true);
                 }}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-fg/10 text-fg/70 transition hover:bg-fg/5 hover:text-fg"
                 aria-label="Zamknij"
               >
                 ✕
@@ -279,31 +279,31 @@ export default function CookieConsent() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="rounded-3xl border border-fg/10 bg-fg/[0.03] p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <h3 className="text-base font-medium text-white">
+                    <h3 className="text-base font-medium text-fg">
                       Niezbędne
                     </h3>
-                    <p className="text-sm leading-7 text-white/60">
+                    <p className="text-sm leading-7 text-fg/60">
                       Odpowiadają za logowanie, bezpieczeństwo, zapis sesji i
                       podstawowe działanie strony.
                     </p>
                   </div>
 
-                  <div className="rounded-full border border-[#7aa333]/30 bg-[#7aa333]/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-[#7aa333]">
+                  <div className="rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-brand-text">
                     Zawsze aktywne
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="rounded-3xl border border-fg/10 bg-fg/[0.03] p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <h3 className="text-base font-medium text-white">
+                    <h3 className="text-base font-medium text-fg">
                       Analityczne
                     </h3>
-                    <p className="text-sm leading-7 text-white/60">
+                    <p className="text-sm leading-7 text-fg/60">
                       Pomagają mierzyć ruch i ulepszać portal na podstawie
                       statystyk odwiedzin.
                     </p>
@@ -313,7 +313,7 @@ export default function CookieConsent() {
                     type="button"
                     onClick={() => setAnalytics((v) => !v)}
                     className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition ${
-                      analytics ? 'bg-[#7aa333]' : 'bg-white/15'
+                      analytics ? 'bg-brand' : 'bg-fg/15'
                     }`}
                     aria-pressed={analytics}
                     aria-label="Przełącz cookies analityczne"
@@ -327,13 +327,13 @@ export default function CookieConsent() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="rounded-3xl border border-fg/10 bg-fg/[0.03] p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <h3 className="text-base font-medium text-white">
+                    <h3 className="text-base font-medium text-fg">
                       Marketingowe
                     </h3>
-                    <p className="text-sm leading-7 text-white/60">
+                    <p className="text-sm leading-7 text-fg/60">
                       Umożliwiają mierzenie skuteczności reklam i korzystanie z
                       narzędzi marketingowych.
                     </p>
@@ -343,7 +343,7 @@ export default function CookieConsent() {
                     type="button"
                     onClick={() => setMarketing((v) => !v)}
                     className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition ${
-                      marketing ? 'bg-[#7aa333]' : 'bg-white/15'
+                      marketing ? 'bg-brand' : 'bg-fg/15'
                     }`}
                     aria-pressed={marketing}
                     aria-label="Przełącz cookies marketingowe"
@@ -362,7 +362,7 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={rejectOptional}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-white/12 px-5 text-sm text-white/80 transition hover:bg-white/5 hover:text-white"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-fg/12 px-5 text-sm text-fg/80 transition hover:bg-fg/5 hover:text-fg"
               >
                 Odrzucam opcjonalne
               </button>
@@ -370,7 +370,7 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={saveSelected}
-                className="inline-flex h-11 items-center justify-center rounded-full bg-[#7aa333] px-5 text-sm font-medium text-white transition hover:opacity-90"
+                className="inline-flex h-11 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-fg transition hover:opacity-90"
               >
                 Zapisz ustawienia
               </button>

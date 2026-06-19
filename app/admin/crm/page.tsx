@@ -41,14 +41,14 @@ const HEALTH_META: Record<
   },
   OK: {
     label: "OK",
-    badge: "border-[#7aa333]/30 bg-[#7aa333]/20 text-[#9fd14b]",
-    dot: "bg-[#9fd14b]",
+    badge: "border-brand/30 bg-brand/20 text-brand-bright",
+    dot: "bg-brand-bright",
     order: 2,
   },
   DISABLED: {
     label: "Wyłączona",
-    badge: "border-white/15 bg-white/10 text-white/60",
-    dot: "bg-white/40",
+    badge: "border-fg/15 bg-fg/10 text-fg/60",
+    dot: "bg-fg/40",
     order: 3,
   },
 };
@@ -218,23 +218,23 @@ export default async function AdminCrmMonitoringPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#131313] px-6 py-10 text-[#d9d9d9]">
+    <main className="min-h-screen bg-bg px-6 py-10 text-fg/85">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="text-sm text-white/55">
-              <Link href="/admin" className="transition hover:text-white">
+            <div className="text-sm text-fg/55">
+              <Link href="/admin" className="transition hover:text-fg">
                 Panel admina
               </Link>
               <span className="mx-2">/</span>
               <span>Monitoring CRM</span>
             </div>
 
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Monitoring synchronizacji CRM
             </h1>
 
-            <p className="mt-2 text-sm text-[#bdbdbd]">
+            <p className="mt-2 text-sm text-fg/70">
               Stan wszystkich integracji w jednym miejscu. Auto-sync uruchamia się
               o 06:00 i 18:00 UTC. Integracje z problemem są na górze.
             </p>
@@ -242,35 +242,35 @@ export default async function AdminCrmMonitoringPage() {
 
           <Link
             href="/admin"
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 text-sm font-semibold text-white transition hover:bg-white/10"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-semibold text-fg transition hover:bg-fg/10"
           >
             Wróć do admina
           </Link>
         </div>
 
         <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+          <div className="rounded-2xl border border-fg/10 bg-fg/5 p-4">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
               Integracje
             </div>
-            <div className="mt-2 text-2xl font-semibold text-white">{total}</div>
-            <div className="mt-1 text-xs text-white/50">{activeCount} aktywnych</div>
+            <div className="mt-2 text-2xl font-semibold text-fg">{total}</div>
+            <div className="mt-1 text-xs text-fg/50">{activeCount} aktywnych</div>
           </div>
 
           {summaryCards.map((card) => (
             <div
               key={card.label}
-              className="rounded-2xl border border-white/10 bg-white/5 p-4"
+              className="rounded-2xl border border-fg/10 bg-fg/5 p-4"
             >
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-block h-2.5 w-2.5 rounded-full ${HEALTH_META[card.health].dot}`}
                 />
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/45">
                   {card.label}
                 </div>
               </div>
-              <div className="mt-2 text-2xl font-semibold text-white">
+              <div className="mt-2 text-2xl font-semibold text-fg">
                 {card.value}
               </div>
             </div>
@@ -278,8 +278,8 @@ export default async function AdminCrmMonitoringPage() {
         </section>
 
         {providerStats.length > 0 ? (
-          <section className="mb-6 rounded-3xl border border-white/10 bg-white/5 p-4 md:p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">
+          <section className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-4 md:p-5">
+            <h2 className="mb-4 text-sm font-semibold text-fg">
               Według systemu CRM
             </h2>
 
@@ -287,13 +287,13 @@ export default async function AdminCrmMonitoringPage() {
               {providerStats.map((stat) => (
                 <div
                   key={stat.provider}
-                  className="rounded-2xl border border-white/10 bg-black/20 p-4"
+                  className="rounded-2xl border border-fg/10 bg-black/20 p-4"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="font-semibold text-white">
+                    <div className="font-semibold text-fg">
                       {providerLabel(stat.provider)}
                     </div>
-                    <div className="text-sm text-white/55">
+                    <div className="text-sm text-fg/55">
                       {stat.total}{" "}
                       {stat.total === 1 ? "integracja" : "integracji"}
                     </div>
@@ -302,9 +302,9 @@ export default async function AdminCrmMonitoringPage() {
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                     <span className="text-red-300">Błąd {stat.ERROR}</span>
                     <span className="text-amber-300">Nieświeże {stat.STALE}</span>
-                    <span className="text-[#9fd14b]">OK {stat.OK}</span>
+                    <span className="text-brand-bright">OK {stat.OK}</span>
                     {stat.DISABLED > 0 ? (
-                      <span className="text-white/45">Wył. {stat.DISABLED}</span>
+                      <span className="text-fg/45">Wył. {stat.DISABLED}</span>
                     ) : null}
                   </div>
                 </div>
@@ -313,11 +313,11 @@ export default async function AdminCrmMonitoringPage() {
           </section>
         ) : null}
 
-        <div className="rounded-3xl border border-white/10 bg-white/5">
+        <div className="rounded-3xl border border-fg/10 bg-fg/5">
           <div className="max-h-[68vh] overflow-auto overscroll-contain rounded-3xl">
             <table className="w-full min-w-[1180px] text-sm">
-              <thead className="sticky top-0 z-20 bg-[#1b1b1b] shadow-[0_1px_0_rgba(255,255,255,0.08)]">
-                <tr className="border-b border-white/10 text-left text-[#bdbdbd]">
+              <thead className="sticky top-0 z-20 bg-surface shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+                <tr className="border-b border-fg/10 text-left text-fg/70">
                   <th className="px-4 py-4 font-medium">Status</th>
                   <th className="px-4 py-4 font-medium">Biuro / integracja</th>
                   <th className="px-4 py-4 font-medium">System</th>
@@ -334,7 +334,7 @@ export default async function AdminCrmMonitoringPage() {
                   <tr>
                     <td
                       colSpan={8}
-                      className="px-4 py-10 text-center text-sm text-[#9f9f9f]"
+                      className="px-4 py-10 text-center text-sm text-fg/55"
                     >
                       Brak skonfigurowanych integracji CRM.
                     </td>
@@ -352,7 +352,7 @@ export default async function AdminCrmMonitoringPage() {
                     return (
                       <tr
                         key={row.id}
-                        className="border-b border-white/5 hover:bg-white/[0.03]"
+                        className="border-b border-fg/5 hover:bg-fg/[0.03]"
                       >
                         <td className="px-4 py-4 align-top">
                           <span
@@ -368,44 +368,44 @@ export default async function AdminCrmMonitoringPage() {
                         <td className="px-4 py-4 align-top">
                           <Link
                             href={`/admin/crm/${row.user.id}`}
-                            className="font-medium text-[#f3f3f3] transition hover:text-[#9fd14b]"
+                            className="font-medium text-fg transition hover:text-brand-bright"
                           >
                             {row.user.email || row.user.name || "Brak emaila"}
                           </Link>
-                          <div className="mt-0.5 text-xs text-white/45">
+                          <div className="mt-0.5 text-xs text-fg/45">
                             {row.name}
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 align-top text-white/80">
+                        <td className="px-4 py-4 align-top text-fg/80">
                           {providerLabel(row.provider)}
                         </td>
 
                         <td className="px-4 py-4 align-top">
-                          <div className="text-white/85">
+                          <div className="text-fg/85">
                             {formatDate(row.lastSyncAt)}
                           </div>
                           {relative ? (
-                            <div className="mt-0.5 text-xs text-white/45">
+                            <div className="mt-0.5 text-xs text-fg/45">
                               {relative}
                             </div>
                           ) : null}
                           {showSuccessHint ? (
-                            <div className="mt-0.5 text-xs text-white/40">
+                            <div className="mt-0.5 text-xs text-fg/40">
                               sukces: {formatDate(row.lastSuccessAt)}
                             </div>
                           ) : null}
                         </td>
 
-                        <td className="px-4 py-4 align-top text-right font-semibold text-white">
+                        <td className="px-4 py-4 align-top text-right font-semibold text-fg">
                           {row.lastImportedOffers}
                         </td>
 
-                        <td className="px-4 py-4 align-top text-right text-[#9fd14b]">
+                        <td className="px-4 py-4 align-top text-right text-brand-bright">
                           {row.lastCreatedCount}
                         </td>
 
-                        <td className="px-4 py-4 align-top text-right text-white/80">
+                        <td className="px-4 py-4 align-top text-right text-fg/80">
                           {row.lastUpdatedCount}
                         </td>
 
@@ -414,7 +414,7 @@ export default async function AdminCrmMonitoringPage() {
                             className={`font-semibold ${
                               row.lastErrorCount > 0
                                 ? "text-red-300"
-                                : "text-white/70"
+                                : "text-fg/70"
                             }`}
                           >
                             {row.lastErrorCount}

@@ -32,18 +32,18 @@ export default function Breadcrumbs({
   return (
     <>
       {jsonLdOnly ? null : (
-      <nav aria-label="Breadcrumb" className="text-[13px] text-white/50">
+      <nav aria-label="Breadcrumb" className="text-[13px] text-fg/50">
         <ol className="flex flex-wrap items-center gap-2">
           {items.map((item, index) => (
             <li key={index} className="flex items-center gap-2">
-              {index > 0 ? <span className="text-white/30">/</span> : null}
+              {index > 0 ? <span className="text-fg/30">/</span> : null}
 
               {item.href ? (
-                <Link href={item.href} className="transition hover:text-white">
+                <Link href={item.href} className="transition hover:text-fg">
                   {item.label}
                 </Link>
               ) : (
-                <span className="text-white/80">{item.label}</span>
+                <span className="text-fg/80">{item.label}</span>
               )}
             </li>
           ))}

@@ -135,17 +135,17 @@ export default async function BlogArticlePage({
   // <Breadcrumbs/> niżej — nie dublujemy go tutaj.
 
   return (
-    <main className="min-h-screen bg-[#131313] text-[#F3EFF5]">
+    <main className="min-h-screen bg-bg text-fg">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}
       />
 
-      <section className="border-b border-white/10">
+      <section className="border-b border-fg/10">
         <div className="mx-auto max-w-5xl px-6 py-14 md:px-8 md:py-16">
           <Link
             href="/blog"
-            className="inline-flex text-sm text-white/50 transition hover:text-white"
+            className="inline-flex text-sm text-fg/50 transition hover:text-fg"
           >
             ← Wróć do bloga
           </Link>
@@ -167,12 +167,12 @@ export default async function BlogArticlePage({
             className="mt-6"
           />
 
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-white md:text-6xl">
+          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-fg md:text-6xl">
             {article.title}
           </h1>
 
           {article.excerpt ? (
-            <p className="mt-6 max-w-3xl text-[20px] leading-9 text-white/62">
+            <p className="mt-6 max-w-3xl text-[20px] leading-9 text-fg/62">
               {article.excerpt}
             </p>
           ) : null}
@@ -180,7 +180,7 @@ export default async function BlogArticlePage({
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pt-10 md:px-8 md:pt-12">
-        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-black/20">
+        <div className="overflow-hidden rounded-[30px] border border-fg/10 bg-black/20">
           <img
             src={heroSrc}
             alt={article.title}
@@ -197,16 +197,16 @@ export default async function BlogArticlePage({
       </section>
 
       <section className="mx-auto max-w-5xl px-6 pb-12 md:px-8 md:pb-16">
-        <div className="rounded-[30px] border border-[#7aa333]/20 bg-white/[0.03] p-8 md:p-10">
-          <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+        <div className="rounded-[30px] border border-brand/20 bg-fg/[0.03] p-8 md:p-10">
+          <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
             Szukasz działki?
           </div>
 
-          <h2 className="mt-5 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+          <h2 className="mt-5 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
             Sprawdź działki na sprzedaż
           </h2>
 
-          <p className="mt-4 max-w-3xl text-base leading-8 text-white/65">
+          <p className="mt-4 max-w-3xl text-base leading-8 text-fg/65">
             Przeglądaj aktualne oferty w serwisie skupionym wyłącznie na
             działkach. Bez mieszkań, bez domów, bez przypadkowego ruchu.
           </p>
@@ -214,14 +214,14 @@ export default async function BlogArticlePage({
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/kup"
-              className="inline-flex items-center justify-center rounded-2xl bg-[#7aa333] px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
+              className="inline-flex items-center justify-center rounded-2xl bg-brand px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
             >
               Przeglądaj działki na sprzedaż
             </Link>
 
             <Link
               href="/sprzedaj"
-              className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-6 py-4 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.05]"
+              className="inline-flex items-center justify-center rounded-2xl border border-fg/15 bg-fg/[0.03] px-6 py-4 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
             >
               Masz działkę? Dodaj ogłoszenie
             </Link>
@@ -230,9 +230,9 @@ export default async function BlogArticlePage({
       </section>
 
       {relatedArticles.length > 0 ? (
-        <section className="border-t border-white/10">
+        <section className="border-t border-fg/10">
           <div className="mx-auto max-w-6xl px-6 py-12 md:px-8 md:py-16">
-            <h2 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
+            <h2 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">
               Zobacz też
             </h2>
 
@@ -240,7 +240,7 @@ export default async function BlogArticlePage({
               {relatedArticles.map((item) => (
                 <article
                   key={item.id}
-                  className="group overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.045]"
+                  className="group overflow-hidden rounded-[24px] border border-fg/10 bg-fg/[0.03] transition hover:border-fg/20 hover:bg-fg/[0.045]"
                 >
                   <Link href={`/blog/${item.slug}`} className="block">
                     <ArticleCardCover imageUrl={item.imageUrl} title={item.title} />
@@ -252,16 +252,16 @@ export default async function BlogArticlePage({
                         readingTime={item.readingTime}
                       />
 
-                      <h3 className="mt-3 line-clamp-2 text-lg font-semibold tracking-tight text-white">
+                      <h3 className="mt-3 line-clamp-2 text-lg font-semibold tracking-tight text-fg">
                         {item.title}
                       </h3>
 
-                      <p className="mt-3 line-clamp-3 text-sm leading-7 text-white/62">
+                      <p className="mt-3 line-clamp-3 text-sm leading-7 text-fg/62">
                         {item.excerpt ||
                           "Przeczytaj artykuł i poznaj ważne informacje o działkach."}
                       </p>
 
-                      <div className="mt-4 text-sm font-semibold text-[#9fd14b]">
+                      <div className="mt-4 text-sm font-semibold text-brand-bright">
                         Czytaj →
                       </div>
                     </div>

@@ -68,7 +68,7 @@ function AuthPageContent() {
   const tabBtn = (active: boolean) =>
     cx(
       'px-4 py-2 rounded-full text-[13px] md:text-[14px] font-semibold tracking-tight transition',
-      active ? 'text-white' : 'text-white/70 hover:text-white'
+      active ? 'text-fg' : 'text-fg/70 hover:text-fg'
     );
 
   async function handleSubmit(e: React.FormEvent) {
@@ -151,7 +151,7 @@ function AuthPageContent() {
     return (
       <main className="min-h-screen" style={{ background: BG, color: FG }}>
         <div className="flex min-h-screen items-center justify-center px-6">
-          <div className="text-white/60">Ładowanie…</div>
+          <div className="text-fg/60">Ładowanie…</div>
         </div>
       </main>
     );
@@ -163,7 +163,7 @@ function AuthPageContent() {
         <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
           <div className="flex items-center justify-center px-6 py-10 lg:py-0">
             <div className="w-full max-w-md">
-              <div className="rounded-3xl border border-white/10 p-6 md:p-7">
+              <div className="rounded-3xl border border-fg/10 p-6 md:p-7">
                 <div className="flex items-center justify-center gap-3">
                   <button
                     type="button"
@@ -183,7 +183,7 @@ function AuthPageContent() {
                     Zaloguj się
                   </button>
 
-                  <div className="text-white/35">/</div>
+                  <div className="text-fg/35">/</div>
 
                   <button
                     type="button"
@@ -213,7 +213,7 @@ function AuthPageContent() {
                         prompt: 'select_account',
                       })
                     }
-                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/[0.03] px-4 py-4 font-semibold transition hover:bg-white/[0.06]"
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-fg/15 bg-fg/[0.03] px-4 py-4 font-semibold transition hover:bg-fg/[0.06]"
                   >
                     <GoogleIcon />
                     Kontynuuj z Google
@@ -221,17 +221,17 @@ function AuthPageContent() {
                 </div>
 
                 <div className="my-7 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-white/10" />
-                  <div className="text-[12px] uppercase tracking-[0.14em] text-white/45">
+                  <div className="h-px flex-1 bg-fg/10" />
+                  <div className="text-[12px] uppercase tracking-[0.14em] text-fg/45">
                     albo
                   </div>
-                  <div className="h-px flex-1 bg-white/10" />
+                  <div className="h-px flex-1 bg-fg/10" />
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {mode === 'register' && (
                     <label className="block">
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">
                         Imię
                       </div>
                       <input
@@ -240,17 +240,17 @@ function AuthPageContent() {
                         type="text"
                         autoComplete="name"
                         className={cx(
-                          'mt-2 w-full bg-transparent text-[18px] text-white/90',
+                          'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                           'field-line pb-2',
-                          'placeholder:text-white/35 outline-none',
-                          'selection:bg-white/20 selection:text-white'
+                          'placeholder:text-fg/35 outline-none',
+                          'selection:bg-fg/20 selection:text-fg'
                         )}
                       />
                     </label>
                   )}
 
                   <label className="block">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">
                       Email
                     </div>
                     <input
@@ -259,16 +259,16 @@ function AuthPageContent() {
                       type="email"
                       autoComplete="email"
                       className={cx(
-                        'mt-2 w-full bg-transparent text-[18px] text-white/90',
+                        'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                         'field-line pb-2',
-                        'placeholder:text-white/35 outline-none',
-                        'selection:bg-white/20 selection:text-white'
+                        'placeholder:text-fg/35 outline-none',
+                        'selection:bg-fg/20 selection:text-fg'
                       )}
                     />
                   </label>
 
                   <label className="block">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">
                       Hasło
                     </div>
                     <input
@@ -278,21 +278,21 @@ function AuthPageContent() {
                       autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                       placeholder="••••••••"
                       className={cx(
-                        'mt-2 w-full bg-transparent text-[18px] text-white/90',
+                        'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                         'field-line pb-2',
-                        'placeholder:text-white/35 outline-none',
-                        'selection:bg-white/20 selection:text-white'
+                        'placeholder:text-fg/35 outline-none',
+                        'selection:bg-fg/20 selection:text-fg'
                       )}
                     />
                   </label>
 
                   {mode === 'register' && (
-                    <label className="flex items-start gap-3 text-[12px] leading-relaxed text-white/65">
+                    <label className="flex items-start gap-3 text-[12px] leading-relaxed text-fg/65">
                       <input
                         type="checkbox"
                         checked={rodo}
                         onChange={(e) => setRodo(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#7aa333]"
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
                       />
                       <span>
                         Zapoznałem się i akceptuję{' '}
@@ -300,7 +300,7 @@ function AuthPageContent() {
                           href="/polityka-prywatnosci"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline decoration-white/25 underline-offset-4 transition hover:text-white/85"
+                          className="underline decoration-white/25 underline-offset-4 transition hover:text-fg/85"
                           style={{ color: GREEN }}
                         >
                           politykę prywatności
@@ -310,7 +310,7 @@ function AuthPageContent() {
                           href="/regulamin"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline decoration-white/25 underline-offset-4 transition hover:text-white/85"
+                          className="underline decoration-white/25 underline-offset-4 transition hover:text-fg/85"
                           style={{ color: GREEN }}
                         >
                           regulamin
@@ -329,7 +329,7 @@ function AuthPageContent() {
                   <div className="pt-1">
                     <a
                       href="/logowanie/forgot"
-                      className="text-[12px] text-white/55 underline decoration-white/25 underline-offset-4 transition hover:text-white/85"
+                      className="text-[12px] text-fg/55 underline decoration-white/25 underline-offset-4 transition hover:text-fg/85"
                       style={{ textTransform: 'none' }}
                     >
                       zapomniałem hasła
@@ -340,7 +340,7 @@ function AuthPageContent() {
                     type="submit"
                     disabled={busy}
                     className={cx(
-                      'mt-2 w-full rounded-2xl border border-white/15 bg-white/[0.05] px-4 py-4 text-[14px] font-semibold transition hover:bg-white/[0.08]',
+                      'mt-2 w-full rounded-2xl border border-fg/15 bg-fg/[0.05] px-4 py-4 text-[14px] font-semibold transition hover:bg-fg/[0.08]',
                       busy && 'cursor-not-allowed opacity-60'
                     )}
                     style={{ color: GREEN }}
@@ -349,7 +349,7 @@ function AuthPageContent() {
                   </button>
                 </form>
 
-                <div className="mt-6 text-center text-[12px] text-white/40">
+                <div className="mt-6 text-center text-[12px] text-fg/40">
                   {mode === 'login' ? (
                     <span>
                       Nie masz konta?{' '}
@@ -359,7 +359,7 @@ function AuthPageContent() {
                           setMode('register');
                           setError('');
                         }}
-                        className="underline decoration-white/25 underline-offset-4 transition hover:text-white/70"
+                        className="underline decoration-white/25 underline-offset-4 transition hover:text-fg/70"
                         style={{ color: GREEN }}
                       >
                         Zarejestruj się
@@ -374,7 +374,7 @@ function AuthPageContent() {
                           setMode('login');
                           setError('');
                         }}
-                        className="underline decoration-white/25 underline-offset-4 transition hover:text-white/70"
+                        className="underline decoration-white/25 underline-offset-4 transition hover:text-fg/70"
                         style={{ color: GREEN }}
                       >
                         Zaloguj się
@@ -414,16 +414,16 @@ function AuthPageContent() {
 
             <div className="relative flex h-full w-full items-start px-8 pt-10 lg:px-12 lg:pt-12">
               <div className="w-full max-w-xl">
-                <div className="text-[40px] font-semibold leading-[1.05] tracking-tight text-white md:text-[52px]">
+                <div className="text-[40px] font-semibold leading-[1.05] tracking-tight text-fg md:text-[52px]">
                   Zaufaj Nam
                 </div>
 
-                <div className="mt-5 max-w-[560px] text-[16px] leading-relaxed text-white/92 md:text-[18px]">
+                <div className="mt-5 max-w-[560px] text-[16px] leading-relaxed text-fg/92 md:text-[18px]">
                   Zaloguj się lub zarejestruj i wystaw swoją działkę w 3 minuty.
-                  <span className="text-white"> Dodawanie ogłoszeń jest darmowe.</span>
+                  <span className="text-fg"> Dodawanie ogłoszeń jest darmowe.</span>
                 </div>
 
-                <div className="mt-8 h-px w-24 bg-[#7aa333]/55" />
+                <div className="mt-8 h-px w-24 bg-brand/55" />
               </div>
             </div>
 
@@ -439,7 +439,7 @@ function AuthPageFallback() {
   return (
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
       <div className="flex min-h-screen items-center justify-center px-6">
-        <div className="text-white/60">Ładowanie…</div>
+        <div className="text-fg/60">Ładowanie…</div>
       </div>
     </main>
   );

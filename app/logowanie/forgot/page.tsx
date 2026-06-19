@@ -42,27 +42,27 @@ export default function ForgotPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6" style={{ background: BG, color: FG }}>
-      <div className="w-full max-w-md rounded-3xl border border-white/10 p-7">
-        <h1 className="text-white text-[26px] font-semibold">Reset hasła</h1>
+      <div className="w-full max-w-md rounded-3xl border border-fg/10 p-7">
+        <h1 className="text-fg text-[26px] font-semibold">Reset hasła</h1>
 
-        <p className="text-white/70 mt-2 text-[14px]">
+        <p className="text-fg/70 mt-2 text-[14px]">
           Podaj email. Jeśli konto istnieje, wyślemy link do ustawienia nowego hasła.
         </p>
 
         {done ? (
-          <div className="mt-6 rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 py-3 text-[13px] text-white">
+          <div className="mt-6 rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-[13px] text-fg">
             Jeśli konto istnieje, link do resetu został wysłany na podany adres.
           </div>
         ) : (
           <form onSubmit={submit} className="mt-6 space-y-5">
             <label className="block">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">Email</div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">Email</div>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 type="email"
                 autoComplete="email"
-                className="mt-2 w-full bg-transparent text-[18px] text-white/90 field-line pb-2 placeholder:text-white/35 outline-none"
+                className="mt-2 w-full bg-transparent text-[18px] text-fg/90 field-line pb-2 placeholder:text-fg/35 outline-none"
               />
             </label>
 
@@ -75,7 +75,7 @@ export default function ForgotPage() {
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-2xl px-4 py-4 font-semibold border border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition"
+              className="w-full rounded-2xl px-4 py-4 font-semibold border border-fg/15 bg-fg/[0.03] hover:bg-fg/[0.06] transition"
               style={{ color: GREEN }}
             >
               {busy ? '...' : 'Wyślij link resetu'}

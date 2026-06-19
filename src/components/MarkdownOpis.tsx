@@ -92,7 +92,7 @@ export default function OpisEditor({
         onClick={onClick}
         className={cx(
           'text-[14px] md:text-[15px] font-semibold tracking-tight transition',
-          isOn ? 'text-white' : 'text-white/70 hover:text-white'
+          isOn ? 'text-fg' : 'text-fg/70 hover:text-fg'
         )}
         style={{
           textDecoration: isOn ? 'underline' : 'none',
@@ -110,7 +110,7 @@ export default function OpisEditor({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight text-white">
+      <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight text-fg">
         {title}
       </h2>
 
@@ -123,7 +123,7 @@ export default function OpisEditor({
 
       <div className="relative">
         {isEmpty && (
-          <div className="pointer-events-none absolute left-0 top-0 w-full text-white/35 text-[18px] md:text-[19px] leading-relaxed">
+          <div className="pointer-events-none absolute left-0 top-0 w-full text-fg/35 text-[18px] md:text-[19px] leading-relaxed">
             {placeholder}
           </div>
         )}
@@ -140,14 +140,14 @@ export default function OpisEditor({
           onFocus={updateActive}
           className={cx(
             'min-h-[110px] w-full bg-transparent',
-            'text-[18px] md:text-[19px] text-white/90 leading-relaxed',
+            'text-[18px] md:text-[19px] text-fg/90 leading-relaxed',
             'outline-none focus:outline-none',
             'border-0 pb-1',
             'rounded-none shadow-none ring-0',
             '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2',
             '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2',
             '[&_li]:my-1',
-            '[&_b]:text-white [&_strong]:text-white'
+            '[&_b]:text-fg [&_strong]:text-fg'
           )}
           style={{
             outline: 'none',

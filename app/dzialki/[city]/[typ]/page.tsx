@@ -92,7 +92,7 @@ export default async function CityTypePage({ params }: PageProps) {
 
       {siblingItems.length > 0 ? (
         <section className="mx-auto mt-16 max-w-6xl px-3 md:px-4">
-          <h2 className="text-xl font-semibold text-white md:text-2xl">
+          <h2 className="text-xl font-semibold text-fg md:text-2xl">
             Inne typy działek w {city.name}
           </h2>
           <div className="mt-6">
@@ -102,11 +102,11 @@ export default async function CityTypePage({ params }: PageProps) {
       ) : null}
 
       <section className="mx-auto mt-12 max-w-6xl px-3 md:px-4">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.025] p-6 md:p-8">
-          <h2 className="text-lg font-semibold text-white md:text-xl">
+        <div className="rounded-3xl border border-fg/10 bg-fg/[0.025] p-6 md:p-8">
+          <h2 className="text-lg font-semibold text-fg md:text-xl">
             Działki {type.adj} {city.name}
           </h2>
-          <p className="mt-4 max-w-4xl text-sm leading-7 text-white/55 md:text-[15px]">
+          <p className="mt-4 max-w-4xl text-sm leading-7 text-fg/55 md:text-[15px]">
             Na tej stronie znajdziesz działki {type.adj} w okolicy {city.name}: {type.desc}{' '}
             Zawęź wyniki po cenie, powierzchni i mediach, a kontakt do sprzedającego
             masz na stronie wybranej oferty.

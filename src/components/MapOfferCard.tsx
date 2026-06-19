@@ -85,17 +85,17 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
               e.stopPropagation();
               onClose?.();
             }}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#131313]/95 text-[20px] leading-none text-white shadow-[0_8px_24px_rgba(0,0,0,0.5)] backdrop-blur transition hover:bg-[#1b1b1b]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-fg/15 bg-bg/95 text-[20px] leading-none text-fg shadow-[0_8px_24px_rgba(0,0,0,0.5)] backdrop-blur transition hover:bg-surface"
           >
             ×
           </button>
         </div>
 
-        <div className="relative w-full overflow-hidden rounded-2xl border border-white/12 bg-[#131313] shadow-[0_18px_60px_rgba(0,0,0,0.6)]">
-          <a href={`/dzialka/${point.id}`} className="group block text-left text-white no-underline">
+        <div className="relative w-full overflow-hidden rounded-2xl border border-fg/12 bg-bg shadow-[0_18px_60px_rgba(0,0,0,0.6)]">
+          <a href={`/dzialka/${point.id}`} className="group block text-left text-fg no-underline">
             {/* Karuzela */}
             <div
-              className="relative aspect-[16/10] w-full overflow-hidden bg-[#0d0d0d]"
+              className="relative aspect-[16/10] w-full overflow-hidden bg-surface-2"
               onTouchStart={(e) => {
                 touchStartX.current = e.changedTouches[0]?.clientX ?? null;
               }}
@@ -116,21 +116,21 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
                   draggable={false}
                 />
               ) : (
-                <div className="flex h-full items-center justify-center bg-[#0d0d0d]">
-                  <span className="text-[11px] tracking-[0.12em] text-white/30">Zdjęcie wkrótce</span>
+                <div className="flex h-full items-center justify-center bg-surface-2">
+                  <span className="text-[11px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
                 </div>
               )}
 
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
 
               {point.featured && (
-                <span className="absolute left-3 top-3 rounded-full border border-[#7aa333]/40 bg-[#7aa333]/90 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-black">
+                <span className="absolute left-3 top-3 rounded-full border border-brand/40 bg-brand/90 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-black">
                   WYRÓŻNIONE
                 </span>
               )}
 
               {isRent && (
-                <span className="absolute left-3 bottom-3 rounded-full border border-white/30 bg-black/65 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-white backdrop-blur-sm">
+                <span className="absolute left-3 bottom-3 rounded-full border border-fg/30 bg-black/65 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-fg backdrop-blur-sm">
                   NA WYNAJEM
                 </span>
               )}
@@ -141,7 +141,7 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
                     type="button"
                     aria-label="Poprzednie zdjęcie"
                     onClick={(e) => go(-1, e)}
-                    className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/70"
+                    className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-fg backdrop-blur-sm transition hover:bg-black/70"
                   >
                     ‹
                   </button>
@@ -149,11 +149,11 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
                     type="button"
                     aria-label="Następne zdjęcie"
                     onClick={(e) => go(1, e)}
-                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/70"
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-fg backdrop-blur-sm transition hover:bg-black/70"
                   >
                     ›
                   </button>
-                  <div className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium tabular-nums text-white backdrop-blur-sm">
+                  <div className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium tabular-nums text-fg backdrop-blur-sm">
                     <IconCamera className="h-3 w-3" />
                     {i + 1}/{total}
                   </div>
@@ -187,7 +187,7 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
                     toggleFavorite(point.id);
                   }}
                   className={`flex h-8 w-8 items-center justify-center transition active:scale-90 ${
-                    isFavorite ? 'text-[#7aa333]' : 'text-[#7aa333]/80 hover:text-[#7aa333]'
+                    isFavorite ? 'text-brand-text' : 'text-brand-text/80 hover:text-brand-text'
                   }`}
                 >
                   <HeartIcon filled={isFavorite} />
@@ -195,7 +195,7 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
               }
               extra={
                 point.approx ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-2.5 py-1 text-[10px] text-[#9fd14b]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/12 px-2.5 py-1 text-[10px] text-brand-bright">
                     ◎ Lokalizacja przybliżona
                   </span>
                 ) : undefined

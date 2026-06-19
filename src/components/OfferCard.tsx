@@ -206,16 +206,16 @@ export function LoginPrompt({ open, onClose }: { open: boolean; onClose: () => v
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/65 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl border border-white/12 bg-[#131313] p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/12 text-[#7aa333]">
+      <div className="w-full max-w-md rounded-3xl border border-fg/12 bg-bg p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/12 text-brand-text">
           <HeartIcon />
         </div>
 
-        <h2 className="mt-5 font-display text-[24px] uppercase tracking-[0.08em] text-white">
+        <h2 className="mt-5 font-display text-[24px] uppercase tracking-[0.08em] text-fg">
           Zapisz ofertę
         </h2>
 
-        <p className="mt-3 text-sm leading-6 text-white/65">
+        <p className="mt-3 text-sm leading-6 text-fg/65">
           Zaloguj się lub zarejestruj, aby dodać ofertę do ulubionych.
         </p>
 
@@ -223,7 +223,7 @@ export function LoginPrompt({ open, onClose }: { open: boolean; onClose: () => v
           <button
             type="button"
             onClick={onClose}
-            className="h-12 rounded-2xl border border-white/14 bg-transparent px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-white/75 transition hover:border-white/30 hover:text-white"
+            className="h-12 rounded-2xl border border-fg/14 bg-transparent px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/75 transition hover:border-fg/30 hover:text-fg"
           >
             Przeglądaj dalej
           </button>
@@ -234,7 +234,7 @@ export function LoginPrompt({ open, onClose }: { open: boolean; onClose: () => v
               const cb = encodeURIComponent(window.location.pathname + window.location.search);
               window.location.href = `/logowanie?callbackUrl=${cb}`;
             }}
-            className="h-12 rounded-2xl border border-[#7aa333]/60 bg-[#7aa333] px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#131313] transition hover:bg-[#8dbb3a]"
+            className="h-12 rounded-2xl border border-brand/60 bg-brand px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-ink transition hover:bg-brand-strong"
           >
             Przejdź do logowania
           </button>
@@ -330,7 +330,7 @@ function Carousel({
 
   return (
     <div
-      className={`relative aspect-[16/10] overflow-hidden bg-white/5 md:aspect-video ${
+      className={`relative aspect-[16/10] overflow-hidden bg-fg/5 md:aspect-video ${
         horizontal ? 'lg:aspect-auto lg:h-full lg:w-[42%] lg:shrink-0' : ''
       }`}
       onTouchStart={onTouchStart}
@@ -351,7 +351,7 @@ function Carousel({
 
           {featured ? (
             <div className="absolute left-4 top-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
+              <span className="inline-flex items-center rounded-full border border-brand/35 bg-brand/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
                 WYRÓŻNIONE
               </span>
             </div>
@@ -359,7 +359,7 @@ function Carousel({
 
           {rent ? (
             <div className="absolute bottom-4 left-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
+              <span className="inline-flex items-center rounded-full border border-fg/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-fg shadow-lg backdrop-blur-sm">
                 NA WYNAJEM
               </span>
             </div>
@@ -370,19 +370,19 @@ function Carousel({
               <button
                 type="button"
                 onClick={prev}
-                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-fg opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ‹
               </button>
               <button
                 type="button"
                 onClick={next}
-                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-fg opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
               >
                 ›
               </button>
 
-              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-sm">
+              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-fg backdrop-blur-sm">
                 <IconCamera className="h-3.5 w-3.5" />
                 {i + 1}/{list.length}
               </div>
@@ -390,8 +390,8 @@ function Carousel({
           )}
         </>
       ) : (
-        <div className="flex h-full items-center justify-center bg-[#161616]">
-          <span className="text-[12px] tracking-[0.12em] text-white/30">Zdjęcie wkrótce</span>
+        <div className="flex h-full items-center justify-center bg-surface">
+          <span className="text-[12px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
         </div>
       )}
     </div>
@@ -466,8 +466,8 @@ export function OfferCard({
         horizontal ? 'lg:flex lg:items-stretch lg:h-[256px]' : ''
       } ${
         featured
-          ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
-          : 'border-white/14 bg-[#0f0f0f]/20 hover:border-white/30'
+          ? 'border-brand/45 bg-surface-2/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-brand/70'
+          : 'border-fg/14 bg-surface-2/20 hover:border-fg/30'
       }`}
     >
       <Carousel
@@ -503,7 +503,7 @@ export function OfferCard({
                 onToggleFavorite(d.id);
               }}
               className={`flex h-8 w-8 items-center justify-center transition active:scale-90 ${
-                isFavorite ? 'text-[#7aa333]' : 'text-[#7aa333]/80 hover:text-[#7aa333]'
+                isFavorite ? 'text-brand-text' : 'text-brand-text/80 hover:text-brand-text'
               }`}
             >
               <HeartIcon filled={isFavorite} />

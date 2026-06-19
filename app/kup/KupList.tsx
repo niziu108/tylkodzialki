@@ -58,20 +58,20 @@ export default function KupList({
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="overflow-hidden rounded-3xl border border-white/12 bg-[#0f0f0f]/20 lg:flex lg:h-[256px]"
+              className="overflow-hidden rounded-3xl border border-fg/12 bg-surface-2/20 lg:flex lg:h-[256px]"
             >
-              <div className="aspect-[16/10] animate-pulse bg-white/5 md:aspect-video lg:aspect-auto lg:w-[42%] lg:shrink-0" />
+              <div className="aspect-[16/10] animate-pulse bg-fg/5 md:aspect-video lg:aspect-auto lg:w-[42%] lg:shrink-0" />
               <div className="flex flex-col p-5 lg:flex-1">
                 <div className="space-y-3">
-                  <div className="h-6 w-32 animate-pulse rounded bg-white/5" />
-                  <div className="h-4 w-11/12 animate-pulse rounded bg-white/5" />
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-white/5" />
+                  <div className="h-6 w-32 animate-pulse rounded bg-fg/5" />
+                  <div className="h-4 w-11/12 animate-pulse rounded bg-fg/5" />
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-fg/5" />
                   <div className="flex gap-3 pt-1">
-                    <div className="h-5 w-16 animate-pulse rounded bg-white/5" />
-                    <div className="h-5 w-28 animate-pulse rounded bg-white/5" />
+                    <div className="h-5 w-16 animate-pulse rounded bg-fg/5" />
+                    <div className="h-5 w-28 animate-pulse rounded bg-fg/5" />
                   </div>
                 </div>
-                <div className="mt-auto hidden h-5 w-40 animate-pulse rounded bg-white/5 lg:block" />
+                <div className="mt-auto hidden h-5 w-40 animate-pulse rounded bg-fg/5 lg:block" />
               </div>
             </div>
           ))}
@@ -81,11 +81,11 @@ export default function KupList({
 
     if (error) {
       return (
-        <div className="rounded-3xl border border-white/12 bg-[#0f0f0f]/20 p-6">
-          <div className="font-medium text-white/90">Nie udało się pobrać ofert</div>
-          <div className="mt-2 text-sm text-white/60">{error}</div>
+        <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6">
+          <div className="font-medium text-fg/90">Nie udało się pobrać ofert</div>
+          <div className="mt-2 text-sm text-fg/60">{error}</div>
           <button
-            className="mt-4 rounded-full border border-white/20 px-4 py-2 text-[12px] uppercase tracking-[0.18em] text-white/75 transition hover:border-white/40"
+            className="mt-4 rounded-full border border-fg/20 px-4 py-2 text-[12px] uppercase tracking-[0.18em] text-fg/75 transition hover:border-fg/40"
             onClick={() => window.location.reload()}
           >
             Odśwież
@@ -96,7 +96,7 @@ export default function KupList({
 
     if (!items.length) {
       return (
-        <div className="rounded-3xl border border-white/12 bg-[#0f0f0f]/20 p-6 text-white/70">
+        <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6 text-fg/70">
           Brak wyników.
         </div>
       );

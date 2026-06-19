@@ -12,16 +12,16 @@ export default function ArticleToc({ headings }: { headings: TocHeading[] }) {
   if (headings.length < 3) return null;
 
   return (
-    <nav className="mb-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <nav className="mb-10 rounded-2xl border border-fg/10 bg-fg/[0.03] p-5">
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9fd14b]">
+        <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-brand-bright">
           Spis treści
         </span>
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="text-sm text-white/45 transition hover:text-white md:hidden"
+          className="text-sm text-fg/45 transition hover:text-fg md:hidden"
         >
           {open ? "Zwiń" : "Rozwiń"}
         </button>
@@ -32,12 +32,12 @@ export default function ArticleToc({ headings }: { headings: TocHeading[] }) {
       >
         {headings.map((h, i) => (
           <li key={h.id} className="flex gap-3">
-            <span className="text-sm font-semibold text-[#7aa333]/70">
+            <span className="text-sm font-semibold text-brand-text/70">
               {String(i + 1).padStart(2, "0")}
             </span>
             <a
               href={`#${h.id}`}
-              className="text-[15px] leading-6 text-white/70 transition hover:text-white"
+              className="text-[15px] leading-6 text-fg/70 transition hover:text-fg"
             >
               {h.text}
             </a>

@@ -44,19 +44,19 @@ export default function AgencyCounter({ target }: { target: number }) {
 
   return (
     <div className="flex flex-col items-start leading-none">
-      <span className="text-[18px] font-medium text-white/90 [text-shadow:0_2px_10px_rgba(0,0,0,0.45)] md:text-[22px] lg:text-[26px]">
+      <span className="text-[18px] font-medium text-fg/90 [text-shadow:0_2px_10px_rgba(0,0,0,0.45)] md:text-[22px] lg:text-[26px]">
         Zaufało nam
       </span>
 
       <span
-        className="mt-2 tabular-nums text-[88px] font-bold text-white [text-shadow:0_3px_18px_rgba(0,0,0,0.5)] md:text-[120px] lg:text-[150px]"
+        className="mt-2 tabular-nums text-[88px] font-bold text-fg [text-shadow:0_3px_18px_rgba(0,0,0,0.5)] md:text-[120px] lg:text-[150px]"
         aria-live="polite"
         aria-atomic="true"
       >
         {fmt(value)}
       </span>
 
-      <span className="mt-1 text-[13px] uppercase tracking-[0.26em] text-[#9fd14b] [text-shadow:0_1px_4px_rgba(0,0,0,0.55)] md:text-[16px] lg:text-[18px]">
+      <span className="mt-1 text-[13px] uppercase tracking-[0.26em] text-brand-bright [text-shadow:0_1px_4px_rgba(0,0,0,0.55)] md:text-[16px] lg:text-[18px]">
         biur nieruchomości
       </span>
     </div>

@@ -60,17 +60,17 @@ function ResetPageContent() {
       className="min-h-screen flex items-center justify-center px-6"
       style={{ background: BG, color: FG }}
     >
-      <div className="w-full max-w-md rounded-3xl border border-white/10 p-7">
-        <h1 className="text-white text-[26px] font-semibold">Ustaw nowe hasło</h1>
+      <div className="w-full max-w-md rounded-3xl border border-fg/10 p-7">
+        <h1 className="text-fg text-[26px] font-semibold">Ustaw nowe hasło</h1>
 
         {done ? (
           <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-[#7aa333]/30 bg-[#7aa333]/10 px-4 py-3 text-[13px] text-white">
+            <div className="rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-[13px] text-fg">
               Hasło zostało zmienione. Możesz się zalogować.
             </div>
             <a
               href="/logowanie"
-              className="block w-full text-center rounded-2xl px-4 py-4 font-semibold border border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition"
+              className="block w-full text-center rounded-2xl px-4 py-4 font-semibold border border-fg/15 bg-fg/[0.03] hover:bg-fg/[0.06] transition"
               style={{ color: GREEN }}
             >
               Przejdź do logowania
@@ -79,7 +79,7 @@ function ResetPageContent() {
         ) : (
           <form onSubmit={submit} className="mt-6 space-y-5">
             <label className="block">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-fg/55">
                 Nowe hasło
               </div>
               <input
@@ -88,7 +88,7 @@ function ResetPageContent() {
                 type="password"
                 autoComplete="new-password"
                 placeholder="••••••••"
-                className="mt-2 w-full bg-transparent text-[18px] text-white/90 field-line pb-2 placeholder:text-white/35 outline-none"
+                className="mt-2 w-full bg-transparent text-[18px] text-fg/90 field-line pb-2 placeholder:text-fg/35 outline-none"
               />
             </label>
 
@@ -101,7 +101,7 @@ function ResetPageContent() {
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-2xl px-4 py-4 font-semibold border border-white/15 bg-white/[0.03] hover:bg-white/[0.06] transition"
+              className="w-full rounded-2xl px-4 py-4 font-semibold border border-fg/15 bg-fg/[0.03] hover:bg-fg/[0.06] transition"
               style={{ color: GREEN }}
             >
               {busy ? '...' : 'Zapisz nowe hasło'}
@@ -119,7 +119,7 @@ function ResetPageFallback() {
       className="min-h-screen flex items-center justify-center px-6"
       style={{ background: BG, color: FG }}
     >
-      <div className="text-white/60">Ładowanie…</div>
+      <div className="text-fg/60">Ładowanie…</div>
     </main>
   );
 }
