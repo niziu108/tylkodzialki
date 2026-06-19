@@ -622,14 +622,17 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   }
 
   return (
-    <main className="relative isolate min-h-screen overflow-x-hidden" style={{ background: BG, color: FG }}>
-      {/* Tło: subtelna siatka + delikatna zielona poświata — spójne z listą ofert. */}
+    <main className="relative min-h-screen overflow-x-hidden" style={{ color: FG }}>
+      {/* Tło: subtelna siatka (jak na liście) + delikatna zielona poświata od góry —
+          w lewym górnym rogu i w prawym dolnym; bez kafelkowania, więc bez „odcięcia".
+          BG #131313 daje layout (body); brak własnego tła na <main>, żeby pełnoekranowa
+          galeria mogła być nad globalnym menu (bez kontekstu nakładania). */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_14%_16%,rgba(122,163,51,0.06),transparent_28%),radial-gradient(circle_at_86%_68%,rgba(47,94,70,0.06),transparent_28%)] bg-[size:100%_1000px]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(680px_460px_at_4%_-3%,rgba(122,163,51,0.13),transparent_70%),radial-gradient(600px_430px_at_97%_103%,rgba(122,163,51,0.10),transparent_72%)]" />
 
       <div
         className={cx(
-          'mx-auto max-w-6xl px-4 pt-10',
+          'mx-auto max-w-6xl px-4 pt-6',
           telefon ? 'pb-24 md:pb-10' : 'pb-10'
         )}
       >
@@ -642,8 +645,8 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           <span className="relative top-[-1px]">←</span> Wróć do listy
         </Link>
 
-        <div className="mt-6 grid gap-5 lg:gap-10 lg:grid-cols-2">
-          <section className="min-w-0 space-y-8">
+        <div className="mt-6 grid gap-3 lg:gap-10 lg:grid-cols-2">
+          <section className="min-w-0 lg:space-y-8">
             <div className="min-w-0 -mx-4 overflow-hidden rounded-none bg-[#0f0f0f]/20 lg:mx-0 lg:rounded-3xl">
               <div
                 className="relative aspect-[4/3] touch-pan-y bg-white/5 lg:aspect-video"
@@ -742,7 +745,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           </section>
 
           <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
-            <div className="p-6 md:p-7">
+            <div className="px-6 pb-6 pt-4 lg:p-7">
               {/* Ulubione + udostępnij — mobile: jeden pod drugim; desktop: w jednej linii. */}
               <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
                 <button
