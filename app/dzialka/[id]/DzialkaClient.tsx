@@ -674,7 +674,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 lg:gap-10 lg:grid-cols-2">
+        <div className="mt-6 grid gap-0 lg:gap-10 lg:grid-cols-2">
           <section className="min-w-0 lg:space-y-8">
             <div className="min-w-0 -mx-4 overflow-hidden rounded-none bg-[#0f0f0f]/20 lg:mx-0 lg:rounded-3xl">
               <div
@@ -773,15 +773,15 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             ) : null}
           </section>
 
-          <aside className="min-w-0 rounded-3xl bg-[#0f0f0f]/20">
-            <div className="px-6 pb-6 pt-4 lg:p-7">
+          <aside className="min-w-0 -mx-4 rounded-none bg-[#0f0f0f]/20 lg:mx-0 lg:rounded-3xl">
+            <div className="px-4 pb-6 pt-0 lg:p-7">
               {isRent ? (
-                <span className="flex w-fit items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90">
+                <span className="mb-1 flex w-fit items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90 lg:mb-0">
                   Na wynajem
                 </span>
               ) : null}
 
-              <h1 className="mt-2 text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words">
+              <h1 className="mt-0 text-[24px] md:text-[28px] font-semibold tracking-tight text-white leading-[1.12] break-words lg:mt-2">
                 {d.tytul}
               </h1>
 
