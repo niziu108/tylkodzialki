@@ -165,3 +165,8 @@ html {
 .font-hero {
   font-family: var(--font-bebas), sans-serif;
 }
+
+/* Nagłówki (globalna nawigacja, karta oferty, /ulubione) — ten sam krój co hero */
+.font-display {
+  font-family: var(--font-bebas), sans-serif;
+}
