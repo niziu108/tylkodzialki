@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { HeartIcon } from '@/components/OfferCard';
 
 type Photo = { id?: string; url: string; publicId?: string; kolejnosc?: number };
 
@@ -654,11 +655,12 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               onClick={toggleFavorite}
               aria-pressed={isFavorite}
               aria-label={isFavorite ? 'W ulubionych' : 'Dodaj do ulubionych'}
-              className="group flex h-9 w-9 items-center justify-center text-white/70 transition hover:text-[#7aa333] disabled:cursor-wait disabled:opacity-60"
+              className={cx(
+                'group flex h-9 w-9 items-center justify-center transition disabled:cursor-wait disabled:opacity-60',
+                isFavorite ? 'text-[#7aa333]' : 'text-white/70 hover:text-[#7aa333]'
+              )}
             >
-              <span className={`text-[26px] leading-none ${isFavorite ? 'text-[#7aa333]' : ''}`}>
-                {isFavorite ? '♥' : '♡'}
-              </span>
+              <HeartIcon filled={isFavorite} />
             </button>
 
             <button
