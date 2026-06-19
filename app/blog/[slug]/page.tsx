@@ -199,31 +199,31 @@ export default async function BlogArticlePage({
       <section className="mx-auto max-w-5xl px-6 pb-12 md:px-8 md:pb-16">
         <div className="rounded-[30px] border border-[#7aa333]/20 bg-white/[0.03] p-8 md:p-10">
           <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
-            Sprzedajesz działkę?
+            Szukasz działki?
           </div>
 
           <h2 className="mt-5 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-            Dodaj ogłoszenie w tylkodzialki.pl
+            Sprawdź działki na sprzedaż
           </h2>
 
           <p className="mt-4 max-w-3xl text-base leading-8 text-white/65">
-            Dotrzyj do osób, które naprawdę szukają działek. Bez zbędnego chaosu,
-            w serwisie skupionym wyłącznie na gruntach.
+            Przeglądaj aktualne oferty w serwisie skupionym wyłącznie na
+            działkach. Bez mieszkań, bez domów, bez przypadkowego ruchu.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/sprzedaj"
+              href="/kup"
               className="inline-flex items-center justify-center rounded-2xl bg-[#7aa333] px-6 py-4 text-sm font-semibold text-black transition hover:opacity-90"
             >
-              Dodaj działkę
+              Przeglądaj działki na sprzedaż
             </Link>
 
             <Link
-              href="/kup"
+              href="/sprzedaj"
               className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/[0.03] px-6 py-4 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.05]"
             >
-              Zobacz oferty
+              Masz działkę? Dodaj ogłoszenie
             </Link>
           </div>
         </div>

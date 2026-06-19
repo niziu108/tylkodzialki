@@ -30,6 +30,74 @@ async function loadInter(
   }
 }
 
+// Ikona zależna od kategorii (zielony stroke). Domyślnie pin działki.
+function renderCategoryIcon(slug: string | null | undefined) {
+  const p = {
+    width: 46,
+    height: 46,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#9fd14b",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  switch (slug) {
+    case "formalnosci-i-prawo":
+      return (
+        <svg {...p}>
+          <path d="M14 3v5h5" />
+          <path d="M7 3h7l5 5v13H7z" />
+          <path d="M9 13h6M9 17h6" />
+        </svg>
+      );
+    case "kupno-dzialki":
+      return (
+        <svg {...p}>
+          <circle cx="11" cy="11" r="7" />
+          <path d="M21 21l-4.3-4.3" />
+        </svg>
+      );
+    case "sprzedaz-dzialki":
+      return (
+        <svg {...p}>
+          <path d="M3 11l8-8 10 10-8 8z" />
+          <circle cx="8.5" cy="8.5" r="1.4" />
+        </svg>
+      );
+    case "budowa":
+      return (
+        <svg {...p}>
+          <path d="M3 11l9-7 9 7" />
+          <path d="M5 10v10h14V10" />
+        </svg>
+      );
+    case "dzialka-rolna":
+      return (
+        <svg {...p}>
+          <path d="M12 22V11" />
+          <path d="M12 11C12 7 9 5 4 5c0 4 3 6 8 6Z" />
+          <path d="M12 12c0-3 2-5 6-5 0 3-2 5-6 5Z" />
+        </svg>
+      );
+    case "inwestowanie":
+      return (
+        <svg {...p}>
+          <path d="M3 17l6-6 4 4 7-7" />
+          <path d="M17 7h4v4" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...p}>
+          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      );
+  }
+}
+
 export default async function Image({
   params,
 }: {
@@ -101,19 +169,7 @@ export default async function Image({
           }}
         >
           <div style={{ display: "flex", alignItems: "center" }}>
-            <svg
-              width="46"
-              height="46"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#9fd14b"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
+            {renderCategoryIcon(article?.category)}
             <div
               style={{
                 display: "flex",
