@@ -1,10 +1,12 @@
-// Wspólne CIAŁO karty oferty (cena → tytuł → lokalizacja → fakty → CTA), wyrównane do lewej.
+// Wspólne CIAŁO karty oferty (cena → tytuł → lokalizacja → fakty), wyrównane do lewej.
 // Jedno źródło prawdy dla listy /kup, raili (home / podobne) i popupu mapy — Wariant B.
-// Styl premium i powściągliwy: bez ramek, bez ikon, fakty jako czysty tekst z separatorami,
-// zieleń wyłącznie jako akcent na hover/status. Bez 'use client' → serwer i klient.
+// Hierarchia: cena i tytuł na biało (mocno), lokalizacja szara (oddech), reszta (powierzchnia,
+// przeznaczenie, media) znów na biało z dopracowanymi białymi ikonami. Bez przycisku CTA —
+// cała karta jest klikalna, osobny przycisk byłby zbędny i mylący. Bez 'use client'.
 
 import type { ReactNode } from 'react';
 import { offerPriceLabel, pricePerM2, formatIntPL } from '@/lib/format';
+import { IconPin, IconArea, IconTag, IconPlug } from './CardIcons';
 
 export function CardBody({
   cena,
@@ -14,7 +16,6 @@ export function CardBody({
   area,
   przezn,
   media,
-  cta = true,
   compact = false,
   extra,
 }: {
@@ -28,20 +29,13 @@ export function CardBody({
   przezn: string;
   /** Gotowa etykieta mediów, np. „Prąd, Woda" lub null. */
   media: string | null;
-  cta?: boolean;
   compact?: boolean;
-  /** Dodatkowy slot przed CTA (np. plakietka „Lokalizacja przybliżona" na mapie). */
+  /** Dodatkowy slot na końcu (np. plakietka „Lokalizacja przybliżona" na mapie). */
   extra?: ReactNode;
 }) {
   const price = offerPriceLabel(cena);
   const zlM2 = isRent ? 0 : pricePerM2(cena, area);
-  const facts = [
-    `${formatIntPL(area)} m²`,
-    przezn && przezn !== '—' ? przezn : null,
-    media || null,
-  ]
-    .filter(Boolean)
-    .join('  ·  ');
+  const ic = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
 
   return (
     <div className={compact ? 'px-4 py-4' : 'p-5'}>
@@ -56,7 +50,7 @@ export function CardBody({
             Zapytaj o cenę
           </span>
         )}
-        {zlM2 ? <span className="text-[13px] leading-none text-white/40">· {formatIntPL(zlM2)} zł/m²</span> : null}
+        {zlM2 ? <span className="text-[13px] leading-none text-white/45">· {formatIntPL(zlM2)} zł/m²</span> : null}
       </div>
 
       {tytul ? (
@@ -70,26 +64,38 @@ export function CardBody({
       ) : null}
 
       <div
-        className={`truncate text-white/55 ${tytul ? 'mt-1.5' : 'mt-2'} ${compact ? 'text-[13px]' : 'text-[14px]'}`}
+        className={`flex items-center gap-1.5 text-white/45 ${tytul ? 'mt-2' : 'mt-2.5'} ${
+          compact ? 'text-[13px]' : 'text-[14px]'
+        }`}
       >
-        {loc}
+        <IconPin className={`${ic} shrink-0 text-white/40`} />
+        <span className="truncate">{loc}</span>
       </div>
 
-      {facts ? (
-        <div className={`leading-relaxed text-white/45 ${compact ? 'mt-2.5 text-[12px]' : 'mt-3 text-[13px]'}`}>
-          {facts}
-        </div>
-      ) : null}
+      <div
+        className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-white/90 ${
+          compact ? 'mt-2.5 text-[12px]' : 'mt-3 text-[13px]'
+        }`}
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <IconArea className={`${ic} shrink-0 text-white/75`} />
+          {formatIntPL(area)} m²
+        </span>
+        {przezn && przezn !== '—' ? (
+          <span className="inline-flex items-center gap-1.5">
+            <IconTag className={`${ic} shrink-0 text-white/75`} />
+            {przezn}
+          </span>
+        ) : null}
+        {media ? (
+          <span className="inline-flex items-center gap-1.5">
+            <IconPlug className={`${ic} shrink-0 text-white/75`} />
+            {media}
+          </span>
+        ) : null}
+      </div>
 
       {extra ? <div className="mt-3">{extra}</div> : null}
-
-      {cta ? (
-        <div className="mt-4">
-          <span className="flex items-center justify-center rounded-xl bg-white/[0.08] py-2.5 text-[12px] font-medium text-white transition group-hover:bg-[#7aa333] group-hover:text-[#0c0c0c]">
-            Zobacz ofertę
-          </span>
-        </div>
-      ) : null}
     </div>
   );
 }

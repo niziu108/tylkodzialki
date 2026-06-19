@@ -38,7 +38,7 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
   return (
     <Link
       href={`/dzialka/${d.id}`}
-      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/40 transition duration-200 hover:-translate-y-1 hover:border-white/30 hover:shadow-[0_18px_50px_rgba(0,0,0,0.45)] md:min-w-[360px] xl:min-w-[380px]"
+      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-white/14 bg-[#0f0f0f]/40 transition duration-200 hover:border-white/30 md:min-w-[360px] xl:min-w-[380px]"
     >
       <div className="relative aspect-video overflow-hidden bg-white/5">
         {cover ? (
@@ -46,7 +46,7 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
             <img
               src={cover}
               alt={d.tytul}
-              className="h-full w-full object-cover transition-transform duration-[450ms] ease-out group-hover:scale-[1.05]"
+              className="h-full w-full object-cover"
               loading="lazy"
               decoding="async"
             />

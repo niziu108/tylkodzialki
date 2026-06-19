@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MapPoint } from './KupMap';
 import { CardBody } from './CardBody';
+import { IconCamera } from './CardIcons';
 import { parcelMediaLabel } from '@/lib/media';
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -101,7 +102,7 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
             <img
               src={photos[i] ?? photos[0]}
               alt=""
-              className="h-full w-full object-cover transition-transform duration-[450ms] ease-out group-hover:scale-[1.05]"
+              className="h-full w-full object-cover"
               draggable={false}
             />
           ) : (
@@ -142,10 +143,9 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
               >
                 ›
               </button>
-              <div className="absolute bottom-2.5 left-1/2 flex -translate-x-1/2 gap-1.5">
-                {photos.slice(0, 8).map((_, idx) => (
-                  <span key={idx} className={`h-1.5 w-1.5 rounded-full ${idx === i ? 'bg-white' : 'bg-white/45'}`} />
-                ))}
+              <div className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium tabular-nums text-white backdrop-blur-sm">
+                <IconCamera className="h-3 w-3" />
+                {i + 1}/{total}
               </div>
             </>
           )}

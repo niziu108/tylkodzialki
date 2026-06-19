@@ -12,6 +12,7 @@ import type {
   GazStatus,
 } from '@prisma/client';
 import { CardBody } from './CardBody';
+import { IconCamera } from './CardIcons';
 import { parcelMediaLabel } from '@/lib/media';
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -335,7 +336,7 @@ function Carousel({
           <SmartImg
             src={list[i] ?? list[0]}
             alt={title}
-            className="h-full w-full object-cover transition-transform duration-[450ms] ease-out group-hover:scale-[1.05]"
+            className="h-full w-full object-cover"
             eager={eagerImage}
           />
 
@@ -391,13 +392,9 @@ function Carousel({
                 ›
               </button>
 
-              <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
-                {list.slice(0, 8).map((_, idx) => (
-                  <span
-                    key={idx}
-                    className={`h-1.5 w-1.5 rounded-full ${idx === i ? 'bg-white' : 'bg-white/45'}`}
-                  />
-                ))}
+              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-sm">
+                <IconCamera className="h-3.5 w-3.5" />
+                {i + 1}/{list.length}
               </div>
             </>
           )}
@@ -472,7 +469,7 @@ export function OfferCard({
       href={`/dzialka/${d.id}`}
       scroll={scroll}
       onClick={onClick}
-      className={`group block overflow-hidden rounded-3xl border transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_50px_rgba(0,0,0,0.45)] ${
+      className={`group block overflow-hidden rounded-3xl border transition duration-200 ${
         featured
           ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
           : 'border-white/14 bg-[#0f0f0f]/20 hover:border-white/30'
