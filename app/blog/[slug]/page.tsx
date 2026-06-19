@@ -5,6 +5,8 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import ArticleContent from "@/components/ArticleContent";
 import ArticleCardCover from "@/components/ArticleCardCover";
 import ArticleMeta from "@/components/ArticleMeta";
+import ArticleToc from "@/components/ArticleToc";
+import { extractHeadings } from "@/lib/articleToc";
 
 const SITE_URL = "https://tylkodzialki.pl";
 
@@ -44,8 +46,9 @@ export async function generateMetadata({ params }: BlogArticlePageProps) {
     "Artykuł poradnikowy o działkach, sprzedaży, zakupie i formalnościach.";
 
   const canonical = `/blog/${slug}`;
-  const images = article.imageUrl ? [article.imageUrl] : [`${SITE_URL}/logo.png`];
 
+  // og:image i twitter:image dostarcza konwencja opengraph-image.tsx
+  // (generowana okładka) — nie ustawiamy ich ręcznie, żeby nie dublować.
   return {
     title: metaTitle,
     description,
@@ -57,7 +60,6 @@ export async function generateMetadata({ params }: BlogArticlePageProps) {
       title: article.title,
       description,
       url: `${SITE_URL}${canonical}`,
-      images,
       publishedTime: new Date(article.createdAt).toISOString(),
       modifiedTime: new Date(article.updatedAt).toISOString(),
     },
@@ -65,7 +67,6 @@ export async function generateMetadata({ params }: BlogArticlePageProps) {
       card: "summary_large_image",
       title: article.title,
       description,
-      images,
     },
   };
 }
@@ -95,9 +96,10 @@ export default async function BlogArticlePage({
   });
 
   const canonicalUrl = `${SITE_URL}/blog/${article.slug}`;
-  const articleImages = article.imageUrl
-    ? [article.imageUrl]
-    : [`${SITE_URL}/logo.png`];
+  const coverUrl = `${canonicalUrl}/opengraph-image`;
+  const heroSrc = article.imageUrl || coverUrl;
+  const articleImages = [article.imageUrl || coverUrl];
+  const headings = extractHeadings(article.content, article.title);
 
   const blogPostingSchema = {
     "@context": "https://schema.org",
@@ -177,20 +179,19 @@ export default async function BlogArticlePage({
         </div>
       </section>
 
-      {article.imageUrl ? (
-        <section className="mx-auto max-w-6xl px-6 pt-10 md:px-8 md:pt-12">
-          <div className="overflow-hidden rounded-[30px] border border-white/10 bg-black/20">
-            <img
-              src={article.imageUrl}
-              alt={article.title}
-              className="mx-auto max-h-[70vh] w-full object-contain"
-            />
-          </div>
-        </section>
-      ) : null}
+      <section className="mx-auto max-w-6xl px-6 pt-10 md:px-8 md:pt-12">
+        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-black/20">
+          <img
+            src={heroSrc}
+            alt={article.title}
+            className="mx-auto max-h-[70vh] w-full object-contain"
+          />
+        </div>
+      </section>
 
       <section className="mx-auto max-w-5xl px-6 py-12 md:px-8 md:py-16">
         <article className="max-w-[700px]">
+          <ArticleToc headings={headings} />
           <ArticleContent content={article.content} />
         </article>
       </section>

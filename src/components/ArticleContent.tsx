@@ -2,6 +2,19 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
+import type { ReactNode } from "react";
+import { slugifyHeading } from "@/lib/articleToc";
+
+// Tekst z węzłów Reacta — do wyliczenia id kotwicy nagłówka (spójnie ze spisem treści).
+function toText(node: ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(toText).join("");
+  if (typeof node === "object" && "props" in node) {
+    return toText((node as { props?: { children?: ReactNode } }).props?.children);
+  }
+  return "";
+}
 
 // Premium, ciemny renderer treści artykułu. Zastępuje ręczne parsowanie linii —
 // daje prawdziwe listy, pogrubienia, linki, tabele i calloty (blockquote).
@@ -9,17 +22,26 @@ import type { Components } from "react-markdown";
 // <h1> (tytuł artykułu) — lepsze SEO.
 const components: Components = {
   h1: ({ children }) => (
-    <h2 className="mt-12 mb-4 scroll-mt-28 text-[26px] font-semibold tracking-tight text-white md:text-[30px]">
+    <h2
+      id={slugifyHeading(toText(children))}
+      className="mt-12 mb-4 scroll-mt-28 text-[26px] font-semibold tracking-tight text-white md:text-[30px]"
+    >
       {children}
     </h2>
   ),
   h2: ({ children }) => (
-    <h2 className="mt-12 mb-4 scroll-mt-28 text-[26px] font-semibold tracking-tight text-white md:text-[30px]">
+    <h2
+      id={slugifyHeading(toText(children))}
+      className="mt-12 mb-4 scroll-mt-28 text-[26px] font-semibold tracking-tight text-white md:text-[30px]"
+    >
       {children}
     </h2>
   ),
   h3: ({ children }) => (
-    <h3 className="mt-8 mb-3 scroll-mt-28 text-[20px] font-semibold tracking-tight text-white md:text-[22px]">
+    <h3
+      id={slugifyHeading(toText(children))}
+      className="mt-8 mb-3 scroll-mt-28 text-[20px] font-semibold tracking-tight text-white md:text-[22px]"
+    >
       {children}
     </h3>
   ),
