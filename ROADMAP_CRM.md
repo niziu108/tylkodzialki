@@ -319,6 +319,28 @@ weryfikacja na produkcji).
 
 ## CRM SPRINT 8 - IMO CRM (testy)
 
+### Stan realizacji (w toku, 2026-06-19)
+
+Testy na realnym koncie IMO + FTP (konto testowe `imo@tylkodzialki.pl`, provider `IMOX`).
+Weryfikacja prowadzona na realnych paczkach przysyłanych przez pomoc IMO. Wszystkie elementy
+silnika potwierdzone na produkcji (joby integracji `cmqklzvkg0002ie04efo04gnz`):
+
+- **Dodawanie + lokalizacja + sprzedaż/wynajem:** paczka pełna `oferty_20260619101907.zip`
+  (47 ofert, m.in. Toruń). Job 12:15 → **import 47/47** (3 nowe + 44 update), 26 sprzedaż / 21 wynajem,
+  zero odrzuceń. Potwierdza R-A, R-B i naprawę lokalizacji (P-H) oraz strukturę kontenera `<dzial>` (P-I).
+- **Usuwanie różnicowe (R-C):** paczka różnicowa `oferty_20260619165818.zip`
+  (`zawartosc_pliku=roznica`, 47× `<oferta_usun>`, 0 nowych ofert). Job 15:05 → **deactivated 47**,
+  stan ofert IMO `AKTYWNE=0 / ZAKONCZONE=47`. Soft delete, odwracalny (ponowne wysłanie ofert da REACTIVATE).
+
+Narzędzia diagnostyczne (lokalnie i na VPS): `scripts/crm-imo-inspect.ts` (przepuszcza plik XML
+przez parser, raport transakcji/odrzuceń) i `scripts/crm-imo-status.ts` (stan integracji IMO z bazy:
+joby, deactivatedCount, rozkład statusów ofert).
+
+**Pozostaje:** finalna akceptacja po stronie IMO (ich testy: zmiany danych w ofercie, operacje na
+zdjęciach, marker na mapie, pełny eksport nadpisujący) i dodanie tylkodzialki.pl do szablonów eksportu
+w IMO. Po stronie naszego silnika komplet R-A/R-B/R-C działa; te dalsze testy weryfikują odwzorowanie
+po stronie portalu (UPDATE pól, zdjęcia, współrzędne — obsługiwane istniejącym `processOffer`).
+
 ## CRM SPRINT 9 - Properly CRM (analiza)
 
 ## CRM SPRINT 10 - Properly CRM (implementacja)
