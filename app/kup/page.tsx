@@ -103,7 +103,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
   const sort: SortOption = ALLOWED_SORTS.includes(sortRaw as SortOption) ? (sortRaw as SortOption) : 'newest';
 
   return (
-    <main className="pt-10 pb-20">
+    <main className="pt-10">
       <KupSearch
         initialPage={Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1}
         initialFilters={{

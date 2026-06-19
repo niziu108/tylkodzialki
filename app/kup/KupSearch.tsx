@@ -1471,13 +1471,15 @@ export default function KupSearch({
         </div>
       </section>
 
-      <div className="relative">
-        {/* Zielona poświata tylko na wejściu (góra) i wyjściu (dół) listy — środek czysty.
-            Wygaszanie do zera, więc bez twardych cięć (problem starego kafelka). */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[460px] bg-[radial-gradient(130%_120%_at_50%_30%,rgba(122,163,51,0.10),transparent_55%)]" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[460px] bg-[radial-gradient(130%_120%_at_50%_70%,rgba(47,94,70,0.10),transparent_55%)]" />
+      {/* pt-8/pb-20 wniesione tu z <main>, by zielona poświata sięgała OD zdjęcia (góra)
+          DO stopki (dół) — odstępy są w środku wrappera, więc poświata je obejmuje. */}
+      <div className="relative pt-8 pb-20">
+        {/* Zielona poświata: mocna tuż pod zdjęciem hero (góra) i przy stopce (dół),
+            gaśnie ku środkowi — oferty w środku czyste, bez czarnej przerwy ani cięć. */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[460px] bg-[radial-gradient(135%_100%_at_50%_0%,rgba(122,163,51,0.10),transparent_62%)]" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[460px] bg-[radial-gradient(135%_100%_at_50%_100%,rgba(122,163,51,0.12),transparent_62%)]" />
 
-      <section className="mx-auto mt-8 max-w-6xl px-3 md:px-4">
+      <section className="mx-auto max-w-6xl px-3 md:px-4">
         <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
           <span className="text-[11px] uppercase tracking-[0.22em] text-white/35">Sortuj:</span>
           <button
