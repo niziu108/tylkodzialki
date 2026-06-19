@@ -387,6 +387,13 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Wpływ biznesowy:** żaden bezpośredni - kod działa na produkcji, build przechodzi. `any` osłabia typowanie w jednym miejscu; `addDays` to martwy helper.
 - **Priorytet:** niski. Drobne sprzątanie; `any` można dotknąć przy Fazie 1 ze Sprintu 5 (wspólny moduł helperów), `addDays` usunąć lub wykorzystać.
 
+### P-H: Oferty z miast na prawach powiatu odrzucane „brak lokalizacji" [NAPRAWIONE, Sprint 8]
+- **Gdzie:** `src/lib/crm/domypl-sync.ts`, funkcja `parseLocation`.
+- **Co:** dla miast na prawach powiatu (Toruń, Kraków, Łódź, Wrocław...) nazwa miasta jest w polu powiatu (`area level=3`), a pole miasto/miejscowość (`level 5/4`) bywa puste. `parseLocation` nie miał fallbacku, więc `miasto = null`, a oferta odpadała na walidacji `parseOfferFragment` („brak lokalizacji"). Utrata ofert (łamie cel #1). Dotyczy wszystkich integracji na silniku domypl (też Galactica), ujawnione przy IMO.
+- **Realny przypadek:** pierwsza paczka testowa IMO (47 ofert, oferty z Torunia — siedziby IMO). Weszły tylko 3, reszta głównie przez ten bug. IMO wstrzymało weryfikację (2026-06-19).
+- **Naprawa:** fallback `miasto ← powiat`, gdy miasto puste (globalnie, addytywnie — oferty z wypełnionym miastem bez zmian; powiat nie dublowany w `locationFull`). Galactica tylko zyskuje (odzyska wcześniej gubione oferty z miast-powiatów). Test offline `scripts/crm-imo-selftest.ts` rozszerzony o przypadek toruński; `tsc` czysty; **9/9 PASS**.
+- **Status:** naprawione w kodzie, czeka na deploy na VPS (`git pull` + `pm2 restart crm-worker`) i ponowny import paczki IMO (trzeba skasować ślad w `CrmProcessedFile`, bo paczka jest już oznaczona jako przetworzona).
+
 ---
 
 ## CEL KOŃCOWY

@@ -40,6 +40,9 @@ function offer(opts: {
   dzialTab?: string;
   dzialTyp?: string;
   title?: string;
+  woj?: string;
+  miasto?: string | null;
+  powiat?: string;
 }) {
   const dzial =
     opts.dzialTab || opts.dzialTyp
@@ -50,6 +53,13 @@ function offer(opts: {
   const title = opts.title
     ? `<param nazwa="advertisement_text">${opts.title}</param>`
     : "";
+  const woj = opts.woj ?? "mazowieckie";
+  // miasto === null oznacza "nie wysyłaj pola miasto" — tak wygląda oferta z miasta na prawach
+  // powiatu (nazwa miasta jest tylko w polu powiat), jak w paczkach IMO z Torunia.
+  const miasto = opts.miasto === undefined ? "Warszawa" : opts.miasto;
+  const locParts = [`<param nazwa="wojewodztwo">${woj}</param>`];
+  if (opts.powiat) locParts.push(`<param nazwa="powiat">${opts.powiat}</param>`);
+  if (miasto) locParts.push(`<param nazwa="miasto">${miasto}</param>`);
   return `
   <oferta>
     <id>${opts.id}</id>
@@ -57,8 +67,7 @@ function offer(opts: {
     <cena>250000</cena>
     ${title}
     <param nazwa="powierzchnia">1000</param>
-    <param nazwa="wojewodztwo">mazowieckie</param>
-    <param nazwa="miasto">Warszawa</param>
+    ${locParts.join("\n    ")}
   </oferta>`;
 }
 
@@ -78,6 +87,14 @@ const XML = `<?xml version="1.0" encoding="UTF-8"?>
     dzialTab: "dzialki",
     dzialTyp: "wynajem",
     title: "Atrakcyjna oferta",
+  })}
+  ${offer({
+    id: "200T",
+    dzialTab: "dzialki",
+    dzialTyp: "sprzedaz",
+    woj: "kujawsko-pomorskie",
+    miasto: null,
+    powiat: "Toruń",
   })}
   <oferta_usun><id>999</id></oferta_usun>
 </oferty>`;
@@ -115,9 +132,16 @@ async function main() {
   const imo = await parseAll("IMOX");
   const imoIds = imo.offers.map((o) => o.externalId).sort();
   check(
-    "akceptuje dzialki (100, 101, GS-200), odrzuca mieszkanie 102",
-    JSON.stringify(imoIds) === JSON.stringify(["100", "101", "GS-200"]),
+    "akceptuje dzialki (100, 101, 200T, GS-200), odrzuca mieszkanie 102",
+    JSON.stringify(imoIds) === JSON.stringify(["100", "101", "200T", "GS-200"]),
     `dostalem: ${JSON.stringify(imoIds)}`
+  );
+
+  const torun = imo.offers.find((o) => o.externalId === "200T");
+  check(
+    "200T: miasto na prawach powiatu (Torun) zaakceptowane, miasto z fallbacku na powiat",
+    !!torun && (torun.locationLabel?.includes("Toruń") ?? false),
+    `locationLabel=${torun?.locationLabel}`
   );
 
   const o100 = imo.offers.find((o) => o.externalId === "100");

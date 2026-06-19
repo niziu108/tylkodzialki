@@ -776,14 +776,19 @@ function parseLocation(offerNode: Record<string, unknown>, params: Record<string
   const wojewodztwo = toTextValue(params.wojewodztwo) || areas["2"] || null;
   const powiat = toTextValue(params.powiat) || areas["3"] || null;
   const gmina = toTextValue(params.gmina) || areas["4"] || null;
-  const miasto = toTextValue(params.miasto) || areas["5"] || areas["4"] || null;
+  // Miasta na prawach powiatu (Toruń, Kraków, Łódź...) mają nazwę miasta w polu powiatu,
+  // a pole miasto/miejscowość bywa puste. Bez fallbacku na powiat taka oferta odpadała na
+  // walidacji lokalizacji ("brak miasta") i była tracona. Fallback włącza się wyłącznie, gdy
+  // miasto jest puste, więc oferty z wypełnionym miastem działają dokładnie jak dotąd.
+  const miasto = toTextValue(params.miasto) || areas["5"] || areas["4"] || powiat || null;
   const dzielnica = toTextValue(params.dzielnica) || areas["6"] || null;
   const ulica = toTextValue(params.ulica) || null;
 
   const labelParts = [miasto, dzielnica].filter(Boolean);
   const locationLabel = labelParts.length > 0 ? labelParts.join(", ") : miasto;
 
-  const fullParts = [ulica, miasto, dzielnica, gmina, powiat, wojewodztwo].filter(Boolean);
+  // Gdy miasto pochodzi z fallbacku na powiat, nie dublujemy go w pełnym adresie.
+  const fullParts = [ulica, miasto, dzielnica, gmina, powiat === miasto ? null : powiat, wojewodztwo].filter(Boolean);
   const locationFull = fullParts.length > 0 ? fullParts.join(", ") : null;
 
   return {
