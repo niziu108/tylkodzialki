@@ -624,11 +624,10 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden" style={{ color: FG }}>
-      {/* Tło: subtelna siatka (jak na liście) + delikatna zielona poświata od góry —
-          w lewym górnym rogu i w prawym dolnym; bez kafelkowania, więc bez „odcięcia".
+      {/* Tło: delikatna zielona poświata od góry — w lewym górnym rogu i w prawym dolnym;
+          bez kafelkowania, więc bez „odcięcia". Siatka usunięta (przeszkadzała w czytaniu).
           BG #131313 daje layout (body); brak własnego tła na <main>, żeby pełnoekranowa
           galeria mogła być nad globalnym menu (bez kontekstu nakładania). */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(680px_460px_at_4%_-3%,rgba(122,163,51,0.13),transparent_70%),radial-gradient(600px_430px_at_97%_103%,rgba(122,163,51,0.10),transparent_72%)]" />
 
       <div
