@@ -22,6 +22,7 @@ export default async function UlubionePage() {
           zdjecia: {
             orderBy: { kolejnosc: 'asc' },
           },
+          owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroNazwa: true } },
         },
       },
     },

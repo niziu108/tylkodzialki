@@ -68,6 +68,8 @@ export type OfferData = {
   sprzedajacyTyp?: SprzedajacyTyp | null;
   biuroNazwa?: string | null;
   biuroLogoUrl?: string | null;
+  /** Fallback logo/nazwy biura z konta właściciela (oferty CRM nie mają własnego logo). */
+  owner?: { defaultBiuroLogoUrl?: string | null; defaultBiuroNazwa?: string | null } | null;
 };
 
 function labelPrzeznaczenie(p: Przeznaczenie) {
@@ -512,8 +514,8 @@ export function OfferCard({
           media={parcelMediaLabel(d)}
           horizontal={horizontal}
           sellerType={d.sprzedajacyTyp ?? null}
-          biuroNazwa={d.biuroNazwa ?? null}
-          biuroLogoUrl={d.biuroLogoUrl ?? null}
+          biuroNazwa={d.biuroNazwa ?? d.owner?.defaultBiuroNazwa ?? null}
+          biuroLogoUrl={d.biuroLogoUrl ?? d.owner?.defaultBiuroLogoUrl ?? null}
         />
       </div>
     </Link>

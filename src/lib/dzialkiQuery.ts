@@ -27,8 +27,11 @@ export type ListSort =
   | 'area_desc';
 
 // Zdjęcia tylko dla zwróconej strony (≤ take), w tej samej kolejności co dotąd.
+// Logo/nazwa biura z konta właściciela — fallback dla karty, gdy oferta nie ma własnego
+// (importy CRM nie ustawiają `biuroLogoUrl`, a logo żyje w `User.defaultBiuroLogoUrl`).
 export const PAGE_INCLUDE = {
   zdjecia: { orderBy: { kolejnosc: 'asc' } },
+  owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroNazwa: true } },
 } satisfies Prisma.DzialkaInclude;
 
 // Klucz sortu W OBRĘBIE segmentu. `{ id: 'desc' }` na końcu = deterministyczny rozjemca

@@ -1445,10 +1445,11 @@ export default function KupSearch({
   }
 
   return (
-    <div className="w-full overflow-x-hidden">
-      {/* Subtelna „siateczka" tła jak na stronie głównej, ale delikatniej i mniej zieleni. */}
+    <div className="relative w-full overflow-x-hidden">
+      {/* Siateczka: stała siatka (fixed) + zielona poświata na CAŁĄ długość listy
+          (absolute, kafelkowana co ~1000px) — płynie przez całą stronę przy przewijaniu. */}
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_15%_12%,rgba(122,163,51,0.06),transparent_30%),radial-gradient(circle_at_88%_88%,rgba(47,94,70,0.07),transparent_32%)]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_14%_16%,rgba(122,163,51,0.06),transparent_28%),radial-gradient(circle_at_86%_68%,rgba(47,94,70,0.06),transparent_28%)] bg-[size:100%_1000px]" />
 
       <section ref={searchTopRef} className="relative w-full">
         <div

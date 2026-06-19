@@ -113,7 +113,7 @@ export function CardBody({
       </div>
 
       {horizontal && sellerType ? (
-        <div className="hidden items-center gap-2.5 border-t border-white/10 pt-3.5 lg:mt-auto lg:flex">
+        <div className="mt-4 flex items-center gap-2.5 border-t border-white/10 pt-3.5 lg:mt-auto">
           {sellerType === 'BIURO' ? (
             biuroLogoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
