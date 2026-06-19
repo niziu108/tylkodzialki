@@ -10,6 +10,7 @@ import type {
   WodaStatus,
   KanalizacjaStatus,
   GazStatus,
+  SprzedajacyTyp,
 } from '@prisma/client';
 import { CardBody } from './CardBody';
 import { IconCamera } from './CardIcons';
@@ -64,6 +65,9 @@ export type OfferData = {
   woda?: WodaStatus | null;
   kanalizacja?: KanalizacjaStatus | null;
   gaz?: GazStatus | null;
+  sprzedajacyTyp?: SprzedajacyTyp | null;
+  biuroNazwa?: string | null;
+  biuroLogoUrl?: string | null;
 };
 
 function labelPrzeznaczenie(p: Przeznaczenie) {
@@ -478,7 +482,7 @@ export function OfferCard({
       scroll={scroll}
       onClick={onClick}
       className={`group block overflow-hidden rounded-3xl border transition duration-200 ${
-        horizontal ? 'lg:flex lg:items-stretch lg:min-h-[228px]' : ''
+        horizontal ? 'lg:flex lg:items-stretch lg:h-[256px]' : ''
       } ${
         featured
           ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
@@ -497,7 +501,7 @@ export function OfferCard({
         onToggleFavorite={() => onToggleFavorite(d.id)}
       />
 
-      <div className={horizontal ? 'lg:flex lg:flex-1 lg:flex-col lg:justify-center' : ''}>
+      <div className={horizontal ? 'lg:flex-1' : ''}>
         <CardBody
           cena={d.cenaPln}
           isRent={isRent}
@@ -506,6 +510,10 @@ export function OfferCard({
           area={area}
           przezn={przezn}
           media={parcelMediaLabel(d)}
+          horizontal={horizontal}
+          sellerType={d.sprzedajacyTyp ?? null}
+          biuroNazwa={d.biuroNazwa ?? null}
+          biuroLogoUrl={d.biuroLogoUrl ?? null}
         />
       </div>
     </Link>

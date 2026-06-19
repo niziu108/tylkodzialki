@@ -3,10 +3,14 @@
 // Hierarchia: cena i tytuł na biało (mocno), lokalizacja szara (oddech), reszta (powierzchnia,
 // przeznaczenie, media) znów na biało z dopracowanymi białymi ikonami. Bez przycisku CTA —
 // cała karta jest klikalna, osobny przycisk byłby zbędny i mylący. Bez 'use client'.
+//
+// `horizontal` (lista /kup na desktopie): karta pozioma o stałej wysokości; treść u góry,
+// a w wolnym miejscu na dole kreska + „Oferta prywatna" / logo biura. Mobile bez zmian.
 
 import type { ReactNode } from 'react';
+import type { SprzedajacyTyp } from '@prisma/client';
 import { offerPriceLabel, pricePerM2, formatIntPL } from '@/lib/format';
-import { IconPin, IconArea, IconLayers, IconPlug } from './CardIcons';
+import { IconPin, IconArea, IconLayers, IconPlug, IconUser, IconBuilding } from './CardIcons';
 
 export function CardBody({
   cena,
@@ -18,6 +22,10 @@ export function CardBody({
   media,
   compact = false,
   extra,
+  horizontal = false,
+  sellerType,
+  biuroNazwa,
+  biuroLogoUrl,
 }: {
   cena: number;
   isRent: boolean;
@@ -32,70 +40,100 @@ export function CardBody({
   compact?: boolean;
   /** Dodatkowy slot na końcu (np. plakietka „Lokalizacja przybliżona" na mapie). */
   extra?: ReactNode;
+  /** Lista /kup na desktopie: stała wysokość + stopka sprzedawcy. */
+  horizontal?: boolean;
+  sellerType?: SprzedajacyTyp | null;
+  biuroNazwa?: string | null;
+  biuroLogoUrl?: string | null;
 }) {
   const price = offerPriceLabel(cena);
   const zlM2 = isRent ? 0 : pricePerM2(cena, area);
   const ic = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
 
   return (
-    <div className={compact ? 'px-4 py-4' : 'p-5'}>
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        {price ? (
-          <span className={`${compact ? 'text-[19px]' : 'text-[22px]'} font-semibold leading-none text-white`}>
-            {price}
-            {isRent ? <span className="text-[13px] font-normal text-white/60">/mc</span> : null}
-          </span>
-        ) : (
-          <span className="rounded-full bg-[#7aa333]/15 px-3 py-1 text-[14px] font-medium leading-none text-[#9fd14b]">
-            Zapytaj o cenę
-          </span>
-        )}
-        {zlM2 ? <span className="text-[13px] leading-none text-white/45">· {formatIntPL(zlM2)} zł/m²</span> : null}
-      </div>
+    <div className={`${compact ? 'px-4 py-4' : 'p-5'} ${horizontal ? 'lg:flex lg:h-full lg:flex-col' : ''}`}>
+      <div>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          {price ? (
+            <span className={`${compact ? 'text-[19px]' : 'text-[22px]'} font-semibold leading-none text-white`}>
+              {price}
+              {isRent ? <span className="text-[13px] font-normal text-white/60">/mc</span> : null}
+            </span>
+          ) : (
+            <span className="rounded-full bg-[#7aa333]/15 px-3 py-1 text-[14px] font-medium leading-none text-[#9fd14b]">
+              Zapytaj o cenę
+            </span>
+          )}
+          {zlM2 ? <span className="text-[13px] leading-none text-white/45">· {formatIntPL(zlM2)} zł/m²</span> : null}
+        </div>
 
-      {tytul ? (
+        {tytul ? (
+          <div
+            className={`mt-2 line-clamp-2 font-medium leading-snug text-white/95 ${
+              compact ? 'text-[15px]' : 'text-[16px] md:text-[17px]'
+            }`}
+          >
+            {tytul}
+          </div>
+        ) : null}
+
         <div
-          className={`mt-2 line-clamp-2 font-medium leading-snug text-white/95 ${
-            compact ? 'text-[15px]' : 'text-[16px] md:text-[17px]'
+          className={`flex items-center gap-1.5 text-white/45 ${tytul ? 'mt-2' : 'mt-2.5'} ${
+            compact ? 'text-[13px]' : 'text-[15px]'
           }`}
         >
-          {tytul}
+          <IconPin className={`${ic} shrink-0 text-white/40`} />
+          <span className="truncate">{loc}</span>
+        </div>
+
+        <div
+          className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-white/90 ${
+            compact ? 'mt-2.5 text-[12px]' : 'mt-3 text-[14px]'
+          }`}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <IconArea className={`${ic} shrink-0 text-white/75`} />
+            {formatIntPL(area)} m²
+          </span>
+          {przezn && przezn !== '—' ? (
+            <span className="inline-flex items-center gap-1.5">
+              <IconLayers className={`${ic} shrink-0 text-white/75`} />
+              {przezn}
+            </span>
+          ) : null}
+          {media ? (
+            <span className="inline-flex items-center gap-1.5">
+              <IconPlug className={`${ic} shrink-0 text-white/75`} />
+              {media}
+            </span>
+          ) : null}
+        </div>
+
+        {extra ? <div className="mt-3">{extra}</div> : null}
+      </div>
+
+      {horizontal && sellerType ? (
+        <div className="hidden items-center gap-2.5 border-t border-white/10 pt-3.5 lg:mt-auto lg:flex">
+          {sellerType === 'BIURO' ? (
+            biuroLogoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={biuroLogoUrl}
+                alt={biuroNazwa ?? ''}
+                className="h-7 w-auto max-w-[112px] object-contain"
+                loading="lazy"
+              />
+            ) : (
+              <IconBuilding className="h-4 w-4 shrink-0 text-white/50" />
+            )
+          ) : (
+            <IconUser className="h-4 w-4 shrink-0 text-white/50" />
+          )}
+          <span className="text-[13px] text-white/55">
+            {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
+          </span>
         </div>
       ) : null}
-
-      <div
-        className={`flex items-center gap-1.5 text-white/45 ${tytul ? 'mt-2' : 'mt-2.5'} ${
-          compact ? 'text-[13px]' : 'text-[15px]'
-        }`}
-      >
-        <IconPin className={`${ic} shrink-0 text-white/40`} />
-        <span className="truncate">{loc}</span>
-      </div>
-
-      <div
-        className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-white/90 ${
-          compact ? 'mt-2.5 text-[12px]' : 'mt-3 text-[14px]'
-        }`}
-      >
-        <span className="inline-flex items-center gap-1.5">
-          <IconArea className={`${ic} shrink-0 text-white/75`} />
-          {formatIntPL(area)} m²
-        </span>
-        {przezn && przezn !== '—' ? (
-          <span className="inline-flex items-center gap-1.5">
-            <IconLayers className={`${ic} shrink-0 text-white/75`} />
-            {przezn}
-          </span>
-        ) : null}
-        {media ? (
-          <span className="inline-flex items-center gap-1.5">
-            <IconPlug className={`${ic} shrink-0 text-white/75`} />
-            {media}
-          </span>
-        ) : null}
-      </div>
-
-      {extra ? <div className="mt-3">{extra}</div> : null}
     </div>
   );
 }

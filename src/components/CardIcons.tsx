@@ -68,3 +68,25 @@ export function IconCamera({ className }: IconProps) {
     </svg>
   );
 }
+
+/** Sprzedawca prywatny — osoba. */
+export function IconUser({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+    </svg>
+  );
+}
+
+/** Biuro nieruchomości — budynek. */
+export function IconBuilding({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <rect x="6" y="3" width="12" height="18" rx="1.2" />
+      <path d="M3.5 21h17" />
+      <path d="M9.5 7.5h.01M14.5 7.5h.01M9.5 11.5h.01M14.5 11.5h.01" />
+      <path d="M10 21v-2.6a2 2 0 0 1 4 0V21" />
+    </svg>
+  );
+}

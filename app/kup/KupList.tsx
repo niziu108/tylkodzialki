@@ -58,17 +58,20 @@ export default function KupList({
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="overflow-hidden rounded-3xl border border-white/12 bg-[#0f0f0f]/20 lg:flex lg:min-h-[228px]"
+              className="overflow-hidden rounded-3xl border border-white/12 bg-[#0f0f0f]/20 lg:flex lg:h-[256px]"
             >
               <div className="aspect-[16/10] animate-pulse bg-white/5 md:aspect-video lg:aspect-auto lg:w-[42%] lg:shrink-0" />
-              <div className="space-y-3 p-5 lg:flex-1 lg:self-center">
-                <div className="h-6 w-32 animate-pulse rounded bg-white/5" />
-                <div className="h-4 w-11/12 animate-pulse rounded bg-white/5" />
-                <div className="h-4 w-2/3 animate-pulse rounded bg-white/5" />
-                <div className="flex gap-3 pt-1">
-                  <div className="h-5 w-16 animate-pulse rounded bg-white/5" />
-                  <div className="h-5 w-28 animate-pulse rounded bg-white/5" />
+              <div className="flex flex-col p-5 lg:flex-1">
+                <div className="space-y-3">
+                  <div className="h-6 w-32 animate-pulse rounded bg-white/5" />
+                  <div className="h-4 w-11/12 animate-pulse rounded bg-white/5" />
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-white/5" />
+                  <div className="flex gap-3 pt-1">
+                    <div className="h-5 w-16 animate-pulse rounded bg-white/5" />
+                    <div className="h-5 w-28 animate-pulse rounded bg-white/5" />
+                  </div>
                 </div>
+                <div className="mt-auto hidden h-5 w-40 animate-pulse rounded bg-white/5 lg:block" />
               </div>
             </div>
           ))}
