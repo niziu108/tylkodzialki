@@ -650,11 +650,13 @@ function MapGlyph({ className = 'h-4 w-4' }: { className?: string }) {
 export default function KupSearch({
   initialFilters,
   initialPage = 1,
+  initialFocusId = null,
   seoMode = false,
   navigationMode = false,
 }: {
   initialFilters?: Partial<AppliedFilters>;
   initialPage?: number;
+  initialFocusId?: string | null;
   seoMode?: boolean;
   navigationMode?: boolean;
 }) {
@@ -715,7 +717,7 @@ export default function KupSearch({
   // Mapa (P11) — przycisk „Mapa" → pełnoekranowy overlay (desktop i mobile tak samo).
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
   const [mapLoading, setMapLoading] = useState(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(initialFocusId);
   const [mapOpen, setMapOpen] = useState(false);
   const [mapMounted, setMapMounted] = useState(false);
 
@@ -1128,6 +1130,16 @@ export default function KupSearch({
   const openMap = useCallback(() => {
     setMapMounted(true);
     setMapOpen(true);
+  }, []);
+
+  // Wejście z oferty (?focus=…) — od razu otwieramy pełnoekranową mapę ofert,
+  // wyśrodkowaną na działce; jej pin jest podświetlony (activeId = initialFocusId).
+  useEffect(() => {
+    if (initialFocusId) {
+      setMapMounted(true);
+      setMapOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Klucz filtrów (bez sortowania/strony) — zmienia się tylko gdy zmieniają się wyniki na mapie.

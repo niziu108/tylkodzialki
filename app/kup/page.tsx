@@ -102,10 +102,15 @@ export default async function KupPage({ searchParams }: KupPageProps) {
   const sortRaw = one(sp['sort']);
   const sort: SortOption = ALLOWED_SORTS.includes(sortRaw as SortOption) ? (sortRaw as SortOption) : 'newest';
 
+  // Wejście z konkretnej oferty („Zobacz na mapie ofert") — id oferty do wyróżnienia
+  // i auto-otwarcia mapy wyśrodkowanej na jej lokalizacji.
+  const focusId = one(sp.focus).trim() || null;
+
   return (
     <main className="pt-10">
       <KupSearch
         initialPage={Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1}
+        initialFocusId={focusId}
         initialFilters={{
           locText: hasBBox ? '' : one(sp.loc),
           radiusKm,

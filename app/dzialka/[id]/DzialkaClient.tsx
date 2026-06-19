@@ -361,6 +361,19 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   return `https://www.google.com/maps?q=${d.lat},${d.lng}&z=15&output=embed`;
 }, [d]);
 
+  // Link do NASZEJ mapy ofert — wyśrodkowanej na tej działce, z jej pinem
+  // podświetlonym i ofertami w okolicy. Zostawiamy użytkownika u nas, nie w Google.
+  const naszaMapaHref = useMemo(() => {
+    if (!d?.lat || !d?.lng) return null;
+    const sp = new URLSearchParams({
+      lat: String(d.lat),
+      lng: String(d.lng),
+      radius: '10',
+      focus: d.id,
+    });
+    return `/kup?${sp.toString()}`;
+  }, [d]);
+
   const prad = labelPrad(d?.prad ?? null);
   const woda = labelWoda(d?.woda ?? null);
   const kan = labelKanalizacja(d?.kanalizacja ?? null);
@@ -953,26 +966,30 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                    </div>
                   ) : null}
 
-                  {d.mapsUrl && !isApproxLocation ? (
-                    <a
-                      href={d.mapsUrl}
-                      target="_blank"
-                      rel="noreferrer"
+                  {naszaMapaHref ? (
+                    <Link
+                      href={naszaMapaHref}
                       className="mt-4 inline-flex text-[12px] tracking-[0.18em] uppercase text-white/70 hover:text-white transition underline decoration-white/20 underline-offset-8"
                     >
-                      OTWÓRZ W MAPACH GOOGLE
-                    </a>
+                      ZOBACZ NA MAPIE OFERT
+                    </Link>
                   ) : null}
 
-                  {showMap ? (
-  <div className="mt-4 overflow-hidden rounded-3xl bg-[#0f0f0f]/20">
+                  {showMap && naszaMapaHref ? (
+  <Link
+    href={naszaMapaHref}
+    aria-label="Zobacz tę działkę na mapie ofert"
+    className="group mt-4 block overflow-hidden rounded-3xl bg-[#0f0f0f]/20"
+  >
     <div className="relative aspect-video">
+      {/* Mapa to tylko podgląd — klik nie ucieka do Google, otwiera naszą mapę ofert. */}
       <iframe
         title="Mapa"
         src={mapSrc!}
-        className="h-full w-full"
+        className="pointer-events-none h-full w-full"
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
+        tabIndex={-1}
       />
 
       {isApproxLocation ? (
@@ -980,8 +997,15 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           <div className="h-44 w-44 rounded-full border-2 border-[#7aa333]/70 bg-[#7aa333]/20 shadow-[0_0_60px_rgba(122,163,51,0.28)]" />
         </div>
       ) : null}
+
+      {/* Sygnał, że podgląd jest klikalny i prowadzi do mapy z ofertami w okolicy. */}
+      <div className="pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-90 transition group-hover:opacity-100">
+        <span className="m-3 inline-flex items-center gap-2 rounded-full border border-[#7aa333]/60 bg-[#131313]/90 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-white backdrop-blur">
+          Zobacz oferty w okolicy
+        </span>
+      </div>
     </div>
-  </div>
+  </Link>
 ) : null}
                 </div>
               ) : null}
