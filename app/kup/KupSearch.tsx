@@ -1532,7 +1532,18 @@ export default function KupSearch({
               activeId={activeId}
               onActiveChange={setActiveId}
               onSearchArea={onSearchArea}
-              onClose={() => setMapOpen(false)}
+              onClose={() => {
+                // Weszliśmy z konkretnej oferty → zamknięcie mapy wraca do tej oferty,
+                // a nie zrzuca do wyszukiwarki. Cofamy w historii (zachowana pozycja
+                // na stronie oferty); gdy historii brak (np. wejście z linku), idziemy wprost.
+                if (initialFocusId) {
+                  if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+                  else router.push(`/dzialka/${initialFocusId}`);
+                } else {
+                  setMapOpen(false);
+                }
+              }}
+              closeLabel={initialFocusId ? 'Wróć do oferty' : undefined}
             />
           </aside>
         )}

@@ -50,6 +50,8 @@ type Props = {
   onActiveChange?: (id: string | null) => void;
   onSearchArea?: (b: Bounds) => void;
   onClose?: () => void;
+  /** Etykieta przycisku zamknięcia mapy (domyślnie „Lista"); np. „Wróć do oferty". */
+  closeLabel?: string;
   className?: string;
 };
 
@@ -150,6 +152,7 @@ export default function KupMap({
   onActiveChange,
   onSearchArea,
   onClose,
+  closeLabel,
   className,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -449,14 +452,14 @@ export default function KupMap({
         </div>
       )}
 
-      {/* Zamknij (mobile) */}
+      {/* Zamknij mapę: powrót do listy, albo do oferty gdy weszliśmy z niej. */}
       {onClose && (
         <button
           type="button"
           onClick={onClose}
           className="absolute right-3 top-3 z-[6] flex items-center gap-2 rounded-full border border-fg/20 bg-bg/95 px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.16em] text-fg shadow-lg backdrop-blur transition hover:border-fg/40"
         >
-          <span className="text-[15px] leading-none">×</span> Lista
+          <span className="text-[15px] leading-none">{closeLabel ? '←' : '×'}</span> {closeLabel ?? 'Lista'}
         </button>
       )}
 
