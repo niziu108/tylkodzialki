@@ -339,8 +339,20 @@ function isLandOffer(rawOffer: Record<string, unknown>, definitions: EstiDefinit
   const typeName = toTextValue(rawOffer.typeName);
   const groundType = nodeTextOrDictionary(rawOffer.groundType, definitions);
 
+  // mainTypeId to autorytatywny typ główny oferty w EstiCRM (słownik "types"):
+  // 1=Dom, 2=Mieszkanie, 3=Działka, 4=Inny komercyjny, 5=Obiekt, 65=Domy, 66=Komercyjne.
+  // Kiedy jest podany, decyduje on i tylko on. Działka = "3" (albo etykieta mówiąca "działka").
+  //
+  // KLUCZOWE: domy/mieszkania też mają wypełnione groundType, bo to przeznaczenie GRUNTU pod
+  // budynkiem (Budowlana/Rolna/Usługowo-mieszkaniowa). Dlatego groundType NIE może być sygnałem
+  // „to działka”, gdy mainTypeId jednoznacznie mówi, że to dom. Wcześniej regex po groundType
+  // przepuszczał domy stojące na działce budowlanej/rolnej i wciągał je na stronę.
+  if (mainTypeText) {
+    return mainTypeText === "3" || normalizeText(mainTypeLabel).includes("dzial");
+  }
+
+  // Fallback tylko dla feedów BEZ mainTypeId — dopiero wtedy zgadujemy typ z etykiet/groundType.
   return (
-    mainTypeText === "3" ||
     normalizeText(mainTypeLabel).includes("dzial") ||
     normalizeText(typeName).includes("dzial") ||
     Boolean(groundType && normalizeText(groundType).match(/budowl|roln|lesn|rekre|inwest|siedlisk|mieszkani|uslug|przemys/))
