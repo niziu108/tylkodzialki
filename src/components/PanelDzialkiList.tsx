@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import type { Przeznaczenie, TransakcjaTyp } from '@prisma/client';
+import type {
+  Przeznaczenie,
+  TransakcjaTyp,
+  PradStatus,
+  WodaStatus,
+  KanalizacjaStatus,
+  GazStatus,
+} from '@prisma/client';
+import { CardBody } from './CardBody';
+import { IconCamera } from './CardIcons';
+import { parcelMediaLabel } from '@/lib/media';
 import {
   przedluzOgloszenieAction,
   zakonczOgloszenieAction,
@@ -30,6 +40,10 @@ export type Dzialka = {
   transakcja?: TransakcjaTyp | null;
   locationLabel?: string | null;
   przeznaczenia?: Przeznaczenie[];
+  prad?: PradStatus | null;
+  woda?: WodaStatus | null;
+  kanalizacja?: KanalizacjaStatus | null;
+  gaz?: GazStatus | null;
   zdjecia?: Photo[];
   status?: DzialkaStatus;
   publishedAt?: string | Date | null;
@@ -43,14 +57,6 @@ export type Dzialka = {
   phoneClicksCount?: number | null;
   messageClicksCount?: number | null;
 };
-
-function formatPLN(value: number) {
-  return new Intl.NumberFormat('pl-PL', {
-    style: 'currency',
-    currency: 'PLN',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function formatIntPL(value: number) {
   return new Intl.NumberFormat('pl-PL', {
@@ -338,8 +344,8 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   const loc = d.locationLabel?.trim() || 'Lokalizacja niepodana';
   const area = d.powierzchniaM2 ?? 0;
   const isRent = d.transakcja === 'WYNAJEM';
-  const zlZaM2 = !isRent && area ? Math.round(d.cenaPln / area) : 0;
   const przezn = d.przeznaczenia?.length ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ') : '—';
+  const media = parcelMediaLabel(d);
 
   const effectiveStatus = getEffectiveStatus(d.status, d.expiresAt);
   const daysLeft = getDaysLeft(d.expiresAt);
@@ -422,14 +428,16 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   return (
     <div
       ref={cardRef}
-      className={`group overflow-hidden rounded-3xl border transition ${
+      className={`group flex flex-col overflow-hidden rounded-3xl border transition ${
         effectiveStatus === 'ZAKONCZONE'
-          ? 'border-white/10 bg-[#0f0f0f]/15 opacity-80'
+          ? 'border-white/10 bg-[#0f0f0f]/15 opacity-85'
           : isFeaturedActive
           ? 'border-[#7aa333]/45 bg-[#0f0f0f]/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-[#7aa333]/70'
           : 'border-white/14 bg-[#0f0f0f]/20 hover:border-white/30'
       }`}
     >
+      {/* Klikalna oferta: te same elementy co karta na /kup. Karuzela i
+          wspolne CardBody (cena, tytul, lokalizacja, fakty). */}
       <Link
         href={`/dzialka/${d.id}`}
         target="_blank"
@@ -441,227 +449,230 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           coverFallback={coverFallback}
           title={d.tytul}
           featured={isFeaturedActive}
+          rent={isRent}
         />
 
-        
-        <div className="border-b border-white/10 bg-[#111111] px-5 py-3 sm:px-7">
-          <div className="grid gap-y-1.5 text-[13px] leading-relaxed text-white/62 sm:grid-cols-2 sm:gap-x-10">
-            <div>
-              Wyświetlenia: <span className="font-semibold text-white">{formatIntPL(viewsCount)}</span>
-            </div>
-            <div>
-              Wejścia: <span className="font-semibold text-white">{formatIntPL(detailViewsCount)}</span>
-            </div>
-            <div>
-              Ulubione: <span className="font-semibold text-[#b7db74]">{formatIntPL(favoritesCount)}</span>
-            </div>
-            <div>
-              Telefony: <span className="font-semibold text-white">{formatIntPL(phoneClicksCount)}</span>
-            </div>
-            <div className="sm:col-span-2">
-              Wiadomości: <span className="font-semibold text-white">{formatIntPL(messageClicksCount)}</span>
-            </div>
-          </div>
-        </div>
-<div className="p-5 md:p-6">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <MetricBlock
-              label={isRent ? 'Cena najmu' : 'Cena'}
-              value={
-                <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
-                  <span className="text-[20px] font-semibold leading-none text-white md:text-[22px]">
-                    {formatPLN(d.cenaPln)}
-                    {isRent ? <span className="text-[13px] font-normal text-white/60">/mc</span> : null}
-                  </span>
-                  {zlZaM2 ? (
-                    <span className="text-[12px] text-white/50">
-                      ({formatIntPL(zlZaM2)} zł/m²)
-                    </span>
-                  ) : null}
-                </div>
-              }
-            />
-
-            <div className="h-14 w-px bg-white/10" />
-
-            <MetricBlock
-              label="Powierzchnia"
-              value={
-                <div className="text-[20px] font-medium leading-none text-white/95 md:text-[22px]">
-                  {formatIntPL(area)} m²
-                </div>
-              }
-            />
-          </div>
-
-          <div className="mt-6">
-            <div className="mx-auto max-w-[92%] text-center text-[16px] font-medium leading-[1.35] text-white/92 md:text-[17px]">
-              {d.tytul}
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <MetricBlock
-              label="Lokalizacja"
-              value={
-                <div className="break-words text-[14px] leading-[1.4] text-white/90">
-                  {loc}
-                </div>
-              }
-            />
-
-            <div className="h-14 w-px bg-white/10" />
-
-            <MetricBlock
-              label="Przeznaczenie"
-              value={
-                <div className="break-words text-[14px] leading-[1.4] text-white/90">
-                  {przezn}
-                </div>
-              }
-            />
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/8 pt-4">
-            <StatusPill effectiveStatus={effectiveStatus} />
-            {isFeaturedActive ? <FeaturedPill /> : null}
-
-            {effectiveStatus === 'AKTYWNE' ? (
-              isIndefinite ? (
-                <MetaPill text="Bezterminowo" subtle />
-              ) : (
-                <MetaPill
-                  text={`Widoczne do: ${formatDatePL(d.expiresAt)}${
-                    typeof daysLeft === 'number' && daysLeft >= 0 ? ` (${daysLeft} dni)` : ''
-                  }`}
-                  subtle
-                />
-              )
-            ) : (
-              <MetaPill
-                text={
-                  d.status === 'ZAKONCZONE'
-                    ? 'Ogłoszenie zostało zakończone'
-                    : 'Ogłoszenie wygasło'
-                }
-                danger
-              />
-            )}
-          </div>
-        </div>
+        <CardBody
+          cena={d.cenaPln}
+          isRent={isRent}
+          tytul={d.tytul}
+          loc={loc}
+          area={area}
+          przezn={przezn}
+          media={media}
+        />
       </Link>
 
-      <div className="px-5 pb-5 md:px-6 md:pb-6">
+      {/* Narzedzia wlasciciela: wyniki, status i akcje. Poza <Link>, zeby
+          klik w statystyki lub przyciski nie otwieral oferty. */}
+      <div className="mt-auto border-t border-white/8 px-5 pb-5 pt-5 md:px-6 md:pb-6">
+        <PanelStats
+          viewsCount={viewsCount}
+          detailViewsCount={detailViewsCount}
+          favoritesCount={favoritesCount}
+          phoneClicksCount={phoneClicksCount}
+          messageClicksCount={messageClicksCount}
+        />
+
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px]">
+          <StatusPill effectiveStatus={effectiveStatus} />
+
+          {effectiveStatus === 'AKTYWNE' ? (
+            isIndefinite ? (
+              <span className="text-white/45">Widoczne bezterminowo</span>
+            ) : (
+              <span className="text-white/45">
+                Widoczne do: {formatDatePL(d.expiresAt)}
+                {typeof daysLeft === 'number' && daysLeft >= 0
+                  ? ` (${daysLeft} dni)`
+                  : ''}
+              </span>
+            )
+          ) : (
+            <span className="text-red-300/70">
+              {d.status === 'ZAKONCZONE'
+                ? 'Ogłoszenie zakończone'
+                : 'Ogłoszenie wygasło'}
+            </span>
+          )}
+        </div>
+
         {actionError ? (
-          <div className="mb-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="mt-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
             {actionError}
           </div>
         ) : null}
 
-        <div className="rounded-[24px] border border-white/10 bg-black/20 p-4">
-          <div className="flex flex-wrap gap-3">
-            <ActionBtnAsLink
-              href={`/panel/ogloszenia/${d.id}/edytuj`}
-              label="Edytuj"
-              disabled={isPending}
-            />
+        <div className="mt-4 flex flex-wrap gap-2">
+          <ActionBtnAsLink
+            href={`/panel/ogloszenia/${d.id}/edytuj`}
+            label="Edytuj"
+            title="Zmień zdjęcia, cenę, opis i dane ogłoszenia"
+            disabled={isPending}
+          />
 
-            <ActionBtnAsLink
-              href={`/dzialka/${d.id}`}
-              label="Zobacz"
-              target="_blank"
-              rel="noopener noreferrer"
-            />
+          <ActionBtnAsLink
+            href={`/dzialka/${d.id}`}
+            label="Zobacz"
+            title="Otwórz ogłoszenie tak, jak widzą je kupujący"
+            target="_blank"
+            rel="noopener noreferrer"
+          />
 
+          <ActionBtn
+            label={
+              isPending
+                ? 'Trwa...'
+                : effectiveStatus === 'AKTYWNE'
+                ? 'Przedłuż'
+                : 'Aktywuj'
+            }
+            title={
+              effectiveStatus === 'AKTYWNE'
+                ? 'Odśwież ważność, żeby ogłoszenie pozostało widoczne na portalu'
+                : 'Przywróć zakończone ogłoszenie na portal'
+            }
+            disabled={isPending}
+            onClick={() =>
+              runAction(
+                () => przedluzOgloszenieAction(d.id),
+                effectiveStatus === 'AKTYWNE'
+                  ? 'Nie udało się przedłużyć ogłoszenia.'
+                  : 'Nie udało się aktywować ogłoszenia.'
+              )
+            }
+          />
+
+          {effectiveStatus === 'AKTYWNE' ? (
             <ActionBtn
-              label={
-                isPending
-                  ? 'Trwa...'
-                  : effectiveStatus === 'AKTYWNE'
-                  ? 'Przedłuż'
-                  : 'Aktywuj'
-              }
-              disabled={isPending}
-              onClick={() =>
-                runAction(
-                  () => przedluzOgloszenieAction(d.id),
-                  effectiveStatus === 'AKTYWNE'
-                    ? 'Nie udało się przedłużyć ogłoszenia.'
-                    : 'Nie udało się aktywować ogłoszenia.'
-                )
-              }
-            />
-
-            {effectiveStatus === 'AKTYWNE' ? (
-              <ActionBtn
-                label={isPending ? 'Trwa...' : 'Zakończ'}
-                disabled={isPending}
-                onClick={() => {
-                  const ok = window.confirm('Na pewno zakończyć to ogłoszenie?');
-                  if (!ok) return;
-
-                  runAction(
-                    () => zakonczOgloszenieAction(d.id),
-                    'Nie udało się zakończyć ogłoszenia.'
-                  );
-                }}
-              />
-            ) : null}
-
-            {isFeaturedActive ? (
-              <div className="inline-flex min-h-[40px] items-center rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-4 text-[12px] font-semibold text-[#9fd14b]">
-                Wyróżnione do: {formatDatePL(d.featuredUntil)}
-              </div>
-            ) : (
-              <ActionBtn
-                label={isPending ? 'Trwa...' : 'Wyróżnij'}
-                disabled={isPending}
-                accent
-                onClick={() =>
-                  runAction(
-                    () => wyroznijOgloszenieAction(d.id),
-                    'Nie udało się wyróżnić ogłoszenia.'
-                  )
-                }
-              />
-            )}
-
-            <ActionBtn
-              label={isPending ? 'Trwa...' : 'Usuń'}
-              danger
+              label={isPending ? 'Trwa...' : 'Zakończ'}
+              title="Zdejmij ogłoszenie z portalu (możesz je później aktywować)"
               disabled={isPending}
               onClick={() => {
-                const ok = window.confirm(
-                  'Czy na pewno chcesz trwale usunąć to ogłoszenie? Tej operacji nie można odwrócić — ogłoszenie i jego zdjęcia zostaną usunięte na zawsze.'
-                );
+                const ok = window.confirm('Na pewno zakończyć to ogłoszenie?');
                 if (!ok) return;
 
                 runAction(
-                  () => usunOgloszenieAction(d.id),
-                  'Nie udało się usunąć ogłoszenia.'
+                  () => zakonczOgloszenieAction(d.id),
+                  'Nie udało się zakończyć ogłoszenia.'
                 );
               }}
             />
-          </div>
+          ) : null}
+
+          {isFeaturedActive ? (
+            <span
+              className="inline-flex min-h-[40px] items-center rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-4 text-[12px] font-semibold text-[#9fd14b]"
+              title="Ogłoszenie jest aktualnie wyróżnione"
+            >
+              Wyróżnione do: {formatDatePL(d.featuredUntil)}
+            </span>
+          ) : (
+            <ActionBtn
+              label={isPending ? 'Trwa...' : 'Wyróżnij'}
+              title="Pokazuj ogłoszenie wyżej na liście i z zieloną ramką (7 dni)"
+              disabled={isPending}
+              accent
+              onClick={() =>
+                runAction(
+                  () => wyroznijOgloszenieAction(d.id),
+                  'Nie udało się wyróżnić ogłoszenia.'
+                )
+              }
+            />
+          )}
+
+          <ActionBtn
+            label={isPending ? 'Trwa...' : 'Usuń'}
+            title="Trwale usuń ogłoszenie i jego zdjęcia (bez możliwości cofnięcia)"
+            danger
+            disabled={isPending}
+            onClick={() => {
+              const ok = window.confirm(
+                'Czy na pewno chcesz trwale usunąć to ogłoszenie? Tej operacji nie można cofnąć. Ogłoszenie i jego zdjęcia zostaną usunięte na zawsze.'
+              );
+              if (!ok) return;
+
+              runAction(
+                () => usunOgloszenieAction(d.id),
+                'Nie udało się usunąć ogłoszenia.'
+              );
+            }}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function MetricBlock({
-  label,
-  value,
+function PanelStats({
+  viewsCount,
+  detailViewsCount,
+  favoritesCount,
+  phoneClicksCount,
+  messageClicksCount,
 }: {
-  label: string;
-  value: React.ReactNode;
+  viewsCount: number;
+  detailViewsCount: number;
+  favoritesCount: number;
+  phoneClicksCount: number;
+  messageClicksCount: number;
 }) {
   return (
-    <div className="min-w-0 flex flex-col items-center text-center">
-      <div className="text-[11px] uppercase tracking-[0.16em] text-white/35">
-        {label}
+    <div>
+      <div className="mb-3 flex items-center gap-3">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+          Wyniki ogłoszenia
+        </span>
+        <span className="h-px flex-1 bg-white/10" />
       </div>
-      <div className="mt-2 min-w-0">{value}</div>
+
+      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+        <StatRow label="Wyświetlenia" hint="na liście i mapie" value={viewsCount} />
+        <StatRow label="Wejścia" hint="otwarcia ogłoszenia" value={detailViewsCount} />
+        <StatRow label="Ulubione" hint="zapisali ofertę" value={favoritesCount} accent />
+        <StatRow label="Telefony" hint="kliknięcia w numer" value={phoneClicksCount} />
+        <StatRow
+          label="Wiadomości"
+          hint="otwarcia formularza kontaktu"
+          value={messageClicksCount}
+          full
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatRow({
+  label,
+  hint,
+  value,
+  accent = false,
+  full = false,
+}: {
+  label: string;
+  hint: string;
+  value: number;
+  accent?: boolean;
+  full?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 border-b border-white/8 pb-2.5 ${
+        full ? 'col-span-2' : ''
+      }`}
+    >
+      <div className="min-w-0">
+        <div className="text-[12px] font-medium text-white/80">{label}</div>
+        <div className="text-[10px] leading-tight text-white/35">{hint}</div>
+      </div>
+      <div
+        className={`text-[19px] font-semibold leading-none tabular-nums ${
+          accent ? 'text-[#9fd14b]' : 'text-white'
+        }`}
+      >
+        {formatIntPL(value)}
+      </div>
     </div>
   );
 }
@@ -680,47 +691,17 @@ function StatusPill({ effectiveStatus }: { effectiveStatus: DzialkaStatus }) {
   );
 }
 
-function FeaturedPill() {
-  return (
-    <span className="inline-flex items-center rounded-full border border-[#7aa333]/30 bg-[#7aa333]/12 px-3 py-1 text-[11px] font-semibold tracking-[0.08em] text-[#9fd14b]">
-      WYRÓŻNIONE
-    </span>
-  );
-}
-
-function MetaPill({
-  text,
-  subtle,
-  danger,
-}: {
-  text: string;
-  subtle?: boolean;
-  danger?: boolean;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] ${
-        danger
-          ? 'border border-red-400/15 bg-red-500/10 text-red-200'
-          : subtle
-          ? 'border border-white/10 bg-white/[0.03] text-white/60'
-          : 'border border-white/10 bg-white/[0.03] text-white/70'
-      }`}
-    >
-      {text}
-    </span>
-  );
-}
-
 function ActionBtnAsLink({
   href,
   label,
+  title,
   disabled,
   target,
   rel,
 }: {
   href: string;
   label: string;
+  title?: string;
   disabled?: boolean;
   target?: string;
   rel?: string;
@@ -728,6 +709,7 @@ function ActionBtnAsLink({
   return (
     <Link
       href={href}
+      title={title}
       target={target}
       rel={rel}
       onClick={(e) => {
@@ -746,12 +728,14 @@ function ActionBtnAsLink({
 
 function ActionBtn({
   label,
+  title,
   onClick,
   danger,
   accent,
   disabled,
 }: {
   label: string;
+  title?: string;
   onClick: () => void;
   danger?: boolean;
   accent?: boolean;
@@ -760,6 +744,7 @@ function ActionBtn({
   return (
     <button
       type="button"
+      title={title}
       disabled={disabled}
       onClick={(e) => {
         e.preventDefault();
@@ -780,80 +765,18 @@ function ActionBtn({
   );
 }
 
-function ListingAnalytics({
-  viewsCount,
-  detailViewsCount,
-  favoritesCount,
-  phoneClicksCount,
-  messageClicksCount,
-}: {
-  viewsCount: number;
-  detailViewsCount: number;
-  favoritesCount: number;
-  phoneClicksCount: number;
-  messageClicksCount: number;
-}) {
-  return (
-    <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
-          Statystyki ogłoszenia
-        </div>
-        <div className="h-px flex-1 bg-white/8" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <AnalyticsTile label="Wyświetlenia" value={viewsCount} />
-        <AnalyticsTile label="Wejścia" value={detailViewsCount} />
-        <AnalyticsTile label="Ulubione" value={favoritesCount} accent />
-        <AnalyticsTile label="Telefony" value={phoneClicksCount} />
-        <AnalyticsTile label="Wiadomości" value={messageClicksCount} />
-      </div>
-    </div>
-  );
-}
-
-function AnalyticsTile({
-  label,
-  value,
-  accent = false,
-}: {
-  label: string;
-  value: number;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-2xl border px-3 py-3 text-center ${
-        accent
-          ? 'border-[#7aa333]/30 bg-[#7aa333]/12'
-          : 'border-white/8 bg-black/18'
-      }`}
-    >
-      <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/38">
-        {label}
-      </div>
-      <div
-        className={`mt-1 text-[21px] font-semibold leading-none ${
-          accent ? 'text-[#9fd14b]' : 'text-white'
-        }`}
-      >
-        {formatIntPL(value)}
-      </div>
-    </div>
-  );
-}
-
 function Carousel({
   photos,
   coverFallback,
   title,
   featured,
+  rent = false,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
   title: string;
   featured: boolean;
+  rent?: boolean;
 }) {
   const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
   const has = list.length > 0;
@@ -923,7 +846,7 @@ function Carousel({
 
   return (
     <div
-      className="relative aspect-[16/10] bg-white/5 md:aspect-video"
+      className="relative aspect-[16/10] overflow-hidden bg-white/5 md:aspect-video"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -931,13 +854,28 @@ function Carousel({
     >
       {has ? (
         <>
-          <img src={list[i]} alt={title} className="h-full w-full object-cover" loading="lazy" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+          <img
+            src={list[i] ?? list[0]}
+            alt={title}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            draggable={false}
+          />
+
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
 
           {featured ? (
-            <div className="absolute left-4 bottom-4 z-10">
+            <div className="absolute left-4 top-4 z-10">
               <span className="inline-flex items-center rounded-full border border-[#7aa333]/35 bg-[#7aa333]/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
                 WYRÓŻNIONE
+              </span>
+            </div>
+          ) : null}
+
+          {rent ? (
+            <div className="absolute bottom-4 left-4 z-10">
+              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
+                NA WYNAJEM
               </span>
             </div>
           ) : null}
@@ -960,20 +898,16 @@ function Carousel({
                 ›
               </button>
 
-              <div className="absolute right-4 top-4 flex gap-2">
-                {list.slice(0, 6).map((_, idx) => (
-                  <span
-                    key={idx}
-                    className={`h-2 w-2 rounded-full ${idx === i ? 'bg-white' : 'bg-white/40'}`}
-                  />
-                ))}
+              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-sm">
+                <IconCamera className="h-3.5 w-3.5" />
+                {i + 1}/{list.length}
               </div>
             </>
           )}
         </>
       ) : (
-        <div className="flex h-full items-center justify-center text-white/50">
-          Brak zdjęć
+        <div className="flex h-full items-center justify-center bg-[#161616]">
+          <span className="text-[12px] tracking-[0.12em] text-white/30">Zdjęcie wkrótce</span>
         </div>
       )}
     </div>

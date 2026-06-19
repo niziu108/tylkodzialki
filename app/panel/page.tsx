@@ -108,6 +108,10 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             transakcja: true,
             locationLabel: true,
             przeznaczenia: true,
+            prad: true,
+            woda: true,
+            kanalizacja: true,
+            gaz: true,
             status: true,
             publishedAt: true,
             expiresAt: true,
@@ -272,9 +276,10 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
-                  <div className="inline-flex rounded-full border border-[#7aa333]/25 bg-[#7aa333]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9fd14b]">
                     Panel klienta
                   </div>
+                  <div className="mt-2 h-px w-12 bg-[#7aa333]/55" />
 
                   <div className="mt-4 text-[28px] font-semibold leading-tight text-white md:text-[34px]">
                     {user.name || "Panel użytkownika"}
@@ -307,69 +312,62 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
-                    Ogłoszenia
-                  </div>
-                  <div className="mt-2 text-[28px] font-semibold leading-none text-white">
+              <div className="grid grid-cols-2 gap-8 border-t border-white/10 pt-5">
+                <div>
+                  <div className="text-[30px] font-semibold leading-none text-white">
                     {items.length}
+                  </div>
+                  <div className="mt-3 inline-block border-b border-white/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                    Ogłoszenia
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
-                    Aktywne
-                  </div>
-                  <div className="mt-2 text-[28px] font-semibold leading-none text-[#9fd14b]">
+                <div>
+                  <div className="text-[30px] font-semibold leading-none text-[#9fd14b]">
                     {activeCount}
+                  </div>
+                  <div className="mt-3 inline-block border-b border-[#7aa333]/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9fd14b]/80">
+                    Aktywne
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-white/8 pt-4 text-[13px] text-white/50">
-                <div>
-                  Konto od:{" "}
-                  <span className="text-white/75">
-                    {formatDatePL(user.createdAt)}
-                  </span>
-                </div>
-                <div>
-                  Zakończone: <span className="text-red-300">{endedCount}</span>
-                </div>
-                <div>
-                  Wyróżnienia:{" "}
-                  <span className="text-white/75">{user.featuredCredits}</span>
-                </div>
+              <div className="border-t border-white/8 pt-4 text-[13px] text-white/50">
+                Konto od:{" "}
+                <span className="text-white/75">
+                  {formatDatePL(user.createdAt)}
+                </span>
               </div>
             </div>
           </div>
 
           <div className="rounded-[30px] border border-[#7aa333]/18 bg-[linear-gradient(180deg,rgba(122,163,51,0.08),rgba(255,255,255,0.03))] p-5 md:p-6">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9fd14b]">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#9fd14b]">
               Dostępne zasoby
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
+            <div className="mt-5 flex flex-col gap-4">
+              <div className="flex items-baseline justify-between gap-4 border-b border-white/12 pb-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
                   Publikacje
-                </div>
-                <div className="mt-2 text-[30px] font-semibold leading-none text-white">
-                  {paymentsEnabled ? user.listingCredits : "∞"}
-                </div>
-                {!paymentsEnabled ? (
-                  <div className="mt-2 text-xs text-[#9fd14b]">Nieograniczone</div>
-                ) : null}
+                </span>
+                <span className="flex items-baseline gap-2">
+                  {!paymentsEnabled ? (
+                    <span className="text-[12px] text-[#9fd14b]">Nieograniczone</span>
+                  ) : null}
+                  <span className="text-[26px] font-semibold leading-none text-white">
+                    {paymentsEnabled ? user.listingCredits : "∞"}
+                  </span>
+                </span>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">
+              <div className="flex items-baseline justify-between gap-4 border-b border-white/12 pb-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
                   Wyróżnienia
-                </div>
-                <div className="mt-2 text-[30px] font-semibold leading-none text-white">
+                </span>
+                <span className="text-[26px] font-semibold leading-none text-white">
                   {user.featuredCredits}
-                </div>
+                </span>
               </div>
             </div>
 
