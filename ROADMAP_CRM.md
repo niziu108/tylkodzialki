@@ -424,6 +424,19 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Naprawa:** parser śledzi bieżący kontener `<dzial>` i przekazuje `tab/typ` do `parseOfferFragment` (używane tylko dla `IMOX`, Galactica bit w bit ignoruje kontener). Test offline na prawdziwej strukturze **10/10**; realny plik IMO `oferty_20260619101907.zip` **47/47** (26 sprzedaż, 21 wynajem); produkcja **47/47**, zero odrzuceń. Narzędzie `scripts/crm-imo-inspect.ts` do diagnozy paczek.
 - **Lekcja:** wcześniejszy test syntetyczny na BŁĘDNEJ strukturze (dzial w ofercie) dawał fałszywe 9/9; dopiero realny plik od IMO obnażył różnicę. Test warto opierać na realnym feedzie, a oferty testowe pozbawiać `typdzialki`, żeby nie maskowały logiki kategorii.
 
+### P-J: Opis oferty — surowe tagi HTML i podatność XSS [NAPRAWIONE 2026-06-20]
+- **Gdzie:** `app/dzialka/[id]/DzialkaClient.tsx` (`formatOpis`) → wydzielone do `src/lib/formatOpis.ts`.
+- **Co:** opis renderowany przez `dangerouslySetInnerHTML` bez sanityzacji — (1) podatność XSS dla opisów z dowolnego źródła (CRM i ręczne ogłoszenia), (2) IMO przesyła formatowanie **podwójnie zakodowane** (`&amp;lt;u&amp;gt;`), przez co tagi wyświetlały się dosłownie jako tekst.
+- **Decyzja Daniela:** wspierać proste formatowanie (pogrubienie/kursywa/podkreślenie), nie czysty tekst.
+- **Naprawa:** `formatOpis` dekoduje encje (w tym podwójny escape), escapuje całość i przywraca WYŁĄCZNIE whitelist tagów bez atrybutów (`b/strong/i/em/u` + `br`/akapity). Wszystko inne (`script`, `img onerror`, `svg onload`, atrybuty zdarzeń) zostaje nieszkodliwym tekstem → XSS zamknięty. Test `scripts/format-opis-test.ts` **9/9** (formatowanie + XSS). Portal (Vercel), nie dotyczy workera.
+- **Status:** NAPRAWIONE i wdrożone (Vercel). Dotyczy wszystkich ofert, nie tylko IMO.
+
+### P-K: Mapowanie mediów — woda/gaz „powyżej 100m" [NAPRAWIONE 2026-06-20]
+- **Gdzie:** `src/lib/crm/domypl-sync.ts` — `mapWodaFromParams`, `mapGazFromParams`.
+- **Co:** (1) woda — `ma_wode=true` zwracało „na działce" przed sprawdzeniem `typpodlaczeniawody`, więc oferta z wodą „powyżej 100m" (daleko) pokazywała się błędnie jako „na działce"; (2) gaz — wartości odległości („powyżej/do 100m") nie pasowały do żadnego wzorca → „brak" → ukryte w portalu. Zgłoszone przez IMO.
+- **Naprawa:** woda — `typpodlaczeniawody` ma priorytet nad `ma_wode`, odległości („100m", „powyżej", „poniżej") → „w drodze"; gaz — odległości → „w drodze". Zgodne z zasadą uczciwego filtra (nie zawyżać „na działce"). Globalnie (też Galactica, tylko na plus). Zweryfikowane na realnej paczce IMO `091057`: woda i gaz „powyżej 100m" → „w drodze".
+- **Status:** NAPRAWIONE i na produkcji (worker zaktualizowany 2026-06-20).
+
 ---
 
 ## CEL KOŃCOWY
