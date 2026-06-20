@@ -21,6 +21,14 @@ export default function Footer() {
               <p className="max-w-sm text-[15px] leading-7 text-fg/70">
                 Portal ogłoszeniowy skupiony wyłącznie na działkach w całej Polsce.
               </p>
+
+              <Link
+                href="/partnerstwo"
+                className="inline-flex w-fit items-center gap-1.5 text-[15px] font-medium text-brand-text transition hover:text-brand-bright"
+              >
+                Zostań partnerem
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
             </div>
 
             {/* KONTAKT */}
@@ -82,13 +90,6 @@ export default function Footer() {
                 </Link>
                 <Link href="/dla-biur" className="transition hover:text-fg">
                   Dla biur
-                </Link>
-                <Link
-                  href="/partnerstwo"
-                  className="inline-flex w-fit items-center gap-1.5 font-medium text-brand-text transition hover:text-brand-bright"
-                >
-                  Zostań partnerem
-                  <span aria-hidden="true">&rarr;</span>
                 </Link>
               </nav>
             </div>

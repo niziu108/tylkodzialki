@@ -38,37 +38,31 @@ const AUDIENCE = [
 
 const FORMATY = [
   {
-    tag: 'Wyłączność',
     title: 'Partner kategorii',
     body: 'Tylko jedna firma w swojej branży. Główny partner kategorii, bez konkurencji obok.',
     featured: true,
   },
   {
-    tag: '',
     title: 'Partner regionu',
     body: 'Wyłączność na województwo lub powiat. Widoczność dokładnie tam, gdzie działasz.',
     featured: false,
   },
   {
-    tag: '',
     title: 'Sponsor wyszukiwarki',
     body: 'Twoja marka przy wyszukiwarce działek, w miejscu, którego używa każdy odwiedzający.',
     featured: false,
   },
   {
-    tag: '',
     title: 'Partner miesiąca',
     body: 'Wyróżniona obecność na stronie głównej przez cały miesiąc. Czysta budowa marki.',
     featured: false,
   },
   {
-    tag: '',
     title: 'Treści eksperckie',
     body: 'Artykuły współtworzone z naszą redakcją. Budujesz autorytet i jesteś widoczny w Google.',
     featured: false,
   },
   {
-    tag: '',
     title: 'Reklama natywna przy ofertach',
     body: 'Twoja usługa polecana przy konkretnej działce, na przykład geodeta albo przyłącza. Dopasowana, nie nachalna.',
     featured: false,
@@ -269,24 +263,24 @@ export default async function PartnerstwoPage() {
             Reklama natywna, nie banery.
           </h2>
 
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 grid gap-x-12 gap-y-10 sm:grid-cols-2">
             {FORMATY.map((f) => (
-              <div
-                key={f.title}
-                className={`group rounded-[28px] border p-7 backdrop-blur transition ${
-                  f.featured
-                    ? 'border-brand/45 bg-brand/[0.06]'
-                    : 'border-fg/12 bg-surface-2/60 hover:border-brand/35'
-                }`}
-              >
-                {f.tag ? (
-                  <div className="mb-4 inline-flex rounded-full border border-brand/30 bg-brand/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-bright">
-                    {f.tag}
+              <div key={f.title} className="group border-t border-fg/15 pt-6">
+                {f.featured ? (
+                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-bright">
+                    Wyłączność
                   </div>
                 ) : null}
 
-                <h3 className="text-lg font-semibold text-fg">{f.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-fg/72">{f.body}</p>
+                <h3 className="relative inline-block text-lg font-semibold text-fg transition-colors duration-200 group-hover:text-brand-text">
+                  {f.title}
+                  <span
+                    className="absolute -bottom-1 left-0 h-px w-0 bg-brand transition-all duration-300 group-hover:w-full"
+                    aria-hidden="true"
+                  />
+                </h3>
+
+                <p className="mt-3 max-w-md text-sm leading-7 text-fg/72">{f.body}</p>
               </div>
             ))}
           </div>
@@ -299,16 +293,16 @@ export default async function PartnerstwoPage() {
 
       {/* MANIFEST JAKOŚCI */}
       <section className="relative overflow-hidden">
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 text-center md:px-10 md:py-28">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
             Nasza zasada
           </div>
 
-          <h2 className="mx-auto mt-5 max-w-3xl text-[24px] font-semibold leading-[1.2] tracking-tight text-fg md:text-[34px]">
+          <h2 className="mt-5 max-w-3xl text-[24px] font-semibold leading-[1.2] tracking-tight text-fg md:text-[34px]">
             Mniej partnerów, większy efekt.
           </h2>
 
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
+          <p className="mt-6 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
             Nie sprzedajemy powierzchni każdemu, kto zapłaci. Dobieramy firmy, które
             realnie pomagają osobom budującym dom. Bez wyskakujących reklam, bez
             migających banerów, bez sieci reklamowych. Dzięki temu obecność tutaj coś
