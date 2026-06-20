@@ -107,7 +107,7 @@ export default async function PartnerstwoPage() {
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.05),transparent_34%)]" />
         <div className="pointer-events-none absolute left-[-140px] top-24 z-0 h-[420px] w-[420px] rounded-full bg-brand/10 blur-[120px]" />
 
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-16 text-left md:px-10 md:py-20 lg:grid-cols-2 lg:gap-16">
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-16 text-left md:px-10 md:py-20 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
           {hasCount ? (
             <div className="flex justify-start">
               <OffersCounter target={listingCount} />
@@ -119,7 +119,7 @@ export default async function PartnerstwoPage() {
               Partnerstwo
             </div>
 
-            <h1 className="mt-4 text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[40px] lg:text-[44px]">
+            <h1 className="mt-4 text-balance text-[26px] font-semibold leading-[1.15] tracking-tight text-fg md:text-[34px] lg:text-[34px]">
               Docieraj do ludzi w momencie, gdy kupują działkę.
             </h1>
 
@@ -194,7 +194,7 @@ export default async function PartnerstwoPage() {
                   i < AUDIENCE.length - 1 ? 'border-b border-fg/10' : ''
                 }`}
               >
-                <span className="tabular-nums text-sm font-medium text-brand-text/50">
+                <span className="tabular-nums text-[15px] font-semibold text-brand-text">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <span className="text-[16px] font-medium text-fg md:text-lg">
