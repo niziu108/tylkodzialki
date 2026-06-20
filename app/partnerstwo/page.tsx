@@ -2,13 +2,16 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import PartnerForm from '@/components/PartnerForm';
+import OffersCounter from '@/components/OffersCounter';
+import DecisionChain from '@/components/DecisionChain';
 
-export const revalidate = 300;
+// Liczba ofert ma być zawsze aktualna (nie odświeżana co kilka minut).
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Partnerstwo dla firm: docieraj do osób kupujących działki',
   description:
-    'Współpraca partnerska na portalu wyłącznie o działkach. Docieraj do osób, które kupują ziemię i planują budowę: geodeci, domy modułowe, kredyty, fotowoltaika, ogrodzenia, przyłącza. Wycena indywidualna.',
+    'Współpraca partnerska na portalu wyłącznie o działkach. Docieraj do osób, które kupują ziemię: geodeci, domy modułowe, kredyty, fotowoltaika, ogrodzenia, przyłącza. Wycena indywidualna.',
   alternates: { canonical: '/partnerstwo' },
   openGraph: {
     title: 'Partnerstwo | tylkodzialki.pl',
@@ -21,18 +24,6 @@ export const metadata: Metadata = {
 
 const PAGE_BG = 'var(--bg)';
 
-// Łańcuch decyzji, który uruchamia zakup działki. Serce strony: tłumaczy,
-// dlaczego ten odbiorca jest wartościowy dla firm okołonieruchomościowych.
-const CHAIN = [
-  'Działka',
-  'Projekt',
-  'Kredyt',
-  'Przyłącza',
-  'Dom',
-  'Ogrodzenie',
-  'Fotowoltaika',
-];
-
 const AUDIENCE = [
   { name: 'Deweloperzy', why: 'Odbiorca gotowy na kolejny etap inwestycji.' },
   { name: 'Domy modułowe i prefabrykowane', why: 'Dopasowanie domu do metrażu konkretnej działki.' },
@@ -40,8 +31,8 @@ const AUDIENCE = [
   { name: 'Architekci', why: 'Projekt domu pod konkretną działkę.' },
   { name: 'Fotowoltaika', why: 'Dobór instalacji do powierzchni i orientacji gruntu.' },
   { name: 'Firmy budowlane', why: 'Lokalne zaufanie i treści eksperckie.' },
-  { name: 'Brokerzy kredytowi', why: 'Kalkulator raty przy każdej ofercie.' },
-  { name: 'Producenci ogrodzeń', why: 'Wycena liczona od obwodu działki.' },
+  { name: 'Brokerzy kredytowi', why: 'Obecność dokładnie przy decyzji o finansowaniu.' },
+  { name: 'Producenci ogrodzeń', why: 'Klient, który właśnie kupił grunt do ogrodzenia.' },
   { name: 'Firmy od przyłączy', why: 'Kontekst mediów konkretnej działki.' },
 ];
 
@@ -49,37 +40,37 @@ const FORMATY = [
   {
     tag: 'Wyłączność',
     title: 'Partner kategorii',
-    body: 'Jedna firma na kategorię. Zamykasz miejsce dla konkurencji w swojej branży.',
+    body: 'Tylko jedna firma w swojej branży. Główny partner kategorii, bez konkurencji obok.',
     featured: true,
   },
   {
     tag: '',
     title: 'Partner regionu',
-    body: 'Wyłączność na województwo lub powiat, widoczna na stronach lokalizacji.',
+    body: 'Wyłączność na województwo lub powiat. Widoczność dokładnie tam, gdzie działasz.',
     featured: false,
   },
   {
     tag: '',
-    title: 'Kalkulatory partnerskie',
-    body: 'Rata kredytu, ogrodzenie, przyłącza. Narzędzia, które generują kwalifikowane zapytania.',
-    featured: false,
-  },
-  {
-    tag: '',
-    title: 'Moduł „Następne kroki"',
-    body: 'Natywne usługi dopasowane do konkretnej działki, którą ogląda użytkownik.',
-    featured: false,
-  },
-  {
-    tag: '',
-    title: 'Treści eksperckie',
-    body: 'Artykuły współtworzone z naszą redakcją, evergreen, z trwałą wartością w wyszukiwarce.',
+    title: 'Sponsor wyszukiwarki',
+    body: 'Twoja marka przy wyszukiwarce działek, w miejscu, którego używa każdy odwiedzający.',
     featured: false,
   },
   {
     tag: '',
     title: 'Partner miesiąca',
-    body: 'Rotacyjna, limitowana ekspozycja marki na stronie głównej portalu.',
+    body: 'Wyróżniona obecność na stronie głównej przez cały miesiąc. Czysta budowa marki.',
+    featured: false,
+  },
+  {
+    tag: '',
+    title: 'Treści eksperckie',
+    body: 'Artykuły współtworzone z naszą redakcją. Budujesz autorytet i jesteś widoczny w Google.',
+    featured: false,
+  },
+  {
+    tag: '',
+    title: 'Reklama natywna przy ofertach',
+    body: 'Twoja usługa polecana przy konkretnej działce, na przykład geodeta albo przyłącza. Dopasowana, nie nachalna.',
     featured: false,
   },
 ];
@@ -125,19 +116,7 @@ export default async function PartnerstwoPage() {
         <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-16 text-left md:px-10 md:py-20 lg:grid-cols-2 lg:gap-16">
           {hasCount ? (
             <div className="flex justify-start">
-              <div className="flex flex-col items-start leading-none">
-                <span className="text-[18px] font-medium text-fg/80 md:text-[22px] lg:text-[26px]">
-                  W bazie już
-                </span>
-
-                <span className="mt-2 tabular-nums text-[72px] font-bold text-brand md:text-[110px] lg:text-[140px]">
-                  {listingCount.toLocaleString('pl-PL')}
-                </span>
-
-                <span className="mt-1 text-[13px] uppercase tracking-[0.26em] text-brand-text md:text-[16px] lg:text-[18px]">
-                  ofert działek
-                </span>
-              </div>
+              <OffersCounter target={listingCount} />
             </div>
           ) : null}
 
@@ -151,7 +130,7 @@ export default async function PartnerstwoPage() {
             </h1>
 
             <p className="mt-6 max-w-xl text-[15px] leading-7 text-fg/68 md:text-base">
-              Każdy odbiorca tylkodzialki.pl planuje budowę. To jeden z najwyższych
+              Każdy odbiorca tylkodzialki.pl szuka działki. To jeden z najwyższych
               poziomów intencji zakupowej w całej branży nieruchomości. Twoja firma
               może być obecna dokładnie tam, zanim trafi tam konkurencja.
             </p>
@@ -194,19 +173,8 @@ export default async function PartnerstwoPage() {
             </p>
           </div>
 
-          <div className="mt-12 flex flex-wrap items-center gap-x-3 gap-y-4">
-            {CHAIN.map((step, i) => (
-              <div key={step} className="flex items-center gap-x-3">
-                <span className="border-b border-brand/40 pb-1 text-[15px] font-medium text-fg md:text-lg">
-                  {step}
-                </span>
-                {i < CHAIN.length - 1 ? (
-                  <span className="text-brand-text/70" aria-hidden="true">
-                    &rarr;
-                  </span>
-                ) : null}
-              </div>
-            ))}
+          <div className="mt-16">
+            <DecisionChain />
           </div>
         </div>
       </section>
@@ -215,7 +183,7 @@ export default async function PartnerstwoPage() {
       <section className="relative overflow-hidden border-y border-fg/10 bg-surface-2">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
-        <div className="relative z-10 mx-auto max-w-5xl px-6 py-20 md:px-10 md:py-28">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
             Dla kogo
           </div>
@@ -228,14 +196,17 @@ export default async function PartnerstwoPage() {
             {AUDIENCE.map((a, i) => (
               <div
                 key={a.name}
-                className={`flex flex-col gap-1 py-5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-8 ${
+                className={`grid grid-cols-[2rem_1fr] items-baseline gap-x-4 gap-y-1 py-5 md:grid-cols-[3rem_18rem_1fr] md:gap-x-8 ${
                   i < AUDIENCE.length - 1 ? 'border-b border-fg/10' : ''
                 }`}
               >
+                <span className="tabular-nums text-sm font-medium text-brand-text/50">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
                 <span className="text-[16px] font-medium text-fg md:text-lg">
                   {a.name}
                 </span>
-                <span className="text-sm text-fg/68 sm:max-w-sm sm:text-right md:text-[15px]">
+                <span className="col-start-2 text-sm text-fg/68 md:col-start-3 md:text-[15px]">
                   {a.why}
                 </span>
               </div>
@@ -268,7 +239,7 @@ export default async function PartnerstwoPage() {
             <div className="rounded-[28px] border border-fg/12 bg-surface-2/60 p-7 backdrop-blur">
               <div className="text-[40px] font-bold leading-none text-brand">100%</div>
               <p className="mt-4 text-sm leading-7 text-fg/72">
-                Odbiorców planuje zakup ziemi i budowę. Zero przypadkowego ruchu.
+                Odbiorców planuje zakup ziemi. Zero przypadkowego ruchu.
               </p>
             </div>
 
@@ -328,12 +299,12 @@ export default async function PartnerstwoPage() {
 
       {/* MANIFEST JAKOŚCI */}
       <section className="relative overflow-hidden">
-        <div className="relative z-10 mx-auto max-w-4xl px-6 py-20 text-center md:px-10 md:py-28">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 text-center md:px-10 md:py-28">
           <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
             Nasza zasada
           </div>
 
-          <h2 className="mt-5 text-[24px] font-semibold leading-[1.2] tracking-tight text-fg md:text-[34px]">
+          <h2 className="mx-auto mt-5 max-w-3xl text-[24px] font-semibold leading-[1.2] tracking-tight text-fg md:text-[34px]">
             Mniej partnerów, większy efekt.
           </h2>
 

@@ -83,8 +83,12 @@ export default function Footer() {
                 <Link href="/dla-biur" className="transition hover:text-fg">
                   Dla biur
                 </Link>
-                <Link href="/partnerstwo" className="transition hover:text-fg">
+                <Link
+                  href="/partnerstwo"
+                  className="inline-flex w-fit items-center gap-1.5 font-medium text-brand-text transition hover:text-brand-bright"
+                >
                   Zostań partnerem
+                  <span aria-hidden="true">&rarr;</span>
                 </Link>
               </nav>
             </div>
