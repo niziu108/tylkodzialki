@@ -451,6 +451,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           featured={isFeaturedActive}
           rent={isRent}
           horizontal
+          status={effectiveStatus}
         />
       </Link>
 
@@ -486,8 +487,6 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
         />
 
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px]">
-          <StatusPill effectiveStatus={effectiveStatus} />
-
           {effectiveStatus === 'AKTYWNE' ? (
             isIndefinite ? (
               <span className="text-fg/68">Widoczne bezterminowo</span>
@@ -596,7 +595,6 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           <ActionBtn
             label={isPending ? 'Trwa...' : 'Usuń'}
             title="Trwale usuń ogłoszenie i jego zdjęcia (bez możliwości cofnięcia)"
-            danger
             disabled={isPending}
             onClick={() => {
               const ok = window.confirm(
@@ -673,20 +671,6 @@ function StatCell({
       <div className="mt-2 text-[11px] font-medium leading-tight text-fg/80">{label}</div>
       <div className="text-[10px] leading-tight text-fg/55">{hint}</div>
     </div>
-  );
-}
-
-function StatusPill({ effectiveStatus }: { effectiveStatus: DzialkaStatus }) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.08em] ${
-        effectiveStatus === 'AKTYWNE'
-          ? 'border border-green-400/20 bg-green-500/15 text-green-300'
-          : 'border border-red-400/20 bg-red-500/15 text-red-300'
-      }`}
-    >
-      {effectiveStatus === 'AKTYWNE' ? 'AKTYWNE' : 'ZAKOŃCZONE'}
-    </span>
   );
 }
 
@@ -771,6 +755,7 @@ function Carousel({
   featured,
   rent = false,
   horizontal = false,
+  status,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
@@ -779,6 +764,8 @@ function Carousel({
   rent?: boolean;
   /** Desktop: zdjęcie wypełnia wysokość karty (układ poziomy jak na liście /kup). */
   horizontal?: boolean;
+  /** Status oferty — plakietka w prawym górnym rogu zdjęcia. */
+  status?: DzialkaStatus;
 }) {
   const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
   const has = list.length > 0;
@@ -872,6 +859,19 @@ function Carousel({
             <div className="absolute left-4 top-4 z-10">
               <span className="inline-flex items-center rounded-full border border-brand/35 bg-brand/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
                 WYRÓŻNIONE
+              </span>
+            </div>
+          ) : null}
+
+          {status ? (
+            <div className="absolute right-4 top-4 z-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/60 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    status === 'AKTYWNE' ? 'bg-green-400' : 'bg-red-400'
+                  }`}
+                />
+                {status === 'AKTYWNE' ? 'AKTYWNE' : 'ZAKOŃCZONE'}
               </span>
             </div>
           ) : null}
