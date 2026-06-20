@@ -59,15 +59,25 @@ async function main() {
 
   const transakcje: Record<string, number> = {};
   const przeznaczenia: Record<string, number> = {};
+  const woda: Record<string, number> = {};
+  const gaz: Record<string, number> = {};
+  const prad: Record<string, number> = {};
+  const kanalizacja: Record<string, number> = {};
   let accepted = 0;
+
+  const bump = (m: Record<string, number>, k: string) => {
+    m[k] = (m[k] ?? 0) + 1;
+  };
 
   const stream = fs.createReadStream(filePath);
   const res = await streamParseDomyPlOffers(stream, provider, async (o) => {
     accepted += 1;
-    transakcje[o.transakcja] = (transakcje[o.transakcja] ?? 0) + 1;
-    for (const p of o.przeznaczenia) {
-      przeznaczenia[p] = (przeznaczenia[p] ?? 0) + 1;
-    }
+    bump(transakcje, o.transakcja);
+    for (const p of o.przeznaczenia) bump(przeznaczenia, p);
+    bump(woda, o.woda);
+    bump(gaz, o.gaz);
+    bump(prad, o.prad);
+    bump(kanalizacja, o.kanalizacja);
   });
 
   console.log = origLog;
@@ -78,6 +88,10 @@ async function main() {
   console.log(`Zaakceptowane: ${accepted}`);
   console.log(`  transakcje:    ${JSON.stringify(transakcje)}`);
   console.log(`  przeznaczenia: ${JSON.stringify(przeznaczenia)}`);
+  console.log(`  woda:          ${JSON.stringify(woda)}`);
+  console.log(`  gaz:           ${JSON.stringify(gaz)}`);
+  console.log(`  prad:          ${JSON.stringify(prad)}`);
+  console.log(`  kanalizacja:   ${JSON.stringify(kanalizacja)}`);
   console.log(`Odrzucone: ${rejCount}`);
   console.log(`  powody: ${JSON.stringify(rejReasons)}`);
   if (rejCount > 0) {

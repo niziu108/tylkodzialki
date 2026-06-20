@@ -141,28 +141,37 @@ function labelSwiatlowod(v?: string | null) {
 }
 
 function formatOpis(raw?: string | null) {
-  const text = (raw ?? '').trim();
+  let text = (raw ?? '').trim();
   if (!text) return null;
 
-  const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(text);
+  // Opisy z CRM bywają z tagami HTML, czasem podwójnie zakodowanymi (np. „&amp;lt;u&amp;gt;").
+  // Wyświetlamy opis jako czysty tekst: dekodujemy encje i usuwamy wszystkie tagi. To zamyka też
+  // ryzyko XSS — nic z opisu nie trafia do renderowania jako znacznik. Kolejność dekodowania
+  // (`&amp;` najpierw) obsługuje podwójny escape.
+  text = text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<[^>]*>/g, '');
 
-  if (looksLikeHtml) {
-    return text
-      .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '</p><p>')
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/\n{2,}/g, '</p><p>')
-      .replace(/\n/g, '<br />');
-  }
+  // Pozostałe gołe znaki < > & escapujemy z powrotem — do renderowania trafiają tylko
+  // kontrolowane przez nas znaczniki <p>/<br />.
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  return text
+  const out = text
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .split(/\n{2,}/)
     .map((p) => p.trim())
     .filter(Boolean)
-    .map((p) => `<p>${p.replace(/\n/g, '<br />')}</p>`)
+    .map((p) => `<p>${esc(p).replace(/\n/g, '<br />')}</p>`)
     .join('');
+
+  return out || null;
 }
 
 function SmartImg({

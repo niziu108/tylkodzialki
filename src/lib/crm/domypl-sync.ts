@@ -381,12 +381,17 @@ function mapWodaFromParams(params: Record<string, unknown>): WodaStatus {
   const maWodeText = normalizeText(toTextValue(params.ma_wode));
   const uzbrojenieText = normalizeText(toTextValue(params.uzbrojenie));
 
-  if (isTruthyText(maWodeText)) return "WODOCIAG_NA_DZIALCE";
+  // Szczegół `typpodlaczeniawody` ma pierwszeństwo nad ogólnym `ma_wode`. Inaczej oferta z wodą
+  // „powyżej 100m" (czyli daleko, nie na działce) pokazywałaby się błędnie jako „na działce",
+  // bo `ma_wode=true`. Odległości („do 100m", „powyżej 100m") traktujemy jako „w drodze".
   if (hasAny(wodaText, ["studnia", "studnia głębinowa", "studnia glebinowa"])) return "STUDNIA_GLEBINOWA";
-  if (hasAny(wodaText, ["na działce", "na dzialce", "miejska", "tak - miejska", "jest", "tak"])) return "WODOCIAG_NA_DZIALCE";
-  if (hasAny(wodaText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) return "WODOCIAG_W_DRODZE";
-  if (hasAny(wodaText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) return "MOZLIWOSC_PODLACZENIA";
+  if (hasAny(wodaText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce", "100m", "powyżej", "powyzej", "poniżej", "ponizej"])) return "WODOCIAG_W_DRODZE";
   if (hasAny(wodaText, ["brak", "nie ma"])) return "BRAK_PRZYLACZA";
+  if (hasAny(wodaText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) return "MOZLIWOSC_PODLACZENIA";
+  if (hasAny(wodaText, ["na działce", "na dzialce", "w działce", "w dzialce", "miejska", "tak - miejska", "wodociąg", "wodociag", "własna", "wlasna", "jest", "tak"])) return "WODOCIAG_NA_DZIALCE";
+
+  // Brak konkretnego typu (np. „nieznany") — opieramy się na ogólnym `ma_wode`.
+  if (isTruthyText(maWodeText)) return "WODOCIAG_NA_DZIALCE";
   if (hasAny(uzbrojenieText, ["woda-na działce", "woda-na dzialce", "wodociąg-na działce", "wodociag-na dzialce"])) return "WODOCIAG_NA_DZIALCE";
   if (hasAny(uzbrojenieText, ["woda-w ulicy", "wodociąg-w ulicy", "wodociag-w ulicy", "woda-w drodze"])) return "WODOCIAG_W_DRODZE";
   if (hasAny(uzbrojenieText, ["woda", "wodociąg", "wodociag"])) return "MOZLIWOSC_PODLACZENIA";
@@ -401,7 +406,7 @@ function mapGazFromParams(params: Record<string, unknown>): GazStatus {
 
   if (isTruthyText(maGazText)) return "GAZ_NA_DZIALCE";
   if (hasAny(gazText, ["na działce", "na dzialce", "miejski", "tak - miejski", "jest", "tak"])) return "GAZ_NA_DZIALCE";
-  if (hasAny(gazText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce"])) return "GAZ_W_DRODZE";
+  if (hasAny(gazText, ["w drodze", "w ulicy", "w granicy", "przy działce", "przy dzialce", "100m", "powyżej", "powyzej", "poniżej", "ponizej"])) return "GAZ_W_DRODZE";
   if (hasAny(gazText, ["możliwość", "mozliwosc", "do podłączenia", "do podlaczenia"])) return "MOZLIWOSC_PODLACZENIA";
   if (hasAny(gazText, ["brak", "nie ma"])) return "BRAK";
   if (hasAny(uzbrojenieText, ["gaz-na działce", "gaz-na dzialce"])) return "GAZ_NA_DZIALCE";
