@@ -322,7 +322,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
           Nie znaleziono ogłoszeń dla wybranych filtrów.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5">
           {filteredItems.map((d) => (
             <PanelDzialkaCard key={d.id} d={d} />
           ))}
@@ -428,7 +428,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   return (
     <div
       ref={cardRef}
-      className={`group flex flex-col overflow-hidden rounded-3xl border transition ${
+      className={`group flex flex-col overflow-hidden rounded-3xl border transition lg:flex-row lg:items-stretch ${
         effectiveStatus === 'ZAKONCZONE'
           ? 'border-fg/10 bg-surface-2/15 opacity-85'
           : isFeaturedActive
@@ -436,13 +436,13 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           : 'border-fg/14 bg-surface-2/20 hover:border-fg/30'
       }`}
     >
-      {/* Klikalna oferta: te same elementy co karta na /kup. Karuzela i
-          wspolne CardBody (cena, tytul, lokalizacja, fakty). */}
+      {/* Zdjęcie: na desktopie z lewej (jak lista /kup), na telefonie u góry.
+          Klikalne — otwiera ofertę w nowej karcie. */}
       <Link
         href={`/dzialka/${d.id}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="block"
+        className="block lg:w-[38%] lg:shrink-0"
       >
         <Carousel
           photos={photos}
@@ -450,22 +450,33 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           title={d.tytul}
           featured={isFeaturedActive}
           rent={isRent}
-        />
-
-        <CardBody
-          cena={d.cenaPln}
-          isRent={isRent}
-          tytul={d.tytul}
-          loc={loc}
-          area={area}
-          przezn={przezn}
-          media={media}
+          horizontal
         />
       </Link>
 
-      {/* Narzedzia wlasciciela: wyniki, status i akcje. Poza <Link>, zeby
-          klik w statystyki lub przyciski nie otwieral oferty. */}
-      <div className="mt-auto border-t border-fg/8 px-5 pb-5 pt-5 md:px-6 md:pb-6">
+      {/* Prawa kolumna: wspólne CardBody (cena, tytuł, lokalizacja, fakty)
+          + narzędzia właściciela. Na desktopie wypełnia wysokość obok zdjęcia. */}
+      <div className="flex flex-1 flex-col lg:min-w-0">
+        <Link
+          href={`/dzialka/${d.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
+          <CardBody
+            cena={d.cenaPln}
+            isRent={isRent}
+            tytul={d.tytul}
+            loc={loc}
+            area={area}
+            przezn={przezn}
+            media={media}
+          />
+        </Link>
+
+        {/* Narzędzia właściciela: wyniki, status i akcje. Poza <Link>, żeby
+            klik w statystyki lub przyciski nie otwierał oferty. */}
+        <div className="mt-auto border-t border-fg/8 px-5 pb-5 pt-5 md:px-6 md:pb-6">
         <PanelStats
           viewsCount={viewsCount}
           detailViewsCount={detailViewsCount}
@@ -600,6 +611,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
             }}
           />
         </div>
+        </div>
       </div>
     </div>
   );
@@ -627,52 +639,39 @@ function PanelStats({
         <span className="h-px flex-1 bg-fg/10" />
       </div>
 
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-        <StatRow label="Wyświetlenia" hint="na liście i mapie" value={viewsCount} />
-        <StatRow label="Wejścia" hint="otwarcia ogłoszenia" value={detailViewsCount} />
-        <StatRow label="Ulubione" hint="zapisali ofertę" value={favoritesCount} accent />
-        <StatRow label="Telefony" hint="kliknięcia w numer" value={phoneClicksCount} />
-        <StatRow
-          label="Wiadomości"
-          hint="otwarcia formularza kontaktu"
-          value={messageClicksCount}
-          full
-        />
+      <div className="grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
+        <StatCell label="Wyświetlenia" hint="lista i mapa" value={viewsCount} />
+        <StatCell label="Wejścia" hint="otwarcia oferty" value={detailViewsCount} />
+        <StatCell label="Ulubione" hint="zapisali ofertę" value={favoritesCount} accent />
+        <StatCell label="Telefony" hint="kliknięcia w numer" value={phoneClicksCount} />
+        <StatCell label="Wiadomości" hint="otwarcia kontaktu" value={messageClicksCount} />
       </div>
     </div>
   );
 }
 
-function StatRow({
+function StatCell({
   label,
   hint,
   value,
   accent = false,
-  full = false,
 }: {
   label: string;
   hint: string;
   value: number;
   accent?: boolean;
-  full?: boolean;
 }) {
   return (
-    <div
-      className={`flex items-center justify-between gap-3 border-b border-fg/8 pb-2.5 ${
-        full ? 'col-span-2' : ''
-      }`}
-    >
-      <div className="min-w-0">
-        <div className="text-[12px] font-medium text-fg/80">{label}</div>
-        <div className="text-[10px] leading-tight text-fg/62">{hint}</div>
-      </div>
+    <div className="border-b border-fg/10 pb-2.5">
       <div
-        className={`text-[19px] font-semibold leading-none tabular-nums ${
+        className={`text-[20px] font-semibold leading-none tabular-nums ${
           accent ? 'text-brand-bright' : 'text-fg'
         }`}
       >
         {formatIntPL(value)}
       </div>
+      <div className="mt-2 text-[11px] font-medium leading-tight text-fg/80">{label}</div>
+      <div className="text-[10px] leading-tight text-fg/55">{hint}</div>
     </div>
   );
 }
@@ -771,12 +770,15 @@ function Carousel({
   title,
   featured,
   rent = false,
+  horizontal = false,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
   title: string;
   featured: boolean;
   rent?: boolean;
+  /** Desktop: zdjęcie wypełnia wysokość karty (układ poziomy jak na liście /kup). */
+  horizontal?: boolean;
 }) {
   const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
   const has = list.length > 0;
@@ -846,7 +848,9 @@ function Carousel({
 
   return (
     <div
-      className="relative aspect-[16/10] overflow-hidden bg-fg/5 md:aspect-video"
+      className={`relative aspect-[16/10] overflow-hidden bg-fg/5 md:aspect-video ${
+        horizontal ? 'lg:aspect-auto lg:h-full' : ''
+      }`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
