@@ -171,7 +171,7 @@ export default function PrivacyPolicyPage() {
               <br />
               c) prawnie uzasadniony interes administratora,
               <br />
-              d) zgoda użytkownika — jeżeli jest wymagana w konkretnym przypadku.
+              d) zgoda użytkownika, jeżeli jest wymagana w konkretnym przypadku.
             </p>
           </Section>
 
@@ -233,9 +233,9 @@ export default function PrivacyPolicyPage() {
               <br />
               d) ograniczenia przetwarzania,
               <br />
-              e) przenoszenia danych — w przypadkach przewidzianych prawem,
+              e) przenoszenia danych, w przypadkach przewidzianych prawem,
               <br />
-              f) wniesienia sprzeciwu wobec przetwarzania danych — w przypadkach przewidzianych prawem,
+              f) wniesienia sprzeciwu wobec przetwarzania danych, w przypadkach przewidzianych prawem,
               <br />
               g) cofnięcia zgody w dowolnym momencie, jeżeli przetwarzanie odbywa się na podstawie zgody.
             </p>

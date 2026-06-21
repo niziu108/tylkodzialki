@@ -126,7 +126,7 @@ export default function CookiesPage() {
               <br />
               f) mierzenie skuteczności działań marketingowych,
               <br />
-              g) dopasowanie treści, funkcji lub reklam — jeżeli takie rozwiązania są stosowane.
+              g) dopasowanie treści, funkcji lub reklam, jeżeli takie rozwiązania są stosowane.
             </p>
           </Section>
 
@@ -159,7 +159,7 @@ export default function CookiesPage() {
               <span className="text-fg">Cookies marketingowe</span>
               <br />
               Mogą być wykorzystywane do mierzenia skuteczności kampanii, remarketingu lub
-              dopasowania komunikatów reklamowych — jeśli takie narzędzia są wdrożone.
+              dopasowania komunikatów reklamowych, jeśli takie narzędzia są wdrożone.
             </p>
 
             <p>
@@ -213,7 +213,7 @@ export default function CookiesPage() {
           <Section id="zarzadzanie" title="§6. Zarządzanie ustawieniami cookies">
             <p>
               1. Użytkownik może zarządzać cookies za pomocą ustawień przeglądarki internetowej
-              lub — jeżeli serwis wdroży odpowiedni mechanizm — za pomocą banera lub panelu
+              lub, jeżeli serwis wdroży odpowiedni mechanizm, za pomocą banera lub panelu
               ustawień cookies.
             </p>
             <p>

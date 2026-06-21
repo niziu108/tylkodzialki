@@ -623,7 +623,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                     Brak zapisanych ofert
                   </h2>
                   <p className="mt-3 leading-7 text-fg/70">
-                    Zapisuj działki, do których chcesz wrócić — pojawią się tutaj,
+                    Zapisuj działki, do których chcesz wrócić, pojawią się tutaj,
                     zsynchronizowane z zakładką Ulubione.
                   </p>
                   <div className="mt-6">

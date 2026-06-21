@@ -3,9 +3,9 @@ import { Suspense } from "react";
 import DzialkaForm from "@/components/DzialkaForm";
 
 export const metadata: Metadata = {
-  title: "Dodaj ogłoszenie działki za darmo — tylkodzialki.pl",
+  title: "Dodaj ogłoszenie działki za darmo",
   description:
-    "Wystaw działkę na sprzedaż w kilka minut. Dodawanie ogłoszeń jest darmowe — wypełnij formularz, a konto założysz dopiero przy publikacji.",
+    "Wystaw działkę na sprzedaż w kilka minut. Dodawanie ogłoszeń jest darmowe. Wypełnij formularz, a konto założysz dopiero przy publikacji.",
 };
 
 function SprzedajFallback() {

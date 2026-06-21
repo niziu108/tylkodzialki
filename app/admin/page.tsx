@@ -495,7 +495,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <div className="mt-3 text-sm text-fg/70">
             {q ? (
               <>
-                Wyniki dla: <span className="text-fg">„{q}”</span> —
+                Wyniki dla: <span className="text-fg">„{q}”</span>,
                 znaleziono <span className="text-fg">{usersWithStats.length}</span>
               </>
             ) : (

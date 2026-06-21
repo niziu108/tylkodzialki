@@ -19,7 +19,7 @@ Jeśli któraś oferta wygasła albo wymaga odświeżenia, zaloguj się do swoje
 Zaloguj się do konta i przejdź do swojego panelu, aby sprawdzić swoje oferty.`;
 
 const TEMPLATE_RULES_SUBJECT =
-  "Ważna informacja — zmiana regulaminu tylkodzialki.pl";
+  "Ważna informacja: zmiana regulaminu tylkodzialki.pl";
 const TEMPLATE_RULES_BODY = `Cześć,
 
 chcemy poinformować Cię, że na tylkodzialki.pl wprowadziliśmy zmianę regulaminu.
@@ -27,7 +27,7 @@ chcemy poinformować Cię, że na tylkodzialki.pl wprowadziliśmy zmianę regula
 Prosimy, abyś po zalogowaniu do swojego konta zapoznał się z aktualnymi zasadami korzystania z portalu.`;
 
 const TEMPLATE_BACK_SUBJECT =
-  "Wracaj na tylkodzialki.pl — nowe oferty już czekają";
+  "Wracaj na tylkodzialki.pl, nowe oferty już czekają";
 const TEMPLATE_BACK_BODY = `Cześć,
 
 na tylkodzialki.pl pojawiają się nowe oferty i warto regularnie zaglądać na portal.

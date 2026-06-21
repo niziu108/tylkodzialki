@@ -121,7 +121,7 @@ export default function ArticleForm({
             className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/70 focus:border-brand/60"
           />
           <p className="mt-2 text-xs text-fg/70">
-            Możesz zostawić puste — system wygeneruje slug z tytułu.
+            Możesz zostawić puste, system wygeneruje slug z tytułu.
           </p>
         </div>
 
@@ -208,7 +208,7 @@ export default function ArticleForm({
             className="h-12 w-full rounded-2xl border border-fg/10 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/70 focus:border-brand/60"
           />
           <p className="mt-2 text-xs text-fg/70">
-            Zostaw puste — policzymy z treści ({readingEstimate} min).
+            Zostaw puste, policzymy z treści ({readingEstimate} min).
           </p>
         </div>
 
@@ -257,7 +257,7 @@ Miejscowy plan zagospodarowania przestrzennego to...
 
         <details className="rounded-2xl border border-fg/10 bg-surface p-4 md:col-span-2">
           <summary className="cursor-pointer select-none text-sm font-medium text-fg">
-            SEO (tytuł i opis w Google) — opcjonalne
+            SEO (tytuł i opis w Google), opcjonalne
           </summary>
 
           <div className="mt-4 grid gap-4">

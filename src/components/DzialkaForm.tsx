@@ -1411,7 +1411,7 @@ export default function DzialkaForm({
 
             <p className="mt-4 text-base leading-7 text-fg/70">
               Twoja oferta <span className="text-fg">{pendingLogin.title}</span> jest przygotowana i zapisana.
-              Zaloguj się lub załóż <span className="text-fg">darmowe</span> konto — opublikujemy ją automatycznie, bez wypełniania formularza ponownie.
+              Zaloguj się lub załóż <span className="text-fg">darmowe</span> konto, opublikujemy ją automatycznie, bez wypełniania formularza ponownie.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -1702,8 +1702,8 @@ export default function DzialkaForm({
                 )}
 
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-xs text-white/80">
-                  Zdjęcia: {currentImages.length}{' '}
-                  {uploadingPhotos ? <span className="text-fg/72">— wgrywam…</span> : null}
+                  Zdjęcia: {currentImages.length}
+                  {uploadingPhotos ? <span className="text-fg/72">, wgrywam…</span> : null}
                 </div>
               </div>
 
