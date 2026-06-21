@@ -49,9 +49,40 @@ function formatPrice(grosze: number) {
   return `${Math.round(grosze / 100)} zł`;
 }
 
+// Cena jednostkowa z groszami (np. „14,90 zł") — przecinek dziesiętny po polsku.
+function formatUnitPrice(grosze: number) {
+  return `${(grosze / 100).toLocaleString('pl-PL', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} zł`;
+}
+
 function formatDatePL(value: string | null | undefined) {
   if (!value) return null;
   return new Date(value).toLocaleDateString('pl-PL');
+}
+
+// Styl pól jak w formularzu /dla-biur: etykieta nad polem + sama linia (field-line),
+// bez ramki-pudełka. Linia na fokusie zielenieje (definicja w globals.css).
+const fieldLabelClass =
+  'mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/68';
+const fieldInputClass =
+  'field-line w-full bg-transparent px-0 pb-2.5 text-[15px] text-fg outline-none';
+
+// Zielony „ptaszek" przy korzyściach — lżejszy niż kropka, czyta się drożej.
+function Check() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className="mt-[3px] h-4 w-4 flex-none text-brand-bright"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.4}
+      aria-hidden="true"
+    >
+      <path d="M4.5 10.5l3.2 3.2L15.5 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 function WyroznieniaPageContent() {
@@ -221,57 +252,90 @@ function WyroznieniaPageContent() {
             </div>
 
             {invoiceType === 'COMPANY' ? (
-              <div className="mx-auto mt-5 max-w-[920px]">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-4">
+              <div className="mx-auto mt-6 max-w-[820px]">
+                <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className={fieldLabelClass} htmlFor="inv-company">
+                      Nazwa firmy
+                    </label>
                     <input
+                      id="inv-company"
+                      className={fieldInputClass}
                       value={invoice.companyName}
                       onChange={(e) =>
                         updateInvoiceField('companyName', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Nazwa firmy"
-                    />
-
-                    <input
-                      value={invoice.email}
-                      onChange={(e) => updateInvoiceField('email', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Email"
-                    />
-
-                    <input
-                      value={invoice.nip}
-                      onChange={(e) => updateInvoiceField('nip', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="NIP"
+                      autoComplete="organization"
                     />
                   </div>
 
-                  <div className="space-y-4">
+                  <div>
+                    <label className={fieldLabelClass} htmlFor="inv-nip">
+                      NIP
+                    </label>
                     <input
+                      id="inv-nip"
+                      inputMode="numeric"
+                      className={fieldInputClass}
+                      value={invoice.nip}
+                      onChange={(e) => updateInvoiceField('nip', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={fieldLabelClass} htmlFor="inv-email">
+                      E-mail
+                    </label>
+                    <input
+                      id="inv-email"
+                      type="email"
+                      className={fieldInputClass}
+                      value={invoice.email}
+                      onChange={(e) => updateInvoiceField('email', e.target.value)}
+                      autoComplete="email"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className={fieldLabelClass} htmlFor="inv-address">
+                      Adres
+                    </label>
+                    <input
+                      id="inv-address"
+                      className={fieldInputClass}
                       value={invoice.addressLine1}
                       onChange={(e) =>
                         updateInvoiceField('addressLine1', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Adres"
+                      autoComplete="street-address"
                     />
+                  </div>
 
+                  <div>
+                    <label className={fieldLabelClass} htmlFor="inv-postal">
+                      Kod pocztowy
+                    </label>
                     <input
+                      id="inv-postal"
+                      className={fieldInputClass}
                       value={invoice.postalCode}
                       onChange={(e) =>
                         updateInvoiceField('postalCode', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Kod pocztowy"
+                      autoComplete="postal-code"
                     />
+                  </div>
 
+                  <div>
+                    <label className={fieldLabelClass} htmlFor="inv-city">
+                      Miasto
+                    </label>
                     <input
+                      id="inv-city"
+                      className={fieldInputClass}
                       value={invoice.city}
                       onChange={(e) => updateInvoiceField('city', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Miasto"
+                      autoComplete="address-level2"
                     />
                   </div>
                 </div>
@@ -299,15 +363,24 @@ function WyroznieniaPageContent() {
               Jedno wyróżnienie gotowe do użycia od razu po zakupie.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-fg/10 bg-surface p-4 text-left">
-              <div className="text-sm font-medium text-fg/85">
-                Co otrzymujesz:
-              </div>
-              <ul className="mt-3 space-y-2 text-sm text-fg/70">
-                <li>• 1 wyróżnienie ogłoszenia</li>
-                <li>• aktywność przez 7 dni</li>
-                <li>• zieloną ramkę premium</li>
-                <li>• wyższą pozycję na liście ofert</li>
+            <div className="mt-6 border-t border-fg/10 pt-5 text-left">
+              <ul className="space-y-2.5 text-sm text-fg/75">
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>1 wyróżnienie ogłoszenia</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>aktywne przez 7 dni</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>zielona ramka premium</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>wyższa pozycja na liście ofert</span>
+                </li>
               </ul>
             </div>
 
@@ -334,27 +407,44 @@ function WyroznieniaPageContent() {
               </p>
             </div>
 
-            <div className="mb-2 text-5xl font-bold tracking-tight text-fg">
-              {formatPrice(pricing.featuredPack3PriceGrossPln)}
+            <div className="mb-2 flex items-baseline justify-center gap-2.5">
+              <span className="text-5xl font-bold tracking-tight text-fg">
+                {formatPrice(pricing.featuredPack3PriceGrossPln)}
+              </span>
+              {pricing.featuredSinglePriceGrossPln * 3 >
+              pricing.featuredPack3PriceGrossPln ? (
+                <span className="text-xl font-medium text-fg/40 line-through">
+                  {formatPrice(pricing.featuredSinglePriceGrossPln * 3)}
+                </span>
+              ) : null}
             </div>
 
-            <div className="text-sm font-medium text-brand-bright">
-              Najlepsza cena za wyróżnienie
+            <div className="text-sm font-semibold text-brand-bright">
+              {formatUnitPrice(pricing.featuredPack3PriceGrossPln / 3)} za wyróżnienie
             </div>
 
             <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-brand-text">
               Najlepszy balans ceny i liczby wyróżnień.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-brand/20 bg-surface p-4 text-left">
-              <div className="text-sm font-medium text-fg">
-                Co otrzymujesz:
-              </div>
-              <ul className="mt-3 space-y-2 text-sm text-brand-text">
-                <li>• 3 wyróżnienia do wykorzystania</li>
-                <li>• każde działa przez 7 dni</li>
-                <li>• wyższe pozycje na liście ofert</li>
-                <li>• najlepszą opłacalność</li>
+            <div className="mt-6 border-t border-brand/20 pt-5 text-left">
+              <ul className="space-y-2.5 text-sm text-fg/80">
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>3 wyróżnienia do wykorzystania</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>każde działa przez 7 dni</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>wyższe pozycje na liście ofert</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>kredyty nie wygasają</span>
+                </li>
               </ul>
             </div>
 

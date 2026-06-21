@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type PackageKey = 'single' | 'pack10' | 'pack40';
 type InvoiceChoice = 'NONE' | 'COMPANY';
@@ -50,9 +50,40 @@ function formatPrice(grosze: number) {
   return `${Math.round(grosze / 100)} zł`;
 }
 
+// Cena jednostkowa z groszami (np. „14,90 zł") — przecinek dziesiętny po polsku.
+function formatUnitPrice(grosze: number) {
+  return `${(grosze / 100).toLocaleString('pl-PL', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} zł`;
+}
+
 function formatDatePL(value: string | null | undefined) {
   if (!value) return null;
   return new Date(value).toLocaleDateString('pl-PL');
+}
+
+// Styl pól jak w formularzu /dla-biur: etykieta nad polem + sama linia (field-line),
+// bez ramki-pudełka. Linia na fokusie zielenieje (definicja w globals.css).
+const fieldLabelClass =
+  'mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/68';
+const fieldInputClass =
+  'field-line w-full bg-transparent px-0 pb-2.5 text-[15px] text-fg outline-none';
+
+// Zielony „ptaszek" przy korzyściach — lżejszy niż kropka, czyta się drożej.
+function Check() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className="mt-[3px] h-4 w-4 flex-none text-brand-bright"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.4}
+      aria-hidden="true"
+    >
+      <path d="M4.5 10.5l3.2 3.2L15.5 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 export default function PakietyPage() {
@@ -122,11 +153,6 @@ export default function PakietyPage() {
   const singlePrice = pricing.listingSinglePriceGrossPln;
   const pack10Price = pricing.listingPack10PriceGrossPln;
   const pack40Price = pricing.listingPack40PriceGrossPln;
-
-  const savingsPack10 = useMemo(() => {
-    const value = singlePrice * 10 - pack10Price;
-    return value > 0 ? value : 0;
-  }, [singlePrice, pack10Price]);
 
   function updateInvoiceField(key: keyof InvoiceFormState, value: string) {
     setInvoice((prev) => ({
@@ -224,59 +250,92 @@ export default function PakietyPage() {
             </div>
 
             {invoiceType === 'COMPANY' ? (
-              <div className="mx-auto mt-5 max-w-[920px]">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-4">
+              <div className="mx-auto mt-6 max-w-[820px]">
+                <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className={fieldLabelClass} htmlFor="inv-company">
+                      Nazwa firmy
+                    </label>
                     <input
+                      id="inv-company"
+                      className={fieldInputClass}
                       value={invoice.companyName}
                       onChange={(e) =>
                         updateInvoiceField('companyName', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Nazwa firmy"
+                      autoComplete="organization"
                     />
+                  </div>
 
+                  <div>
+                    <label className={fieldLabelClass} htmlFor="inv-nip">
+                      NIP
+                    </label>
                     <input
+                      id="inv-nip"
+                      inputMode="numeric"
+                      className={fieldInputClass}
+                      value={invoice.nip}
+                      onChange={(e) => updateInvoiceField('nip', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={fieldLabelClass} htmlFor="inv-email">
+                      E-mail
+                    </label>
+                    <input
+                      id="inv-email"
+                      type="email"
+                      className={fieldInputClass}
                       value={invoice.email}
                       onChange={(e) =>
                         updateInvoiceField('email', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Email"
-                    />
-
-                    <input
-                      value={invoice.nip}
-                      onChange={(e) => updateInvoiceField('nip', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="NIP"
+                      autoComplete="email"
                     />
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="sm:col-span-2">
+                    <label className={fieldLabelClass} htmlFor="inv-address">
+                      Adres
+                    </label>
                     <input
+                      id="inv-address"
+                      className={fieldInputClass}
                       value={invoice.addressLine1}
                       onChange={(e) =>
                         updateInvoiceField('addressLine1', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Adres"
+                      autoComplete="street-address"
                     />
+                  </div>
 
+                  <div>
+                    <label className={fieldLabelClass} htmlFor="inv-postal">
+                      Kod pocztowy
+                    </label>
                     <input
+                      id="inv-postal"
+                      className={fieldInputClass}
                       value={invoice.postalCode}
                       onChange={(e) =>
                         updateInvoiceField('postalCode', e.target.value)
                       }
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Kod pocztowy"
+                      autoComplete="postal-code"
                     />
+                  </div>
 
+                  <div>
+                    <label className={fieldLabelClass} htmlFor="inv-city">
+                      Miasto
+                    </label>
                     <input
+                      id="inv-city"
+                      className={fieldInputClass}
                       value={invoice.city}
                       onChange={(e) => updateInvoiceField('city', e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-fg/20 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-fg/40"
-                      placeholder="Miasto"
+                      autoComplete="address-level2"
                     />
                   </div>
                 </div>
@@ -304,14 +363,20 @@ export default function PakietyPage() {
               Pojedyncza publikacja gotowa do użycia od razu po zakupie.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-fg/10 bg-surface p-4 text-left">
-              <div className="text-sm font-medium text-fg/85">
-                Co otrzymujesz:
-              </div>
-              <ul className="mt-3 space-y-2 text-sm text-fg/70">
-                <li>• 1 publikację ogłoszenia</li>
-                <li>• ogłoszenie aktywne 30 dni</li>
-                <li>• szybki start sprzedaży</li>
+            <div className="mt-6 border-t border-fg/10 pt-5 text-left">
+              <ul className="space-y-2.5 text-sm text-fg/75">
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>1 publikacja ogłoszenia</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>ogłoszenie aktywne 30 dni</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>szybki start sprzedaży</span>
+                </li>
               </ul>
             </div>
 
@@ -338,28 +403,39 @@ export default function PakietyPage() {
               </p>
             </div>
 
-            <div className="mb-2 text-5xl font-bold tracking-tight text-fg">
-              {formatPrice(pack10Price)}
+            <div className="mb-2 flex items-baseline justify-center gap-2.5">
+              <span className="text-5xl font-bold tracking-tight text-fg">
+                {formatPrice(pack10Price)}
+              </span>
+              {singlePrice * 10 > pack10Price ? (
+                <span className="text-xl font-medium text-fg/40 line-through">
+                  {formatPrice(singlePrice * 10)}
+                </span>
+              ) : null}
             </div>
 
-            <div className="text-sm font-medium text-brand-bright">
-              {savingsPack10 > 0
-                ? `Oszczędzasz ${formatPrice(savingsPack10)}`
-                : 'Lepsza cena za publikację'}
+            <div className="text-sm font-semibold text-brand-bright">
+              {formatUnitPrice(pack10Price / 10)} za publikację
             </div>
 
             <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-brand-text">
               Najlepszy balans ceny i liczby publikacji.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-brand/20 bg-surface p-4 text-left">
-              <div className="text-sm font-medium text-fg">
-                Co otrzymujesz:
-              </div>
-              <ul className="mt-3 space-y-2 text-sm text-brand-text">
-                <li>• 10 publikacji ogłoszeń</li>
-                <li>• 1 wyróżnienie do wykorzystania</li>
-                <li>• lepszą cenę za publikację</li>
+            <div className="mt-6 border-t border-brand/20 pt-5 text-left">
+              <ul className="space-y-2.5 text-sm text-fg/80">
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>10 publikacji ogłoszeń</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>1 wyróżnienie do wykorzystania</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>kredyty nie wygasają</span>
+                </li>
               </ul>
             </div>
 
@@ -382,26 +458,39 @@ export default function PakietyPage() {
               </p>
             </div>
 
-            <div className="mb-2 text-5xl font-bold tracking-tight text-fg">
-              {formatPrice(pack40Price)}
+            <div className="mb-2 flex items-baseline justify-center gap-2.5">
+              <span className="text-5xl font-bold tracking-tight text-fg">
+                {formatPrice(pack40Price)}
+              </span>
+              {singlePrice * 40 > pack40Price ? (
+                <span className="text-xl font-medium text-fg/40 line-through">
+                  {formatPrice(singlePrice * 40)}
+                </span>
+              ) : null}
             </div>
 
-            <div className="text-sm font-medium text-brand-bright">
-              Najlepsza cena za ogłoszenie
+            <div className="text-sm font-semibold text-brand-bright">
+              {formatUnitPrice(pack40Price / 40)} za publikację
             </div>
 
             <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-fg/70">
               Najmocniejsza opcja dla tych, którzy działają szerzej.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-fg/10 bg-surface p-4 text-left">
-              <div className="text-sm font-medium text-fg/85">
-                Co otrzymujesz:
-              </div>
-              <ul className="mt-3 space-y-2 text-sm text-fg/70">
-                <li>• 40 publikacji ogłoszeń</li>
-                <li>• 3 wyróżnienia do wykorzystania</li>
-                <li>• najwyższą opłacalność</li>
+            <div className="mt-6 border-t border-fg/10 pt-5 text-left">
+              <ul className="space-y-2.5 text-sm text-fg/75">
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>40 publikacji ogłoszeń</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>3 wyróżnienia do wykorzystania</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>kredyty nie wygasają</span>
+                </li>
               </ul>
             </div>
 
