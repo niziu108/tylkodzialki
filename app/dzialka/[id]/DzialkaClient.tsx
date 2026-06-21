@@ -1142,7 +1142,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
         }
         .td-opis b,
         .td-opis strong {
-          color: rgba(243, 239, 245, 0.98);
+          color: inherit;
           font-weight: 700;
         }
         .td-opis p {
