@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import ArticleCardCover from "@/components/ArticleCardCover";
 import ArticleMeta from "@/components/ArticleMeta";
+import { ARTICLE_CATEGORIES } from "@/lib/articleCategories";
 
 type BlogArticle = {
   id: string;
@@ -30,22 +31,34 @@ export default function BlogSearchSection({
   articles: BlogArticle[];
 }) {
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
+
+  const categoryTabs = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of articles) {
+      if (a.category) counts.set(a.category, (counts.get(a.category) ?? 0) + 1);
+    }
+    return ARTICLE_CATEGORIES.filter((c) => counts.has(c.slug)).map((c) => ({
+      slug: c.slug,
+      label: c.label,
+      count: counts.get(c.slug) ?? 0,
+    }));
+  }, [articles]);
 
   const filteredArticles = useMemo(() => {
     const q = normalizeText(query.trim());
 
-    if (!q) return articles;
-
     return articles.filter((article) => {
+      if (category && article.category !== category) return false;
+      if (!q) return true;
       const haystack = normalizeText(
-        [article.title ?? "", article.excerpt ?? "", article.content ?? ""].join(
-          " "
-        )
+        [article.title ?? "", article.excerpt ?? "", article.content ?? ""].join(" ")
       );
-
       return haystack.includes(q);
     });
-  }, [articles, query]);
+  }, [articles, query, category]);
+
+  const isFiltering = query.trim() !== "" || category !== null;
 
   return (
     <>
@@ -119,7 +132,7 @@ export default function BlogSearchSection({
                 </div>
 
                 <div className="mt-4 text-sm text-fg/70">
-                  {query.trim()
+                  {isFiltering
                     ? `Znaleziono artykułów: ${filteredArticles.length}`
                     : `Wszystkich artykułów: ${articles.length}`}
                 </div>
@@ -129,16 +142,61 @@ export default function BlogSearchSection({
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-10 md:px-8 md:py-12">
+      {categoryTabs.length > 0 ? (
+        <section className="mx-auto max-w-7xl px-6 pt-9 md:px-8 md:pt-10">
+          <div className="flex items-center gap-x-6 overflow-x-auto border-b border-fg/10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={() => setCategory(null)}
+              className={`relative whitespace-nowrap pb-3 text-sm font-medium transition ${
+                category === null ? "text-fg" : "text-fg/55 hover:text-fg/85"
+              }`}
+            >
+              Wszystkie <span className="text-fg/35">{articles.length}</span>
+              {category === null ? (
+                <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />
+              ) : null}
+            </button>
+
+            {categoryTabs.map((t) => (
+              <button
+                key={t.slug}
+                type="button"
+                onClick={() => setCategory(t.slug)}
+                className={`relative whitespace-nowrap pb-3 text-sm font-medium transition ${
+                  category === t.slug ? "text-fg" : "text-fg/55 hover:text-fg/85"
+                }`}
+              >
+                {t.label} <span className="text-fg/35">{t.count}</span>
+                {category === t.slug ? (
+                  <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="mx-auto max-w-7xl px-6 pt-8 pb-12 md:px-8 md:pb-14">
         {filteredArticles.length === 0 ? (
           <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] px-6 py-16 text-center">
             <h2 className="text-2xl font-semibold text-fg">
               Nie znaleziono artykułów
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-fg/72 md:text-base">
-              Spróbuj wpisać inne słowo, na przykład: MPZP, warunki zabudowy,
-              uzbrojenie działki albo zakup działki.
+              Zmień słowo lub kategorię. Możesz też wyczyścić filtry i przejrzeć
+              wszystkie wpisy.
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setCategory(null);
+              }}
+              className="mt-6 inline-flex items-center justify-center rounded-2xl border border-fg/15 bg-fg/[0.04] px-5 py-3 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.07]"
+            >
+              Wyczyść filtry
+            </button>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
