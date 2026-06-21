@@ -172,9 +172,9 @@ export default async function HomePage() {
       <section className="relative min-h-[100svh] w-full">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url(/kup.webp)", filter: "brightness(1.15)" }}
+          style={{ backgroundImage: "url(/kup.webp)", filter: "brightness(1.2) saturate(1.05)" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/52 to-black/72" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/38 to-black/46" />
 
         <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-8 text-center">
           <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-white/90 [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[70px] md:leading-none">
