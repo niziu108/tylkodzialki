@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HeartIcon } from '@/components/OfferCard';
+import { OfficeLogo } from '@/components/OfficeLogo';
 import { formatOpis } from '@/lib/formatOpis';
 
 type Photo = { id?: string; url: string; publicId?: string; kolejnosc?: number };
@@ -841,13 +842,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       ) : null}
 
                       {biuroLogoUrl ? (
-                        <div className="w-fit overflow-hidden rounded-2xl border border-fg/10 bg-fg/[0.03] p-3">
-                          <img
-                            src={biuroLogoUrl}
-                            alt="Logo biura"
-                            className="h-16 w-auto max-w-[140px] object-contain"
-                          />
-                        </div>
+                        <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager />
                       ) : null}
                     </div>
                   </FieldBlock>

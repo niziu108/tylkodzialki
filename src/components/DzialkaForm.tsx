@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LocationPicker from '@/components/LocationPicker';
 import MarkdownOpis from '@/components/MarkdownOpis';
+import { OfficeLogo } from '@/components/OfficeLogo';
 import { MAX_PHOTOS_PER_OFFER } from '@/lib/photoLimits';
 
 type Przeznaczenie =
@@ -1927,9 +1928,7 @@ export default function DzialkaForm({
                   </div>
 
                   {biuroLogoUrl ? (
-                    <div className="inline-flex overflow-hidden rounded-2xl border border-fg/10 bg-fg/[0.03] p-3">
-                      <img src={biuroLogoUrl} alt="Logo biura" className="h-16 w-auto max-w-[180px] object-contain" />
-                    </div>
+                    <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager />
                   ) : (
                     <div className="text-sm text-fg/68">Logo jest opcjonalne, ale warto je dodać.</div>
                   )}

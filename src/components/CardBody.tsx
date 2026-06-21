@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import type { SprzedajacyTyp } from '@prisma/client';
 import { offerPriceLabel, pricePerM2, formatIntPL } from '@/lib/format';
 import { IconPin, IconArea, IconLayers, IconPlug, IconUser, IconBuilding } from './CardIcons';
+import { OfficeLogo } from './OfficeLogo';
 
 export function CardBody({
   cena,
@@ -126,13 +127,7 @@ export function CardBody({
         >
           {sellerType === 'BIURO' ? (
             biuroLogoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={biuroLogoUrl}
-                alt={biuroNazwa ?? ''}
-                className="h-7 w-auto max-w-[112px] object-contain"
-                loading="lazy"
-              />
+              <OfficeLogo src={biuroLogoUrl} alt={biuroNazwa ?? ''} variant="card" />
             ) : (
               <IconBuilding className="h-4 w-4 shrink-0 text-fg/70" />
             )
