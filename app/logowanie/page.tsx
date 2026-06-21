@@ -175,7 +175,7 @@ function AuthPageContent() {
                     style={{
                       border:
                         mode === 'login'
-                          ? '1px solid rgba(255,255,255,0.55)'
+                          ? '1px solid var(--brand)'
                           : '1px solid transparent',
                       background: 'transparent',
                     }}
@@ -195,7 +195,7 @@ function AuthPageContent() {
                     style={{
                       border:
                         mode === 'register'
-                          ? '1px solid rgba(255,255,255,0.55)'
+                          ? '1px solid var(--brand)'
                           : '1px solid transparent',
                       background: 'transparent',
                     }}
@@ -413,13 +413,13 @@ function AuthPageContent() {
 
             <div className="relative flex h-full w-full items-start px-8 pt-10 lg:px-12 lg:pt-12">
               <div className="w-full max-w-xl">
-                <div className="text-[40px] font-semibold leading-[1.05] tracking-tight text-fg md:text-[52px]">
+                <div className="text-[40px] font-semibold leading-[1.05] tracking-tight text-white md:text-[52px]">
                   Zaufaj Nam
                 </div>
 
-                <div className="mt-5 max-w-[560px] text-[16px] leading-relaxed text-fg/92 md:text-[18px]">
+                <div className="mt-5 max-w-[560px] text-[16px] leading-relaxed text-white/90 md:text-[18px]">
                   Zaloguj się lub zarejestruj i wystaw swoją działkę w 3 minuty.
-                  <span className="text-fg"> Dodawanie ogłoszeń jest darmowe.</span>
+                  <span className="text-white"> Dodawanie ogłoszeń jest darmowe.</span>
                 </div>
 
                 <div className="mt-8 h-px w-24 bg-brand/55" />
