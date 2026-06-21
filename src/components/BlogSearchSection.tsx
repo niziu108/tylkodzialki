@@ -67,23 +67,19 @@ export default function BlogSearchSection({
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: "url(/kup.webp)" }}
         />
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-bg" />
+        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/30 to-bg" />
 
-        <div className="relative mx-auto max-w-7xl px-6 py-14 md:px-8 md:py-20">
-          <div className="mx-auto max-w-4xl">
-            <div className="rounded-[30px] border border-fg/10 bg-surface p-6 backdrop-blur-sm md:p-8">
-              <div className="flex flex-col items-center text-center">
-                <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold text-brand-bright">
-                  Blog tylkodzialki.pl
-                </div>
+        <div className="relative mx-auto max-w-4xl px-6 py-16 text-center md:px-8 md:py-20">
+          <h1 className="font-hero text-[34px] uppercase tracking-[0.06em] text-[#D8D2DB] [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[58px] md:leading-none">
+            Wiedza o działkach
+          </h1>
 
-                <h1 className="mt-5 text-2xl font-semibold tracking-tight text-fg md:text-5xl">
-                  Wiedza o działkach
-                </h1>
-              </div>
+          <div className="mt-5 inline-flex rounded-full border border-brand/30 bg-black/25 px-3 py-1 text-[12px] font-semibold text-brand-bright backdrop-blur-sm">
+            Blog tylkodzialki.pl
+          </div>
 
-              <div className="mx-auto mt-8 max-w-3xl text-left md:mt-9">
+          <div className="mx-auto mt-8 max-w-3xl rounded-[28px] border border-fg/10 bg-surface p-5 text-left backdrop-blur-sm md:p-7">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_240px]">
                   <div>
                     <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
@@ -155,8 +151,6 @@ export default function BlogSearchSection({
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
         </div>
       </section>
 
