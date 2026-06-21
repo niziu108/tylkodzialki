@@ -61,7 +61,15 @@ export async function POST(req: Request, { params }: RouteContext) {
 
     const dzialka = await prisma.dzialka.findUnique({
       where: { id },
-      select: { id: true, tytul: true, numerOferty: true, email: true, status: true },
+      select: {
+        id: true,
+        tytul: true,
+        numerOferty: true,
+        email: true,
+        status: true,
+        // Mail konta właściciela jako zapas, gdy oferta nie ma własnego e-maila.
+        owner: { select: { email: true } },
+      },
     });
 
     if (!dzialka) {
@@ -78,8 +86,9 @@ export async function POST(req: Request, { params }: RouteContext) {
       );
     }
 
-    const sellerEmail = (dzialka.email ?? '').trim();
-    // Mail sprzedającego, gdy jest; inaczej trafia tylko do nas (relay).
+    // Adresat: e-mail kontaktowy z oferty, a jeśli pusty — e-mail konta właściciela
+    // (każda oferta dodana przez kreator/CRM ma ownera). biuro@ to ostatnia deska ratunku.
+    const sellerEmail = (dzialka.email ?? dzialka.owner?.email ?? '').trim();
     const to = sellerEmail || BIURO_TO;
     const bcc = sellerEmail ? BIURO_TO : undefined;
 
