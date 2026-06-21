@@ -267,7 +267,7 @@ export default async function HomePage() {
                     href={href}
                     className="group min-w-[86%] snap-start md:min-w-[360px] xl:min-w-[380px]"
                   >
-                    <article className="overflow-hidden rounded-[28px] border border-fg/10 bg-fg/[0.03] transition hover:border-fg/20 hover:bg-fg/[0.045]">
+                    <article className="overflow-hidden rounded-[28px] border border-fg/10 bg-bg transition hover:border-fg/20">
                       <ArticleCardCover
                         imageUrl={article.imageUrl}
                         title={article.title}
