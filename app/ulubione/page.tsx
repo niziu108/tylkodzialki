@@ -5,6 +5,15 @@ import { authOptions } from '@/auth-options';
 import { prisma } from '@/lib/prisma';
 import KupList from '../kup/KupList';
 
+// Polska odmiana rzeczownika przy liczniku: 1 / 2-4 / 5+ (wyjątek 12-14).
+function odmianaOfert(n: number) {
+  const d = n % 10;
+  const s = n % 100;
+  if (n === 1) return 'zapisana oferta';
+  if (d >= 2 && d <= 4 && !(s >= 12 && s <= 14)) return 'zapisane oferty';
+  return 'zapisanych ofert';
+}
+
 export default async function UlubionePage() {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
@@ -36,7 +45,7 @@ export default async function UlubionePage() {
     <main className="min-h-screen bg-bg px-4 py-10 text-fg sm:px-8">
       <section className="mx-auto max-w-6xl">
         <div className="mb-10 border-b border-fg/10 pb-8">
-          <h1 className="font-display text-[34px] uppercase tracking-[0.08em] text-fg md:text-[54px]">
+          <h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
             Ulubione działki
           </h1>
 
@@ -48,7 +57,7 @@ export default async function UlubionePage() {
                 </span>
               </div>
               <div className="mt-3 inline-block border-b border-brand/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-bright/80">
-                Zapisane oferty
+                {odmianaOfert(items.length)}
               </div>
             </div>
           ) : null}
