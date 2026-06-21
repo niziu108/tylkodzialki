@@ -3,12 +3,12 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * Warstwa, która na TELEFONIE napełnia białą sekcję zielenią w miarę scrolla.
+ * Warstwa, która napełnia sekcję zielenią w miarę scrolla (telefon i desktop).
  * Zieleń wstaje od dołu i robi się coraz mocniejsza („cień coraz bardziej").
  *
  * Sam render to przezroczysty gradient sterowany zmienną --p (0..1); całą
- * matematykę robi globalny .scrollfill w globals.css. Na desktopie i przy
- * prefers-reduced-motion --p zostaje 0, więc warstwa jest niewidoczna.
+ * matematykę robi globalny .scrollfill w globals.css. Przy prefers-reduced-motion
+ * --p zostaje 0, więc warstwa jest niewidoczna.
  *
  * Wkładamy <ScrollFill /> jako warstwę wewnątrz sekcji (sekcja musi być
  * position: relative). Mierzymy rodzica, więc nie trzeba podawać refów z page.
@@ -21,7 +21,6 @@ export default function ScrollFill({ className = '' }: { className?: string }) {
     const section = el?.parentElement;
     if (!el || !section) return;
 
-    const mqMobile = window.matchMedia('(max-width: 767px)');
     const mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     let raf = 0;
@@ -48,7 +47,7 @@ export default function ScrollFill({ className = '' }: { className?: string }) {
     };
 
     const apply = () => {
-      active = mqMobile.matches && !mqReduce.matches;
+      active = !mqReduce.matches;
       if (active) {
         update();
       } else {
@@ -63,13 +62,11 @@ export default function ScrollFill({ className = '' }: { className?: string }) {
     apply();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', apply, { passive: true });
-    mqMobile.addEventListener?.('change', apply);
     mqReduce.addEventListener?.('change', apply);
 
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', apply);
-      mqMobile.removeEventListener?.('change', apply);
       mqReduce.removeEventListener?.('change', apply);
       if (raf) cancelAnimationFrame(raf);
     };
