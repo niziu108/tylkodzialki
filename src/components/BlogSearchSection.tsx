@@ -74,14 +74,12 @@ export default function BlogSearchSection({
           <div className="mx-auto max-w-4xl">
             <div className="rounded-[30px] border border-fg/10 bg-surface p-6 backdrop-blur-sm md:p-8">
               <div className="flex flex-col items-center text-center">
-                <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+                <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold text-brand-bright">
                   Blog tylkodzialki.pl
                 </div>
 
-                <h1 className="mt-5 max-w-1xl text-2xl font-semibold tracking-tight text-fg md:text-5xl">
-                  Wiedza o działkach,
-                  <br className="hidden md:block" />
-                  prosto i konkretnie
+                <h1 className="mt-5 text-2xl font-semibold tracking-tight text-fg md:text-5xl">
+                  Wiedza o działkach
                 </h1>
               </div>
 
