@@ -56,12 +56,12 @@ function PopularSearchesSection() {
               >
                 <div className="relative z-10">
                   <div className="flex items-start justify-between gap-4">
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-[11px] uppercase tracking-[0.22em] text-fg/62">
                         Województwo
                       </div>
 
-                      <h3 className="mt-2 text-2xl font-semibold tracking-tight text-fg">
+                      <h3 className="mt-2 break-words hyphens-auto text-2xl font-semibold tracking-tight text-fg">
                         {region.name}
                       </h3>
                     </div>
