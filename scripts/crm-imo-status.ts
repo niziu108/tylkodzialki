@@ -64,18 +64,31 @@ async function main() {
 
   const links = await prisma.crmOfferLink.findMany({
     where: { integrationId: integ.id },
-    select: { isActiveInSource: true, dzialka: { select: { status: true } } },
+    select: {
+      isActiveInSource: true,
+      externalId: true,
+      dzialkaId: true,
+      dzialka: { select: { status: true, tytul: true } },
+    },
   });
 
-  const aktywne = links.filter((l) => l.dzialka.status === "AKTYWNE").length;
-  const zakonczone = links.filter((l) => l.dzialka.status === "ZAKONCZONE").length;
+  const aktywne = links.filter((l) => l.dzialka.status === "AKTYWNE");
+  const zakonczone = links.filter((l) => l.dzialka.status === "ZAKONCZONE");
   const activeInSource = links.filter((l) => l.isActiveInSource).length;
 
   console.log("\nOferty IMO w bazie:");
-  console.log(`  status AKTYWNE:    ${aktywne}`);
-  console.log(`  status ZAKONCZONE: ${zakonczone}`);
+  console.log(`  status AKTYWNE:    ${aktywne.length}`);
+  console.log(`  status ZAKONCZONE: ${zakonczone.length}`);
   console.log(`  isActiveInSource=true: ${activeInSource}`);
   console.log(`  razem powiązań:    ${links.length}`);
+
+  if (aktywne.length > 0) {
+    console.log("\nAktywne oferty IMO (link do podglądu):");
+    for (const l of aktywne) {
+      console.log(`  [${l.externalId}] ${l.dzialka.tytul ?? ""}`);
+      console.log(`      https://tylkodzialki.pl/dzialka/${l.dzialkaId}`);
+    }
+  }
 }
 
 main()
