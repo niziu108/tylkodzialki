@@ -237,10 +237,10 @@ export default async function PartnerstwoPage() {
                   </div>
                 ) : null}
 
-                <h3 className="relative inline-block text-lg font-semibold text-fg transition-colors duration-200 group-hover:text-white">
+                <h3 className="relative inline-block text-lg font-semibold text-fg transition-colors duration-200">
                   {f.title}
                   <span
-                    className="absolute -bottom-1 left-0 h-px w-0 bg-white transition-all duration-300 group-hover:w-full"
+                    className="absolute -bottom-1 left-0 h-px w-0 bg-brand transition-all duration-300 group-hover:w-full"
                     aria-hidden="true"
                   />
                 </h3>
