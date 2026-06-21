@@ -85,56 +85,76 @@ export default function BlogSearchSection({
                 </h1>
               </div>
 
-              <div className="mx-auto mt-8 max-w-3xl md:mt-9">
-                <div className="rounded-[24px] border border-fg/10 bg-surface p-2.5 backdrop-blur-sm md:p-3">
-                  <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
-                    <div className="relative flex-1">
+              <div className="mx-auto mt-8 max-w-3xl text-left md:mt-9">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_240px]">
+                  <div>
+                    <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
+                      Temat
+                    </label>
+                    <div className="mt-3 rounded-xl border border-fg/25">
                       <input
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Wpisz czego szukasz... np. MPZP, warunki zabudowy, uzbrojenie działki"
-                        className="w-full rounded-[18px] border border-fg/8 bg-fg/[0.03] py-4 pl-5 pr-14 text-[15px] text-fg outline-none transition placeholder:text-fg/62 focus:border-brand/45 focus:bg-fg/[0.05] focus:ring-2 focus:ring-brand/15 md:text-base"
+                        placeholder="Wpisz temat, np. MPZP, uzbrojenie, klasa gruntu"
+                        className="w-full bg-transparent px-4 py-3 text-fg/90 outline-none placeholder:text-fg/62"
                       />
-
-                      <div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-fg/30">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
-                          />
-                        </svg>
-                      </div>
                     </div>
+                  </div>
 
-                    {query.trim() ? (
-                      <button
-                        type="button"
-                        onClick={() => setQuery("")}
-                        className="inline-flex items-center justify-center rounded-[18px] border border-fg/12 bg-fg/[0.05] px-5 py-4 text-sm font-semibold text-fg transition hover:border-fg/25 hover:bg-fg/[0.08] md:min-w-[130px]"
+                  <div>
+                    <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
+                      Kategoria
+                    </label>
+                    <div className="mt-3 rounded-xl border border-fg/25">
+                      <select
+                        value={category ?? ""}
+                        onChange={(e) => setCategory(e.target.value || null)}
+                        className="w-full bg-transparent px-4 py-3 text-fg/90 outline-none"
                       >
-                        Wyczyść
-                      </button>
-                    ) : (
-                      <div className="inline-flex items-center justify-center rounded-[18px] bg-brand px-6 py-4 text-sm font-semibold text-black md:min-w-[150px]">
-                        Szukaj
-                      </div>
-                    )}
+                        <option value="" className="bg-bg">
+                          Wszystkie kategorie ({articles.length})
+                        </option>
+                        {categoryTabs.map((t) => (
+                          <option key={t.slug} value={t.slug} className="bg-bg">
+                            {t.label} ({t.count})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-4 text-sm text-fg/70">
-                  {isFiltering
-                    ? `Znaleziono artykułów: ${filteredArticles.length}`
-                    : `Wszystkich artykułów: ${articles.length}`}
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-[12px] uppercase tracking-[0.18em] text-fg">
+                    {isFiltering
+                      ? `Znaleziono: ${filteredArticles.length}`
+                      : `Wszystkich artykułów: ${articles.length}`}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuery("");
+                        setCategory(null);
+                      }}
+                      className="rounded-xl border border-fg/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-fg/75 transition hover:border-fg/40"
+                    >
+                      Wyczyść
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        document
+                          .getElementById("blog-wyniki")
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }
+                      className="rounded-xl bg-brand px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-strong"
+                    >
+                      Szukaj
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -142,42 +162,10 @@ export default function BlogSearchSection({
         </div>
       </section>
 
-      {categoryTabs.length > 0 ? (
-        <section className="mx-auto max-w-7xl px-6 pt-9 md:px-8 md:pt-10">
-          <div className="flex items-center gap-x-6 overflow-x-auto border-b border-fg/10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <button
-              type="button"
-              onClick={() => setCategory(null)}
-              className={`relative whitespace-nowrap pb-3 text-sm font-medium transition ${
-                category === null ? "text-fg" : "text-fg/55 hover:text-fg/85"
-              }`}
-            >
-              Wszystkie <span className="text-fg/35">{articles.length}</span>
-              {category === null ? (
-                <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />
-              ) : null}
-            </button>
-
-            {categoryTabs.map((t) => (
-              <button
-                key={t.slug}
-                type="button"
-                onClick={() => setCategory(t.slug)}
-                className={`relative whitespace-nowrap pb-3 text-sm font-medium transition ${
-                  category === t.slug ? "text-fg" : "text-fg/55 hover:text-fg/85"
-                }`}
-              >
-                {t.label} <span className="text-fg/35">{t.count}</span>
-                {category === t.slug ? (
-                  <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="mx-auto max-w-7xl px-6 pt-8 pb-12 md:px-8 md:pb-14">
+      <section
+        id="blog-wyniki"
+        className="mx-auto max-w-7xl px-6 py-10 md:px-8 md:py-12"
+      >
         {filteredArticles.length === 0 ? (
           <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] px-6 py-16 text-center">
             <h2 className="text-2xl font-semibold text-fg">
