@@ -47,6 +47,9 @@ type Props = {
   focusKey?: string;
   /** Podświetlany pin (np. najazd na kartę listy). */
   activeId?: string | null;
+  /** Oferta, z której weszliśmy na mapę — jej pin dostaje plakietkę „TA OFERTA”
+   *  i jest zawsze widoczny (poza klastrem), żeby było jasne „to ta działka”. */
+  selfId?: string | null;
   onActiveChange?: (id: string | null) => void;
   onSearchArea?: (b: Bounds) => void;
   onClose?: () => void;
@@ -111,6 +114,91 @@ function pinIcon(text: string, state: PinState): google.maps.Icon {
   };
 }
 
+/* Pin oferty, z której weszliśmy na mapę — pigułka z ceną + plakietka „TA OFERTA”
+ * nad nią. Jaskrawa zieleń i napis robią z niej jednoznaczne „to ta działka”. */
+function selfPinIcon(text: string): google.maps.Icon {
+  const CAP = 'TA OFERTA';
+  const cap = 15;
+  const gap = 4;
+  const h = 28;
+  const tail = 7;
+
+  const pillW = Math.max(52, Math.ceil(text.length * 7.6) + 26);
+  const capW = Math.ceil(CAP.length * 6.2) + 18;
+  const w = Math.max(pillW, capW);
+  const total = cap + gap + h + tail;
+  const cx = w / 2;
+  const pillY = cap + gap;
+  const pillTop = pillY;
+  const pillBottom = pillY + h;
+
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${total}" viewBox="0 0 ${w} ${total}">` +
+    // plakietka „TA OFERTA”
+    `<rect x="${cx - capW / 2}" y="0.75" rx="7" ry="7" width="${capW}" height="${cap - 1.5}" fill="#7aa333" stroke="#ffffff" stroke-width="1.25"/>` +
+    `<text x="${cx}" y="${cap / 2}" dominant-baseline="central" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="800" letter-spacing="0.6" fill="#0c0c0c">${CAP}</text>` +
+    // pigułka z ceną
+    `<rect x="${cx - pillW / 2}" y="${pillTop}" rx="14" ry="14" width="${pillW}" height="${h}" fill="#9fd14b" stroke="#ffffff" stroke-width="2"/>` +
+    `<path d="M${cx - 6},${pillBottom - 1} L${cx},${pillBottom + tail - 1} L${cx + 6},${pillBottom - 1} Z" fill="#9fd14b" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>` +
+    `<rect x="${cx - 7}" y="${pillBottom - 3}" width="14" height="3.5" fill="#9fd14b"/>` +
+    `<text x="${cx}" y="${pillTop + h / 2}" dominant-baseline="central" text-anchor="middle" font-family="Arial, sans-serif" font-size="12.5" font-weight="800" fill="#0c0c0c">${text}</text>` +
+    `</svg>`;
+
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    size: new google.maps.Size(w, total),
+    scaledSize: new google.maps.Size(w, total),
+    anchor: new google.maps.Point(cx, total),
+  };
+}
+
+/* Rozsuwanie pinów o (niemal) tej samej pozycji. Oferty z trybem „przybliżonym”
+ * wpisane przez tę samą miejscowość lądują w identycznym punkcie (środek miasta),
+ * więc piny nakładają się i nie da się kliknąć żadnej. Liczymy dla nich mały
+ * pierścień wokół wspólnego punktu — czysto wizualnie (nie ruszamy zapisanych
+ * współrzędnych), deterministycznie (ten sam układ przy każdym renderze) i na tyle
+ * delikatnie, żeby nie zafałszować lokalizacji. Grupujemy tylko punkty zaokrąglone
+ * do ~1 m, więc realnie różne lokalizacje zostają nietknięte. */
+const SPREAD_PRECISION = 5; // miejsca po przecinku (~1 m)
+
+function spreadOverlapping(points: MapPoint[]): Map<string, { lat: number; lng: number }> {
+  const groups = new Map<string, MapPoint[]>();
+  for (const p of points) {
+    if (p.lat == null || p.lng == null) continue;
+    const key = `${p.lat.toFixed(SPREAD_PRECISION)},${p.lng.toFixed(SPREAD_PRECISION)}`;
+    const arr = groups.get(key);
+    if (arr) arr.push(p);
+    else groups.set(key, [p]);
+  }
+
+  const out = new Map<string, { lat: number; lng: number }>();
+  for (const arr of groups.values()) {
+    if (arr.length === 1) {
+      const p = arr[0];
+      out.set(p.id, { lat: p.lat!, lng: p.lng! });
+      continue;
+    }
+
+    // Kolejność po id — stabilny układ pierścienia niezależnie od kolejności z API.
+    arr.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+    const baseLat = arr[0].lat!;
+    const baseLng = arr[0].lng!;
+    const n = arr.length;
+    const radiusM = 14 + Math.min(n, 8) * 4; // 2 oferty ~22 m, większe grupy do ~46 m
+    const mPerDegLat = 111_320;
+    const mPerDegLng = 111_320 * Math.cos((baseLat * Math.PI) / 180) || 1;
+
+    arr.forEach((p, i) => {
+      const angle = (2 * Math.PI * i) / n - Math.PI / 2; // start u góry, zgodnie z zegarem
+      const dLat = (radiusM * Math.sin(angle)) / mPerDegLat;
+      const dLng = (radiusM * Math.cos(angle)) / mPerDegLng;
+      out.set(p.id, { lat: baseLat + dLat, lng: baseLng + dLng });
+    });
+  }
+  return out;
+}
+
 function clusterRenderer(): Renderer {
   return {
     render: ({ count, position }) => {
@@ -149,6 +237,7 @@ export default function KupMap({
   radiusKm,
   focusKey,
   activeId,
+  selfId,
   onActiveChange,
   onSearchArea,
   onClose,
@@ -161,6 +250,8 @@ export default function KupMap({
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const labelsRef = useRef<Map<string, string>>(new Map());
   const circleRef = useRef<google.maps.Circle | null>(null);
+  // Pin oferty „z której weszliśmy” — trzymany poza klastrem, zawsze na wierzchu.
+  const selfMarkerRef = useRef<google.maps.Marker | null>(null);
 
   const styledActiveRef = useRef<string | null>(null);
   const needsFitRef = useRef(false);
@@ -178,7 +269,7 @@ export default function KupMap({
       if (prev && prev !== id) {
         const m = markersRef.current.get(prev);
         const label = labelsRef.current.get(prev);
-        if (m && label != null) {
+        if (m && label != null && !m.get('td_self')) {
           const featured = m.get('td_featured') as boolean;
           m.setIcon(pinIcon(label, featured ? 'featured' : 'normal'));
           m.setZIndex(featured ? 200 : 100);
@@ -187,7 +278,8 @@ export default function KupMap({
       if (id) {
         const m = markersRef.current.get(id);
         const label = labelsRef.current.get(id);
-        if (m && label != null) {
+        // Pin „self” ma własną, stałą plakietkę — nie nadpisujemy go stanem active.
+        if (m && label != null && !m.get('td_self')) {
           m.setIcon(pinIcon(label, 'active'));
           m.setZIndex(999_999);
         }
@@ -343,32 +435,40 @@ export default function KupMap({
     markersRef.current.clear();
     labelsRef.current.clear();
     styledActiveRef.current = null;
+    selfMarkerRef.current?.setMap(null);
+    selfMarkerRef.current = null;
+
+    // Pozycje po rozsunięciu nakładających się pinów (czysto wizualne).
+    const spread = spreadOverlapping(points);
 
     const markers: google.maps.Marker[] = [];
 
     for (const p of points) {
       if (p.lat == null || p.lng == null) continue;
 
+      const pos = spread.get(p.id) ?? { lat: p.lat, lng: p.lng };
       const label =
         p.transakcja === 'WYNAJEM' ? `${formatShortPLN(p.cena)}/mc` : formatShortPLN(p.cena);
       const featured = !!p.featured;
+      const isSelf = selfId != null && p.id === selfId;
 
       const marker = new google.maps.Marker({
-        position: { lat: p.lat, lng: p.lng },
-        icon: pinIcon(label, featured ? 'featured' : 'normal'),
-        zIndex: featured ? 200 : 100,
+        position: pos,
+        icon: isSelf ? selfPinIcon(label) : pinIcon(label, featured ? 'featured' : 'normal'),
+        zIndex: isSelf ? 2_000_000 : featured ? 200 : 100,
         optimized: false,
       });
       marker.set('td_featured', featured);
+      marker.set('td_self', isSelf);
 
       marker.addListener('click', () => {
         setSelectedPoint(p);
-        if (p.lat != null && p.lng != null) mapRef.current?.panTo({ lat: p.lat, lng: p.lng });
+        mapRef.current?.panTo(pos);
 
         const c = circleRef.current;
         if (c) {
-          if (p.approx && p.lat != null && p.lng != null) {
-            c.setCenter({ lat: p.lat, lng: p.lng });
+          if (p.approx) {
+            c.setCenter(pos);
             c.setVisible(true);
           } else {
             c.setVisible(false);
@@ -381,7 +481,14 @@ export default function KupMap({
 
       markersRef.current.set(p.id, marker);
       labelsRef.current.set(p.id, label);
-      markers.push(marker);
+
+      // Pin „self” poza klastrem — zawsze widoczny, niezależnie od zoomu.
+      if (isSelf) {
+        marker.setMap(mapRef.current);
+        selfMarkerRef.current = marker;
+      } else {
+        markers.push(marker);
+      }
     }
 
     clusterer.addMarkers(markers);
@@ -390,7 +497,7 @@ export default function KupMap({
     // Odśwież podświetlenie aktywnego po przebudowie.
     if (activeId) setActive(activeId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, ready]);
+  }, [points, ready, selfId]);
 
   // Podświetlanie pinu z zewnątrz (najazd na kartę listy).
   useEffect(() => {

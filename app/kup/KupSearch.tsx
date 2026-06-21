@@ -1533,6 +1533,7 @@ export default function KupSearch({
               radiusKm={applied.radiusKm}
               focusKey={filterKey}
               activeId={activeId}
+              selfId={initialFocusId}
               onActiveChange={setActiveId}
               onSearchArea={onSearchArea}
               onClose={() => {
