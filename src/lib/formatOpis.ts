@@ -1,51 +1,108 @@
 // Formatowanie opisu oferty do bezpiecznego HTML renderowanego przez dangerouslySetInnerHTML.
 //
-// Zasada bezpieczeństwa: escapujemy CAŁY tekst, a potem przywracamy WYŁĄCZNIE dozwolone tagi
-// formatujące BEZ atrybutów. Dzięki temu proste formatowanie od biur (pogrubienie, kursywa,
-// podkreślenie) działa, a wszystko inne (script, img, iframe, atrybuty zdarzeń jak onerror)
-// zostaje zwykłym, nieszkodliwym tekstem — to zamyka XSS.
+// Zasada bezpieczeństwa (allow-lista): tekst między tagami zawsze escapujemy, a z samych
+// tagów emitujemy WYŁĄCZNIE garść dozwolonych znaczników formatujących BEZ atrybutów.
+// Wszystko inne (script, img, iframe, on*=, style, href javascript:) albo znika, albo zostaje
+// nieszkodliwym tekstem — to zamyka XSS, bo nigdy nie wypuszczamy atrybutu ani nieznanego tagu.
 //
-// Obsługujemy też podwójny escape spotykany w eksportach IMO (np. „&amp;lt;u&amp;gt;").
+// Po co cały tokenizer zamiast prostego allow-listu: opisy z biur/IMO bywają wklejone z edytorów
+// WYSIWYG i niosą śmieci — `<div bis_skin_checked="1">` (wstrzyknięte przez wtyczki przeglądarki),
+// `<p style=...>`, `<span>`, tagi Worda `<o:p>`. Traktujemy bloki (`div`, `p`, `li`...) jako łamanie
+// linii, atrybuty wycinamy, a pogrubienie/kursywę/podkreślenie zachowujemy. Obsługujemy też podwójny
+// escape z eksportów IMO (np. „&amp;lt;u&amp;gt;").
+//
+// Funkcja jest izomorficzna (czyste operacje na stringach, bez DOM) — działa tak samo w SSR i w przeglądarce.
 
-const ALLOWED_TAGS = ["b", "strong", "i", "em", "u"] as const;
+// Tagi inline, które zachowujemy (zawsze bez atrybutów).
+const INLINE_ALLOWED = new Set(["b", "strong", "i", "em", "u"]);
 
-export function formatOpis(raw?: string | null): string | null {
-  let text = (raw ?? "").trim();
-  if (!text) return null;
+// Tagi blokowe — zamieniamy je na łamanie linii ("\n"). Pusta linia (np. <div><br></div>
+// albo <p></p>) zamienia się dalej w przerwę między akapitami.
+const BLOCK_TAGS = new Set([
+  "div", "p", "li", "ul", "ol", "br", "tr", "table", "thead", "tbody",
+  "blockquote", "section", "article", "header", "footer", "pre",
+  "h1", "h2", "h3", "h4", "h5", "h6",
+]);
 
-  // 1. Dekodujemy encje, w tym podwójny escape (&amp; najpierw → obsługuje „&amp;lt;" → „&lt;" → „<").
-  text = text
+function decodeEntities(text: string): string {
+  // &amp; najpierw — rozplątuje podwójny escape: „&amp;lt;" → „&lt;" → „<".
+  return text
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#0?39;|&apos;/g, "'")
     .replace(/&nbsp;/g, " ");
+}
 
-  // 2. Escapujemy całość do bezpiecznego tekstu (żadne tagi nie są jeszcze aktywne).
-  let safe = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+function escapeText(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
 
-  // 3. Przywracamy tylko dozwolone tagi bez atrybutów (otwierające i zamykające).
-  for (const t of ALLOWED_TAGS) {
-    safe = safe
-      .replace(new RegExp(`&lt;${t}&gt;`, "gi"), `<${t}>`)
-      .replace(new RegExp(`&lt;/${t}&gt;`, "gi"), `</${t}>`);
+export function formatOpis(raw?: string | null): string | null {
+  let text = (raw ?? "").trim();
+  if (!text) return null;
+
+  // 1. Dekodujemy encje (w tym podwójny escape), żeby pracować na realnych tagach.
+  text = decodeEntities(text);
+
+  // 2. Usuwamy w całości elementy, których treść nie może trafić na stronę (z zawartością),
+  //    oraz komentarze (w tym warunkowe komentarze Worda/Outlooka).
+  text = text
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(
+      /<(script|style|head|title|noscript|template|svg|math|iframe|object|embed)\b[\s\S]*?<\/\1\s*>/gi,
+      ""
+    )
+    // domykające „sieroty" tych samych tagów (gdy brak pary) — sam znacznik precz.
+    .replace(
+      /<\/?(script|style|head|title|noscript|template|svg|math|iframe|object|embed)\b[^>]*>/gi,
+      ""
+    );
+
+  // 3. Tokenizacja: idziemy po tagach, tekst pomiędzy escapujemy, a z tagów emitujemy tylko
+  //    bezpieczne, gołe znaczniki. Nieznane tagi „rozwijamy" (znika znacznik, treść zostaje).
+  const TAG = /<(\/?)([a-zA-Z][a-zA-Z0-9:_-]*)\b[^>]*>/g;
+  let out = "";
+  let last = 0;
+  let m: RegExpExecArray | null;
+
+  while ((m = TAG.exec(text)) !== null) {
+    out += escapeText(text.slice(last, m.index));
+    last = m.index + m[0].length;
+
+    const closing = m[1] === "/";
+    const name = m[2].toLowerCase();
+
+    if (INLINE_ALLOWED.has(name)) {
+      out += closing ? `</${name}>` : `<${name}>`;
+    } else if (BLOCK_TAGS.has(name)) {
+      // Otwarcie bloku zostawiamy „przezroczyste", zamknięcie łamie linię — dzięki temu
+      // sąsiednie <div>y dają pojedyncze złamanie (a nie podwójne = nowy akapit).
+      if (closing || name === "br") out += "\n";
+    }
+    // pozostałe (span, a, font, o:p, ...) — pomijamy znacznik, tekst zostaje
   }
-  // <br> w różnych wariantach → twardy <br />.
-  safe = safe.replace(/&lt;br\s*\/?&gt;/gi, "<br />");
+  out += escapeText(text.slice(last));
 
-  // 4. Akapity: podwójny enter → osobny <p>, pojedynczy → <br />.
-  const out = safe
+  // 4. Sprzątanie po wklejkach z edytorów: puste znaczniki inline (np. <b></b> z <div><b><br></b></div>)
+  //    usuwamy — wtedy zamierzona pusta linia staje się prawdziwą przerwą między akapitami.
+  let prev: string;
+  do {
+    prev = out;
+    out = out.replace(/<(b|strong|i|em|u)>\s*<\/\1>/gi, "");
+  } while (out !== prev);
+
+  // 5. Akapity: podwójny enter → osobny <p>, pojedynczy → <br />.
+  const html = out
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
     .split(/\n{2,}/)
     .map((p) => p.trim())
     .filter(Boolean)
     .map((p) => `<p>${p.replace(/\n/g, "<br />")}</p>`)
     .join("");
 
-  return out || null;
+  return html || null;
 }
