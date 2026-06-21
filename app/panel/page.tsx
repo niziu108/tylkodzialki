@@ -6,6 +6,8 @@ import PanelDzialkiList from "@/components/PanelDzialkiList";
 import AutoFeaturedAfterPurchase from "@/components/AutoFeaturedAfterPurchase";
 import CrmIntegrationPanel from "@/components/CrmIntegrationPanel";
 import PanelAlertsList from "@/components/PanelAlertsList";
+import PanelStatystyki from "@/components/PanelStatystyki";
+import { getBiuroDailySeries } from "@/lib/biuroStats";
 import KupList from "../kup/KupList";
 
 type PanelPageProps = {
@@ -28,7 +30,9 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
   const params = await searchParams;
   const activeTab =
-    params?.tab === "faktury"
+    params?.tab === "statystyki"
+      ? "statystyki"
+      : params?.tab === "faktury"
       ? "faktury"
       : params?.tab === "crm"
       ? "crm"
@@ -98,7 +102,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
     createdAt: rawUser.createdAt,
   };
 
-  const [rawItems, invoices, crmIntegration, alertsRaw, favoritesRaw] = await Promise.all([
+  const [rawItems, invoices, crmIntegration, alertsRaw, favoritesRaw, statsSeries] = await Promise.all([
     activeTab === "ogloszenia"
       ? prisma.dzialka.findMany({
           where: { ownerId: user.id },
@@ -200,6 +204,9 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           },
         })
       : Promise.resolve([]),
+    activeTab === "statystyki"
+      ? getBiuroDailySeries(user.id, 30)
+      : Promise.resolve(null),
   ]);
 
   const alerts =
@@ -415,6 +422,17 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               </Link>
 
               <Link
+                href="/panel?tab=statystyki"
+                className={`pb-4 transition ${
+                  activeTab === "statystyki"
+                    ? "border-b-2 border-brand text-fg"
+                    : "text-fg/68 hover:text-fg"
+                }`}
+              >
+                Statystyki
+              </Link>
+
+              <Link
                 href="/panel?tab=faktury"
                 className={`pb-4 transition ${
                   activeTab === "faktury"
@@ -601,6 +619,23 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 </div>
               </div>
             )}
+          </>
+        ) : activeTab === "statystyki" ? (
+          <>
+            <div className="mb-5 text-[19px] font-medium text-fg">
+              Statystyki
+            </div>
+
+            {statsSeries ? (
+              <PanelStatystyki
+                points={statsSeries.points}
+                allTime={statsSeries.allTime}
+                windowTotals={statsSeries.windowTotals}
+                offers={statsSeries.offers}
+                snapshotDaysInWindow={statsSeries.snapshotDaysInWindow}
+                windowDays={statsSeries.windowDays}
+              />
+            ) : null}
           </>
         ) : activeTab === "alerty" ? (
           <>

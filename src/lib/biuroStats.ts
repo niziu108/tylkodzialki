@@ -252,3 +252,123 @@ export async function getBiuroLeadsReport(
     snapshotDaysInWindow,
   };
 }
+
+// ---------------------------------------------------------------------------
+// P16b — seria "dzień po dniu" dla pojedynczego właściciela (panel biura).
+// Wykres rysujemy z RÓŻNIC kolejnych snapshotów (snapshot jest kumulacyjny):
+// przyrost dnia = snapshot(dzień) − snapshot(dzień poprzedni). Duże liczby
+// bierzemy z żywych liczników Dzialka, żeby panel miał dane od pierwszego dnia,
+// zanim uzbiera się ≥2 snapshoty potrzebne do choćby jednego słupka.
+// ---------------------------------------------------------------------------
+
+const snapshotSelect = {
+  date: true,
+  viewsCount: true,
+  detailViewsCount: true,
+  phoneClicksCount: true,
+  messageClicksCount: true,
+} as const;
+
+/** Przyrost jednego dnia (różnica względem poprzedniego snapshotu). */
+export type DailyPoint = {
+  date: string; // "YYYY-MM-DD"
+  views: number;
+  detailViews: number;
+  phoneClicks: number;
+  messageClicks: number;
+  leads: number;
+};
+
+export type BiuroDailySeries = {
+  /** Przyrosty dzień po dniu, chronologicznie (puste, gdy <2 dni snapshotów). */
+  points: DailyPoint[];
+  /** Sumy "od zawsze" dla TEGO właściciela — z żywych liczników (działa od 1. dnia). */
+  allTime: LeadCounters;
+  /** Suma przyrostów w oknie (= najnowszy − najstarszy snapshot). */
+  windowTotals: LeadCounters;
+  /** Liczba ofert właściciela (kontekst). */
+  offers: number;
+  /** Ile różnych dni snapshotów mamy w oknie (do komunikatu "zbieramy dane"). */
+  snapshotDaysInWindow: number;
+  /** Rozmiar żądanego okna w dniach. */
+  windowDays: number;
+};
+
+/**
+ * Seria dzienna dla zalogowanego właściciela (scope: ownerId === userId, więc
+ * biuro widzi WYŁĄCZNIE swoje dane). Liczy przyrosty z różnic snapshotów oraz
+ * sumy "od zawsze" wprost z liczników Dzialka.
+ */
+export async function getBiuroDailySeries(
+  userId: string,
+  windowDays = 30,
+  now: Date = new Date()
+): Promise<BiuroDailySeries> {
+  // 1) Sumy "od zawsze" + liczba ofert — wprost z żywych liczników (dzień 1. ma dane).
+  const agg = await prisma.dzialka.aggregate({
+    where: { ownerId: userId },
+    _sum: {
+      viewsCount: true,
+      detailViewsCount: true,
+      phoneClicksCount: true,
+      messageClicksCount: true,
+    },
+    _count: { _all: true },
+  });
+  const allTimePhone = agg._sum.phoneClicksCount ?? 0;
+  const allTimeMessage = agg._sum.messageClicksCount ?? 0;
+  const allTime: LeadCounters = {
+    views: agg._sum.viewsCount ?? 0,
+    detailViews: agg._sum.detailViewsCount ?? 0,
+    phoneClicks: allTimePhone,
+    messageClicks: allTimeMessage,
+    leads: allTimePhone + allTimeMessage,
+  };
+
+  // 2) Snapshoty z okna + jeden snapshot SPRZED okna jako baseline, żeby pierwszy
+  //    dzień okna też dostał przyrost (różnicę względem dnia poprzedniego).
+  const windowStart = addDays(warsawDateOnly(now), -windowDays);
+  const [baseline, windowSnaps] = await Promise.all([
+    prisma.biuroDailyStat.findFirst({
+      where: { userId, date: { lt: windowStart } },
+      orderBy: { date: "desc" },
+      select: snapshotSelect,
+    }),
+    prisma.biuroDailyStat.findMany({
+      where: { userId, date: { gte: windowStart } },
+      orderBy: { date: "asc" },
+      select: snapshotSelect,
+    }),
+  ]);
+
+  const snapshotDaysInWindow = windowSnaps.length;
+  const ordered = baseline ? [baseline, ...windowSnaps] : windowSnaps;
+
+  const points: DailyPoint[] = [];
+  for (let i = 1; i < ordered.length; i += 1) {
+    const prev = ordered[i - 1];
+    const cur = ordered[i];
+    const phone = Math.max(0, cur.phoneClicksCount - prev.phoneClicksCount);
+    const message = Math.max(0, cur.messageClicksCount - prev.messageClicksCount);
+    points.push({
+      date: cur.date.toISOString().slice(0, 10),
+      views: Math.max(0, cur.viewsCount - prev.viewsCount),
+      detailViews: Math.max(0, cur.detailViewsCount - prev.detailViewsCount),
+      phoneClicks: phone,
+      messageClicks: message,
+      leads: phone + message,
+    });
+  }
+
+  const windowTotals = emptyCounters();
+  for (const p of points) addInto(windowTotals, p);
+
+  return {
+    points,
+    allTime,
+    windowTotals,
+    offers: agg._count._all,
+    snapshotDaysInWindow,
+    windowDays,
+  };
+}
