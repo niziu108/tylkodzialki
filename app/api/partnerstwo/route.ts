@@ -42,9 +42,8 @@ const ZASIEG_LABELS: Record<string, string> = {
 
 const BUDZET_LABELS: Record<string, string> = {
   doustalenia: 'Do ustalenia',
-  s1: 'do 3 000 zł miesięcznie',
-  s2: '3 000 do 10 000 zł miesięcznie',
-  s3: 'powyżej 10 000 zł miesięcznie',
+  s1: 'do 1 000 zł miesięcznie',
+  s2: 'powyżej 1 000 zł miesięcznie',
 };
 
 export async function POST(req: Request) {

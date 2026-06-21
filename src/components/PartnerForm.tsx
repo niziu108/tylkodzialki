@@ -26,9 +26,8 @@ const ZASIEGI = [
 
 const BUDZETY = [
   { value: 'doustalenia', label: 'Do ustalenia' },
-  { value: 's1', label: 'do 3 000 zł miesięcznie' },
-  { value: 's2', label: '3 000 do 10 000 zł miesięcznie' },
-  { value: 's3', label: 'powyżej 10 000 zł miesięcznie' },
+  { value: 's1', label: 'do 1 000 zł miesięcznie' },
+  { value: 's2', label: 'powyżej 1 000 zł miesięcznie' },
 ];
 
 // Luksusowa „linia": pole bez ramki, samo podkreślenie, które na fokusie zielenieje.
