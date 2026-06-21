@@ -259,6 +259,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
           <div className="flex flex-wrap gap-3">
             <Link
+              href="/admin/statystyki"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10 px-5 text-sm font-semibold text-fg transition hover:border-brand hover:bg-brand/15"
+            >
+              Statystyki biur
+            </Link>
+
+            <Link
               href="/admin/crm"
               className="inline-flex h-11 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-semibold text-fg transition hover:bg-fg/10"
             >
