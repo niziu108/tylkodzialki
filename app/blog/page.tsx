@@ -2,6 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import BlogSearchSection from "@/components/BlogSearchSection";
 
+// Odświeżanie treści: po edycji w bazie/adminie lista przebuduje się w tle.
+export const revalidate = 600;
+
 export const metadata = {
   title: "Blog o działkach",
   description:

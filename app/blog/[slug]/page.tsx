@@ -10,6 +10,9 @@ import { extractHeadings } from "@/lib/articleToc";
 
 const SITE_URL = "https://tylkodzialki.pl";
 
+// Odświeżanie treści: po edycji w bazie/adminie artykuł przebuduje się w tle.
+export const revalidate = 600;
+
 type BlogArticlePageProps = {
   params: Promise<{
     slug: string;

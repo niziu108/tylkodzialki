@@ -45,6 +45,19 @@ Po polsku. Przed większą lub nieodwracalną zmianą — najpierw zapytaj.
 
 ---
 
+## ✍️ BLOG / ARTYKUŁY (jak dodajemy nowe wpisy)
+
+System bloga jest gotowy (renderer, spis treści, zielone calloty, generowana okładka). Standard i prompt: `docs/BLOG_ARTYKULY.md`. Backlog 100 tematów: `docs/BLOG_PLAN.md`.
+
+**Jak dodać artykuł:**
+1. Nowy czat w tym projekcie. Napisz: „Nowy artykuł dla tylkodzialki: [temat]” (albo „nowy artykuł” i wybierzemy z backlogu).
+2. Claude: sprawdza żywą bazę (lista opublikowanych), pilnuje braku duplikatu i poprawnych linków, pisze wg standardu, oddaje gotowe bloki pod panel `/admin/artykuly/nowy`.
+3. Daniel: wkleja do panelu, dodaje miniaturę (grafika z ChatGPT/DALL-E, prompt w `docs/BLOG_ARTYKULY.md`), zaznacza „Opublikuj”.
+
+**Twarde zasady:** zdjęcie w treści NIE ma się pojawiać (tylko miniatura na listach); linki wewnętrzne tylko do `/kup`, hubów `/dzialki/...` i istniejących artykułów; ZERO długich myślników; nie dublować tematów (sprawdzić bazę).
+
+---
+
 ## 3. ROADMAPA (po kolei)
 
 ### 🔴 SZYBKIE WYGRANE (wpływ duży, koszt mały)
