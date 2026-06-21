@@ -352,55 +352,6 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               </Link>
             </div>
           </div>
-
-          <div className="mt-7 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-fg/10 pt-6 sm:grid-cols-4">
-            <div>
-              <div className="flex min-h-[34px] items-end">
-                <span className="text-[28px] font-semibold leading-none text-brand-bright">
-                  {activeCount}
-                </span>
-              </div>
-              <div className="mt-3 inline-block whitespace-nowrap border-b border-brand/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-bright/80">
-                Aktywne oferty
-              </div>
-            </div>
-
-            <div>
-              <div className="flex min-h-[34px] items-end gap-2">
-                <span className="text-[28px] font-semibold leading-none text-fg">
-                  {paymentsEnabled ? user.listingCredits : "∞"}
-                </span>
-                {!paymentsEnabled ? (
-                  <span className="text-[11px] leading-none text-brand-bright">bez limitu</span>
-                ) : null}
-              </div>
-              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/68">
-                Publikacje
-              </div>
-            </div>
-
-            <div>
-              <div className="flex min-h-[34px] items-end">
-                <span className="text-[28px] font-semibold leading-none text-fg">
-                  {user.featuredCredits}
-                </span>
-              </div>
-              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/68">
-                Wyróżnienia
-              </div>
-            </div>
-
-            <div>
-              <div className="flex min-h-[34px] items-end">
-                <span className="text-[19px] font-medium leading-none text-fg/90 md:text-[21px]">
-                  {formatDatePL(user.createdAt)}
-                </span>
-              </div>
-              <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/68">
-                Konto od
-              </div>
-            </div>
-          </div>
         </div>
 
         {autoFeaturedDzialkaId ? (
@@ -479,9 +430,65 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 </span>
               </Link>
             </div>
+          </div>
+        </div>
 
-            {activeTab === "ogloszenia" ? (
-              <div className="flex flex-wrap gap-4 pb-4 text-sm text-fg/70">
+        {activeTab === "ogloszenia" ? (
+          <>
+            <div className="mb-8 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
+              <div>
+                <div className="flex min-h-[34px] items-end">
+                  <span className="text-[28px] font-semibold leading-none text-brand-bright">
+                    {activeCount}
+                  </span>
+                </div>
+                <div className="mt-3 inline-block whitespace-nowrap border-b border-brand/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-bright/80">
+                  Aktywne oferty
+                </div>
+              </div>
+
+              <div>
+                <div className="flex min-h-[34px] items-end gap-2">
+                  <span className="text-[28px] font-semibold leading-none text-fg">
+                    {paymentsEnabled ? user.listingCredits : "∞"}
+                  </span>
+                  {!paymentsEnabled ? (
+                    <span className="text-[11px] leading-none text-brand-bright">bez limitu</span>
+                  ) : null}
+                </div>
+                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/68">
+                  Publikacje
+                </div>
+              </div>
+
+              <div>
+                <div className="flex min-h-[34px] items-end">
+                  <span className="text-[28px] font-semibold leading-none text-fg">
+                    {user.featuredCredits}
+                  </span>
+                </div>
+                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/68">
+                  Wyróżnienia
+                </div>
+              </div>
+
+              <div>
+                <div className="flex min-h-[34px] items-end">
+                  <span className="text-[19px] font-medium leading-none text-fg/90 md:text-[21px]">
+                    {formatDatePL(user.createdAt)}
+                  </span>
+                </div>
+                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/68">
+                  Konto od
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="text-[19px] font-medium text-fg">
+                Twoje ogłoszenia
+              </div>
+              <div className="flex flex-wrap gap-4 text-sm text-fg/70">
                 <div>
                   Ogłoszenia: <span className="text-fg">{items.length}</span>
                 </div>
@@ -491,16 +498,6 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 <div>
                   Zakończone: <span className="text-red-300">{endedCount}</span>
                 </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        {activeTab === "ogloszenia" ? (
-          <>
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div className="text-[19px] font-medium text-fg">
-                Twoje ogłoszenia
               </div>
             </div>
 
