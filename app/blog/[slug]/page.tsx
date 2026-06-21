@@ -97,7 +97,6 @@ export default async function BlogArticlePage({
 
   const canonicalUrl = `${SITE_URL}/blog/${article.slug}`;
   const coverUrl = `${canonicalUrl}/opengraph-image`;
-  const heroSrc = article.imageUrl || coverUrl;
   const articleImages = [article.imageUrl || coverUrl];
   const headings = extractHeadings(article.content, article.title);
 
@@ -176,16 +175,6 @@ export default async function BlogArticlePage({
               {article.excerpt}
             </p>
           ) : null}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 pt-10 md:px-8 md:pt-12">
-        <div className="overflow-hidden rounded-[30px] border border-fg/10 bg-surface">
-          <img
-            src={heroSrc}
-            alt={article.title}
-            className="mx-auto max-h-[70vh] w-full object-contain"
-          />
         </div>
       </section>
 
