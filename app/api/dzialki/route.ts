@@ -17,7 +17,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/auth-options';
 import { buildSearchContext, getSearchMatchInfo } from '@/lib/dzialkiSearch';
-import { listDzialkiPaginated, PAGE_INCLUDE, type ListSort } from '@/lib/dzialkiQuery';
+import { listDzialkiPaginated, PAGE_INCLUDE, FEATURED_TOP_CAP, type ListSort } from '@/lib/dzialkiQuery';
 import { MAX_PHOTOS_PER_OFFER } from '@/lib/photoLimits';
 import { MEDIA_AVAILABLE } from '@/lib/media';
 
@@ -352,14 +352,11 @@ export async function GET(req: Request) {
 
   const ranked = withInfo.filter((x) => x.info.anyMatch);
 
-  ranked.sort((a, b) => {
-    const aInfo = a.info;
-    const bInfo = b.info;
+  type Ranked = (typeof withInfo)[number];
 
-    if (aInfo.group !== bInfo.group) return aInfo.group - bInfo.group;
-
-    if (a.featured !== b.featured) return a.featured ? -1 : 1;
-
+  // Klucz sortu (bez grupy trafności i bez wyróżnienia). Wspólny dla finalnego rankingu
+  // i dla wyboru, które wyróżnione dostają podbicie — żeby obie listy liczyły to samo.
+  const compareBySort = (a: Ranked, b: Ranked) => {
     switch (sort) {
       case 'oldest':
         return new Date(a.item.createdAt).getTime() - new Date(b.item.createdAt).getTime();
@@ -375,14 +372,39 @@ export async function GET(req: Request) {
         if (a.photos !== b.photos) return a.photos ? -1 : 1;
         if (
           hasRadiusSearch &&
-          aInfo.radiusDistance !== null &&
-          bInfo.radiusDistance !== null
+          a.info.radiusDistance !== null &&
+          b.info.radiusDistance !== null
         ) {
-          return aInfo.radiusDistance - bInfo.radiusDistance;
+          return a.info.radiusDistance - b.info.radiusDistance;
         }
         return new Date(b.item.createdAt).getTime() - new Date(a.item.createdAt).getTime();
       }
     }
+  };
+
+  // Pasmo „polecanych": maks. FEATURED_TOP_CAP wyróżnionych na całą listę dostaje podbicie na górę
+  // (wybór wg grupy trafności, potem klucza sortu). Nadmiarowe wyróżnione sortują się organicznie —
+  // zielona ramka zostaje (to dane oferty), traci tylko pozycję, żeby przy dużej liczbie
+  // wyróżnionych pierwsza strona nie była wyłącznie nimi. Spójne ze ścieżką bez wyszukiwania.
+  const boostedFeaturedIds = new Set(
+    ranked
+      .filter((x) => x.featured)
+      .sort((a, b) => {
+        if (a.info.group !== b.info.group) return a.info.group - b.info.group;
+        return compareBySort(a, b);
+      })
+      .slice(0, FEATURED_TOP_CAP)
+      .map((x) => x.item.id)
+  );
+
+  ranked.sort((a, b) => {
+    if (a.info.group !== b.info.group) return a.info.group - b.info.group;
+
+    const aBoost = a.featured && boostedFeaturedIds.has(a.item.id);
+    const bBoost = b.featured && boostedFeaturedIds.has(b.item.id);
+    if (aBoost !== bBoost) return aBoost ? -1 : 1;
+
+    return compareBySort(a, b);
   });
 
   const total = ranked.length;

@@ -6,7 +6,9 @@
 // count, więc do Node ląduje tylko jedna strona (≤ take), niezależnie od liczby ofert.
 //
 // Kolejność musi być 1:1 z dawnym sortem JS, który robił:
-//   1) wyróżnione-aktywne pierwsze (dla KAŻDEGO sortu),
+//   1) wyróżnione-aktywne pierwsze (dla KAŻDEGO sortu), ale maks. FEATURED_TOP_CAP na czele
+//      całej listy („pasmo polecanych"); nadmiarowe wyróżnione spadają do kolejności organicznej
+//      (zachowują tylko zieloną ramkę), żeby pierwsza strona nie była samymi wyróżnionymi,
 //   2) dla `newest`: oferty ZE zdjęciami przed tymi bez,
 //   3) klucz sortu (data/cena/powierzchnia),
 //   4) stabilnie (równe → dotychczasowa kolejność = createdAt desc).
@@ -34,6 +36,12 @@ export const PAGE_INCLUDE = {
   owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroNazwa: true } },
 } satisfies Prisma.DzialkaInclude;
 
+// Ile wyróżnionych maks. ląduje w „paśmie polecanych" na samej górze listy (per ZESTAW wyników,
+// nie per strona). Powyżej tego nadmiarowe wyróżnione sortują się jak zwykłe oferty (kafelek dalej
+// ma zieloną ramkę — traci tylko pozycję). Pasmo na górze jak w dużych portalach (Otodom), żeby
+// przy dużej liczbie wyróżnionych pierwsza strona nie była wyłącznie nimi. Jedna liczba do zmiany.
+export const FEATURED_TOP_CAP = 3;
+
 // Klucz sortu W OBRĘBIE segmentu. `{ id: 'desc' }` na końcu = deterministyczny rozjemca
 // (dawny sort JS był stabilny na pobraniu „createdAt desc", ale dla identycznego createdAt
 // kolejność była nieokreślona; tu jest stała → stabilna paginacja między żądaniami).
@@ -60,38 +68,38 @@ type Segment = {
 };
 
 // Rozłączne, uporządkowane segmenty, których sklejenie = dokładna globalna kolejność.
+// `boostedIds` = wyróżnione w paśmie „polecanych" na górze (≤ FEATURED_TOP_CAP). Nadmiarowe
+// wyróżnione NIE są tu podbijane — wpadają do segmentu organicznego razem z nie-wyróżnionymi
+// (po ID: `notIn boostedIds`), więc sortują się normalnym kluczem sortu.
 function buildSegments(
   andFilters: Prisma.DzialkaWhereInput[],
   sort: ListSort,
-  now: Date
+  boostedIds: string[]
 ): Segment[] {
-  const featuredActive: Prisma.DzialkaWhereInput[] = [
-    { isFeatured: true },
-    { featuredUntil: { gt: now } },
-  ];
-  // Negacja „wyróżnione-aktywne": nie-wyróżnione LUB bez daty LUB data minęła.
-  const notFeaturedActive: Prisma.DzialkaWhereInput[] = [
-    { OR: [{ isFeatured: false }, { featuredUntil: null }, { featuredUntil: { lte: now } }] },
-  ];
+  const orderBy = sortOrderBy(sort);
+  const hasBoost = boostedIds.length > 0;
+
+  // Pasmo na górze vs reszta — rozłączny podział po ID. Gdy brak wyróżnionych: tylko „reszta"
+  // (bez filtra ID), czyli cała lista organicznie — jak dawniej, gdy nie było co podbijać.
+  const boostBand: Prisma.DzialkaWhereInput[] = [{ id: { in: boostedIds } }];
+  const organic: Prisma.DzialkaWhereInput[] = hasBoost ? [{ id: { notIn: boostedIds } }] : [];
+  const groups = hasBoost ? [boostBand, organic] : [organic];
 
   const hasPhotos: Prisma.DzialkaWhereInput[] = [{ zdjecia: { some: {} } }];
   const noPhotos: Prisma.DzialkaWhereInput[] = [{ zdjecia: { none: {} } }];
 
-  const orderBy = sortOrderBy(sort);
-  const featuredGroups = [featuredActive, notFeaturedActive]; // wyróżnione pierwsze
-
   // Tylko `newest` miał dodatkowy podział „ze zdjęciami najpierw"; pozostałe sorty go nie mają.
   if (sort === 'newest') {
     const segments: Segment[] = [];
-    for (const f of featuredGroups) {
+    for (const g of groups) {
       for (const p of [hasPhotos, noPhotos]) {
-        segments.push({ where: { AND: [...andFilters, ...f, ...p] }, orderBy });
+        segments.push({ where: { AND: [...andFilters, ...g, ...p] }, orderBy });
       }
     }
     return segments;
   }
 
-  return featuredGroups.map((f) => ({ where: { AND: [...andFilters, ...f] }, orderBy }));
+  return groups.map((g) => ({ where: { AND: [...andFilters, ...g] }, orderBy }));
 }
 
 export type PaginatedResult = {
@@ -113,7 +121,19 @@ export async function listDzialkiPaginated(opts: {
   const { andFilters, sort, skip, take } = opts;
   const db = opts.client ?? prisma;
   const now = new Date();
-  const segments = buildSegments(andFilters, sort, now);
+
+  // Pasmo „polecanych": ID maks. FEATURED_TOP_CAP wyróżnionych-aktywnych, które trafią na górę.
+  // Wybór wg klucza sortu (dla `newest` = najnowsze; podział „ze zdjęciami" dotyczy już tylko
+  // wyświetlania pasma, nie wyboru). Reszta wyróżnionych wpada do segmentów organicznych.
+  const boosted = await db.dzialka.findMany({
+    where: { AND: [...andFilters, { isFeatured: true }, { featuredUntil: { gt: now } }] },
+    orderBy: sortOrderBy(sort),
+    take: FEATURED_TOP_CAP,
+    select: { id: true },
+  });
+  const boostedIds = boosted.map((b) => b.id);
+
+  const segments = buildSegments(andFilters, sort, boostedIds);
 
   const counts = await Promise.all(
     segments.map((s) => db.dzialka.count({ where: s.where }))
