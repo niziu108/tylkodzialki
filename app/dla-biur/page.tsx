@@ -115,6 +115,8 @@ export default async function DlaBiurPage() {
 
       {/* INTEGRACJE: łączymy się z każdym CRM */}
       <section className="relative overflow-hidden">
+        <ScrollFill />
+
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="max-w-3xl">
             <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">

@@ -7,6 +7,7 @@ import ArticleMeta from "@/components/ArticleMeta";
 import KupSearch from "./kup/KupSearch";
 import HeroCounter from "@/components/HeroCounter";
 import FeaturedRail from "@/components/FeaturedRail";
+import ScrollFill from "@/components/ScrollFill";
 import type { OfferData } from "@/components/OfferCard";
 import { SEO_REGIONS } from "@/lib/seo-locations";
 import { getFeaturedListings } from "@/lib/dzialki";
@@ -237,8 +238,10 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      <section>
-        <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">
+      <section className="relative overflow-hidden">
+        <ScrollFill />
+
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-14 md:px-10">
           <div className="flex items-end justify-between">
             <div>
               <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">
