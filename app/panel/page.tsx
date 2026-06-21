@@ -395,15 +395,23 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               </Link>
 
               <Link
-                href="/panel?tab=alerty"
+                href="/panel?tab=crm"
                 className={`pb-4 transition ${
-                  activeTab === "alerty"
+                  activeTab === "crm"
                     ? "border-b-2 border-brand text-fg"
                     : "text-fg/68 hover:text-fg"
                 }`}
               >
-                Alerty
+                Integracje CRM{" "}
+                <span className="text-[12px] font-normal text-fg/45">
+                  (dla biur)
+                </span>
               </Link>
+
+              <span
+                aria-hidden
+                className="hidden h-4 w-px self-center bg-fg/15 md:block"
+              />
 
               <Link
                 href="/panel?tab=ulubione"
@@ -417,17 +425,14 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               </Link>
 
               <Link
-                href="/panel?tab=crm"
+                href="/panel?tab=alerty"
                 className={`pb-4 transition ${
-                  activeTab === "crm"
+                  activeTab === "alerty"
                     ? "border-b-2 border-brand text-fg"
                     : "text-fg/68 hover:text-fg"
                 }`}
               >
-                Integracje CRM{" "}
-                <span className="text-[12px] font-normal text-fg/45">
-                  (dla biur)
-                </span>
+                Alerty
               </Link>
             </div>
           </div>

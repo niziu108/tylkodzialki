@@ -124,10 +124,92 @@ function SelectChevron() {
   );
 }
 
+const PAGE_SIZE = 20;
+
+function buildPageList(page: number, total: number): Array<number | '…'> {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (page <= 4) return [1, 2, 3, 4, 5, '…', total];
+  if (page >= total - 3) return [1, '…', total - 4, total - 3, total - 2, total - 1, total];
+  return [1, '…', page - 1, page, page + 1, '…', total];
+}
+
+function PanelPager({
+  page,
+  totalPages,
+  onGo,
+}: {
+  page: number;
+  totalPages: number;
+  onGo: (p: number) => void;
+}) {
+  const pages = buildPageList(page, totalPages);
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2">
+      <button
+        type="button"
+        onClick={() => onGo(page - 1)}
+        disabled={page <= 1}
+        aria-label="Poprzednia strona"
+        className={`flex h-10 w-10 items-center justify-center rounded-full text-[26px] leading-none transition ${
+          page <= 1 ? 'text-fg/25' : 'text-fg/80 hover:bg-fg/10 hover:text-fg'
+        }`}
+      >
+        ‹
+      </button>
+
+      {pages.map((p, i) =>
+        p === '…' ? (
+          <span key={`dots-${i}`} className="px-1 text-[13px] text-fg/55">
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onGo(p)}
+            aria-current={p === page ? 'page' : undefined}
+            className={`min-w-[34px] rounded-lg px-2 py-1.5 text-center text-[13px] tabular-nums transition ${
+              p === page ? 'font-semibold text-brand' : 'text-fg/72 hover:text-fg'
+            }`}
+            style={{
+              transitionProperty: 'color',
+              textDecoration: p === page ? 'underline' : 'none',
+              textUnderlineOffset: '8px',
+              textDecorationThickness: '2px',
+              textDecorationColor: p === page ? 'var(--brand)' : 'transparent',
+            }}
+          >
+            {p}
+          </button>
+        )
+      )}
+
+      <button
+        type="button"
+        onClick={() => onGo(page + 1)}
+        disabled={page >= totalPages}
+        aria-label="Następna strona"
+        className={`flex h-10 w-10 items-center justify-center rounded-full text-[26px] leading-none transition ${
+          page >= totalPages ? 'text-fg/25' : 'text-fg/80 hover:bg-fg/10 hover:text-fg'
+        }`}
+      >
+        ›
+      </button>
+    </div>
+  );
+}
+
 export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<FilterStatus>('all');
   const [sort, setSort] = useState<SortOption>('newest');
+  const [page, setPage] = useState(1);
+  const listTopRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, status, sort]);
 
   const filteredItems = useMemo(() => {
     if (!items?.length) return [];
@@ -202,6 +284,19 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
     return list;
   }, [items, query, status, sort]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = filteredItems.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  const goToPage = (p: number) => {
+    const next = Math.max(1, Math.min(totalPages, p));
+    setPage(next);
+    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   if (!items?.length) {
     return (
       <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6 text-fg/70">
@@ -211,7 +306,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div ref={listTopRef} className="space-y-6 scroll-mt-24">
       <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-4 md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="w-full xl:max-w-md">
@@ -301,6 +396,12 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
         <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-fg/8 pt-4 text-sm text-fg/70">
           <span>
             Znaleziono: <span className="font-semibold text-fg">{filteredItems.length}</span>
+            {totalPages > 1 ? (
+              <span className="text-fg/55">
+                {' '}
+                · strona {currentPage} z {totalPages}
+              </span>
+            ) : null}
           </span>
 
           {query.trim() ? (
@@ -322,11 +423,17 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
           Nie znaleziono ogłoszeń dla wybranych filtrów.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5">
-          {filteredItems.map((d) => (
-            <PanelDzialkaCard key={d.id} d={d} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-5">
+            {pageItems.map((d) => (
+              <PanelDzialkaCard key={d.id} d={d} />
+            ))}
+          </div>
+
+          {totalPages > 1 ? (
+            <PanelPager page={currentPage} totalPages={totalPages} onGo={goToPage} />
+          ) : null}
+        </>
       )}
     </div>
   );
