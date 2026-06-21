@@ -58,8 +58,8 @@ const FORMATY = [
     featured: false,
   },
   {
-    title: 'Treści eksperckie',
-    body: 'Artykuły współtworzone z naszą redakcją. Budujesz autorytet i jesteś widoczny w Google.',
+    title: 'Sponsor rejestracji',
+    body: 'Twoja marka w momencie zakładania konta, gdy uwaga użytkownika jest największa.',
     featured: false,
   },
   {
@@ -120,13 +120,13 @@ export default async function PartnerstwoPage() {
             </div>
 
             <h1 className="mt-4 text-balance text-[26px] font-semibold leading-[1.15] tracking-tight text-fg md:text-[34px] lg:text-[34px]">
-              Docieraj do ludzi w momencie, gdy kupują działkę.
+              Docieraj do klientów w momencie, gdy kupują działkę.
             </h1>
 
             <p className="mt-6 max-w-xl text-[15px] leading-7 text-fg/68 md:text-base">
-              Każdy odbiorca tylkodzialki.pl szuka działki. To jeden z najwyższych
+              Każdy klient tylkodzialki.pl szuka działki. To jeden z najwyższych
               poziomów intencji zakupowej w całej branży nieruchomości. Twoja firma
-              może być obecna dokładnie tam, zanim trafi tam konkurencja.
+              może być przy nim wcześniej niż konkurencja.
             </p>
 
             <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row">

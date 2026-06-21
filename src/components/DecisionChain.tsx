@@ -108,9 +108,9 @@ function MobileNode({ s }: { s: Step }) {
   return (
     <div className="flex w-24 flex-col items-center gap-1.5 text-center">
       <span className="text-brand" aria-hidden="true">
-        {s.icon('h-7 w-7')}
+        {s.icon('h-10 w-10')}
       </span>
-      <span className="text-[12px] font-medium leading-tight text-fg/80">{s.label}</span>
+      <span className="text-[13px] font-medium leading-tight text-fg/80">{s.label}</span>
     </div>
   );
 }
@@ -164,7 +164,7 @@ export default function DecisionChain() {
                 className="text-fg/45 transition-colors duration-200 group-hover:text-brand"
                 aria-hidden="true"
               >
-                {s.icon('h-9 w-9')}
+                {s.icon('h-11 w-11')}
               </span>
               <span className="text-base font-medium text-fg/75 transition-colors duration-200 group-hover:text-fg">
                 {s.label}
