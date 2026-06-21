@@ -28,6 +28,7 @@ export async function sendMail(opts: {
   html: string;
   text?: string;
   replyTo?: string;
+  bcc?: string;
   attachments?: {
     filename: string;
     path?: string;
@@ -39,6 +40,7 @@ export async function sendMail(opts: {
   await mailer.sendMail({
     from,
     to: opts.to,
+    bcc: opts.bcc,
     subject: opts.subject,
     html: opts.html,
     text: opts.text,

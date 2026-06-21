@@ -204,7 +204,33 @@ function ShareIcon({ className }: { className?: string }) {
   );
 }
 
-export default function DzialkaPage({ initial }: { initial?: Dzialka | null }) {
+function MailIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </svg>
+  );
+}
+
+export default function DzialkaPage({
+  initial,
+  preview = false,
+}: {
+  initial?: Dzialka | null;
+  // Tryb podglądu (z kreatora /sprzedaj): identyczny wygląd, ale BEZ skutków ubocznych —
+  // bez trackowania, ulubionych, udostępniania i nawigacji „Wróć do listy".
+  preview?: boolean;
+}) {
   const params = useParams();
   const router = useRouter();
   const id = (params?.id as string | undefined) ?? initial?.id;
@@ -220,6 +246,17 @@ export default function DzialkaPage({ initial }: { initial?: Dzialka | null }) {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const [shareDone, setShareDone] = useState(false);
+
+  // Formularz „Napisz wiadomość" (desktop) — lead leci mailem do sprzedającego.
+  const [msgOpen, setMsgOpen] = useState(false);
+  const [msgName, setMsgName] = useState('');
+  const [msgEmail, setMsgEmail] = useState('');
+  const [msgPhone, setMsgPhone] = useState('');
+  const [msgBody, setMsgBody] = useState('');
+  const [msgWebsite, setMsgWebsite] = useState(''); // honeypot
+  const [msgSending, setMsgSending] = useState(false);
+  const [msgDone, setMsgDone] = useState(false);
+  const [msgErr, setMsgErr] = useState<string | null>(null);
 
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -264,6 +301,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
+    if (preview) return;
 
     const key = `TD_DETAIL_VIEWED_${id}`;
     let shouldTrack = true;
@@ -284,10 +322,11 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       method: 'POST',
       cache: 'no-store',
     }).catch(() => {});
-  }, [id]);
+  }, [id, preview]);
 
   useEffect(() => {
   if (!d?.id) return;
+  if (preview) return;
 
   fetch(`/api/favorites?ids=${d.id}`, {
     cache: 'no-store',
@@ -301,7 +340,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       setIsFavorite(ids.includes(d.id));
     })
     .catch(() => {});
-}, [d?.id]);
+}, [d?.id, preview]);
 
   const photos = useMemo(() => {
     return (d?.zdjecia ?? [])
@@ -386,6 +425,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
 
   const trackContact = (type: 'phone' | 'message') => {
+    if (preview) return;
     if (!id) return;
 
     const url = `/api/dzialki/${id}/track-contact`;
@@ -415,6 +455,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   };
 
   const toggleFavorite = async () => {
+    if (preview) return;
     if (!d?.id) return;
 
     try {
@@ -443,6 +484,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   // Udostępnianie oferty: natywny arkusz telefonu (Web Share API), a gdy go brak
   // (zwykle desktop) — kopiowanie linku do schowka. Darmowy kanał wzrostu.
   const shareOffer = async () => {
+    if (preview) return;
     if (typeof window === 'undefined') return;
 
     const url = window.location.href;
@@ -481,6 +523,63 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     }
   };
 
+  const openMessage = () => {
+    if (preview) return;
+    setMsgErr(null);
+    setMsgDone(false);
+    // Gotowy wstęp z numerem oferty — ten sam, co przy SMS na mobile.
+    setMsgBody((b) => b || smsText);
+    setMsgOpen(true);
+  };
+
+  const submitMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (preview) return;
+    if (!id || msgSending) return;
+
+    const email = msgEmail.trim();
+    const message = msgBody.trim();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMsgErr('Podaj prawidłowy adres e-mail.');
+      return;
+    }
+    if (!message) {
+      setMsgErr('Napisz treść wiadomości.');
+      return;
+    }
+
+    try {
+      setMsgSending(true);
+      setMsgErr(null);
+
+      const res = await fetch(`/api/dzialki/${id}/wiadomosc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: msgName.trim(),
+          email,
+          phone: msgPhone.trim(),
+          message,
+          website: msgWebsite,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data?.ok) {
+        setMsgErr(data?.message || 'Nie udało się wysłać wiadomości. Spróbuj ponownie.');
+        return;
+      }
+
+      setMsgDone(true);
+    } catch {
+      setMsgErr('Brak połączenia. Spróbuj ponownie.');
+    } finally {
+      setMsgSending(false);
+    }
+  };
+
   const prev = () => {
     if (photos.length < 2) return;
     setIdx((p) => (p - 1 + photos.length) % photos.length);
@@ -493,6 +592,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   const onBackToListClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (preview) return;
 
     try {
       const url = sessionStorage.getItem('TD_KUP_URL') || '/kup';
@@ -540,13 +640,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   };
 
   useEffect(() => {
-    if (!open) return;
+    if (!open && !msgOpen) return;
     const prevOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
     return () => {
       document.documentElement.style.overflow = prevOverflow;
     };
-  }, [open]);
+  }, [open, msgOpen]);
 
   if (!id) {
     return (
@@ -860,6 +960,21 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     >
                       {telefon}
                     </a>
+
+                    {/* Na mobile kontakt obsługuje dolny pasek (Zadzwoń / Napisz SMS),
+                        więc formularz pokazujemy tylko na desktopie. */}
+                    {!preview ? (
+                      <button
+                        type="button"
+                        onClick={openMessage}
+                        className="group mt-5 hidden items-center gap-2.5 text-[13px] font-semibold uppercase tracking-[0.18em] text-brand-text transition hover:text-brand-bright md:inline-flex"
+                      >
+                        <MailIcon className="h-[18px] w-[18px]" />
+                        <span className="underline decoration-brand/30 underline-offset-8 transition group-hover:decoration-brand/60">
+                          Napisz wiadomość
+                        </span>
+                      </button>
+                    ) : null}
                   </FieldBlock>
                   <Hr />
                 </>
@@ -1130,6 +1245,162 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 Przejdź do logowania
               </Link>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {msgOpen ? (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 px-4 backdrop-blur-md"
+          onClick={() => setMsgOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-[480px] rounded-[28px] border border-fg/10 bg-surface px-6 py-7 shadow-[0_24px_80px_rgba(0,0,0,0.12)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setMsgOpen(false)}
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-fg/12 text-fg/60 transition hover:border-fg/30 hover:text-fg"
+              aria-label="Zamknij"
+            >
+              <span className="relative top-[-1px] text-[18px] leading-none">×</span>
+            </button>
+
+            {msgDone ? (
+              <div className="text-center">
+                <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/10 text-[26px] text-brand-text">
+                  ✓
+                </div>
+                <div className="text-[22px] font-semibold tracking-tight text-fg">
+                  Wiadomość wysłana
+                </div>
+                <p className="mt-4 text-[14px] leading-relaxed text-fg/64">
+                  Twoje zapytanie trafiło do sprzedającego. Odpowie na podany kontakt.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setMsgOpen(false)}
+                  className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-brand px-4 text-[12px] font-black uppercase tracking-[0.18em] text-ink transition hover:brightness-110"
+                >
+                  Gotowe
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="pr-10 text-[20px] font-semibold tracking-tight text-fg">
+                  Napisz wiadomość
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-fg/60">
+                  Pytanie trafi prosto do sprzedającego
+                  {numerOferty ? ` (oferta nr ${numerOferty})` : ''}.
+                </p>
+
+                <form onSubmit={submitMessage} className="mt-6 grid gap-5">
+                  {/* honeypot: ukryte przed ludźmi, łapie boty */}
+                  <div className="absolute left-[-9999px] top-[-9999px]" aria-hidden="true">
+                    <label>
+                      Nie wypełniaj tego pola
+                      <input
+                        type="text"
+                        tabIndex={-1}
+                        autoComplete="off"
+                        value={msgWebsite}
+                        onChange={(e) => setMsgWebsite(e.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label
+                      className="mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/68"
+                      htmlFor="msg-name"
+                    >
+                      Imię
+                    </label>
+                    <input
+                      id="msg-name"
+                      type="text"
+                      className="field-line w-full bg-transparent px-0 pb-2.5 text-[15px] text-fg outline-none placeholder:text-fg/25"
+                      value={msgName}
+                      onChange={(e) => setMsgName(e.target.value)}
+                      autoComplete="name"
+                    />
+                  </div>
+
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <div>
+                      <label
+                        className="mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/68"
+                        htmlFor="msg-email"
+                      >
+                        E-mail <span className="text-brand-bright">*</span>
+                      </label>
+                      <input
+                        id="msg-email"
+                        type="email"
+                        required
+                        className="field-line w-full bg-transparent px-0 pb-2.5 text-[15px] text-fg outline-none placeholder:text-fg/25"
+                        value={msgEmail}
+                        onChange={(e) => setMsgEmail(e.target.value)}
+                        autoComplete="email"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        className="mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/68"
+                        htmlFor="msg-phone"
+                      >
+                        Telefon
+                      </label>
+                      <input
+                        id="msg-phone"
+                        type="tel"
+                        className="field-line w-full bg-transparent px-0 pb-2.5 text-[15px] text-fg outline-none placeholder:text-fg/25"
+                        value={msgPhone}
+                        onChange={(e) => setMsgPhone(e.target.value)}
+                        autoComplete="tel"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      className="mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/68"
+                      htmlFor="msg-body"
+                    >
+                      Wiadomość <span className="text-brand-bright">*</span>
+                    </label>
+                    <textarea
+                      id="msg-body"
+                      rows={4}
+                      className="field-line w-full resize-y bg-transparent px-0 pb-2.5 text-[15px] leading-relaxed text-fg outline-none placeholder:text-fg/25"
+                      value={msgBody}
+                      onChange={(e) => setMsgBody(e.target.value)}
+                    />
+                  </div>
+
+                  {msgErr ? (
+                    <p className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                      {msgErr}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={msgSending}
+                    className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-6 text-[12px] font-black uppercase tracking-[0.18em] text-ink transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {msgSending ? 'Wysyłanie…' : 'Wyślij wiadomość'}
+                  </button>
+
+                  <p className="text-[11px] leading-relaxed text-fg/55">
+                    Wysyłając wiadomość, zgadzasz się na kontakt w sprawie tej oferty.
+                  </p>
+                </form>
+              </>
+            )}
           </div>
         </div>
       ) : null}
