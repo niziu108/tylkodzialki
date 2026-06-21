@@ -177,7 +177,7 @@ export default async function DlaBiurPage() {
             {STEPS.map((s) => (
               <div
                 key={s.n}
-                className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur transition duration-200 hover:border-brand/50 hover:bg-brand/[0.05]"
+                className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur"
               >
                 <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
                   {s.n}

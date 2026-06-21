@@ -211,44 +211,6 @@ export default async function PartnerstwoPage() {
         </div>
       </section>
 
-      {/* PROFIL ODBIORCY */}
-      <section className="relative overflow-hidden">
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
-          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
-            Profil odbiorcy
-          </div>
-
-          <h2 className="mt-4 max-w-3xl text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
-            Dlaczego ten ruch jest inny.
-          </h2>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-[28px] border border-fg/12 bg-surface-2/60 p-7 backdrop-blur">
-              <div className="text-[40px] font-bold leading-none text-brand">
-                {hasCount ? listingCount.toLocaleString('pl-PL') : '—'}
-              </div>
-              <p className="mt-4 text-sm leading-7 text-fg/72">
-                Ofert działek w bazie, aktualizowanych na bieżąco.
-              </p>
-            </div>
-
-            <div className="rounded-[28px] border border-fg/12 bg-surface-2/60 p-7 backdrop-blur">
-              <div className="text-[40px] font-bold leading-none text-brand">100%</div>
-              <p className="mt-4 text-sm leading-7 text-fg/72">
-                Odbiorców planuje zakup ziemi. Zero przypadkowego ruchu.
-              </p>
-            </div>
-
-            <div className="rounded-[28px] border border-fg/12 bg-surface-2/60 p-7 backdrop-blur">
-              <div className="text-[40px] font-bold leading-none text-brand">16</div>
-              <p className="mt-4 text-sm leading-7 text-fg/72">
-                Województw. Możesz celować w cały kraj albo w jeden region.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* FORMATY WSPÓŁPRACY */}
       <section
         id="formaty"
@@ -275,10 +237,10 @@ export default async function PartnerstwoPage() {
                   </div>
                 ) : null}
 
-                <h3 className="relative inline-block text-lg font-semibold text-fg transition-colors duration-200 group-hover:text-brand-text">
+                <h3 className="relative inline-block text-lg font-semibold text-fg transition-colors duration-200 group-hover:text-white">
                   {f.title}
                   <span
-                    className="absolute -bottom-1 left-0 h-px w-0 bg-brand transition-all duration-300 group-hover:w-full"
+                    className="absolute -bottom-1 left-0 h-px w-0 bg-white transition-all duration-300 group-hover:w-full"
                     aria-hidden="true"
                   />
                 </h3>
@@ -332,7 +294,7 @@ export default async function PartnerstwoPage() {
             {STEPS.map((s) => (
               <div
                 key={s.n}
-                className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur transition duration-200 hover:border-brand/50 hover:bg-brand/[0.05]"
+                className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur"
               >
                 <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
                   {s.n}
