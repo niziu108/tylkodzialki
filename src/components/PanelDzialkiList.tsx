@@ -319,7 +319,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Np. tytuł ogłoszenia, lokalizacja..."
-              className="h-[54px] w-full rounded-2xl border border-fg/12 bg-surface px-4 text-sm text-fg outline-none transition placeholder:text-fg/62 focus:border-brand/60 focus:bg-black/30"
+              className="h-[54px] w-full rounded-2xl border border-fg/12 bg-surface px-4 text-base text-fg outline-none transition placeholder:text-fg/62 focus:border-brand/60 focus:bg-black/30 md:text-sm"
             />
           </div>
 
@@ -333,7 +333,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as FilterStatus)}
-                  className="h-[54px] w-full appearance-none rounded-2xl border border-fg/12 bg-surface px-4 pr-10 text-sm font-medium text-fg outline-none transition focus:border-brand/60"
+                  className="h-[54px] w-full appearance-none rounded-2xl border border-fg/12 bg-surface px-4 pr-10 text-base font-medium text-fg outline-none transition focus:border-brand/60 md:text-sm"
                   style={{ colorScheme: 'dark' }}
                 >
                   <option value="all" className="bg-surface text-fg">
@@ -362,7 +362,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortOption)}
-                  className="h-[54px] w-full appearance-none rounded-2xl border border-fg/12 bg-surface px-4 pr-10 text-sm font-medium text-fg outline-none transition focus:border-brand/60"
+                  className="h-[54px] w-full appearance-none rounded-2xl border border-fg/12 bg-surface px-4 pr-10 text-base font-medium text-fg outline-none transition focus:border-brand/60 md:text-sm"
                   style={{ colorScheme: 'dark' }}
                 >
                   <option value="newest" className="bg-surface text-fg">
@@ -417,6 +417,10 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
           ) : null}
         </div>
       </div>
+
+      {totalPages > 1 ? (
+        <PanelPager page={currentPage} totalPages={totalPages} onGo={goToPage} />
+      ) : null}
 
       {!filteredItems.length ? (
         <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6 text-fg/70">

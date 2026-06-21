@@ -408,17 +408,12 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 </span>
               </Link>
 
-              <span
-                aria-hidden
-                className="hidden h-4 w-px self-center bg-fg/15 md:block"
-              />
-
               <Link
                 href="/panel?tab=ulubione"
                 className={`pb-4 transition ${
                   activeTab === "ulubione"
-                    ? "border-b-2 border-brand text-fg"
-                    : "text-fg/68 hover:text-fg"
+                    ? "border-b-2 border-brand text-brand-bright"
+                    : "text-brand-bright/85 hover:text-brand-bright"
                 }`}
               >
                 Ulubione
@@ -428,8 +423,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 href="/panel?tab=alerty"
                 className={`pb-4 transition ${
                   activeTab === "alerty"
-                    ? "border-b-2 border-brand text-fg"
-                    : "text-fg/68 hover:text-fg"
+                    ? "border-b-2 border-brand text-brand-bright"
+                    : "text-brand-bright/85 hover:text-brand-bright"
                 }`}
               >
                 Alerty
