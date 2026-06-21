@@ -5,15 +5,6 @@ import { authOptions } from '@/auth-options';
 import { prisma } from '@/lib/prisma';
 import KupList from '../kup/KupList';
 
-// Polska odmiana: 1 oferta / 2-4 oferty / 5+ ofert (z wyjątkiem 12-14).
-function odmianaOfert(n: number) {
-  const d = n % 10;
-  const s = n % 100;
-  if (n === 1) return 'zapisana oferta';
-  if (d >= 2 && d <= 4 && !(s >= 12 && s <= 14)) return 'zapisane oferty';
-  return 'zapisanych ofert';
-}
-
 export default async function UlubionePage() {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
@@ -45,20 +36,22 @@ export default async function UlubionePage() {
     <main className="min-h-screen bg-bg px-4 py-10 text-fg sm:px-8">
       <section className="mx-auto max-w-6xl">
         <div className="mb-10 border-b border-fg/10 pb-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-text">
-            Twoje konto
-          </p>
-          <div className="mt-2 h-px w-12 bg-brand/55" />
-
-          <h1 className="mt-4 font-display text-[34px] uppercase tracking-[0.08em] text-fg md:text-[54px]">
+          <h1 className="font-display text-[34px] uppercase tracking-[0.08em] text-fg md:text-[54px]">
             Ulubione działki
           </h1>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-fg/72">
-            {items.length
-              ? `Masz tu ${items.length} ${odmianaOfert(items.length)}. Wracaj, gdy chcesz je porównać albo umówić oględziny.`
-              : 'Zapisuj działki, do których chcesz wrócić — będą czekać tu w jednym miejscu.'}
-          </p>
+          {items.length ? (
+            <div className="mt-6">
+              <div className="flex min-h-[34px] items-end">
+                <span className="text-[28px] font-semibold leading-none text-brand-bright">
+                  {items.length}
+                </span>
+              </div>
+              <div className="mt-3 inline-block border-b border-brand/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-bright/80">
+                Zapisane oferty
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {!items.length ? (
