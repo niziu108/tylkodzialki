@@ -3,12 +3,32 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
+import ScrollFill from '@/components/ScrollFill';
 
 const BG = 'var(--bg)';
 const FG = 'var(--fg)';
 const GREEN = 'var(--brand)';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const BENEFITS = [
+  {
+    title: 'Wystaw działkę w 3 minuty',
+    body: 'Prosty kreator krok po kroku. Bez dzwonienia, ogłoszenie od razu online.',
+  },
+  {
+    title: 'Dodawanie ogłoszeń jest darmowe',
+    body: 'Wystawiasz grunt bez opłat i docierasz do kupujących z całej Polski.',
+  },
+  {
+    title: 'Zapisuj działki do ulubionych',
+    body: 'Odkładasz ciekawe oferty na konto i wracasz do nich, kiedy chcesz.',
+  },
+  {
+    title: 'Zarządzaj ofertami z panelu',
+    body: 'Edytujesz i aktualizujesz swoje ogłoszenia w każdej chwili.',
+  },
+];
 
 function cx(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(' ');
@@ -32,6 +52,20 @@ function GoogleIcon() {
       <path
         fill="#34A853"
         d="M24 47c5.8 0 10.6-1.9 14.1-5.2l-6.5-5c-1.8 1.2-4.2 2.1-7.6 2.1-6.6 0-12.3-4.1-14.1-9.7l-7.2 5.6C6.6 41.6 14.6 47 24 47z"
+      />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" aria-hidden>
+      <path
+        d="M4 10.6l3.6 3.6L16 5.4"
+        stroke="currentColor"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -388,45 +422,77 @@ function AuthPageContent() {
           <div
             className={cx(
               'relative w-full overflow-hidden',
-              'min-h-[520px] py-10',
-              'lg:min-h-0 lg:h-screen lg:py-0'
+              'border-t border-fg/10 lg:border-l lg:border-t-0',
+              'min-h-[480px]',
+              'lg:min-h-0 lg:h-screen'
             )}
           >
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url(/rodzina2.webp)`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            />
-
-            <div className="absolute inset-0 bg-black/18" />
-
+            {/* tło marki: zielony wash + delikatna siatka + zielone poświaty + rozmyta plama */}
             <div
               className="absolute inset-0"
               style={{
                 background:
-                  'linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.58) 20%, rgba(0,0,0,0.28) 42%, rgba(0,0,0,0.10) 58%, rgba(0,0,0,0.04) 72%, rgba(0,0,0,0.00) 100%)',
+                  'linear-gradient(160deg, rgba(122,163,51,0.13), rgba(122,163,51,0.03) 52%, rgba(122,163,51,0.00) 100%)',
               }}
             />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(20,20,18,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(20,20,18,0.035)_1px,transparent_1px)] bg-[size:56px_56px] opacity-60" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(122,163,51,0.22),transparent_40%),radial-gradient(circle_at_88%_86%,rgba(122,163,51,0.10),transparent_36%)]" />
+            <div className="pointer-events-none absolute right-[-130px] top-20 h-[440px] w-[440px] rounded-full bg-brand/15 blur-[120px]" />
 
-            <div className="relative flex h-full w-full items-start px-8 pt-10 lg:px-12 lg:pt-12">
-              <div className="w-full max-w-xl">
-                <div className="text-[40px] font-semibold leading-[1.05] tracking-tight text-white md:text-[52px]">
-                  Zaufaj Nam
+            {/* zielony wjeżdża przy scrollu (telefon) */}
+            <ScrollFill className="lg:hidden" />
+
+            <div className="relative z-10 flex h-full w-full items-center px-8 py-14 lg:px-14 lg:py-0">
+              <div className="w-full max-w-md">
+                <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+                  Twoje konto
                 </div>
 
-                <div className="mt-5 max-w-[560px] text-[16px] leading-relaxed text-white/90 md:text-[18px]">
-                  Zaloguj się lub zarejestruj i wystaw swoją działkę w 3 minuty.
-                  <span className="text-white"> Dodawanie ogłoszeń jest darmowe.</span>
-                </div>
+                <h2 className="mt-4 text-[28px] font-semibold leading-[1.1] tracking-tight text-fg md:text-[36px]">
+                  Wszystko o działkach w jednym miejscu.
+                </h2>
 
-                <div className="mt-8 h-px w-24 bg-brand/55" />
+                <p className="mt-5 text-[15px] leading-7 text-fg/68 md:text-base">
+                  Załóż darmowe konto i korzystaj z portalu wyłącznie o działkach.
+                </p>
+
+                <ul className="mt-8">
+                  {BENEFITS.map((b, i) => (
+                    <li
+                      key={b.title}
+                      className={cx(
+                        'flex items-start gap-4 py-4',
+                        i > 0 && 'border-t border-fg/10'
+                      )}
+                    >
+                      <span className="mt-0.5 shrink-0 text-brand-bright">
+                        <CheckIcon />
+                      </span>
+                      <div>
+                        <div className="text-[15px] font-semibold text-fg">
+                          {b.title}
+                        </div>
+                        <div className="mt-1 text-[13.5px] leading-6 text-fg/64">
+                          {b.body}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-6 h-px w-full bg-fg/10" />
+
+                <p className="mt-5 text-[13px] leading-6 text-fg/60">
+                  Jesteś biurem nieruchomości?{' '}
+                  <a
+                    href="/dla-biur"
+                    className="font-medium text-brand-text underline decoration-brand/30 underline-offset-4 transition hover:opacity-80"
+                  >
+                    Zobacz integrację z CRM
+                  </a>
+                </p>
               </div>
             </div>
-
-            <div className="h-6 lg:hidden" />
           </div>
         </div>
       </div>
