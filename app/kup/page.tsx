@@ -107,7 +107,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
   const focusId = one(sp.focus).trim() || null;
 
   return (
-    <main className="pt-10">
+    <main>
       <KupSearch
         initialPage={Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1}
         initialFocusId={focusId}
