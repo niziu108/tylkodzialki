@@ -47,8 +47,8 @@ type Props = {
   focusKey?: string;
   /** Podświetlany pin (np. najazd na kartę listy). */
   activeId?: string | null;
-  /** Oferta, z której weszliśmy na mapę — jej pin dostaje plakietkę „TA OFERTA”
-   *  i jest zawsze widoczny (poza klastrem), żeby było jasne „to ta działka”. */
+  /** Oferta, z której weszliśmy na mapę — jej pin jest większy, jaskrawozielony
+   *  i zawsze widoczny (poza klastrem), żeby było jasne „to ta działka”. */
   selfId?: string | null;
   onActiveChange?: (id: string | null) => void;
   onSearchArea?: (b: Bounds) => void;
@@ -114,34 +114,22 @@ function pinIcon(text: string, state: PinState): google.maps.Icon {
   };
 }
 
-/* Pin oferty, z której weszliśmy na mapę — pigułka z ceną + plakietka „TA OFERTA”
- * nad nią. Jaskrawa zieleń i napis robią z niej jednoznaczne „to ta działka”. */
+/* Pin oferty, z której weszliśmy na mapę. Bez krzykliwego napisu — jaskrawa zieleń
+ * i większy rozmiar robią z niej „pin-bohatera”: od razu widać, że to ta działka.
+ * Czcionka jak w pozostałych pinach (700), więc całość wygląda spójnie, nie „tanio”. */
 function selfPinIcon(text: string): google.maps.Icon {
-  const CAP = 'TA OFERTA';
-  const cap = 15;
-  const gap = 4;
-  const h = 28;
-  const tail = 7;
-
-  const pillW = Math.max(52, Math.ceil(text.length * 7.6) + 26);
-  const capW = Math.ceil(CAP.length * 6.2) + 18;
-  const w = Math.max(pillW, capW);
-  const total = cap + gap + h + tail;
+  const h = 30; // wyższa od zwykłych pinów (26) → wyraźnie ta wybrana
+  const tail = 8;
+  const total = h + tail;
+  const w = Math.max(54, Math.ceil(text.length * 8) + 28);
   const cx = w / 2;
-  const pillY = cap + gap;
-  const pillTop = pillY;
-  const pillBottom = pillY + h;
 
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${total}" viewBox="0 0 ${w} ${total}">` +
-    // plakietka „TA OFERTA”
-    `<rect x="${cx - capW / 2}" y="0.75" rx="7" ry="7" width="${capW}" height="${cap - 1.5}" fill="#7aa333" stroke="#ffffff" stroke-width="1.25"/>` +
-    `<text x="${cx}" y="${cap / 2}" dominant-baseline="central" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="800" letter-spacing="0.6" fill="#0c0c0c">${CAP}</text>` +
-    // pigułka z ceną
-    `<rect x="${cx - pillW / 2}" y="${pillTop}" rx="14" ry="14" width="${pillW}" height="${h}" fill="#9fd14b" stroke="#ffffff" stroke-width="2"/>` +
-    `<path d="M${cx - 6},${pillBottom - 1} L${cx},${pillBottom + tail - 1} L${cx + 6},${pillBottom - 1} Z" fill="#9fd14b" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>` +
-    `<rect x="${cx - 7}" y="${pillBottom - 3}" width="14" height="3.5" fill="#9fd14b"/>` +
-    `<text x="${cx}" y="${pillTop + h / 2}" dominant-baseline="central" text-anchor="middle" font-family="Arial, sans-serif" font-size="12.5" font-weight="800" fill="#0c0c0c">${text}</text>` +
+    `<rect x="1" y="1" rx="15" ry="15" width="${w - 2}" height="${h - 2}" fill="#9fd14b" stroke="#ffffff" stroke-width="2"/>` +
+    `<path d="M${cx - 7},${h - 1} L${cx},${total - 1} L${cx + 7},${h - 1} Z" fill="#9fd14b" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>` +
+    `<rect x="${cx - 8}" y="${h - 3}" width="16" height="4" fill="#9fd14b"/>` +
+    `<text x="${cx}" y="${h / 2}" dominant-baseline="central" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#0c0c0c">${text}</text>` +
     `</svg>`;
 
   return {
