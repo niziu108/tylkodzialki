@@ -978,21 +978,6 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     >
                       {telefon}
                     </a>
-
-                    {/* Na mobile kontakt obsługuje dolny pasek (Zadzwoń / Napisz SMS),
-                        więc formularz pokazujemy tylko na desktopie. */}
-                    {!preview ? (
-                      <button
-                        type="button"
-                        onClick={openMessage}
-                        className="group mt-5 hidden items-center gap-2.5 text-[13px] font-semibold uppercase tracking-[0.18em] text-brand-text transition hover:text-brand-bright md:inline-flex"
-                      >
-                        <MailIcon className="h-[18px] w-[18px]" />
-                        <span className="underline decoration-brand/30 underline-offset-8 transition group-hover:decoration-brand/60">
-                          Napisz wiadomość
-                        </span>
-                      </button>
-                    ) : null}
                   </FieldBlock>
                   <Hr />
                 </>
