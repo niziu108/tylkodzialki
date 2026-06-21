@@ -505,13 +505,16 @@ function PagerResponsive({
                   onClick={() => onGo(x)}
                   className={[
                     'shrink-0 min-w-[25px] px-1 text-center text-[13px] tracking-[0.04em] transition',
-                    active ? 'text-fg' : 'text-fg/72 hover:text-fg',
+                    active ? 'font-semibold text-brand' : 'text-fg/72 hover:text-fg',
                   ].join(' ')}
                   style={{
+                    // tylko `color` w przejściu — animacja text-decoration-color
+                    // zacina się w Chromium na wartości startowej (podkreślenie znika)
+                    transitionProperty: 'color',
                     textDecoration: active ? 'underline' : 'none',
                     textUnderlineOffset: '8px',
-                    textDecorationThickness: '1px',
-                    textDecorationColor: active ? 'rgba(255,255,255,0.65)' : 'transparent',
+                    textDecorationThickness: '2px',
+                    textDecorationColor: active ? 'var(--brand)' : 'transparent',
                   }}
                 >
                   {x}
@@ -546,18 +549,18 @@ function PagerResponsive({
               page <= 1 ? 'text-fg/30' : 'text-fg/70 hover:text-fg',
             ].join(' ')}
             style={{
+              transitionProperty: 'color',
               textDecoration: 'underline',
               textUnderlineOffset: '10px',
               textDecorationThickness: '1px',
-              textDecorationColor:
-                page <= 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
+              textDecorationColor: page <= 1 ? 'var(--line)' : 'var(--line-strong)',
             }}
           >
             Poprzednia
           </button>
 
           <div className="text-fg/70 text-[12px] tracking-[0.22em] uppercase">
-            {page}/{totalPages}
+            <span className="font-semibold text-brand">{page}</span>/{totalPages}
           </div>
 
           <button
@@ -569,11 +572,11 @@ function PagerResponsive({
               page >= totalPages ? 'text-fg/30' : 'text-fg/70 hover:text-fg',
             ].join(' ')}
             style={{
+              transitionProperty: 'color',
               textDecoration: 'underline',
               textUnderlineOffset: '10px',
               textDecorationThickness: '1px',
-              textDecorationColor:
-                page >= totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.30)',
+              textDecorationColor: page >= totalPages ? 'var(--line)' : 'var(--line-strong)',
             }}
           >
             Następna
