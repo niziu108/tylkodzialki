@@ -353,23 +353,11 @@ function UnderlineField({
           error ? 'outline-none focus:border-red-400/90 focus:ring-0' : 'outline-none focus:border-fg/70 focus:ring-0',
           error
             ? 'underline decoration-red-400/55 decoration-[1px] underline-offset-[10px]'
-            : 'underline decoration-white/55 decoration-[1px] underline-offset-[10px]',
-          error ? 'focus:decoration-red-400/80' : 'focus:decoration-white/85',
+            : 'underline decoration-brand-bright/55 decoration-[1px] underline-offset-[10px]',
+          error ? 'focus:decoration-red-400/80' : 'focus:decoration-brand-bright',
           'selection:bg-fg/20 selection:text-fg'
         )}
       />
-
-      <style jsx global>{`
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active {
-          -webkit-text-fill-color: rgba(255, 255, 255, 0.9) !important;
-          box-shadow: 0 0 0px 1000px #131313 inset !important;
-          caret-color: rgba(255, 255, 255, 0.9) !important;
-          transition: background-color 9999s ease-in-out 0s;
-        }
-      `}</style>
     </label>
   );
 }
@@ -398,7 +386,7 @@ function Tabs({
               textDecoration: active ? 'underline' : 'none',
               textUnderlineOffset: '10px',
               textDecorationThickness: '1px',
-              textDecorationColor: active ? 'rgba(243,239,245,0.95)' : 'transparent',
+              textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
             }}
           >
             {o.label}
@@ -436,7 +424,7 @@ function MultiTabs({
               textDecoration: active ? 'underline' : 'none',
               textUnderlineOffset: '10px',
               textDecorationThickness: '1px',
-              textDecorationColor: active ? 'rgba(243,239,245,0.95)' : 'transparent',
+              textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
             }}
           >
             {o.label}
@@ -471,7 +459,7 @@ function ChoiceRow({
               textDecoration: active ? 'underline' : 'none',
               textUnderlineOffset: '10px',
               textDecorationThickness: '1px',
-              textDecorationColor: active ? 'rgba(243,239,245,0.95)' : 'transparent',
+              textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
             }}
           >
             {o.label}
@@ -2073,7 +2061,7 @@ export default function DzialkaForm({
                     textDecoration: x.v ? 'underline' : 'none',
                     textUnderlineOffset: '10px',
                     textDecorationThickness: '1px',
-                    textDecorationColor: x.v ? 'rgba(243,239,245,0.95)' : 'transparent',
+                    textDecorationColor: x.v ? 'var(--brand-bright)' : 'transparent',
                   }}
                 >
                   {x.label}
@@ -2234,7 +2222,7 @@ export default function DzialkaForm({
           )}
 
           {err && <div className="text-sm font-medium text-red-300">{err}</div>}
-          {ok && <div className="text-sm font-medium text-fg/85 underline decoration-white/40 underline-offset-8">{ok}</div>}
+          {ok && <div className="text-sm font-medium text-fg/85 underline decoration-brand-bright/50 underline-offset-8">{ok}</div>}
 
           {step === LAST_STEP && mode === 'create' && (
             <div className="text-xs text-fg/62">
