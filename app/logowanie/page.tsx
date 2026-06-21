@@ -427,7 +427,7 @@ function AuthPageContent() {
               'lg:min-h-0 lg:h-screen'
             )}
           >
-            {/* tło marki: zielony wash + delikatna siatka + zielone poświaty + rozmyta plama */}
+            {/* tło marki: zielony wash + zielone poświaty + rozmyta plama */}
             <div
               className="absolute inset-0"
               style={{
@@ -435,7 +435,6 @@ function AuthPageContent() {
                   'linear-gradient(160deg, rgba(122,163,51,0.13), rgba(122,163,51,0.03) 52%, rgba(122,163,51,0.00) 100%)',
               }}
             />
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(20,20,18,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(20,20,18,0.035)_1px,transparent_1px)] bg-[size:56px_56px] opacity-60" />
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(122,163,51,0.22),transparent_40%),radial-gradient(circle_at_88%_86%,rgba(122,163,51,0.10),transparent_36%)]" />
             <div className="pointer-events-none absolute right-[-130px] top-20 h-[440px] w-[440px] rounded-full bg-brand/15 blur-[120px]" />
 
@@ -448,11 +447,7 @@ function AuthPageContent() {
                   Twoje konto
                 </div>
 
-                <h2 className="mt-4 text-[28px] font-semibold leading-[1.1] tracking-tight text-fg md:text-[36px]">
-                  Wszystko o działkach w jednym miejscu.
-                </h2>
-
-                <p className="mt-5 text-[15px] leading-7 text-fg/68 md:text-base">
+                <p className="mt-4 text-[15px] leading-7 text-fg/68 md:text-base">
                   Załóż darmowe konto i korzystaj z portalu wyłącznie o działkach.
                 </p>
 
