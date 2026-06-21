@@ -1218,6 +1218,10 @@ export default function DzialkaForm({
     if (!validateStep(step)) return;
     setValidationErrors([]);
     setFieldErrors(new Set());
+    // Komunikat (np. „część zdjęć się nie wgrała") dotyczy bieżącego kroku — po
+    // przejściu dalej znika, żeby nie „wisiał" na kolejnych krokach.
+    setErr(null);
+    setOk(null);
     const next = Math.min(step + 1, LAST_STEP);
     setStep(next);
     setMaxStep((m) => Math.max(m, next));
@@ -1225,6 +1229,8 @@ export default function DzialkaForm({
 
   function goBack() {
     setValidationErrors([]);
+    setErr(null);
+    setOk(null);
     setStep((s) => Math.max(0, s - 1));
   }
 
@@ -1232,6 +1238,8 @@ export default function DzialkaForm({
     if (target < 0 || target > LAST_STEP) return;
     if (target > maxStep) return;
     setValidationErrors([]);
+    setErr(null);
+    setOk(null);
     setStep(target);
   }
 
@@ -1573,18 +1581,49 @@ export default function DzialkaForm({
             })}
           </ol>
 
-          {/* Pasek postępu — mobile */}
+          {/* Pasek kroków — mobile (klikalny, jak na desktopie) */}
           <div className="mt-5 md:hidden">
-            <div className="flex items-center justify-between text-[12px] font-medium">
+            <div className="mb-3 flex items-center justify-between text-[12px] font-medium">
               <span className="text-fg/75">{STEPS[step].short}</span>
-              <span className="text-fg/68">{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
+              <span className="text-fg/68">Krok {step + 1} / {STEPS.length}</span>
             </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-fg/10">
-              <div
-                className="h-full rounded-full bg-brand transition-all duration-300"
-                style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
-              />
-            </div>
+            <ol className="flex items-center">
+              {STEPS.map((s, i) => {
+                const done = i < step;
+                const active = i === step;
+                const reachable = i <= maxStep;
+
+                return (
+                  <li key={i} className="flex flex-1 items-center last:flex-none">
+                    <button
+                      type="button"
+                      onClick={() => goToStep(i)}
+                      disabled={!reachable}
+                      aria-current={active ? 'step' : undefined}
+                      aria-label={`Krok ${i + 1}: ${s.short}`}
+                      className={cx('shrink-0 py-1', reachable ? 'cursor-pointer' : 'cursor-default')}
+                    >
+                      <span
+                        className={cx(
+                          'flex h-8 w-8 items-center justify-center rounded-full border text-[13px] font-semibold transition',
+                          active
+                            ? 'border-brand-bright bg-brand text-black'
+                            : done
+                            ? 'border-brand/60 bg-brand/15 text-brand-bright'
+                            : 'border-fg/20 bg-fg/[0.03] text-fg/70'
+                        )}
+                      >
+                        {done ? '✓' : i + 1}
+                      </span>
+                    </button>
+
+                    {i < STEPS.length - 1 ? (
+                      <span className={cx('mx-1.5 h-px flex-1 transition', i < step ? 'bg-brand/50' : 'bg-fg/10')} />
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ol>
           </div>
         </div>
       </header>
