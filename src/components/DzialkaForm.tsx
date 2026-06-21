@@ -684,6 +684,8 @@ export default function DzialkaForm({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [previewSrc, setPreviewSrc] = useState('');
+  // Na telefonie podgląd jest wyłącznie mobilny (bez przełącznika Komputer/Telefon).
+  const [previewIsPhone, setPreviewIsPhone] = useState(false);
 
   function syncOpisEditorHeight() {
     const wrap = opisWrapRef.current;
@@ -1200,12 +1202,12 @@ export default function DzialkaForm({
       // brak localStorage / limit — iframe pokaże komunikat o braku danych
     }
 
-    // Na telefonie startujemy od widoku mobilnego, na komputerze od desktopowego.
-    setPreviewDevice(
-      typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
-        ? 'mobile'
-        : 'desktop'
-    );
+    // Na telefonie podgląd desktopu nie ma sensu → tylko widok mobilny, bez przełącznika.
+    // Na komputerze startujemy od widoku desktop z przełącznikiem Komputer/Telefon.
+    const isPhone =
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+    setPreviewIsPhone(isPhone);
+    setPreviewDevice(isPhone ? 'mobile' : 'desktop');
     setPreviewSrc(`/sprzedaj/podglad?t=${Date.now()}`);
     setPreviewOpen(true);
   }
@@ -2406,9 +2408,13 @@ export default function DzialkaForm({
         </form>
       </div>
 
-      {previewOpen ? (
+      {previewOpen ? (() => {
+        // Telefon (realne urządzenie): bez ramki, iframe pełnej szerokości = naturalny mobile.
+        // Desktop + zakładka „Telefon": ramka 390 px = prawdziwy widok mobilny w iframe.
+        const showPhoneFrame = !previewIsPhone && previewDevice === 'mobile';
+        return (
         <div className="fixed inset-0 z-[200] flex flex-col" style={{ background: BG, color: FG }}>
-          {/* Pasek górny: tytuł, przełącznik urządzenia, zamknięcie */}
+          {/* Pasek górny: tytuł, przełącznik urządzenia (tylko na komputerze), zamknięcie */}
           <div className="flex items-center justify-between gap-3 border-b border-fg/10 px-4 py-3 md:px-6">
             <div className="min-w-0">
               <div className="text-[11px] uppercase tracking-[0.2em] text-fg/68">Podgląd</div>
@@ -2417,31 +2423,33 @@ export default function DzialkaForm({
               </div>
             </div>
 
-            <div className="flex items-center gap-5 sm:gap-7">
-              {([['desktop', 'Komputer'], ['mobile', 'Telefon']] as const).map(([val, label]) => {
-                const active = previewDevice === val;
-                return (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setPreviewDevice(val)}
-                    aria-pressed={active}
-                    className={cx(
-                      'text-[14px] font-semibold tracking-tight transition',
-                      active ? 'text-fg' : 'text-fg/65 hover:text-fg'
-                    )}
-                    style={{
-                      textDecoration: active ? 'underline' : 'none',
-                      textUnderlineOffset: '10px',
-                      textDecorationThickness: '1px',
-                      textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+            {!previewIsPhone ? (
+              <div className="flex items-center gap-5 sm:gap-7">
+                {([['desktop', 'Komputer'], ['mobile', 'Telefon']] as const).map(([val, label]) => {
+                  const active = previewDevice === val;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setPreviewDevice(val)}
+                      aria-pressed={active}
+                      className={cx(
+                        'text-[14px] font-semibold tracking-tight transition',
+                        active ? 'text-fg' : 'text-fg/65 hover:text-fg'
+                      )}
+                      style={{
+                        textDecoration: active ? 'underline' : 'none',
+                        textUnderlineOffset: '10px',
+                        textDecorationThickness: '1px',
+                        textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
 
             <button
               type="button"
@@ -2456,17 +2464,17 @@ export default function DzialkaForm({
           <div className="min-h-0 flex-1 overflow-auto bg-fg/[0.02]">
             <div
               className="flex h-full w-full items-center justify-center"
-              style={{ padding: previewDevice === 'mobile' ? '20px' : 0 }}
+              style={{ padding: showPhoneFrame ? '20px' : 0 }}
             >
               <div
                 className={cx(
                   'overflow-hidden bg-bg',
-                  previewDevice === 'mobile'
+                  showPhoneFrame
                     ? 'rounded-[40px] border-[10px] border-fg/15 shadow-[0_30px_80px_rgba(0,0,0,0.30)]'
                     : ''
                 )}
                 style={
-                  previewDevice === 'mobile'
+                  showPhoneFrame
                     ? { width: 390, maxWidth: '100%', height: 'min(844px, 100%)' }
                     : { width: '100%', height: '100%' }
                 }
@@ -2483,7 +2491,8 @@ export default function DzialkaForm({
             </div>
           </div>
         </div>
-      ) : null}
+        );
+      })() : null}
     </main>
   );
 }

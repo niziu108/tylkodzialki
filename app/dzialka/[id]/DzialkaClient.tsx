@@ -225,11 +225,14 @@ function MailIcon({ className }: { className?: string }) {
 export default function DzialkaPage({
   initial,
   preview = false,
+  onPreviewBack,
 }: {
   initial?: Dzialka | null;
   // Tryb podglądu (z kreatora /sprzedaj): identyczny wygląd, ale BEZ skutków ubocznych —
   // bez trackowania, ulubionych, udostępniania i nawigacji „Wróć do listy".
   preview?: boolean;
+  // W podglądzie „Wróć do listy" wraca do widoku listy podglądu (nie nawiguje).
+  onPreviewBack?: () => void;
 }) {
   const params = useParams();
   const router = useRouter();
@@ -592,7 +595,10 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   const onBackToListClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (preview) return;
+    if (preview) {
+      onPreviewBack?.();
+      return;
+    }
 
     try {
       const url = sessionStorage.getItem('TD_KUP_URL') || '/kup';
@@ -741,8 +747,20 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             <span className="relative top-[-1px]">←</span> Wróć do listy
           </Link>
 
-          {/* Ulubione + udostępnij — same ikony, na wysokości „Wróć do listy", po prawej. */}
+          {/* Napisz wiadomość + ulubione + udostępnij — same ikony, na wysokości „Wróć do listy", po prawej. */}
           <div className="flex items-center gap-1">
+            {/* Napisz wiadomość: tylko desktop — na mobile kontakt obsługuje dolny pasek (Zadzwoń / Napisz SMS). */}
+            {!preview ? (
+              <button
+                type="button"
+                onClick={openMessage}
+                aria-label="Napisz wiadomość"
+                className="group hidden h-9 w-9 items-center justify-center text-brand-text transition hover:text-brand-bright md:flex"
+              >
+                <MailIcon className="h-[20px] w-[20px]" />
+              </button>
+            ) : null}
+
             <button
               type="button"
               disabled={favoriteLoading}

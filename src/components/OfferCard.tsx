@@ -406,6 +406,7 @@ export function OfferCard({
   onToggleFavorite,
   onClick,
   scroll = true,
+  preview = false,
 }: {
   d: OfferData;
   eagerImage?: boolean;
@@ -417,6 +418,8 @@ export function OfferCard({
   onClick?: () => void;
   /** /kup ustawia false, by Next nie skakał na górę (działa restore scrolla). */
   scroll?: boolean;
+  /** Podgląd w kreatorze: bez śledzenia odsłon; klik nie nawiguje, tylko woła onClick. */
+  preview?: boolean;
 }) {
   const photos = (d.zdjecia ?? []).slice().sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
 
@@ -434,6 +437,7 @@ export function OfferCard({
   useEffect(() => {
     const el = cardRef.current;
     if (!el || trackedListViewIds.has(d.id)) return;
+    if (preview) return;
 
     if (typeof IntersectionObserver === 'undefined') {
       const timeout = window.setTimeout(() => trackListView(d.id), 600);
@@ -454,14 +458,18 @@ export function OfferCard({
     observer.observe(el);
 
     return () => observer.disconnect();
-  }, [d.id]);
+  }, [d.id, preview]);
 
   return (
     <Link
       ref={cardRef}
       href={`/dzialka/${d.id}`}
       scroll={scroll}
-      onClick={onClick}
+      onClick={(e) => {
+        // W podglądzie nie nawigujemy do realnej oferty — klik tylko przełącza widok.
+        if (preview) e.preventDefault();
+        onClick?.();
+      }}
       className={`group block overflow-hidden rounded-3xl border transition duration-200 ${
         horizontal ? 'lg:flex lg:items-stretch lg:h-[256px]' : ''
       } ${
