@@ -429,7 +429,7 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Co:** opis renderowany przez `dangerouslySetInnerHTML` bez sanityzacji — (1) podatność XSS dla opisów z dowolnego źródła (CRM i ręczne ogłoszenia), (2) IMO przesyła formatowanie **podwójnie zakodowane** (`&amp;lt;u&amp;gt;`), przez co tagi wyświetlały się dosłownie jako tekst.
 - **Decyzja Daniela:** wspierać proste formatowanie (pogrubienie/kursywa/podkreślenie), nie czysty tekst.
 - **Naprawa:** `formatOpis` dekoduje encje (w tym podwójny escape), escapuje całość i przywraca WYŁĄCZNIE whitelist tagów bez atrybutów (`b/strong/i/em/u` + `br`/akapity). Wszystko inne (`script`, `img onerror`, `svg onload`, atrybuty zdarzeń) zostaje nieszkodliwym tekstem → XSS zamknięty. Test `scripts/format-opis-test.ts` **9/9** (formatowanie + XSS). Portal (Vercel), nie dotyczy workera.
-- **Status:** NAPRAWIONE i wdrożone (Vercel). Dotyczy wszystkich ofert, nie tylko IMO.
+- **Status:** NAPRAWIONE i wdrożone (Vercel). Dotyczy wszystkich ofert, nie tylko IMO. Dodatkowo poprawiony kolor pogrubienia (`.td-opis b/strong` dziedziczy kolor tekstu zamiast jasnego z ciemnego motywu) — czytelne na jasnym motywie; zweryfikowane w preview (kolor ciemny, font-weight 700).
 
 ### P-K: Mapowanie mediów — woda/gaz „powyżej 100m" [NAPRAWIONE 2026-06-20]
 - **Gdzie:** `src/lib/crm/domypl-sync.ts` — `mapWodaFromParams`, `mapGazFromParams`.
