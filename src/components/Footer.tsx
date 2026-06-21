@@ -88,6 +88,9 @@ export default function Footer() {
                 <Link href="/dzialki" className="transition hover:text-fg">
                   Działki według lokalizacji
                 </Link>
+                <Link href="/ceny-dzialek" className="transition hover:text-fg">
+                  Ceny działek
+                </Link>
                 <Link href="/dla-biur" className="transition hover:text-fg">
                   Dla biur
                 </Link>

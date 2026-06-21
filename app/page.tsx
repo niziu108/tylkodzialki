@@ -8,9 +8,12 @@ import KupSearch from "./kup/KupSearch";
 import HeroCounter from "@/components/HeroCounter";
 import FeaturedRail from "@/components/FeaturedRail";
 import ScrollFill from "@/components/ScrollFill";
+import PriceStatsTable from "@/components/PriceStatsTable";
 import type { OfferData } from "@/components/OfferCard";
 import { SEO_REGIONS } from "@/lib/seo-locations";
 import { getFeaturedListings } from "@/lib/dzialki";
+import { getVoivodeshipPriceStats } from "@/lib/priceStats";
+import { formatIntPL } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +103,7 @@ export default async function HomePage() {
     OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
   };
 
-  const [featuredListings, latestArticles, listingCount] = await Promise.all([
+  const [featuredListings, latestArticles, listingCount, priceStats] = await Promise.all([
     getFeaturedListings(8),
     prisma.article.findMany({
       where: { isPublished: true },
@@ -108,7 +111,11 @@ export default async function HomePage() {
       take: 6,
     }),
     prisma.dzialka.count({ where: activeWhere }),
+    getVoivodeshipPriceStats(),
   ]);
+
+  // P17 — na stronie głównej tylko regiony z wiarygodną próbą (reszta jest na /ceny-dzialek).
+  const priceRegionsWithData = priceStats.regions.filter((r) => r.hasData);
 
   // Mapujemy tylko bezpieczne pola (bez editToken/telefon itp.), bo lecą do
   // komponentu klienckiego FeaturedRail. Karta jest wspólna z /kup, więc dorzucamy
@@ -232,6 +239,47 @@ export default async function HomePage() {
                 className="inline-flex text-sm text-fg/72 transition hover:text-fg"
               >
                 Przeglądaj wszystkie oferty →
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {priceRegionsWithData.length > 0 ? (
+        <section className="relative overflow-hidden border-t border-fg/10 bg-surface-2">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(47,94,70,0.05),transparent_32%)]" />
+
+          <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
+            <div className="max-w-3xl">
+              <div className="text-[12px] uppercase tracking-[0.18em] text-brand-bright">
+                Ceny działek
+              </div>
+
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-fg md:text-4xl">
+                Średnie ceny działek w województwach
+              </h2>
+
+              <p className="mt-4 text-sm leading-7 text-fg/70 md:text-base">
+                Mediana ceny za metr kwadratowy, policzona z{" "}
+                {formatIntPL(priceStats.nationalSample)} aktualnych ofert w całej
+                Polsce (mediana krajowa{" "}
+                <span className="font-semibold text-fg">
+                  {formatIntPL(priceStats.nationalMedian)} zł/m²
+                </span>
+                ). Kliknij województwo, aby zobaczyć oferty w okolicy.
+              </p>
+            </div>
+
+            <div className="mt-10">
+              <PriceStatsTable regions={priceRegionsWithData} />
+            </div>
+
+            <div className="mt-8">
+              <Link
+                href="/ceny-dzialek"
+                className="inline-flex text-sm text-fg/72 transition hover:text-fg"
+              >
+                Zobacz pełne zestawienie cen działek →
               </Link>
             </div>
           </div>
