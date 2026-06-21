@@ -149,6 +149,31 @@ export default async function PartnerstwoPage() {
         </div>
       </section>
 
+      {/* ŁAŃCUCH DECYZJI */}
+      <section className="relative overflow-hidden">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+          <div className="max-w-3xl">
+            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+              Łańcuch decyzji
+            </div>
+
+            <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
+              Zakup działki to nie koniec, to początek.
+            </h2>
+
+            <p className="mt-6 text-base leading-8 text-fg/70 md:text-lg">
+              Po działce przychodzi projekt, kredyt, przyłącza, dom, ogrodzenie i
+              fotowoltaika. Jeden zakup uruchamia kilkanaście kolejnych decyzji.
+              Jesteśmy przy pierwszej z nich, więc możesz być pierwszy w kolejce.
+            </p>
+          </div>
+
+          <div className="mt-16">
+            <DecisionChain />
+          </div>
+        </div>
+      </section>
+
       {/* DLA KOGO */}
       <section className="relative overflow-hidden border-y border-fg/10 bg-surface-2">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
@@ -182,31 +207,6 @@ export default async function PartnerstwoPage() {
                 </span>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ŁAŃCUCH DECYZJI */}
-      <section className="relative overflow-hidden">
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
-          <div className="max-w-3xl">
-            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
-              Łańcuch decyzji
-            </div>
-
-            <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
-              Zakup działki to nie koniec, to początek.
-            </h2>
-
-            <p className="mt-6 text-base leading-8 text-fg/70 md:text-lg">
-              Po działce przychodzi projekt, kredyt, przyłącza, dom, ogrodzenie i
-              fotowoltaika. Jeden zakup uruchamia kilkanaście kolejnych decyzji.
-              Jesteśmy przy pierwszej z nich, więc możesz być pierwszy w kolejce.
-            </p>
-          </div>
-
-          <div className="mt-16">
-            <DecisionChain />
           </div>
         </div>
       </section>
