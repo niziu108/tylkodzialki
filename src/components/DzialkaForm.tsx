@@ -2341,26 +2341,26 @@ export default function DzialkaForm({
 
           {/* Nawigacja kreatora — przyklejona do dołu ekranu */}
           <div className="-mx-6 border-t border-fg/10 px-6 pt-6 md:-mx-10 md:px-10">
-            <div className="flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={goBack}
-                disabled={step === 0 || loading}
-                className={cx(
-                  'inline-flex items-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold transition',
-                  step === 0
-                    ? 'cursor-not-allowed border-fg/10 text-fg/30'
-                    : 'border-fg/15 bg-fg/[0.03] text-fg hover:border-fg/30 hover:bg-fg/[0.05]'
-                )}
-              >
-                ← Wstecz
-              </button>
+            {step < LAST_STEP ? (
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={goBack}
+                  disabled={step === 0 || loading}
+                  className={cx(
+                    'inline-flex items-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold transition',
+                    step === 0
+                      ? 'cursor-not-allowed border-fg/10 text-fg/30'
+                      : 'border-fg/15 bg-fg/[0.03] text-fg hover:border-fg/30 hover:bg-fg/[0.05]'
+                  )}
+                >
+                  <span className="hidden sm:inline">← </span>Wstecz
+                </button>
 
-              <div className="hidden text-[13px] font-medium text-fg/64 sm:block">
-                Krok {step + 1} z {STEPS.length}
-              </div>
+                <div className="hidden text-[13px] font-medium text-fg/64 sm:block">
+                  Krok {step + 1} z {STEPS.length}
+                </div>
 
-              {step < LAST_STEP ? (
                 <button
                   key="wizard-next"
                   type="button"
@@ -2369,41 +2369,59 @@ export default function DzialkaForm({
                 >
                   Dalej →
                 </button>
-              ) : (
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <button
-                    type="button"
-                    onClick={openPreview}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-fg/15 bg-fg/[0.03] px-5 py-3 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
-                  >
-                    <EyeIcon className="h-[18px] w-[18px]" />
-                    Podgląd
-                  </button>
+              </div>
+            ) : (
+              // Ostatni krok: telefon = trzy równe przyciski (Wstecz / Podgląd / Opublikuj);
+              // desktop = Wstecz po lewej, akcje po prawej.
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={goBack}
+                  disabled={loading}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-fg/15 bg-fg/[0.03] px-4 py-3 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05] disabled:opacity-50 sm:flex-none sm:px-5"
+                >
+                  <span className="hidden sm:inline">← </span>Wstecz
+                </button>
 
-                  <button
-                    key="wizard-submit"
-                    type="button"
-                    onClick={() => void submitListing(false, 0)}
-                    disabled={loading || uploadingPhotos || uploadingLogo}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-brand px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
-                  >
-                    {uploadingPhotos
-                      ? 'Wgrywam zdjęcia…'
-                      : uploadingLogo
-                      ? 'Wgrywam logo…'
-                      : loading
-                      ? shouldAutoPublish
-                        ? 'Publikowanie…'
-                        : mode === 'edit'
-                        ? 'Zapisywanie zmian…'
-                        : 'Zapisywanie…'
+                <div className="hidden flex-1 sm:block" />
+
+                <button
+                  type="button"
+                  onClick={openPreview}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-fg/15 bg-fg/[0.03] px-4 py-3 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05] sm:flex-none sm:px-5"
+                >
+                  <EyeIcon className="h-[18px] w-[18px]" />
+                  Podgląd
+                </button>
+
+                <button
+                  key="wizard-submit"
+                  type="button"
+                  onClick={() => void submitListing(false, 0)}
+                  disabled={loading || uploadingPhotos || uploadingLogo}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-60 sm:flex-none sm:px-7"
+                >
+                  {uploadingPhotos
+                    ? 'Wgrywam zdjęcia…'
+                    : uploadingLogo
+                    ? 'Wgrywam logo…'
+                    : loading
+                    ? shouldAutoPublish
+                      ? 'Publikowanie…'
                       : mode === 'edit'
-                      ? 'Potwierdź zmiany'
-                      : 'Opublikuj ogłoszenie'}
-                  </button>
-                </div>
-              )}
-            </div>
+                      ? 'Zapisywanie zmian…'
+                      : 'Zapisywanie…'
+                    : mode === 'edit'
+                    ? 'Potwierdź zmiany'
+                    : (
+                      <>
+                        <span className="sm:hidden">Opublikuj</span>
+                        <span className="hidden sm:inline">Opublikuj ogłoszenie</span>
+                      </>
+                    )}
+                </button>
+              </div>
+            )}
           </div>
         </form>
       </div>
@@ -2490,6 +2508,19 @@ export default function DzialkaForm({
               </div>
             </div>
           </div>
+
+          {/* Publikacja prosto z podglądu — gdy oferta się podoba, można wystawić od razu. */}
+          <button
+            type="button"
+            onClick={() => {
+              closePreview();
+              void submitListing(false, 0);
+            }}
+            disabled={loading || uploadingPhotos || uploadingLogo}
+            className="absolute bottom-5 right-5 z-10 inline-flex items-center gap-2 rounded-2xl bg-brand px-6 py-3.5 text-sm font-semibold text-black shadow-[0_12px_40px_rgba(0,0,0,0.25)] transition hover:opacity-90 disabled:opacity-60"
+          >
+            {mode === 'edit' ? 'Potwierdź zmiany' : 'Opublikuj ogłoszenie'}
+          </button>
         </div>
         );
       })() : null}

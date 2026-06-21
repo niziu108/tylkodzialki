@@ -55,7 +55,7 @@ export function CardBody({
   const ic = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
 
   return (
-    <div className={`${compact ? 'px-4 py-4' : 'p-5'} ${horizontal ? 'lg:flex lg:h-full lg:flex-col' : ''}`}>
+    <div className={`${compact ? 'px-4 py-4' : 'p-5 pt-6 lg:pt-5'} ${horizontal ? 'lg:flex lg:h-full lg:flex-col' : ''}`}>
       <div>
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">

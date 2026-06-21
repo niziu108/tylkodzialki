@@ -107,8 +107,8 @@ export default function PodgladClient() {
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--fg)' }}>
       <div className="mx-auto max-w-6xl px-3 py-6 md:px-4 md:py-8">
-        <div className="mb-4 text-[12px] uppercase tracking-[0.18em] text-fg/60">
-          Tak wygląda Twoja oferta na liście — kliknij kartę, aby wejść w ofertę
+        <div className="mb-4 text-[13px] text-fg/60">
+          Tak wygląda Twoja oferta na liście. Kliknij kartę, aby wejść w ofertę.
         </div>
 
         <div className="grid grid-cols-1 gap-5">
@@ -123,6 +123,35 @@ export default function PodgladClient() {
               scroll={false}
               onClick={() => setView('detail')}
             />
+          </div>
+
+          {/* Imitacja kolejnych ofert — daje poczucie realnej listy. Wyciemnione, nieklikalne. */}
+          <div className="relative" aria-hidden="true">
+            <div className="grid grid-cols-1 gap-5">
+              {[0.5, 0.28].map((op, g) => (
+                <div
+                  key={g}
+                  style={{ opacity: op }}
+                  className="overflow-hidden rounded-3xl border border-fg/12 bg-surface-2/20 lg:flex lg:h-[256px]"
+                >
+                  <div className="aspect-[16/10] bg-fg/5 md:aspect-video lg:aspect-auto lg:w-[42%] lg:shrink-0" />
+                  <div className="flex flex-col p-5 lg:flex-1">
+                    <div className="space-y-3">
+                      <div className="h-6 w-32 rounded bg-fg/10" />
+                      <div className="h-4 w-11/12 rounded bg-fg/10" />
+                      <div className="h-4 w-2/3 rounded bg-fg/10" />
+                      <div className="flex gap-3 pt-1">
+                        <div className="h-5 w-16 rounded bg-fg/10" />
+                        <div className="h-5 w-28 rounded bg-fg/10" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Delikatne wygaszenie ku dołowi — sugeruje dalszą listę. */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent to-[var(--bg)]" />
           </div>
         </div>
       </div>
