@@ -107,6 +107,8 @@ type DzialkaDraft = {
 
 const CREATE_DRAFT_KEY = 'tylkodzialki:create-dzialka-draft:v2';
 const SELLER_DEFAULTS_KEY = 'tylkodzialki:seller-defaults:v1';
+// Klucz danych podglądu — MUSI być zgodny z PREVIEW_KEY w app/sprzedaj/podglad/PodgladClient.tsx.
+const PREVIEW_KEY = 'tylkodzialki:preview:v1';
 
 export type DzialkaFormInitialData = {
   id?: string;
@@ -527,6 +529,24 @@ function handleOpisPasteAsPlainText(e: React.ClipboardEvent<HTMLDivElement>) {
   }
 }
 
+function EyeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 export default function DzialkaForm({
   mode,
   initialData,
@@ -659,6 +679,12 @@ export default function DzialkaForm({
   const dragIdRef = useRef<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
+  // Podgląd ogłoszenia (Komputer/Telefon) — renderowany w iframe trasą /sprzedaj/podglad,
+  // żeby na komputerze pokazać prawdziwy widok mobilny (media queries reagują na szerokość iframe).
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewSrc, setPreviewSrc] = useState('');
+
   function syncOpisEditorHeight() {
     const wrap = opisWrapRef.current;
     if (!wrap) return;
@@ -725,6 +751,16 @@ export default function DzialkaForm({
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [step]);
+
+  // Blokada przewijania tła, gdy otwarty jest pełnoekranowy podgląd.
+  useEffect(() => {
+    if (!previewOpen) return;
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.documentElement.style.overflow = prev;
+    };
+  }, [previewOpen]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -1150,6 +1186,37 @@ export default function DzialkaForm({
       activeIdx,
       step,
     };
+  }
+
+  // Otwiera podgląd: zapisuje BIEŻĄCY stan formularza (dokładnie to, co poleci do publikacji
+  // przez buildPayload) do localStorage i ładuje go w iframe. Cache-bust w URL → świeże dane.
+  function openPreview() {
+    const uploadedSorted = [...uploaded].sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
+    const data = { id: 'preview', ...buildPayload(uploadedSorted) };
+
+    try {
+      localStorage.setItem(PREVIEW_KEY, JSON.stringify(data));
+    } catch {
+      // brak localStorage / limit — iframe pokaże komunikat o braku danych
+    }
+
+    // Na telefonie startujemy od widoku mobilnego, na komputerze od desktopowego.
+    setPreviewDevice(
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+        ? 'mobile'
+        : 'desktop'
+    );
+    setPreviewSrc(`/sprzedaj/podglad?t=${Date.now()}`);
+    setPreviewOpen(true);
+  }
+
+  function closePreview() {
+    setPreviewOpen(false);
+    try {
+      localStorage.removeItem(PREVIEW_KEY);
+    } catch {
+      // ignorujemy
+    }
   }
 
   // Jedna lista braków dla całego formularza. Walidacja kroku to po prostu filtr po
@@ -2263,9 +2330,10 @@ export default function DzialkaForm({
           {err && <div className="text-sm font-medium text-red-300">{err}</div>}
           {ok && <div className="text-sm font-medium text-fg/85 underline decoration-brand-bright/50 underline-offset-8">{ok}</div>}
 
-          {step === LAST_STEP && mode === 'create' && (
+          {step === LAST_STEP && (
             <div className="text-xs text-fg/62">
-              Po kliknięciu zapiszesz ofertę.
+              Kliknij „Podgląd”, aby zobaczyć, jak ogłoszenie wygląda na komputerze i telefonie.
+              {mode === 'create' ? ' Publikujesz dopiero przyciskiem „Opublikuj ogłoszenie”.' : ''}
             </div>
           )}
 
@@ -2300,32 +2368,122 @@ export default function DzialkaForm({
                   Dalej →
                 </button>
               ) : (
-                <button
-                  key="wizard-submit"
-                  type="button"
-                  onClick={() => void submitListing(false, 0)}
-                  disabled={loading || uploadingPhotos || uploadingLogo}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-brand px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
-                >
-                  {uploadingPhotos
-                    ? 'Wgrywam zdjęcia…'
-                    : uploadingLogo
-                    ? 'Wgrywam logo…'
-                    : loading
-                    ? shouldAutoPublish
-                      ? 'Publikowanie…'
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={openPreview}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-fg/15 bg-fg/[0.03] px-5 py-3 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
+                  >
+                    <EyeIcon className="h-[18px] w-[18px]" />
+                    Podgląd
+                  </button>
+
+                  <button
+                    key="wizard-submit"
+                    type="button"
+                    onClick={() => void submitListing(false, 0)}
+                    disabled={loading || uploadingPhotos || uploadingLogo}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-brand px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
+                  >
+                    {uploadingPhotos
+                      ? 'Wgrywam zdjęcia…'
+                      : uploadingLogo
+                      ? 'Wgrywam logo…'
+                      : loading
+                      ? shouldAutoPublish
+                        ? 'Publikowanie…'
+                        : mode === 'edit'
+                        ? 'Zapisywanie zmian…'
+                        : 'Zapisywanie…'
                       : mode === 'edit'
-                      ? 'Zapisywanie zmian…'
-                      : 'Zapisywanie…'
-                    : mode === 'edit'
-                    ? 'Potwierdź zmiany'
-                    : 'Opublikuj ogłoszenie'}
-                </button>
+                      ? 'Potwierdź zmiany'
+                      : 'Opublikuj ogłoszenie'}
+                  </button>
+                </div>
               )}
             </div>
           </div>
         </form>
       </div>
+
+      {previewOpen ? (
+        <div className="fixed inset-0 z-[200] flex flex-col" style={{ background: BG, color: FG }}>
+          {/* Pasek górny: tytuł, przełącznik urządzenia, zamknięcie */}
+          <div className="flex items-center justify-between gap-3 border-b border-fg/10 px-4 py-3 md:px-6">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-fg/68">Podgląd</div>
+              <div className="truncate text-[15px] font-semibold tracking-tight text-fg">
+                Tak zobaczą Twoje ogłoszenie
+              </div>
+            </div>
+
+            <div className="flex items-center gap-5 sm:gap-7">
+              {([['desktop', 'Komputer'], ['mobile', 'Telefon']] as const).map(([val, label]) => {
+                const active = previewDevice === val;
+                return (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setPreviewDevice(val)}
+                    aria-pressed={active}
+                    className={cx(
+                      'text-[14px] font-semibold tracking-tight transition',
+                      active ? 'text-fg' : 'text-fg/65 hover:text-fg'
+                    )}
+                    style={{
+                      textDecoration: active ? 'underline' : 'none',
+                      textUnderlineOffset: '10px',
+                      textDecorationThickness: '1px',
+                      textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={closePreview}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-2xl border border-fg/15 bg-fg/[0.03] px-4 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
+            >
+              Zamknij <span className="text-[16px] leading-none">×</span>
+            </button>
+          </div>
+
+          {/* Treść: ten sam iframe dla obu trybów (przełączenie nie przeładowuje podglądu) */}
+          <div className="min-h-0 flex-1 overflow-auto bg-fg/[0.02]">
+            <div
+              className="flex h-full w-full items-center justify-center"
+              style={{ padding: previewDevice === 'mobile' ? '20px' : 0 }}
+            >
+              <div
+                className={cx(
+                  'overflow-hidden bg-bg',
+                  previewDevice === 'mobile'
+                    ? 'rounded-[40px] border-[10px] border-fg/15 shadow-[0_30px_80px_rgba(0,0,0,0.30)]'
+                    : ''
+                )}
+                style={
+                  previewDevice === 'mobile'
+                    ? { width: 390, maxWidth: '100%', height: 'min(844px, 100%)' }
+                    : { width: '100%', height: '100%' }
+                }
+              >
+                {previewSrc ? (
+                  <iframe
+                    key={previewSrc}
+                    src={previewSrc}
+                    title="Podgląd ogłoszenia"
+                    className="h-full w-full border-0"
+                  />
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
