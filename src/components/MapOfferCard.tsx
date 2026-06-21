@@ -91,7 +91,13 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
           </button>
         </div>
 
-        <div className="relative w-full overflow-hidden rounded-2xl border border-fg/12 bg-bg shadow-[0_18px_60px_rgba(0,0,0,0.12)]">
+        <div
+          className={`relative w-full overflow-hidden rounded-2xl border bg-bg ${
+            point.featured
+              ? 'border-brand/55 shadow-[0_18px_60px_rgba(0,0,0,0.12),0_0_0_1px_rgba(122,163,51,0.30),0_0_24px_rgba(122,163,51,0.20)]'
+              : 'border-fg/12 shadow-[0_18px_60px_rgba(0,0,0,0.12)]'
+          }`}
+        >
           <a href={`/dzialka/${point.id}`} className="group block text-left text-fg no-underline">
             {/* Karuzela */}
             <div

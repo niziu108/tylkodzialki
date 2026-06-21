@@ -432,7 +432,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
         effectiveStatus === 'ZAKONCZONE'
           ? 'border-fg/10 bg-surface-2/15 opacity-85'
           : isFeaturedActive
-          ? 'border-brand/45 bg-surface-2/20 shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-brand/70'
+          ? 'border-brand/55 bg-surface-2/20 shadow-[0_0_0_1px_rgba(122,163,51,0.30),0_0_24px_rgba(122,163,51,0.20)] hover:border-brand/80 hover:shadow-[0_0_0_1px_rgba(122,163,51,0.45),0_0_30px_rgba(122,163,51,0.30)]'
           : 'border-fg/14 bg-surface-2/20 hover:border-fg/30'
       }`}
     >

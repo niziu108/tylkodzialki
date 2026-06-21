@@ -466,7 +466,7 @@ export function OfferCard({
         horizontal ? 'lg:flex lg:items-stretch lg:h-[256px]' : ''
       } ${
         featured
-          ? 'border-brand/45 bg-surface shadow-[0_0_0_1px_rgba(122,163,51,0.10)] hover:border-brand/70'
+          ? 'border-brand/55 bg-surface shadow-[0_0_0_1px_rgba(122,163,51,0.30),0_0_24px_rgba(122,163,51,0.20)] hover:border-brand/80 hover:shadow-[0_0_0_1px_rgba(122,163,51,0.45),0_0_30px_rgba(122,163,51,0.30)]'
           : 'border-fg/14 bg-surface hover:border-fg/30'
       }`}
     >
