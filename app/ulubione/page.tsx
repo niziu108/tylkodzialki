@@ -44,24 +44,18 @@ export default async function UlubionePage() {
   return (
     <main className="min-h-screen bg-bg px-4 py-10 text-fg sm:px-8">
       <section className="mx-auto max-w-6xl">
-        <div className="mb-10 border-b border-fg/10 pb-8">
-          <h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
-            Ulubione działki
-          </h1>
+        <h1 className="sr-only">Ulubione działki</h1>
 
-          {items.length ? (
-            <div className="mt-6">
-              <div className="flex min-h-[34px] items-end">
-                <span className="text-[28px] font-semibold leading-none text-brand-bright">
-                  {items.length}
-                </span>
-              </div>
-              <div className="mt-3 inline-block border-b border-brand/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-bright/80">
-                {odmianaOfert(items.length)}
-              </div>
+        {items.length ? (
+          <div className="mb-10 border-b border-fg/10 pb-8">
+            <div className="text-[64px] font-semibold leading-none text-brand-bright md:text-[88px]">
+              {items.length}
             </div>
-          ) : null}
-        </div>
+            <div className="mt-4 inline-block border-b border-brand/55 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-bright/80 md:text-[12px]">
+              {odmianaOfert(items.length)}
+            </div>
+          </div>
+        ) : null}
 
         {!items.length ? (
           <div className="rounded-3xl border border-fg/12 bg-surface-2/30 p-8 text-fg/70">
