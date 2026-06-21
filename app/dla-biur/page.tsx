@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import AgencyCounter from '@/components/AgencyCounter';
 import DlaBiurForm from '@/components/DlaBiurForm';
+import ScrollFill from '@/components/ScrollFill';
 
 export const revalidate = 300;
 
@@ -159,6 +160,7 @@ export default async function DlaBiurPage() {
         className="relative scroll-mt-24 overflow-hidden border-y border-fg/10 bg-surface-2"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
+        <ScrollFill />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">

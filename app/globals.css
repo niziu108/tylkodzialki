@@ -192,6 +192,22 @@ textarea::placeholder { text-decoration: none !important; }
   filter: grayscale(1) opacity(0.55);
 }
 
+/* Zielone wypełnianie sekcji przy scrollu (telefon) — patrz ScrollFill.tsx.
+   --p (0..1) steruje wysokością (pozycje stopów) i mocą (opacity): zieleń
+   wstaje od dołu i robi się coraz mocniejsza (efekt rosnącego cienia).
+   var() trzymamy poza kolorem (Lightning CSS wycina rgba() z calc w alfie).
+   rgb 122 163 51 = --brand. */
+.scrollfill {
+  --p: 0;
+  opacity: var(--p);
+  background: linear-gradient(
+    to top,
+    rgba(122, 163, 51, 0.55) 0%,
+    rgba(122, 163, 51, 0.3) calc(var(--p) * 100%),
+    rgba(122, 163, 51, 0) calc(var(--p) * 100% + 8%)
+  );
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

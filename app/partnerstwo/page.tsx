@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import PartnerForm from '@/components/PartnerForm';
 import OffersCounter from '@/components/OffersCounter';
 import DecisionChain from '@/components/DecisionChain';
+import ScrollFill from '@/components/ScrollFill';
 
 // Liczba ofert ma być zawsze aktualna (nie odświeżana co kilka minut).
 export const dynamic = 'force-dynamic';
@@ -176,6 +177,7 @@ export default async function PartnerstwoPage() {
       {/* DLA KOGO */}
       <section className="relative overflow-hidden border-y border-fg/10 bg-surface-2">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
+        <ScrollFill />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
@@ -253,6 +255,7 @@ export default async function PartnerstwoPage() {
         className="relative scroll-mt-24 overflow-hidden border-y border-fg/10 bg-surface-2"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(122,163,51,0.14),transparent_34%)]" />
+        <ScrollFill />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
@@ -314,6 +317,7 @@ export default async function PartnerstwoPage() {
       {/* JAK ZACZĄĆ */}
       <section className="relative overflow-hidden border-y border-fg/10 bg-surface-2">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
+        <ScrollFill />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">

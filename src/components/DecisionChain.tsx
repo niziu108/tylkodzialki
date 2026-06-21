@@ -83,6 +83,15 @@ const STEPS: Step[] = [
       </svg>
     ),
   },
+  {
+    label: 'Ogród',
+    icon: (cls) => (
+      <svg className={cls} {...svgProps}>
+        <path d="M12 21v-6" />
+        <path d="M12 15c-3.6 0-6-2.2-6-5 0-1.8 1-3.3 2.6-4.1C9.1 4.2 10.4 3.5 12 3.5s2.9.7 3.4 2.4C17 6.7 18 8.2 18 10c0 2.8-2.4 5-6 5Z" />
+      </svg>
+    ),
+  },
 ];
 
 // Bazowa strzałka wskazuje w prawo. rotate-90 -> w dół, rotate-180 -> w lewo.
@@ -150,7 +159,9 @@ export default function DecisionChain() {
           <Arrow className="h-4 w-4 shrink-0 rotate-90 text-fg/30" />
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <MobileNode s={STEPS[7]} />
+          <Arrow className="h-4 w-4 shrink-0 rotate-180 text-fg/30" />
           <MobileNode s={STEPS[6]} />
         </div>
       </div>
