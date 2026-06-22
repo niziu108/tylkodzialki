@@ -125,6 +125,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const image = getMainImage(dzialka);
   const fullUrl = `${SITE_URL}${canonical}`;
+  const isEnded = dzialka.status === 'ZAKONCZONE';
 
   return {
     title: baseTitle,
@@ -155,10 +156,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       images: [image],
     },
     robots: {
-      index: true,
+      index: !isEnded,
       follow: true,
       googleBot: {
-        index: true,
+        index: !isEnded,
         follow: true,
         'max-image-preview': 'large',
         'max-snippet': -1,
@@ -178,6 +179,7 @@ export default async function Page({ params }: PageProps) {
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
   const isRent = dzialka?.transakcja === 'WYNAJEM';
+  const isEnded = dzialka?.status === 'ZAKONCZONE';
   const title = dzialka?.tytul?.trim() || (isRent ? 'Działka na wynajem' : 'Działka na sprzedaż');
 
   const price =
@@ -202,7 +204,9 @@ export default async function Page({ params }: PageProps) {
                 url: fullUrl,
                 priceCurrency: 'PLN',
                 price,
-                availability: 'https://schema.org/InStock',
+                availability: isEnded
+                  ? 'https://schema.org/SoldOut'
+                  : 'https://schema.org/InStock',
               },
             }
           : {}),

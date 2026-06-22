@@ -16,6 +16,7 @@ type Dzialka = {
   cenaPln: number;
   powierzchniaM2: number;
   transakcja?: 'SPRZEDAZ' | 'WYNAJEM' | string | null;
+  status?: 'AKTYWNE' | 'ZAKONCZONE' | string | null;
 
   telefon?: string | null;
   email?: string | null;
@@ -404,7 +405,10 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   const opis = formatOpis(d?.opis);
 
-  const telefon = (d?.telefon ?? '').trim() || null;
+  const isEnded = (d?.status ?? '') === 'ZAKONCZONE';
+  // Dla ofert zakończonych chowamy cały kontakt (telefon, SMS, formularz), żeby archiwalna
+  // oferta nie wyglądała jak aktywna. telefon=null automatycznie wygasza pasek tel/SMS i CTA.
+  const telefon = isEnded ? null : ((d?.telefon ?? '').trim() || null);
   const telefonHref = telefon ? telefon.replace(/[^\d+]/g, '') : null;
   const numerOferty = (d?.numerOferty ?? '').trim() || null;
   const smsText = numerOferty
@@ -749,8 +753,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
           {/* Napisz wiadomość + ulubione + udostępnij — same ikony, na wysokości „Wróć do listy", po prawej. */}
           <div className="flex items-center gap-1">
-            {/* Napisz wiadomość: tylko desktop — na mobile kontakt obsługuje dolny pasek (Zadzwoń / Napisz SMS). */}
-            {!preview ? (
+            {/* Napisz wiadomość: tylko desktop — na mobile kontakt obsługuje dolny pasek (Zadzwoń / Napisz SMS).
+                Dla ofert zakończonych ukryte (oferta archiwalna nie zbiera leadów). */}
+            {!preview && !isEnded ? (
               <button
                 type="button"
                 onClick={openMessage}
@@ -785,6 +790,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             </button>
           </div>
         </div>
+
+        {isEnded ? (
+          <div className="mt-6 rounded-2xl border border-amber-400/60 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+            <span className="font-semibold">Ta oferta jest nieaktywna.</span>{' '}
+            Ogłoszenie zostało zakończone lub wycofane i nie jest już dostępne. Dane kontaktowe są ukryte.
+          </div>
+        ) : null}
 
         <div className="mt-6 grid gap-0 lg:gap-10 lg:grid-cols-2">
           <section className="min-w-0 lg:space-y-8">
