@@ -792,7 +792,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
         </div>
 
         {isEnded ? (
-          <div className="mt-6 rounded-2xl border border-amber-400/60 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+          <div className="mt-6 rounded-2xl border border-[#7aa333]/35 bg-[#7aa333]/10 px-4 py-3 text-sm leading-6 text-fg">
             <span className="font-semibold">Ta oferta jest nieaktywna.</span>{' '}
             Ogłoszenie zostało zakończone lub wycofane i nie jest już dostępne. Dane kontaktowe są ukryte.
           </div>
