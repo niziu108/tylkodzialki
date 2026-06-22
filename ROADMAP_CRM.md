@@ -437,6 +437,12 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Naprawa:** woda — `typpodlaczeniawody` ma priorytet nad `ma_wode`, odległości („100m", „powyżej", „poniżej") → „w drodze"; gaz — odległości → „w drodze". Zgodne z zasadą uczciwego filtra (nie zawyżać „na działce"). Globalnie (też Galactica, tylko na plus). Zweryfikowane na realnej paczce IMO `091057`: woda i gaz „powyżej 100m" → „w drodze".
 - **Status:** NAPRAWIONE i na produkcji (worker zaktualizowany 2026-06-20).
 
+### P-L: Oferta nieaktywna z linku bezpośredniego wyglądała jak aktywna [NAPRAWIONE 2026-06-22]
+- **Gdzie:** `app/dzialka/[id]/page.tsx` + `app/dzialka/[id]/DzialkaClient.tsx`.
+- **Co:** oferta `ZAKONCZONE` otwarta z bezpośredniego linku renderowała się jak aktywna — widoczne dane kontaktowe i formularz, JSON-LD `availability: InStock`, strona indeksowalna. Brak jakiejkolwiek informacji, że oferta jest archiwalna. Zgłoszone przez IMO (link do zdezaktywowanej oferty po teście usuwania). Dotyczy wszystkich ofert, nie tylko IMO.
+- **Naprawa:** dla `status === ZAKONCZONE` — baner „Ta oferta jest nieaktywna", ukrycie kontaktu (telefon, SMS, CTA „Napisz wiadomość"; `telefon=null` wygasza pasek mobilny), oraz SEO: `robots noindex` + JSON-LD `availability: SoldOut`. Zweryfikowane w preview na realnej nieaktywnej ofercie (baner widoczny, brak `tel:` i przycisku kontaktu).
+- **Status:** NAPRAWIONE i wdrożone (Vercel).
+
 ---
 
 ## CEL KOŃCOWY
