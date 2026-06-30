@@ -2,11 +2,18 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
-import KupMap, { type MapPoint } from '@/components/KupMap';
+import type { MapPoint } from '@/components/KupMap';
 import { loadGoogleMaps } from '@/lib/googleMaps';
+
+// Lazy-load: KupMap ciągnie @googlemaps/markerclusterer i całą logikę mapy. Mapa
+// jest opt-in (otwiera się przyciskiem), więc nie ma jej w paczce startowej ani na
+// stronie głównej (gdzie wyszukiwarka tylko przekierowuje), ani na /kup do czasu
+// kliknięcia „Mapa". Mniej JS do pobrania => szybsza hydracja i niższe LCP/TTI.
+const KupMap = dynamic(() => import('@/components/KupMap'), { ssr: false });
 import type { AlertCriteria } from '@/lib/alertCriteria';
 import type { Przeznaczenie, TransakcjaTyp } from '@prisma/client';
 
@@ -1448,7 +1455,7 @@ export default function KupSearch({
           fill
           priority
           sizes="100vw"
-          quality={70}
+          quality={82}
           className="object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/24 to-black/38" />

@@ -72,7 +72,7 @@ export default function BlogSearchSection({
           fill
           priority
           sizes="100vw"
-          quality={70}
+          quality={82}
           className="object-cover object-center"
         />
         <div className="absolute inset-0 bg-black/30" />
