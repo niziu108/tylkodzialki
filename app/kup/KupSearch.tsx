@@ -669,7 +669,12 @@ export default function KupSearch({
 
   const router = useRouter();
 
-  const [loading, setLoading] = useState(false);
+  // Na /kup (lista) startujemy w stanie ładowania => pierwszy render pokazuje od razu
+  // szkielety (ta sama wysokość co 20 realnych kart), a nie malutki box „Brak wyników",
+  // który po doczytaniu rozdmuchiwał się do pełnej listy i spychał stopkę (to był
+  // CLS 0,469 na /kup). Na głównej (navigationMode) listy nie ma, a przycisk nie może
+  // od startu mówić „Szukam…", więc tam false.
+  const [loading, setLoading] = useState(!navigationMode);
   const [err, setErr] = useState<string | null>(null);
 
   const [items, setItems] = useState<ApiDzialka[]>([]);
