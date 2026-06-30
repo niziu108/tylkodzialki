@@ -10,7 +10,7 @@ import {
 } from "./actions";
 import AdminMailComposer from "./AdminMailComposer";
 import DeleteUserForm from "./DeleteUserForm";
-import { OfficeLogo } from "@/components/OfficeLogo";
+import LogoPreview from "./LogoPreview";
 
 type AdminPageProps = {
   searchParams?: Promise<{
@@ -640,13 +640,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         </form>
 
                         {user.defaultBiuroLogoUrl ? (
-                          <div className="mt-2">
-                            <OfficeLogo
-                              src={user.defaultBiuroLogoUrl}
-                              alt="Logo biura"
-                              variant="preview"
-                            />
-                          </div>
+                          <LogoPreview src={user.defaultBiuroLogoUrl} />
                         ) : null}
                       </td>
 
