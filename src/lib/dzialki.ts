@@ -9,7 +9,7 @@ import type {
 } from '@prisma/client';
 
 const SELLER_OWNER_SELECT = {
-  owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroNazwa: true } },
+  owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroLogoBg: true, defaultBiuroNazwa: true } },
 } as const;
 import { prisma } from '@/lib/prisma';
 
@@ -31,6 +31,7 @@ export const getDzialkaById = cache(async (id: string) => {
       owner: {
         select: {
           defaultBiuroLogoUrl: true,
+          defaultBiuroLogoBg: true,
           defaultBiuroNazwa: true,
           defaultBiuroOpiekun: true,
         },
@@ -43,6 +44,7 @@ export const getDzialkaById = cache(async (id: string) => {
   return {
     ...item,
     biuroLogoUrl: item.biuroLogoUrl || item.owner?.defaultBiuroLogoUrl || null,
+    biuroLogoBg: item.owner?.defaultBiuroLogoBg ?? false,
     biuroNazwa: item.biuroNazwa || item.owner?.defaultBiuroNazwa || null,
     biuroOpiekun: item.biuroOpiekun || item.owner?.defaultBiuroOpiekun || null,
   };
@@ -74,6 +76,7 @@ export type SimilarDzialka = {
   sprzedajacyTyp: SprzedajacyTyp | null;
   biuroNazwa: string | null;
   biuroLogoUrl: string | null;
+  biuroLogoBg: boolean;
   /** Odległość od bieżącej oferty w km (null, gdy dobrane spoza geo). */
   distanceKm: number | null;
 };
@@ -121,7 +124,7 @@ type SimilarRow = {
   sprzedajacyTyp: SprzedajacyTyp | null;
   biuroNazwa: string | null;
   biuroLogoUrl: string | null;
-  owner?: { defaultBiuroLogoUrl: string | null; defaultBiuroNazwa: string | null } | null;
+  owner?: { defaultBiuroLogoUrl: string | null; defaultBiuroLogoBg: boolean; defaultBiuroNazwa: string | null } | null;
   zdjecia: { url: string }[];
 };
 
@@ -141,6 +144,7 @@ function toSimilar(row: SimilarRow, distanceKm: number | null): SimilarDzialka {
     sprzedajacyTyp: row.sprzedajacyTyp ?? null,
     biuroNazwa: row.biuroNazwa ?? row.owner?.defaultBiuroNazwa ?? null,
     biuroLogoUrl: row.biuroLogoUrl ?? row.owner?.defaultBiuroLogoUrl ?? null,
+    biuroLogoBg: row.owner?.defaultBiuroLogoBg ?? false,
     distanceKm,
   };
 }

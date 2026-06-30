@@ -16,14 +16,21 @@ export function OfficeLogo({
   alt = '',
   variant = 'card',
   eager = false,
+  bg = false,
 }: {
   src: string;
   alt?: string;
   variant?: keyof typeof VARIANTS;
   eager?: boolean;
+  // Zielone tło pod logo (biura z białym/jasnym logotypem). Ustawiane na koncie biura.
+  bg?: boolean;
 }) {
   return (
-    <span className="inline-flex w-fit items-center">
+    <span
+      className={`inline-flex w-fit items-center ${
+        bg ? 'rounded-lg bg-brand px-2 py-1' : ''
+      }`}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}

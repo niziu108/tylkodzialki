@@ -48,6 +48,7 @@ type Dzialka = {
   biuroNazwa?: string | null;
   biuroOpiekun?: string | null;
   biuroLogoUrl?: string | null;
+  biuroLogoBg?: boolean | null;
   numerOferty?: string | null;
 
   zdjecia?: Photo[];
@@ -426,6 +427,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const sprzedajacyImie = (d?.sprzedajacyImie ?? '').trim() || null;
   const biuroOpiekun = (d?.biuroOpiekun ?? '').trim() || null;
   const biuroLogoUrl = (d?.biuroLogoUrl ?? '').trim() || null;
+  const biuroLogoBg = Boolean(d?.biuroLogoBg);
 
   const hasDocs = Boolean(d?.mpzp || d?.wzWydane || d?.projektDomu);
   const showMap = Boolean(mapSrc);
@@ -972,7 +974,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       ) : null}
 
                       {biuroLogoUrl ? (
-                        <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager />
+                        <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
                       ) : null}
                     </div>
                   </FieldBlock>

@@ -183,6 +183,7 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
               }
               biuroNazwa={point.biuroNazwa ?? null}
               biuroLogoUrl={point.biuroLogoUrl ?? null}
+              biuroLogoBg={point.biuroLogoBg ?? false}
               heartSlot={
                 <button
                   type="button"

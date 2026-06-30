@@ -33,6 +33,7 @@ export type MapPoint = {
   sprzedajacyTyp?: 'PRYWATNIE' | 'BIURO' | string | null;
   biuroNazwa?: string | null;
   biuroLogoUrl?: string | null;
+  biuroLogoBg?: boolean | null;
 };
 
 type Bounds = { n: number; s: number; e: number; w: number };

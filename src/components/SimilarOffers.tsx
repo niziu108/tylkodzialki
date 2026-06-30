@@ -78,6 +78,7 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
         sellerType={d.sprzedajacyTyp}
         biuroNazwa={d.biuroNazwa}
         biuroLogoUrl={d.biuroLogoUrl}
+        biuroLogoBg={d.biuroLogoBg}
       />
     </Link>
   );

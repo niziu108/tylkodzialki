@@ -28,6 +28,8 @@ model User {
   defaultBiuroNazwa      String?
   defaultBiuroOpiekun    String?
   defaultBiuroLogoUrl    String?
+  // Zielone tło pod logo biura — dla białych/jasnych logotypów, które na jasnym tle znikają.
+  defaultBiuroLogoBg     Boolean  @default(false)
 
   accounts           Account[]
   crmIntegrations    CrmIntegration[]

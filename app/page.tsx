@@ -135,7 +135,11 @@ export default async function HomePage() {
     biuroNazwa: d.biuroNazwa,
     biuroLogoUrl: d.biuroLogoUrl,
     owner: d.owner
-      ? { defaultBiuroLogoUrl: d.owner.defaultBiuroLogoUrl, defaultBiuroNazwa: d.owner.defaultBiuroNazwa }
+      ? {
+          defaultBiuroLogoUrl: d.owner.defaultBiuroLogoUrl,
+          defaultBiuroLogoBg: d.owner.defaultBiuroLogoBg,
+          defaultBiuroNazwa: d.owner.defaultBiuroNazwa,
+        }
       : null,
   }));
 

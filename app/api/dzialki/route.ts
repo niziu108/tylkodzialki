@@ -236,7 +236,7 @@ export async function GET(req: Request) {
         sprzedajacyTyp: true,
         biuroNazwa: true,
         biuroLogoUrl: true,
-        owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroNazwa: true } },
+        owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroLogoBg: true, defaultBiuroNazwa: true } },
         isFeatured: true,
         featuredUntil: true,
         createdAt: true,
@@ -285,6 +285,7 @@ export async function GET(req: Request) {
       sprzedajacyTyp: r.sprzedajacyTyp,
       biuroNazwa: r.biuroNazwa ?? r.owner?.defaultBiuroNazwa ?? null,
       biuroLogoUrl: r.biuroLogoUrl ?? r.owner?.defaultBiuroLogoUrl ?? null,
+      biuroLogoBg: r.owner?.defaultBiuroLogoBg ?? false,
     }));
 
     return NextResponse.json({

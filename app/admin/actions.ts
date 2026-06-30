@@ -186,6 +186,7 @@ export async function saveUserAgencyLogoAction(formData: FormData) {
   const userId = String(formData.get("userId") || "").trim();
   const logoUrl = String(formData.get("logoUrl") || "").trim();
   const removeLogo = String(formData.get("removeLogo") || "") === "1";
+  const logoBg = String(formData.get("biuroLogoBg") || "") === "1";
   const logoFile = formData.get("logoFile");
 
   if (!userId) return;
@@ -202,7 +203,7 @@ export async function saveUserAgencyLogoAction(formData: FormData) {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { defaultBiuroLogoUrl: null },
+      data: { defaultBiuroLogoUrl: null, defaultBiuroLogoBg: false },
     });
 
     revalidatePath("/admin");
@@ -234,7 +235,7 @@ export async function saveUserAgencyLogoAction(formData: FormData) {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { defaultBiuroLogoUrl: upload.url },
+      data: { defaultBiuroLogoUrl: upload.url, defaultBiuroLogoBg: logoBg },
     });
 
     revalidatePath("/admin");
@@ -248,7 +249,7 @@ export async function saveUserAgencyLogoAction(formData: FormData) {
 
   await prisma.user.update({
     where: { id: userId },
-    data: { defaultBiuroLogoUrl: logoUrl || null },
+    data: { defaultBiuroLogoUrl: logoUrl || null, defaultBiuroLogoBg: logoBg },
   });
 
   revalidatePath("/admin");

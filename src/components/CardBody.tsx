@@ -27,6 +27,7 @@ export function CardBody({
   sellerType,
   biuroNazwa,
   biuroLogoUrl,
+  biuroLogoBg = false,
   heartSlot,
 }: {
   cena: number;
@@ -47,6 +48,8 @@ export function CardBody({
   sellerType?: SprzedajacyTyp | null;
   biuroNazwa?: string | null;
   biuroLogoUrl?: string | null;
+  /** Zielone tło pod logo biura (białe/jasne logotypy). Ustawiane na koncie biura. */
+  biuroLogoBg?: boolean;
   /** Serduszko ulubionych (klienckie) — renderowane w prawym dolnym rogu, nad kreską sprzedawcy. */
   heartSlot?: ReactNode;
 }) {
@@ -127,7 +130,7 @@ export function CardBody({
         >
           {sellerType === 'BIURO' ? (
             biuroLogoUrl ? (
-              <OfficeLogo src={biuroLogoUrl} alt={biuroNazwa ?? ''} variant="card" />
+              <OfficeLogo src={biuroLogoUrl} alt={biuroNazwa ?? ''} variant="card" bg={biuroLogoBg} />
             ) : (
               <IconBuilding className="h-4 w-4 shrink-0 text-fg/70" />
             )

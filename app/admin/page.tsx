@@ -144,6 +144,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         listingCredits: true,
         createdAt: true,
         defaultBiuroLogoUrl: true,
+        defaultBiuroLogoBg: true,
         crmIntegrations: {
           select: { id: true, isActive: true },
           take: 1,
@@ -619,6 +620,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             className="block w-full text-xs text-fg/70 file:mr-3 file:h-10 file:rounded-xl file:border-0 file:bg-fg/10 file:px-3 file:text-xs file:font-semibold file:text-fg hover:file:bg-fg/15"
                           />
 
+                          {user.defaultBiuroLogoUrl ? (
+                            <LogoPreview
+                              src={user.defaultBiuroLogoUrl}
+                              defaultGreen={user.defaultBiuroLogoBg}
+                            />
+                          ) : null}
+
                           <div className="flex items-center justify-between gap-2">
                             <label className="flex items-center gap-2 text-xs text-red-300">
                               <input
@@ -638,10 +646,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                             </button>
                           </div>
                         </form>
-
-                        {user.defaultBiuroLogoUrl ? (
-                          <LogoPreview src={user.defaultBiuroLogoUrl} />
-                        ) : null}
                       </td>
 
                       <td className="px-4 py-4 align-middle font-semibold text-fg">

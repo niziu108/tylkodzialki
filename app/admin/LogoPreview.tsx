@@ -3,35 +3,41 @@
 import { useState } from "react";
 import { OfficeLogo } from "@/components/OfficeLogo";
 
-// Podgląd logo biura w adminie. Białe loga znikają na jasnym tle, więc
-// dajemy przełącznik podkładający naszą zieleń (#7aa333) — wtedy widać
-// białe logo i można sprawdzić, czy plik jest dobry.
-export default function LogoPreview({ src }: { src: string }) {
-  const [green, setGreen] = useState(false);
+// Podgląd logo biura w adminie + przełącznik zielonego tła (#7aa333).
+// Białe/jasne logotypy na jasnym tle znikają — zaznaczenie podkłada naszą zieleń.
+// Checkbox `biuroLogoBg` jest częścią formularza logo, więc stan zapisuje się na
+// koncie biura (User.defaultBiuroLogoBg) i przenosi się na stronę: karty list,
+// stronę oferty i popup mapy. Podgląd reaguje na żywo, jeszcze przed zapisem.
+export default function LogoPreview({
+  src,
+  defaultGreen,
+}: {
+  src: string;
+  defaultGreen: boolean;
+}) {
+  const [green, setGreen] = useState(defaultGreen);
 
   return (
-    <div className="mt-2 flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <label className="flex items-center gap-2 text-xs text-fg/80">
+        <input
+          type="checkbox"
+          name="biuroLogoBg"
+          value="1"
+          checked={green}
+          onChange={(e) => setGreen(e.target.checked)}
+          className="h-4 w-4 accent-brand"
+        />
+        Zielone tło pod logo
+      </label>
+
       <span
-        className={`inline-flex items-center rounded-xl px-2 py-1 transition ${
+        className={`inline-flex items-center rounded-lg px-2 py-1 transition ${
           green ? "bg-brand" : ""
         }`}
       >
         <OfficeLogo src={src} alt="Logo biura" variant="preview" />
       </span>
-
-      <button
-        type="button"
-        onClick={() => setGreen((v) => !v)}
-        aria-pressed={green}
-        title="Podłóż zielone tło (sprawdź białe logo)"
-        className={`h-7 shrink-0 rounded-lg border px-2 text-[11px] font-medium transition ${
-          green
-            ? "border-brand bg-brand/15 text-fg"
-            : "border-fg/15 text-fg/70 hover:border-brand/50 hover:text-fg"
-        }`}
-      >
-        {green ? "Jasne tło" : "Zielone tło"}
-      </button>
     </div>
   );
 }
