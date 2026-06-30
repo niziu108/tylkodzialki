@@ -12,7 +12,13 @@
 //   - Wynik per typ = liczba ofert mających dane przeznaczenie (hasSome) — jak filtr listy.
 
 import { cache } from 'react';
-import { DzialkaStatus, type Przeznaczenie } from '@prisma/client';
+import {
+  DzialkaStatus,
+  SprzedajacyTyp,
+  type PradStatus,
+  type Przeznaczenie,
+  type WodaStatus,
+} from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import {
   type BBox,
@@ -167,6 +173,157 @@ export const getRegionTotals = cache(async (): Promise<Record<string, number>> =
 
   return totals;
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// P21: metryki lokalne per miasto×typ (do unikalnego opisu + FAQ na stronie kategorii).
+//
+// Liczone z tej samej dopasowanej puli co licznik (ten sam promień/bbox, ta sama logika
+// geo), więc liczby zgadzają się z listą. Osobny, cięższy select (cena, powierzchnia,
+// typ sprzedającego, media, MPZP/WZ) uruchamiany TYLKO przy renderze strony kategorii
+// (zasięg miasta ~40 km, mała pula) — NIE dokładamy tych kolumn do odczytów całej bazy
+// (sitemap, sumy województw), które potrzebują wyłącznie liczników.
+//
+// Uczciwość ([[feedback-filtry-twarde]]): przy małej próbce zwracamy `null` zamiast mylącej
+// mediany/udziału. Strona pokazuje wtedy „za mało ofert", nie zmyśloną liczbę.
+
+// Minimalna próbka, przy której podajemy medianę/zakres ceny i udziały cech.
+export const MIN_SAMPLE = 4;
+
+// Zakres odporny na outliery: low=10. percentyl, high=90. percentyl (a NIE surowe min/max,
+// które ciągną pojedyncze śmieciowe ogłoszenia, np. „3 zł/m²"). Mediana w środku.
+export type RangeStat = { low: number; median: number; high: number };
+
+export type CategoryDetail = {
+  count: number;
+  privateCount: number;
+  officeCount: number;
+  // zł/m² (mediana + zakres) — null, gdy za mało ofert z ceną i powierzchnią
+  pricePerM2: RangeStat | null;
+  // cena całkowita (zł)
+  totalPrice: RangeStat | null;
+  // powierzchnia (m²)
+  areaM2: RangeStat | null;
+  // udział 0..1 ofert „uzbrojonych twardo" (prąd + woda NA DZIAŁCE) — null przy małej próbce
+  uzbrojoneShare: number | null;
+  // udział 0..1 ofert z MPZP lub wydanym WZ — null przy małej próbce
+  planShare: number | null;
+};
+
+type DetailRow = {
+  lat: number;
+  lng: number;
+  przeznaczenia: Przeznaczenie[];
+  cenaPln: number;
+  powierzchniaM2: number;
+  sprzedajacyTyp: SprzedajacyTyp;
+  prad: PradStatus;
+  woda: WodaStatus;
+  mpzp: boolean;
+  wzWydane: boolean;
+};
+
+// Percentyl metodą interpolacji liniowej (p w 0..1) na posortowanej tablicy.
+function percentile(sorted: number[], p: number): number {
+  const n = sorted.length;
+  if (n === 0) return 0;
+  if (n === 1) return sorted[0];
+  const idx = p * (n - 1);
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  if (lo === hi) return sorted[lo];
+  return Math.round(sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo));
+}
+
+function rangeStat(values: number[]): RangeStat | null {
+  if (values.length < MIN_SAMPLE) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return {
+    low: percentile(sorted, 0.1),
+    median: percentile(sorted, 0.5),
+    high: percentile(sorted, 0.9),
+  };
+}
+
+// „Uzbrojona twardo": prąd i woda fizycznie na działce (nie „w drodze/możliwość").
+function isUzbrojona(r: DetailRow): boolean {
+  const pradOk = r.prad === 'PRZYLACZE_NA_DZIALCE';
+  const wodaOk = r.woda === 'WODOCIAG_NA_DZIALCE' || r.woda === 'STUDNIA_GLEBINOWA';
+  return pradOk && wodaOk;
+}
+
+// Odczyt szczegółowy puli miasta (z cenami/cechami), dopasowany tą samą logiką co licznik.
+const loadCityDetailRows = cache(async (citySlug: string): Promise<DetailRow[]> => {
+  const city = getSeoCity(citySlug);
+  if (!city) return [];
+
+  const ctx = cityContext(city);
+  const radiusBox = boxAround(city.lat, city.lng, CITY_RADIUS_KM);
+  const loadBox = ctx.cityBBox ? unionBox(radiusBox, ctx.cityBBox) : radiusBox;
+
+  const now = new Date();
+  const rows = await prisma.dzialka.findMany({
+    where: {
+      ownerId: { not: null },
+      status: DzialkaStatus.AKTYWNE,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      lat: { gte: loadBox.minLat, lte: loadBox.maxLat },
+      lng: { gte: loadBox.minLng, lte: loadBox.maxLng },
+    },
+    select: {
+      lat: true,
+      lng: true,
+      przeznaczenia: true,
+      cenaPln: true,
+      powierzchniaM2: true,
+      sprzedajacyTyp: true,
+      prad: true,
+      woda: true,
+      mpzp: true,
+      wzWydane: true,
+    },
+  });
+
+  return rows
+    .filter((r): r is DetailRow => r.lat !== null && r.lng !== null)
+    .filter((r) => getSearchMatchInfo(r, ctx).anyMatch);
+});
+
+// Metryki dla jednej strony kategorii (miasto + typ). Filtruje pulę miasta po przeznaczeniu.
+export const getCategoryDetail = cache(
+  async (citySlug: string, typeEnum: Przeznaczenie): Promise<CategoryDetail> => {
+    const all = await loadCityDetailRows(citySlug);
+    const rows = all.filter((r) => r.przeznaczenia.includes(typeEnum));
+
+    const count = rows.length;
+    const privateCount = rows.filter((r) => r.sprzedajacyTyp === SprzedajacyTyp.PRYWATNIE).length;
+
+    const ppm2: number[] = [];
+    const totals: number[] = [];
+    const areas: number[] = [];
+    for (const r of rows) {
+      if (r.cenaPln > 0 && r.powierzchniaM2 > 0) {
+        ppm2.push(Math.round(r.cenaPln / r.powierzchniaM2));
+        totals.push(r.cenaPln);
+      }
+      if (r.powierzchniaM2 > 0) areas.push(r.powierzchniaM2);
+    }
+
+    const enoughForShare = count >= MIN_SAMPLE;
+
+    return {
+      count,
+      privateCount,
+      officeCount: count - privateCount,
+      pricePerM2: rangeStat(ppm2),
+      totalPrice: rangeStat(totals),
+      areaM2: rangeStat(areas),
+      uzbrojoneShare: enoughForShare ? rows.filter(isUzbrojona).length / count : null,
+      planShare: enoughForShare
+        ? rows.filter((r) => r.mpzp || r.wzWydane).length / count
+        : null,
+    };
+  }
+);
 
 // Wpisy huba do sitemapy: dla każdego miasta total + per typ (jeden odczyt całej bazy,
 // dopasowanie miasta tą samą logiką co strony — spójne z noindex).

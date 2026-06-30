@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Script from 'next/script';
 
 const SITE_URL = 'https://tylkodzialki.pl';
 
@@ -51,9 +50,11 @@ export default function Breadcrumbs({
       </nav>
       )}
 
-      <Script id="td-breadcrumb-schema" type="application/ld+json" strategy="afterInteractive">
-        {JSON.stringify(jsonLd)}
-      </Script>
+      {/* SSR: dane strukturalne wprost w HTML serwera (P20/P21), nie po hydracji. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     </>
   );
 }

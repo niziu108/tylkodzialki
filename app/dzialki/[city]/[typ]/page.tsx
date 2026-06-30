@@ -3,13 +3,19 @@ import { notFound } from 'next/navigation';
 import KupSearch from '../../../kup/KupSearch';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
+import FaqSection from '@/components/FaqSection';
 import {
   getSeoCity,
   getSeoType,
   getRegionForCity,
   SEO_TYPES,
 } from '@/lib/seo-locations';
-import { getCityStats, CITY_RADIUS_KM } from '@/lib/seoHub';
+import { getCityStats, getCategoryDetail, CITY_RADIUS_KM } from '@/lib/seoHub';
+import {
+  buildSpecRows,
+  buildLocalParagraphs,
+  buildFaq,
+} from '@/lib/seoCategoryContent';
 
 type PageProps = {
   params: Promise<{ city: string; typ: string }>;
@@ -45,6 +51,12 @@ export default async function CityTypePage({ params }: PageProps) {
 
   const region = getRegionForCity(city.slug);
   const stats = await getCityStats(city.slug);
+  const detail = await getCategoryDetail(city.slug, type.enum);
+
+  // Unikalna treść lokalna i FAQ generowane z realnych danych (P21).
+  const specRows = buildSpecRows(detail);
+  const paragraphs = buildLocalParagraphs(city, type, region ?? undefined, detail);
+  const faq = buildFaq(city, type, detail);
 
   // Linki do pozostałych typów w tym mieście (tylko niepuste).
   const siblingItems: HubLinkItem[] = SEO_TYPES.filter(
@@ -90,9 +102,44 @@ export default async function CityTypePage({ params }: PageProps) {
         }}
       />
 
+      {/* Blok danych lokalnych + unikalny opis (P21) — wszystko liczone z naszej bazy.
+          Renderujemy tylko, gdy realnie są oferty; pusta kategoria jest i tak noindex
+          (metadata) i nie ma o czym pisać, więc nie zaśmiecamy jej „0 ofert". */}
+      {detail.count > 0 ? (
+        <>
+          <section className="mx-auto mt-16 max-w-6xl px-3 md:px-4">
+            <h2 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
+              Działki {type.adj} {city.name}: dane z rynku
+            </h2>
+
+            <div className="mt-6 grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:gap-12">
+              <div className="max-w-4xl space-y-4 text-sm leading-7 text-fg/70 md:text-[15px]">
+                {paragraphs.map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
+
+              <dl className="md:min-w-[18rem] md:border-l md:border-fg/10 md:pl-8">
+                {specRows.map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex items-baseline justify-between gap-4 border-b border-fg/10 py-2.5"
+                  >
+                    <dt className="text-[13px] text-fg/55">{row.label}</dt>
+                    <dd className="text-right text-sm font-medium text-fg">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </section>
+
+          <FaqSection items={faq} title={`Działki ${type.adj} ${city.name}: najczęstsze pytania`} />
+        </>
+      ) : null}
+
       {siblingItems.length > 0 ? (
         <section className="mx-auto mt-16 max-w-6xl px-3 md:px-4">
-          <h2 className="text-xl font-semibold text-fg md:text-2xl">
+          <h2 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
             Inne typy działek w {city.name}
           </h2>
           <div className="mt-6">
@@ -100,19 +147,6 @@ export default async function CityTypePage({ params }: PageProps) {
           </div>
         </section>
       ) : null}
-
-      <section className="mx-auto mt-12 max-w-6xl px-3 md:px-4">
-        <div className="rounded-3xl border border-fg/10 bg-fg/[0.025] p-6 md:p-8">
-          <h2 className="text-lg font-semibold text-fg md:text-xl">
-            Działki {type.adj} {city.name}
-          </h2>
-          <p className="mt-4 max-w-4xl text-sm leading-7 text-fg/70 md:text-[15px]">
-            Na tej stronie znajdziesz działki {type.adj} w okolicy {city.name}: {type.desc}{' '}
-            Zawęź wyniki po cenie, powierzchni i mediach, a kontakt do sprzedającego
-            masz na stronie wybranej oferty.
-          </p>
-        </div>
-      </section>
     </main>
   );
 }
