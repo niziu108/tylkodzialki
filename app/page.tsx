@@ -187,7 +187,7 @@ export default async function HomePage() {
           quality={70}
           className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/42 to-black/55" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/24 to-black/38" />
 
         <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-8 text-center">
           <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-white/95 [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[70px] md:leading-none">

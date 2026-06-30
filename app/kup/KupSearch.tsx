@@ -1441,10 +1441,9 @@ export default function KupSearch({
   return (
     <div className="w-full overflow-x-hidden">
       <section ref={searchTopRef} className="relative w-full overflow-hidden">
-        {/* Zdjęcie hero przez next/image z priority (lekka wersja 1920px ~400 KB,
-            dawniej /sprzedaj.webp 2,0 MB jako CSS background). */}
+        {/* To samo zdjęcie co na stronie głównej (hero-kup), przez next/image z priority. */}
         <Image
-          src="/hero-sprzedaj.webp"
+          src="/hero-kup.webp"
           alt=""
           fill
           priority
@@ -1452,7 +1451,7 @@ export default function KupSearch({
           quality={70}
           className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/38 to-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/24 to-black/38" />
 
         <div className="relative mx-auto max-w-6xl px-3 py-10 md:px-4 md:py-14">
           <div className="rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
