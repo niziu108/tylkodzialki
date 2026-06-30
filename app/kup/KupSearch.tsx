@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
@@ -1439,16 +1440,19 @@ export default function KupSearch({
 
   return (
     <div className="w-full overflow-x-hidden">
-      <section ref={searchTopRef} className="relative w-full">
-        {/* To samo tło co na stronie głównej: gradient jasny -> zielony, bez obrazka
-            (dawne /sprzedaj.webp ważyło 2,0 MB) i bez siatki (decyzja właściciela). */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(180deg, var(--bg) 0%, #edf1e4 38%, #d6e3b4 72%, #b8ce84 100%)',
-          }}
+      <section ref={searchTopRef} className="relative w-full overflow-hidden">
+        {/* Zdjęcie hero przez next/image z priority (lekka wersja 1920px ~400 KB,
+            dawniej /sprzedaj.webp 2,0 MB jako CSS background). */}
+        <Image
+          src="/hero-sprzedaj.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          quality={70}
+          className="object-cover object-center"
         />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/38 to-black/50" />
 
         <div className="relative mx-auto max-w-6xl px-3 py-10 md:px-4 md:py-14">
           <div className="rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
