@@ -856,9 +856,52 @@ export default function KupSearch({
     setTransakcja((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
   }
 
+  // Autocomplete lokalizacji ładujemy LENIWIE — dopiero przy pierwszym kliknięciu w
+  // pole. Wcześniej Google Maps JS leciało na starcie KAŻDEJ strony z wyszukiwarką
+  // (też na głównej), konkurując o pasmo z obrazem hero i głównym JS => na zdławionym
+  // mobile podbijało LCP. Geokodowanie po wpisaniu i tak ma serwerowy fallback
+  // (/api/geocode), więc „Szukaj" działa nawet bez załadowanego Maps.
+  const autocompleteRef = useRef(false);
+  const ensureLocationAutocomplete = useCallback(async () => {
+    if (autocompleteRef.current) return;
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!key) return;
+    autocompleteRef.current = true;
+
+    await loadGoogleMaps().catch(() => {});
+    if (!inputRef.current || !window.google?.maps?.places) {
+      autocompleteRef.current = false;
+      return;
+    }
+
+    const widget = new window.google.maps.places.Autocomplete(inputRef.current, {
+      componentRestrictions: { country: 'pl' },
+      types: ['geocode'],
+      fields: ['formatted_address', 'geometry', 'name'],
+    });
+
+    widget.addListener('place_changed', () => {
+      const place = widget.getPlace();
+      const inputVal = inputRef.current?.value?.trim() ?? '';
+      const label = place.formatted_address || place.name || inputVal;
+
+      if (label) setLocText(label);
+
+      if (place.geometry?.location) {
+        setCenter({
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng(),
+        });
+      } else if (label) {
+        geocodeTypedLocation(label).then((coords) => {
+          if (coords) setCenter(coords);
+        });
+      }
+    });
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     async function initMapsAndSearch() {
       // Stan startowy bierzemy ze ŚWIEŻEGO adresu URL (po stronie klienta), a nie
@@ -883,40 +926,9 @@ export default function KupSearch({
         fetchDataWith(startFilters, startPage, true);
       }
 
-      // Load Maps — needed for autocomplete (all modes) and Case B geocoding
-      if (key) {
-        await loadGoogleMaps().catch(() => {});
-      }
-
-      // Autocomplete widget — attach after Maps loads, works in both navigationMode and /kup
-      if (!cancelled && inputRef.current && window.google?.maps?.places) {
-        const widget = new window.google.maps.places.Autocomplete(inputRef.current, {
-          componentRestrictions: { country: 'pl' },
-          types: ['geocode'],
-          fields: ['formatted_address', 'geometry', 'name'],
-        });
-
-        widget.addListener('place_changed', () => {
-          const place = widget.getPlace();
-          // Some API versions return empty formatted_address — fall back to DOM input value
-          const inputVal = inputRef.current?.value?.trim() ?? '';
-          const label = place.formatted_address || place.name || inputVal;
-
-          if (label) setLocText(label);
-
-          if (place.geometry?.location) {
-            setCenter({
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng(),
-            });
-          } else if (label) {
-            // Fallback: API returned no geometry, geocode the selected text
-            geocodeTypedLocation(label).then((coords) => {
-              if (coords && !cancelled) setCenter(coords);
-            });
-          }
-        });
-      }
+      // Google Maps NIE jest już ładowane na starcie. Autocomplete podpina się
+      // leniwie przy pierwszym focusie pola (ensureLocationAutocomplete), a poniższe
+      // geokodowanie z URL korzysta z serwerowego fallbacku w geocodeTypedLocation.
 
       // Case B: geocode text from URL, then search
       if (needsGeocode && !cancelled) {
@@ -1214,6 +1226,7 @@ export default function KupSearch({
               }}
               placeholder="Wpisz lokalizację"
               className="w-full bg-transparent px-4 py-3 text-fg/90 outline-none placeholder:text-fg/62"
+              onFocus={ensureLocationAutocomplete}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') applyAndSearch();
               }}
