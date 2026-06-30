@@ -22,13 +22,13 @@ export function OfficeLogo({
   alt?: string;
   variant?: keyof typeof VARIANTS;
   eager?: boolean;
-  // Zielone tło pod logo (biura z białym/jasnym logotypem). Ustawiane na koncie biura.
+  // Ciemne tło pod logo (biura z białym/jasnym logotypem). Ustawiane na koncie biura.
   bg?: boolean;
 }) {
   return (
     <span
       className={`inline-flex w-fit items-center ${
-        bg ? 'rounded-lg bg-brand px-2 py-1' : ''
+        bg ? 'rounded-lg bg-[#111111] px-2.5 py-1.5' : ''
       }`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
