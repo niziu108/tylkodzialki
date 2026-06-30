@@ -63,19 +63,22 @@ export default function BlogSearchSection({
   return (
     <>
       <section className="relative overflow-hidden bg-bg">
+        {/* To samo tło co na stronie głównej i /kup: gradient jasny -> zielony,
+            bez obrazka (dawne /kup.webp ważyło 2,3 MB) i bez siatki. */}
         <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url(/kup.webp)" }}
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, var(--bg) 0%, #edf1e4 38%, #d6e3b4 72%, #b8ce84 100%)",
+          }}
         />
-        <div className="absolute inset-0 bg-black/55" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/30 to-bg" />
 
         <div className="relative mx-auto max-w-4xl px-6 py-16 text-center md:px-8 md:py-20">
-          <h1 className="font-hero text-[34px] uppercase tracking-[0.06em] text-[#D8D2DB] [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[58px] md:leading-none">
+          <h1 className="font-hero text-[34px] uppercase tracking-[0.06em] text-fg md:text-[58px] md:leading-none">
             Wiedza o działkach
           </h1>
 
-          <div className="mt-5 inline-flex rounded-full border border-brand/30 bg-black/25 px-3 py-1 text-[12px] font-semibold text-brand-bright backdrop-blur-sm">
+          <div className="mt-5 inline-flex rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-[12px] font-semibold text-brand">
             Blog tylkodzialki.pl
           </div>
 

@@ -12,7 +12,9 @@ import type { OfferData } from "@/components/OfferCard";
 import { SEO_REGIONS } from "@/lib/seo-locations";
 import { getFeaturedListings } from "@/lib/dzialki";
 
-export const dynamic = "force-dynamic";
+// ISR zamiast force-dynamic: strona główna nie renderuje się od zera przy każdym
+// wejściu (szybciej dla użytkownika i Googlebota). Licznik/wyróżnione świeże do 5 min.
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "tylkodzialki.pl – szukaj, kupuj i sprzedawaj działki",
@@ -170,19 +172,24 @@ export default async function HomePage() {
       className="relative w-full overflow-hidden"
       style={{ background: PAGE_BG }}
     >
-      <section className="relative min-h-[100svh] w-full">
+      <section className="relative min-h-[100svh] w-full overflow-hidden">
+        {/* Tło gradientowe: u góry jasne tło strony, w dół coraz bardziej zielone.
+            Zero obrazka => LCP prawie natychmiast (dawne /kup.webp ważyło 2,3 MB).
+            Czysty gradient, bez siatki (decyzja właściciela). */}
         <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url(/kup.webp)", filter: "brightness(1.2) saturate(1.05)" }}
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, var(--bg) 0%, #edf1e4 38%, #d6e3b4 72%, #b8ce84 100%)",
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/38 to-black/46" />
 
         <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-8 text-center">
-          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-white/90 [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[70px] md:leading-none">
+          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-[70px] md:leading-none">
             Znajdź swoją działkę
           </h1>
 
-          <HeroCounter target={listingCount} />
+          <HeroCounter target={listingCount} tone="onLight" />
 
           <div className="mt-6 w-full max-w-4xl">
             <KupSearch navigationMode={true} />
@@ -191,16 +198,16 @@ export default async function HomePage() {
           <div className="mt-6">
             <Link
               href="/sprzedaj"
-              className="text-sm text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] transition hover:text-white/80"
+              className="text-sm text-fg transition hover:text-fg/70"
             >
               Sprzedajesz działkę?{" "}
               <span
-                className="text-[#9fd14b]"
+                className="text-brand"
                 style={{
                   textDecoration: "underline",
                   textUnderlineOffset: "4px",
                   textDecorationThickness: "1px",
-                  textDecorationColor: "rgba(159,209,75,0.40)",
+                  textDecorationColor: "color-mix(in srgb, var(--brand) 45%, transparent)",
                 }}
               >
                 Dodaj ogłoszenie

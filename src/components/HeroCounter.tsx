@@ -10,7 +10,13 @@ function fmt(n: number): string {
   return n.toLocaleString('pl-PL');
 }
 
-export default function HeroCounter({ target }: { target: number }) {
+export default function HeroCounter({
+  target,
+  tone = 'onDark',
+}: {
+  target: number;
+  tone?: 'onDark' | 'onLight';
+}) {
   const [value, setValue] = useState(0);
   const rafRef = useRef<number | null>(null);
 
@@ -40,6 +46,23 @@ export default function HeroCounter({ target }: { target: number }) {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
   }, [target]);
+
+  if (tone === 'onLight') {
+    return (
+      <div className="mt-4 flex flex-col items-center leading-none">
+        <span
+          className="tabular-nums text-[44px] font-bold text-brand md:text-[56px]"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {fmt(value)}
+        </span>
+        <span className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-fg/70">
+          ofert w całej Polsce
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4 flex flex-col items-center leading-none">
