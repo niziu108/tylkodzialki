@@ -54,8 +54,11 @@ export default function KupList({
   const content = useMemo(() => {
     if (loading) {
       return (
+        // 20 szkieletów = PAGE_SIZE: tyle samo, ile realnych kart na pełnej stronie,
+        // więc po doczytaniu wyników wysokość listy się nie zmienia i stopka nie
+        // przeskakuje (to był główny CLS na /kup, ~0,47 na dławionym mobile).
         <div className={gridClass}>
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 20 }).map((_, i) => (
             <div
               key={i}
               className="overflow-hidden rounded-3xl border border-fg/12 bg-surface-2/20 lg:flex lg:h-[256px]"
