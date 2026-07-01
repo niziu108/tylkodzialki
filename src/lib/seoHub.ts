@@ -340,6 +340,71 @@ export const getCategoryDetail = cache(
   }
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// P24: wycena punktowa dla narzędzia „Sprawdź działkę".
+//
+// Dla dowolnego punktu (pinezka/adres/numer wskazany przez użytkownika) liczymy orientacyjną
+// medianę + zakres zł/m² z NASZYCH aktywnych ofert w promieniu `km`. Ten sam silnik co strony
+// kategorii (computeDetail), zero migracji (liczone na @@index([lat,lng])). Uczciwie: przy < MIN_SAMPLE
+// ofert z ceną zwracamy `null` (UI pokaże „za mało danych", nie zmyśloną liczbę,
+// [[feedback-filtry-twarde]]).
+
+export type PointValuation = {
+  // mediana + zakres p10..p90 zł/m² z ofert w okolicy; null przy zbyt małej próbce
+  pricePerM2: RangeStat | null;
+  // liczba ofert z ceną i powierzchnią, na których policzono medianę
+  sampleCount: number;
+  radiusKm: number;
+};
+
+// Odległość równopłaszczyznowa (equirectangular) w km — wystarczająco dokładna w skali kilku km.
+function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const dLat = (bLat - aLat) * (Math.PI / 180) * KM_PER_DEG_LAT;
+  const meanLat = ((aLat + bLat) / 2) * (Math.PI / 180);
+  const dLng = (bLng - aLng) * (Math.PI / 180) * KM_PER_DEG_LAT * Math.cos(meanLat);
+  return Math.hypot(dLat, dLng);
+}
+
+export const getPointValuation = cache(
+  async (lat: number, lng: number, km = 10): Promise<PointValuation> => {
+    const box = boxAround(lat, lng, km);
+    const now = new Date();
+
+    const rows = await prisma.dzialka.findMany({
+      where: {
+        ownerId: { not: null },
+        status: DzialkaStatus.AKTYWNE,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        lat: { gte: box.minLat, lte: box.maxLat },
+        lng: { gte: box.minLng, lte: box.maxLng },
+      },
+      select: {
+        lat: true,
+        lng: true,
+        przeznaczenia: true,
+        cenaPln: true,
+        powierzchniaM2: true,
+        sprzedajacyTyp: true,
+        prad: true,
+        woda: true,
+        mpzp: true,
+        wzWydane: true,
+      },
+    });
+
+    // Prostokąt -> realny promień (róg bboxa jest dalej niż km).
+    const near = rows.filter(
+      (r): r is typeof r & { lat: number; lng: number } =>
+        r.lat !== null && r.lng !== null && distanceKm(lat, lng, r.lat, r.lng) <= km
+    );
+
+    const detail = computeDetail(near);
+    const sampleCount = near.filter((r) => r.cenaPln > 0 && r.powierzchniaM2 > 0).length;
+
+    return { pricePerM2: detail.pricePerM2, sampleCount, radiusKm: km };
+  }
+);
+
 // Wpisy huba do sitemapy: dla każdego miasta total + per typ (jeden odczyt całej bazy,
 // dopasowanie miasta tą samą logiką co strony — spójne z noindex).
 export type HubCityEntry = { citySlug: string; total: number; byType: Record<string, number> };

@@ -158,6 +158,13 @@ export default function GlobalNav() {
             </button>
 
             <button
+              onClick={() => go('/sprawdz-dzialke')}
+              className={`${navBtnBase} ${navBtnWhite}`}
+            >
+              Sprawdź działkę
+            </button>
+
+            <button
               onClick={() => go('/sprzedaj')}
               className={`${navBtnBase} ${navBtnWhite}`}
             >
@@ -308,6 +315,10 @@ export default function GlobalNav() {
 
                 <button onClick={() => go('/kup')} className={linkMobile}>
                   Szukaj działki
+                </button>
+
+                <button onClick={() => go('/sprawdz-dzialke')} className={linkMobile}>
+                  Sprawdź działkę
                 </button>
 
                 <button onClick={() => go('/sprzedaj')} className={linkMobile}>
