@@ -6,6 +6,8 @@ import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
 import { getSeoRegion, SEO_TYPES } from '@/lib/seo-locations';
 import { getVoivodeshipByKey } from '@/lib/dzialkiSearch';
 import { getVoivodeshipStats } from '@/lib/seoHub';
+import { getPowiatList } from '@/lib/seoPowiaty';
+import { powiatHeading } from '@/lib/seoPowiatContent';
 
 type PageProps = {
   params: Promise<{ woj: string }>;
@@ -54,6 +56,16 @@ export default async function WojewodztwoPage({ params }: PageProps) {
     count: stats.cityCounts[c.slug] ?? 0,
   }));
 
+  // Powiaty regionu (P22) — nowa warstwa huba woj -> powiat. Tylko z realną podażą.
+  const powiatItems: HubLinkItem[] = (await getPowiatList())
+    .filter((p) => p.wojSlug === region.slug && p.total > 0)
+    .slice(0, 18)
+    .map((p) => ({
+      href: `/dzialki/powiat/${p.slug}`,
+      label: powiatHeading(p.adj),
+      count: p.total,
+    }));
+
   return (
     <main className="pb-24 pt-0">
       <h1 className="sr-only">Działki na sprzedaż, województwo {region.name}</h1>
@@ -88,6 +100,21 @@ export default async function WojewodztwoPage({ params }: PageProps) {
           <HubLinkGrid items={cityItems} />
         </div>
       </section>
+
+      {powiatItems.length > 0 ? (
+        <section className="mx-auto mt-16 max-w-6xl px-3 md:px-4">
+          <h2 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
+            Działki według powiatów, województwo {region.name}
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-fg/70 md:text-[15px]">
+            Szukasz w konkretnym powiecie? Każda strona powiatu zbiera oferty z wielu
+            miejscowości w jego granicach, z medianą ceny i danymi o mediach.
+          </p>
+          <div className="mt-6">
+            <HubLinkGrid items={powiatItems} />
+          </div>
+        </section>
+      ) : null}
 
       <section className="mx-auto mt-12 max-w-6xl px-3 md:px-4">
         <div className="rounded-3xl border border-fg/10 bg-fg/[0.025] p-6 md:p-8">

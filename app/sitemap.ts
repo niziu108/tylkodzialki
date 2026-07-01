@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { SEO_REGIONS, SEO_TYPES, getSeoCity } from '@/lib/seo-locations';
 import { getHubSitemapEntries } from '@/lib/seoHub';
+import { getPowiatList, POWIAT_MIN_INDEX } from '@/lib/seoPowiaty';
 import { prisma } from '@/lib/prisma';
 
 export const revalidate = 3600;
@@ -9,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://tylkodzialki.pl';
   const now = new Date();
 
-  const [dzialki, articles, hubCities] = await Promise.all([
+  const [dzialki, articles, hubCities, powiaty] = await Promise.all([
     prisma.dzialka.findMany({
       select: {
         id: true,
@@ -32,7 +33,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       take: 5000,
     }),
     getHubSitemapEntries(),
+    getPowiatList(),
   ]);
+
+  // Hub SEO (P22): powiaty z realną podażą (>= próg indeksacji), spójnie z noindex.
+  const hubPowiatPages: MetadataRoute.Sitemap = powiaty
+    .filter((p) => p.total >= POWIAT_MIN_INDEX)
+    .map((p) => ({
+      url: `${baseUrl}/dzialki/powiat/${p.slug}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.72,
+    }));
 
   // Hub SEO (P13): tylko strony miast/typów z >0 ofert (spójnie z noindex) — nie zgłaszamy
   // Google pustych adresów. Województwa i index zawsze (treść zbiorcza).
@@ -115,6 +127,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     ...hubCityPages,
     ...hubTypePages,
+    ...hubPowiatPages,
 
     ...dzialki.map((dzialka) => ({
       url: `${baseUrl}/dzialka/${dzialka.id}`,

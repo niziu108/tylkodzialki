@@ -83,7 +83,7 @@ async function queryGeo(box: BBox | null): Promise<GeoRow[]> {
   return rows.filter((r): r is GeoRow => r.lat !== null && r.lng !== null);
 }
 
-function bucketByType(rows: GeoRow[]): Record<string, number> {
+export function bucketByType(rows: { przeznaczenia: Przeznaczenie[] }[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const t of SEO_TYPES) out[t.slug] = 0;
 
@@ -244,11 +244,55 @@ function rangeStat(values: number[]): RangeStat | null {
   };
 }
 
+// Strukturalny zestaw pól potrzebny do policzenia metryk (DetailRow z miasta i wiersze
+// powiatu z seoPowiaty.ts spełniają go z nadmiarem).
+export type DetailStatRow = {
+  przeznaczenia: Przeznaczenie[];
+  cenaPln: number;
+  powierzchniaM2: number;
+  sprzedajacyTyp: SprzedajacyTyp;
+  prad: PradStatus;
+  woda: WodaStatus;
+  mpzp: boolean;
+  wzWydane: boolean;
+};
+
 // „Uzbrojona twardo": prąd i woda fizycznie na działce (nie „w drodze/możliwość").
-function isUzbrojona(r: DetailRow): boolean {
+function isUzbrojona(r: DetailStatRow): boolean {
   const pradOk = r.prad === 'PRZYLACZE_NA_DZIALCE';
   const wodaOk = r.woda === 'WODOCIAG_NA_DZIALCE' || r.woda === 'STUDNIA_GLEBINOWA';
   return pradOk && wodaOk;
+}
+
+// Liczy metryki (CategoryDetail) z gotowego zbioru wierszy. Wspólne dla strony kategorii
+// (miasto×typ) i powiatu — type-filtrowanie/dopasowanie obszaru robi się PRZED wywołaniem.
+export function computeDetail(rows: DetailStatRow[]): CategoryDetail {
+  const count = rows.length;
+  const privateCount = rows.filter((r) => r.sprzedajacyTyp === SprzedajacyTyp.PRYWATNIE).length;
+
+  const ppm2: number[] = [];
+  const totals: number[] = [];
+  const areas: number[] = [];
+  for (const r of rows) {
+    if (r.cenaPln > 0 && r.powierzchniaM2 > 0) {
+      ppm2.push(Math.round(r.cenaPln / r.powierzchniaM2));
+      totals.push(r.cenaPln);
+    }
+    if (r.powierzchniaM2 > 0) areas.push(r.powierzchniaM2);
+  }
+
+  const enoughForShare = count >= MIN_SAMPLE;
+
+  return {
+    count,
+    privateCount,
+    officeCount: count - privateCount,
+    pricePerM2: rangeStat(ppm2),
+    totalPrice: rangeStat(totals),
+    areaM2: rangeStat(areas),
+    uzbrojoneShare: enoughForShare ? rows.filter(isUzbrojona).length / count : null,
+    planShare: enoughForShare ? rows.filter((r) => r.mpzp || r.wzWydane).length / count : null,
+  };
 }
 
 // Odczyt szczegółowy puli miasta (z cenami/cechami), dopasowany tą samą logiką co licznik.
@@ -292,36 +336,7 @@ const loadCityDetailRows = cache(async (citySlug: string): Promise<DetailRow[]> 
 export const getCategoryDetail = cache(
   async (citySlug: string, typeEnum: Przeznaczenie): Promise<CategoryDetail> => {
     const all = await loadCityDetailRows(citySlug);
-    const rows = all.filter((r) => r.przeznaczenia.includes(typeEnum));
-
-    const count = rows.length;
-    const privateCount = rows.filter((r) => r.sprzedajacyTyp === SprzedajacyTyp.PRYWATNIE).length;
-
-    const ppm2: number[] = [];
-    const totals: number[] = [];
-    const areas: number[] = [];
-    for (const r of rows) {
-      if (r.cenaPln > 0 && r.powierzchniaM2 > 0) {
-        ppm2.push(Math.round(r.cenaPln / r.powierzchniaM2));
-        totals.push(r.cenaPln);
-      }
-      if (r.powierzchniaM2 > 0) areas.push(r.powierzchniaM2);
-    }
-
-    const enoughForShare = count >= MIN_SAMPLE;
-
-    return {
-      count,
-      privateCount,
-      officeCount: count - privateCount,
-      pricePerM2: rangeStat(ppm2),
-      totalPrice: rangeStat(totals),
-      areaM2: rangeStat(areas),
-      uzbrojoneShare: enoughForShare ? rows.filter(isUzbrojona).length / count : null,
-      planShare: enoughForShare
-        ? rows.filter((r) => r.mpzp || r.wzWydane).length / count
-        : null,
-    };
+    return computeDetail(all.filter((r) => r.przeznaczenia.includes(typeEnum)));
   }
 );
 
