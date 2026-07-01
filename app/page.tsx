@@ -185,12 +185,12 @@ export default async function HomePage() {
         {/* sizes ze sztuczką: każdy breakpoint pobiera TYLKO swoje zdjęcie
             (drugie, ukryte, dostaje 1px), więc preload priority nie dubluje transferu. */}
         <Image
-          src="/hero-kup-mobile.webp"
+          src="/hero-kup-home-mobile.webp"
           alt=""
           fill
           priority
           sizes="(min-width: 768px) 1px, 100vw"
-          quality={60}
+          quality={78}
           className="object-cover object-center md:hidden"
         />
         {/* Desktop bez priority => domyślnie lazy, a lazy + display:none na telefonie
