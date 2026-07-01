@@ -182,16 +182,30 @@ export default async function HomePage() {
             format poda zoptymalizowany per urządzenie => zdjęcie jest szybkim
             elementem LCP (nie czeka na JS jak karta wyszukiwarki). Źródło to lekka
             wersja 1920px (~380 KB), dawniej 2,3 MB jako CSS background. */}
+        {/* Mobile: lekki, markowy gradient zamiast pełnoekranowej fotki. Zdjęcie hero
+            było elementem LCP zależnym od sieci (~4,5 s na tel). Na telefonie LCP
+            schodzi więc do tekstu/wyszukiwarki (maluje się tuż po FCP), a hero dalej
+            wygląda „drogo". Desktop dostaje zdjęcie bez zmian. */}
+        <div
+          className="absolute inset-0 md:hidden"
+          style={{
+            background:
+              "radial-gradient(circle at 78% 12%, rgba(122,163,51,0.35), transparent 45%), radial-gradient(circle at 15% 85%, rgba(47,94,70,0.55), transparent 52%), linear-gradient(158deg, #2f5e46 0%, #1e3d2d 52%, #142a1f 100%)",
+          }}
+        />
+
         <Image
           src="/hero-kup.webp"
           alt=""
           fill
           priority
-          sizes="100vw"
-          quality={82}
-          className="object-cover object-center"
+          // Na mobile żądamy znikomej wersji (obrazek i tak jest ukryty), żeby preload
+          // priority nie ściągał ciężkiej fotki na telefonie. Desktop = pełne 100vw.
+          sizes="(max-width: 767px) 2px, 100vw"
+          quality={68}
+          className="hidden object-cover object-center md:block"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/24 to-black/38" />
+        <div className="absolute inset-0 hidden bg-gradient-to-b from-black/18 via-black/24 to-black/38 md:block" />
 
         <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-8 text-center">
           <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-white/95 [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[70px] md:leading-none">
