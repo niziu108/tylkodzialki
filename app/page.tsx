@@ -182,17 +182,15 @@ export default async function HomePage() {
             format poda zoptymalizowany per urządzenie => zdjęcie jest szybkim
             elementem LCP (nie czeka na JS jak karta wyszukiwarki). Źródło to lekka
             wersja 1920px (~380 KB), dawniej 2,3 MB jako CSS background. */}
-        {/* Mobile: lekki, markowy gradient zamiast pełnoekranowej fotki. Zdjęcie hero
-            było elementem LCP zależnym od sieci (~4,5 s na tel). Na telefonie LCP
-            schodzi więc do tekstu/wyszukiwarki (maluje się tuż po FCP), a hero dalej
-            wygląda „drogo". Desktop dostaje zdjęcie bez zmian. */}
-        <div
-          className="absolute inset-0 md:hidden"
-          style={{
-            background:
-              "radial-gradient(circle at 78% 12%, rgba(122,163,51,0.35), transparent 45%), radial-gradient(circle at 15% 85%, rgba(47,94,70,0.55), transparent 52%), linear-gradient(158deg, #2f5e46 0%, #1e3d2d 52%, #142a1f 100%)",
-          }}
-        />
+        {/* Mobile: zamiast pełnoekranowej fotki (element LCP zależny od sieci, ~4,5 s)
+            ta sama jasna oprawa co reszta strony i hero /dla-biur — kremowe tło +
+            poświata #7aa333 + siateczka. Dzięki temu hero „trzyma się" całej strony,
+            a LCP schodzi do tekstu/wyszukiwarki (maluje się tuż po FCP). Desktop = foto. */}
+        <div className="absolute inset-0 md:hidden">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.05),transparent_34%)]" />
+          <div className="pointer-events-none absolute left-[-120px] top-24 h-[380px] w-[380px] rounded-full bg-brand/10 blur-[120px]" />
+        </div>
 
         <Image
           src="/hero-kup.webp"
@@ -208,11 +206,17 @@ export default async function HomePage() {
         <div className="absolute inset-0 hidden bg-gradient-to-b from-black/18 via-black/24 to-black/38 md:block" />
 
         <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-8 text-center">
-          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-white/95 [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[70px] md:leading-none">
+          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-white/95 md:[text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[70px] md:leading-none">
             Znajdź swoją działkę
           </h1>
 
-          <HeroCounter target={listingCount} />
+          {/* Licznik: na jasnym mobile wariant onLight (zielony), na foto onDark (biały) */}
+          <div className="md:hidden">
+            <HeroCounter target={listingCount} tone="onLight" />
+          </div>
+          <div className="hidden md:block">
+            <HeroCounter target={listingCount} tone="onDark" />
+          </div>
 
           <div className="mt-6 w-full max-w-4xl">
             <KupSearch navigationMode={true} />
@@ -221,18 +225,10 @@ export default async function HomePage() {
           <div className="mt-6">
             <Link
               href="/sprzedaj"
-              className="text-sm text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] transition hover:text-white/80"
+              className="text-sm text-fg/75 transition hover:text-fg md:text-white md:[text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:hover:text-white/80"
             >
               Sprzedajesz działkę?{" "}
-              <span
-                className="text-[#9fd14b]"
-                style={{
-                  textDecoration: "underline",
-                  textUnderlineOffset: "4px",
-                  textDecorationThickness: "1px",
-                  textDecorationColor: "rgba(159,209,75,0.40)",
-                }}
-              >
+              <span className="font-semibold text-brand underline decoration-1 underline-offset-4 md:font-normal md:text-[#9fd14b]">
                 Dodaj ogłoszenie
               </span>{" "}
               →
