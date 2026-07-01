@@ -3,6 +3,8 @@ import DzialkaClient from './DzialkaClient';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SimilarOffers from '@/components/SimilarOffers';
 import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
+import { getSeoRegion } from '@/lib/seo-locations';
+import { normalizeText } from '@/lib/dzialkiSearch';
 
 // Oferta renderowana po stronie serwera (ISR): Google dostaje pełny HTML,
 // użytkownik gotową treść, a baza jest odpytywana najwyżej raz na 60 s per oferta.
@@ -66,14 +68,26 @@ function labelPrzeznaczenie(value?: string | null) {
   return map[value] ?? value.toLowerCase();
 }
 
-function getMainImage(dzialka: DzialkaSeo) {
-  const photos = (dzialka.zdjecia ?? [])
+function getSortedImages(dzialka: DzialkaSeo): string[] {
+  return (dzialka.zdjecia ?? [])
     .slice()
     .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0))
     .map((p) => p.url)
     .filter(Boolean);
+}
 
-  return photos[0] || `${SITE_URL}/logo.png`;
+function getMainImage(dzialka: DzialkaSeo) {
+  return getSortedImages(dzialka)[0] || `${SITE_URL}/logo.png`;
+}
+
+// Nazwa województwa z ostatniego tokenu `locationFull` (Google geocoding kończy się
+// województwem). Do addressRegion w danych strukturalnych. null, gdy nie rozpoznano.
+function regionNameFromLocationFull(locationFull?: string | null): string | null {
+  if (!locationFull) return null;
+  const parts = locationFull.split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) return null;
+  const slug = normalizeText(parts[parts.length - 1]).replace(/\s+/g, '-');
+  return getSeoRegion(slug)?.name ?? null;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -187,29 +201,95 @@ export default async function Page({ params }: PageProps) {
       ? dzialka.cenaPln
       : null;
 
+  const seoDescription = dzialka
+    ? cleanText(dzialka.opis) ||
+      `Działka ${isRent ? 'na wynajem' : 'na sprzedaż'}, ${cleanText(dzialka.locationLabel) || 'Polska'}`
+    : '';
+
+  const offerJsonLd = price
+    ? {
+        '@type': 'Offer',
+        url: fullUrl,
+        priceCurrency: 'PLN',
+        price,
+        availability: isEnded ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
+      }
+    : null;
+
   const productJsonLd = dzialka
     ? {
         '@context': 'https://schema.org',
         '@type': 'Product',
         name: title,
-        description:
-          cleanText(dzialka.opis) ||
-          `Działka ${isRent ? 'na wynajem' : 'na sprzedaż'}, ${cleanText(dzialka.locationLabel) || 'Polska'}`,
+        description: seoDescription,
         image: getMainImage(dzialka),
         url: fullUrl,
-        ...(price
+        ...(offerJsonLd ? { offers: offerJsonLd } : {}),
+      }
+    : null;
+
+  // P20: RealEstateListing + zagnieżdżony Place (geo/adres/powierzchnia). Bogatsze,
+  // poprawne dane strukturalne pod real estate i cytowanie przez AI. Obok Product
+  // (który daje rich result z ceną). Wszystko w SSR.
+  const hasGeo =
+    typeof dzialka?.lat === 'number' &&
+    typeof dzialka?.lng === 'number' &&
+    Number.isFinite(dzialka.lat) &&
+    Number.isFinite(dzialka.lng);
+  const addressLocality = dzialka ? cleanText(dzialka.locationLabel) : '';
+  const addressRegion = dzialka ? regionNameFromLocationFull(dzialka.locationFull) : null;
+  const images = dzialka ? getSortedImages(dzialka) : [];
+  const datePosted = dzialka ? (dzialka.publishedAt ?? dzialka.createdAt) : null;
+
+  const place =
+    dzialka && (hasGeo || addressLocality || addressRegion)
+      ? {
+          '@type': 'Place',
+          ...(addressLocality ? { name: addressLocality } : {}),
+          ...(addressLocality || addressRegion
+            ? {
+                address: {
+                  '@type': 'PostalAddress',
+                  ...(addressLocality ? { addressLocality } : {}),
+                  ...(addressRegion ? { addressRegion } : {}),
+                  addressCountry: 'PL',
+                },
+              }
+            : {}),
+          ...(hasGeo
+            ? {
+                geo: {
+                  '@type': 'GeoCoordinates',
+                  latitude: dzialka.lat,
+                  longitude: dzialka.lng,
+                },
+              }
+            : {}),
+        }
+      : null;
+
+  const realEstateJsonLd = dzialka
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'RealEstateListing',
+        url: fullUrl,
+        name: title,
+        description: seoDescription,
+        ...(datePosted ? { datePosted: new Date(datePosted).toISOString() } : {}),
+        ...(images.length ? { image: images } : {}),
+        ...(offerJsonLd ? { offers: offerJsonLd } : {}),
+        ...(typeof dzialka.powierzchniaM2 === 'number' && dzialka.powierzchniaM2 > 0
           ? {
-              offers: {
-                '@type': 'Offer',
-                url: fullUrl,
-                priceCurrency: 'PLN',
-                price,
-                availability: isEnded
-                  ? 'https://schema.org/SoldOut'
-                  : 'https://schema.org/InStock',
+              additionalProperty: {
+                '@type': 'PropertyValue',
+                name: 'Powierzchnia działki',
+                value: dzialka.powierzchniaM2,
+                unitCode: 'MTK',
+                unitText: 'm²',
               },
             }
           : {}),
+        ...(place ? { spatialCoverage: place } : {}),
       }
     : null;
 
@@ -220,6 +300,15 @@ export default async function Page({ params }: PageProps) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(productJsonLd).replace(/</g, '\\u003c'),
+          }}
+        />
+      ) : null}
+
+      {realEstateJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(realEstateJsonLd).replace(/</g, '\\u003c'),
           }}
         />
       ) : null}
