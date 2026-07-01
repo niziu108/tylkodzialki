@@ -188,8 +188,9 @@ export default async function HomePage() {
             a LCP schodzi do tekstu/wyszukiwarki (maluje się tuż po FCP). Desktop = foto. */}
         <div className="absolute inset-0 md:hidden">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.05),transparent_34%)]" />
-          <div className="pointer-events-none absolute left-[-120px] top-24 h-[380px] w-[380px] rounded-full bg-brand/10 blur-[120px]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(122,163,51,0.26),transparent_46%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_-5%,rgba(122,163,51,0.34),transparent_42%),radial-gradient(circle_at_85%_80%,rgba(47,94,70,0.05),transparent_34%)]" />
+          <div className="pointer-events-none absolute left-1/2 top-[-60px] h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-brand/20 blur-[110px]" />
         </div>
 
         <Image
@@ -234,6 +235,35 @@ export default async function HomePage() {
               →
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* P24: wejście do narzędzia „Sprawdź działkę" — lekki pasek (zwykły link, bez wpływu na LCP). */}
+      <section className="relative overflow-hidden border-y border-fg/10 bg-surface-2">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(122,163,51,0.14),transparent_34%)]" />
+
+        <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-start gap-6 px-6 py-12 md:flex-row md:items-center md:justify-between md:px-10 md:py-14">
+          <div className="max-w-2xl">
+            <div className="text-[12px] uppercase tracking-[0.18em] text-brand-bright">
+              Sprawdź działkę
+            </div>
+
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-fg md:text-3xl">
+              Poznaj granice, powierzchnię i cenę okolicy w minutę.
+            </h2>
+
+            <p className="mt-3 text-sm leading-7 text-fg/70 md:text-base">
+              Wskaż działkę na mapie albo wpisz adres. Pokażemy jej obrys i metraż z rejestru GUGiK
+              oraz orientacyjną cenę z ofert w pobliżu. Za darmo.
+            </p>
+          </div>
+
+          <Link
+            href="/sprawdz-dzialke"
+            className="inline-flex h-13 shrink-0 items-center justify-center rounded-2xl bg-brand px-8 py-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
+          >
+            Sprawdź działkę →
+          </Link>
         </div>
       </section>
 

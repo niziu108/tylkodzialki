@@ -1466,20 +1466,29 @@ export default function KupSearch({
   return (
     <div className="w-full overflow-x-hidden">
       <section ref={searchTopRef} className="relative w-full overflow-hidden">
-        {/* To samo zdjęcie co na stronie głównej (hero-kup), przez next/image z priority. */}
+        {/* Art direction spójny ze stroną główną: telefon dostaje jasną oprawę
+            (kremowe tło + poświata #7aa333 + siateczka) zamiast pełnej fotki =>
+            szybki LCP na mobile. Desktop = zdjęcie hero-kup jak dotąd (wow). */}
+        <div className="absolute inset-0 md:hidden">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(122,163,51,0.26),transparent_46%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_-5%,rgba(122,163,51,0.34),transparent_42%),radial-gradient(circle_at_85%_80%,rgba(47,94,70,0.05),transparent_34%)]" />
+          <div className="pointer-events-none absolute left-1/2 top-[-60px] h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-brand/20 blur-[110px]" />
+        </div>
+
         <Image
           src="/hero-kup.webp"
           alt=""
           fill
           priority
-          sizes="100vw"
-          quality={82}
-          className="object-cover object-center"
+          sizes="(max-width: 767px) 2px, 100vw"
+          quality={68}
+          className="hidden object-cover object-center md:block"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/24 to-black/38" />
+        <div className="absolute inset-0 hidden bg-gradient-to-b from-black/18 via-black/24 to-black/38 md:block" />
 
         <div className="relative mx-auto max-w-6xl px-3 py-10 md:px-4 md:py-14">
-          <div className="rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
+          <div className="rounded-2xl border border-fg/10 bg-surface-2 p-5 md:bg-surface-2/78 md:p-8 md:backdrop-blur-sm">
             {filterContent}
           </div>
 
