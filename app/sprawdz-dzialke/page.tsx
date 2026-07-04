@@ -67,7 +67,7 @@ const FAQ: FaqItem[] = [
   {
     question: 'Czy narzędzie jest darmowe?',
     answer:
-      'Pierwszą działkę sprawdzisz bez konta. Kolejne raporty są też darmowe, wymagają tylko zalogowania.',
+      'Tak, w całości. Sprawdzisz dowolną liczbę działek za darmo i bez zakładania konta.',
   },
 ];
 
@@ -90,44 +90,27 @@ export default async function SprawdzDzialkePage() {
 
   return (
     <main className="relative w-full overflow-hidden" style={{ background: 'var(--bg)' }}>
-      {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(122,163,51,0.14),transparent_45%)]" />
-
-        <div className="relative z-10 mx-auto max-w-6xl px-6 pb-2 pt-12 text-left md:px-10 md:pt-16">
-          <h1 className="text-[24px] font-semibold uppercase tracking-[0.14em] text-brand-text md:text-[28px]">
-            Sprawdź działkę
-          </h1>
-
-          <p className="mt-4 max-w-2xl text-[15px] leading-7 text-fg/65">
-            Wpisz adres albo numer ewidencyjny, a pokażemy granice, powierzchnię i numer działki z
-            rejestru GUGiK, przeznaczenie z planu miejscowego oraz orientacyjną cenę okolicy.
-            Pierwsza za darmo, bez konta.
-          </p>
-        </div>
-      </section>
-
-      {/* NARZĘDZIE (formularz + mapa + wynik/przykład) */}
-      <section className="relative mx-auto max-w-6xl px-6 pb-14 pt-8 md:px-10">
+      {/* NARZĘDZIE (wyszukiwarka-hero + mapa + wynik/przykład) */}
+      <section className="relative mx-auto max-w-6xl px-6 pb-14 pt-8 md:px-10 md:pt-12">
         <SprawdzSearch example={example} />
       </section>
 
       {/* FAQ najpierw */}
-      <FaqSection items={FAQ} green />
+      <FaqSection items={FAQ} green wide />
 
-      {/* SEO / JAK TO DZIAŁA — pod najczęstszymi pytaniami */}
+      {/* SEO / JAK TO DZIAŁA — pod najczęstszymi pytaniami, od lewej */}
       <section className="relative overflow-hidden border-t border-fg/10">
-        <div className="relative z-10 mx-auto max-w-3xl px-6 py-16 md:px-10 md:py-20">
+        <div className="relative z-10 mx-auto max-w-6xl px-6 py-16 md:px-10 md:py-20">
           <h2 className="text-xl font-semibold tracking-tight text-brand-text md:text-2xl">
             Co możesz sprawdzić i skąd to wiemy
           </h2>
 
-          <div className="mt-6 space-y-5 text-[15px] leading-8 text-fg/72">
+          <div className="mt-6 max-w-3xl space-y-5 text-[15px] leading-8 text-fg/72">
             <p>
               Kupno działki zaczyna się od prostego pytania: gdzie dokładnie leżą jej granice i ile
               ma metrów. Nasze narzędzie odpowiada na nie od razu. Klikasz działkę na mapie albo
               wpisujesz adres, a my odpytujemy publiczny rejestr ewidencji gruntów (ULDK, GUGiK) i
-              rysujemy obrys działki wraz z powierzchnią, wymiarami i numerem ewidencyjnym.
+              rysujemy obrys działki wraz z powierzchnią i numerem ewidencyjnym.
             </p>
             <p>
               Odczytujemy też plan miejscowy z Krajowej Integracji MPZP i wyciągamy z niego

@@ -269,12 +269,12 @@ export default async function HomePage() {
           </div>
 
           <h2 className="mt-4 max-w-3xl text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
-            Poznaj granice, plan i cenę działki w minutę.
+            Sprawdź każdą działkę, zanim ją kupisz.
           </h2>
 
           <p className="mt-6 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
-            Nasze darmowe narzędzie odpytuje rejestry GUGiK i nasze oferty, a Ty dostajesz gotowy
-            raport. Bez chodzenia po urzędach, bez logowania za pierwszym razem.
+            Wpisujesz adres, a my robimy resztę. W minutę dostajesz czytelny raport o działce.
+            Za darmo, bez logowania.
           </p>
 
           <div className="mt-12 grid gap-5 md:grid-cols-2">
@@ -282,32 +282,26 @@ export default async function HomePage() {
               <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
                 01
               </div>
-              <h3 className="mt-5 text-xl font-semibold text-fg">Wpisz adres lub numer działki</h3>
+              <h3 className="mt-5 text-xl font-semibold text-fg">Wpisujesz adres</h3>
               <p className="mt-3 text-sm leading-7 text-fg/72">
-                Wskazujesz działkę adresem, numerem ewidencyjnym albo pinezką na mapie. Ty podajesz
-                punkt, więc dane są dla konkretnej działki, nie z przybliżenia.
+                Podajesz adres, numer działki albo klikasz ją na mapie. Tyle z Twojej strony.
               </p>
             </div>
 
-            <div className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur">
+            <div className="group flex flex-col rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur">
               <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
                 02
               </div>
-              <h3 className="mt-5 text-xl font-semibold text-fg">Dostajesz raport</h3>
-              <p className="mt-3 text-sm leading-7 text-fg/72">
-                Obrys i wymiary na mapie, powierzchnia i numer ewidencyjny, przeznaczenie z planu
-                miejscowego oraz orientacyjna cena okolicy. Wszystko na jednym ekranie.
-              </p>
+              <h3 className="mt-5 text-xl font-semibold text-fg">Dostajesz gotowy raport</h3>
+              <div className="mt-6">
+                <Link
+                  href="/sprawdz-dzialke"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
+                >
+                  Sprawdź działkę
+                </Link>
+              </div>
             </div>
-          </div>
-
-          <div className="mt-10">
-            <Link
-              href="/sprawdz-dzialke"
-              className="inline-flex h-13 items-center justify-center rounded-2xl bg-brand px-8 py-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
-            >
-              Sprawdź działkę
-            </Link>
           </div>
         </div>
       </section>

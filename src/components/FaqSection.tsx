@@ -8,10 +8,14 @@ export default function FaqSection({
   items,
   title = 'Najczęstsze pytania',
   green = false,
+  wide = false,
 }: {
   items: FaqItem[];
   title?: string;
   green?: boolean;
+  // wide: dopasowanie szerokości do sekcji o padding px-6/px-10 (np. /sprawdz-dzialke),
+  // żeby FAQ było równo z „Co sprawdzić dalej"; domyślnie węższy padding (strony kategorii).
+  wide?: boolean;
 }) {
   if (items.length === 0) return null;
 
@@ -26,7 +30,7 @@ export default function FaqSection({
   };
 
   return (
-    <section className="mx-auto mt-12 max-w-6xl px-3 md:px-4">
+    <section className={`mx-auto mt-12 max-w-6xl ${wide ? 'px-6 md:px-10' : 'px-3 md:px-4'}`}>
       <h2 className={`text-xl font-semibold tracking-tight md:text-2xl ${green ? 'text-brand-text' : 'text-fg'}`}>
         {title}
       </h2>

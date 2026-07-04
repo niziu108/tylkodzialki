@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { formatIntPL } from '@/lib/format';
 import type { ParcelReport } from '@/lib/uldk';
@@ -7,8 +8,8 @@ import type { PointValuation } from '@/lib/seoHub';
 import type { MpzpInfo } from '@/lib/mpzp';
 import RaportMap from './RaportMap';
 
-// P24: raport „Sprawdź działkę" — układ redakcyjny w stylu /dla-biur i /partnerstwo: wszystko od
-// lewej, sekcje eyebrow + nagłówek + treść, czyste linie zamiast kafelków, ciasno i czytelnie.
+// P24: raport „Sprawdź działkę" — układ redakcyjny (wszystko od lewej, cienkie linie zamiast
+// kafelków), zielone nagłówki. Mapa schowana za przyciskiem „Zobacz na mapie", żeby nie dominowała.
 // Zero zmyślania: co niepewne, odsyłamy do źródła ([[feedback-filtry-twarde]]).
 
 export type RaportData = {
@@ -56,6 +57,7 @@ export default function Raport({
 }) {
   const { parcel, valuation, mpzp } = data;
   const v = valuation.pricePerM2;
+  const [mapShown, setMapShown] = useState(false);
 
   return (
     <div className="w-full text-left">
@@ -68,22 +70,37 @@ export default function Raport({
         </div>
       ) : null}
 
-      {/* MAPA z obrysem */}
-      <div className="overflow-hidden rounded-2xl border border-fg/12">
-        <div className="h-[360px] w-full md:h-[440px]">
-          <RaportMap rings={parcel.rings} center={parcel.center} />
+      {/* NAGŁÓWEK + przycisk mapy */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Eyebrow>Twoja działka</Eyebrow>
+          <h3 className="mt-2 text-[26px] font-semibold tracking-tight text-fg md:text-[38px]">
+            {areaLabel(parcel.areaM2)}
+          </h3>
+          <p className="mt-2 text-[15px] text-fg/65">
+            {[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(' · ')}
+          </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setMapShown((s) => !s)}
+          className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg"
+        >
+          {mapShown ? 'Ukryj mapę' : 'Zobacz na mapie'}
+          <span aria-hidden>→</span>
+        </button>
       </div>
 
-      {/* NAGŁÓWEK */}
-      <div className="mt-8">
-        <Eyebrow>Twoja działka</Eyebrow>
-        <h3 className="mt-2 text-[26px] font-semibold tracking-tight text-fg md:text-[38px]">
-          {areaLabel(parcel.areaM2)}
-        </h3>
-        <p className="mt-2 text-[15px] text-fg/65">
-          {[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(' · ')}
-        </p>
+      {/* MAPA — rozwijana */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ${mapShown ? 'mt-6 max-h-[520px]' : 'max-h-0'}`}
+      >
+        <div className="overflow-hidden rounded-2xl border border-fg/12">
+          <div className="h-[380px] w-full md:h-[460px]">
+            <RaportMap rings={parcel.rings} center={parcel.center} />
+          </div>
+        </div>
       </div>
 
       {/* CENA */}
@@ -113,7 +130,7 @@ export default function Raport({
         )}
       </div>
 
-      {/* PLAN MIEJSCOWY (MPZP) — przeczytany plan, najważniejsze fakty */}
+      {/* PLAN MIEJSCOWY (MPZP) */}
       <div className="mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Plan miejscowy (MPZP)</Eyebrow>
         {mpzp ? (
@@ -142,10 +159,6 @@ export default function Raport({
               <Row label="Maks. wysokość zabudowy" value={mpzp.maxHeight ? `${mpzp.maxHeight} m` : null} />
               <Row label="Intensywność zabudowy" value={mpzp.intensity} />
             </div>
-            <p className="mt-3 text-xs leading-6 text-fg/45">
-              Odczytane z Krajowej Integracji MPZP (GUGiK) dla środka działki. Cały plan podejrzysz
-              na mapie wyżej, włączając warstwę „Plan miejscowy”.
-            </p>
           </>
         ) : (
           <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/70">
@@ -167,10 +180,6 @@ export default function Raport({
         <Eyebrow>Dane z ewidencji</Eyebrow>
         <div className="mt-5 border-t border-fg/10">
           <Row label="Numer działki" value={parcel.parcelNumber} />
-          <Row
-            label="Wymiary (ok.)"
-            value={parcel.dims ? `${parcel.dims.widthM} × ${parcel.dims.depthM} m` : null}
-          />
           <Row label="Obręb" value={parcel.region} />
           <Row label="Identyfikator" value={parcel.id} />
           <Row label="Gmina" value={parcel.commune} />
@@ -179,7 +188,6 @@ export default function Raport({
         </div>
         <p className="mt-3 text-xs leading-6 text-fg/45">
           Granice, powierzchnia i numer z ewidencji gruntów (ULDK, GUGiK) dla wskazanego punktu.
-          Wymiary to boki prostokąta opisanego na działce, orientacyjnie.
         </p>
       </div>
 

@@ -147,14 +147,6 @@ input[type="checkbox"] {
 input::placeholder { text-decoration: none !important; }
 textarea::placeholder { text-decoration: none !important; }
 
-/* P24: podpisy długości boków działki na mapie — biała poświata dla czytelności na każdym tle */
-.sd-edge-label {
-  text-shadow:
-    0 0 3px #fff,
-    0 0 3px #fff,
-    0 0 4px #fff;
-}
-
 /* Podpowiedzi Google Places — zgodne z motywem */
 .pac-container {
   background: var(--surface) !important;
