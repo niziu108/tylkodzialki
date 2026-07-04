@@ -259,27 +259,56 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      {/* P24: wejście do narzędzia „Sprawdź działkę" — po wyróżnionych, klasowo (zwykły link, bez LCP). */}
-      <section className="relative overflow-hidden border-y border-fg/10">
-        <div className="relative z-10 mx-auto max-w-5xl px-6 py-16 text-center md:py-20">
-          <div className="text-[12px] uppercase tracking-[0.2em] text-fg/45">Sprawdź działkę</div>
+      {/* P24: wejście do narzędzia „Sprawdź działkę" — po wyróżnionych, od lewej, styl /dla-biur. */}
+      <section className="relative overflow-hidden border-y border-fg/10 bg-surface-2">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
-          <h2 className="mx-auto mt-4 max-w-3xl text-[26px] font-semibold leading-[1.14] tracking-tight text-fg md:text-4xl">
-            Poznaj granice, powierzchnię i cenę okolicy w minutę.
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+            Sprawdź działkę
+          </div>
+
+          <h2 className="mt-4 max-w-3xl text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
+            Poznaj granice, plan i cenę działki w minutę.
           </h2>
 
-          <p className="mx-auto mt-5 max-w-2xl text-[15px] leading-7 text-fg/65 md:text-base">
-            Wskaż działkę na mapie albo wpisz adres. Pokażemy jej obrys, metraż i numer ewidencyjny
-            z rejestru GUGiK, media w okolicy oraz orientacyjną cenę. Pierwsza za darmo.
+          <p className="mt-6 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
+            Nasze darmowe narzędzie odpytuje rejestry GUGiK i nasze oferty, a Ty dostajesz gotowy
+            raport. Bez chodzenia po urzędach, bez logowania za pierwszym razem.
           </p>
 
-          <Link
-            href="/sprawdz-dzialke"
-            className="mt-8 inline-flex items-center gap-2 text-[15px] font-semibold text-brand-text underline decoration-1 underline-offset-[6px] transition hover:text-brand-bright"
-          >
-            Sprawdź działkę
-            <span aria-hidden>→</span>
-          </Link>
+          <div className="mt-12 grid gap-5 md:grid-cols-2">
+            <div className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur">
+              <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
+                01
+              </div>
+              <h3 className="mt-5 text-xl font-semibold text-fg">Wpisz adres lub numer działki</h3>
+              <p className="mt-3 text-sm leading-7 text-fg/72">
+                Wskazujesz działkę adresem, numerem ewidencyjnym albo pinezką na mapie. Ty podajesz
+                punkt, więc dane są dla konkretnej działki, nie z przybliżenia.
+              </p>
+            </div>
+
+            <div className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur">
+              <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
+                02
+              </div>
+              <h3 className="mt-5 text-xl font-semibold text-fg">Dostajesz raport</h3>
+              <p className="mt-3 text-sm leading-7 text-fg/72">
+                Obrys i wymiary na mapie, powierzchnia i numer ewidencyjny, przeznaczenie z planu
+                miejscowego oraz orientacyjna cena okolicy. Wszystko na jednym ekranie.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-10">
+            <Link
+              href="/sprawdz-dzialke"
+              className="inline-flex h-13 items-center justify-center rounded-2xl bg-brand px-8 py-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
+            >
+              Sprawdź działkę
+            </Link>
+          </div>
         </div>
       </section>
 
