@@ -7,9 +7,9 @@ import type { PointValuation } from '@/lib/seoHub';
 import type { MpzpInfo } from '@/lib/mpzp';
 import RaportMap from './RaportMap';
 
-// P24: raport „Sprawdź działkę" — układ redakcyjny (przepływ na całą szerokość, cienkie linie
-// zamiast kafelków), premium jak „portal za 100M". Cena jest ważna, ale klasą (typografia), nie
-// zielenią. Zero zmyślania: co niepewne, odsyłamy do źródła ([[feedback-filtry-twarde]]).
+// P24: raport „Sprawdź działkę" — układ redakcyjny w stylu /dla-biur i /partnerstwo: wszystko od
+// lewej, sekcje eyebrow + nagłówek + treść, czyste linie zamiast kafelków, ciasno i czytelnie.
+// Zero zmyślania: co niepewne, odsyłamy do źródła ([[feedback-filtry-twarde]]).
 
 export type RaportData = {
   parcel: ParcelReport;
@@ -17,9 +17,8 @@ export type RaportData = {
   mpzp: MpzpInfo | null;
 };
 
-// Żywe artykuły (potwierdzone w bazie) — linkowanie wewnętrzne domyka P4b/P25.
 const NEXT_STEPS: { href: string; label: string }[] = [
-  { href: '/blog/jak-sprawdzic-mpzp-dzialki-przed-zakupem', label: 'Jak sprawdzić plan miejscowy (MPZP)' },
+  { href: '/blog/jak-sprawdzic-mpzp-dzialki-przed-zakupem', label: 'Jak czytać plan miejscowy (MPZP)' },
   { href: '/blog/jak-sprawdzic-klase-gruntu-dzialki-przed-zakupem', label: 'Jak sprawdzić klasę gruntu' },
   { href: '/blog/jak-sprawdzic-uzbrojenie-dzialki-przed-zakupem', label: 'Jak sprawdzić uzbrojenie' },
   { href: '/blog/jak-sprawdzic-droge-dojazdowa-do-dzialki-przed-zakupem', label: 'Jak sprawdzić drogę dojazdową' },
@@ -38,12 +37,12 @@ function areaLabel(m2: number): string {
   return base;
 }
 
-function SpecRow({ label, value }: { label: string; value: string | null }) {
+function Row({ label, value }: { label: string; value: string | null }) {
   if (!value) return null;
   return (
-    <div className="flex items-baseline justify-between gap-6 border-b border-fg/10 py-4">
-      <span className="text-[13px] uppercase tracking-[0.12em] text-fg/45">{label}</span>
-      <span className="text-right text-[15px] font-medium text-fg md:text-base">{value}</span>
+    <div className="grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-b border-fg/10 py-3 md:grid-cols-[14rem_1fr]">
+      <span className="text-[13px] uppercase tracking-[0.1em] text-fg/45">{label}</span>
+      <span className="text-[15px] font-medium text-fg">{value}</span>
     </div>
   );
 }
@@ -57,98 +56,105 @@ export default function Raport({
 }) {
   const { parcel, valuation, mpzp } = data;
   const v = valuation.pricePerM2;
-  const media = valuation.mediaShares;
-  const pct = (x: number) => `${Math.round(x * 100)}%`;
 
   return (
-    <div className="w-full">
+    <div className="w-full text-left">
       {isExample ? (
-        <div className="mb-6">
+        <div className="mb-8 border-l-2 border-brand/50 pl-4">
           <Eyebrow>Przykładowy raport</Eyebrow>
-          <p className="mt-2 text-sm text-fg/60">
-            Tak wygląda raport, który dostaniesz. Wskaż własną działkę wyżej, a policzymy ją na
-            żywo.
+          <p className="mt-1 text-sm text-fg/60">
+            Tak wygląda raport. Wskaż własną działkę wyżej, a policzymy ją na żywo.
           </p>
         </div>
       ) : null}
 
-      {/* MAPA — pełna szerokość, wysoka */}
-      <div className="overflow-hidden rounded-[24px] border border-fg/12">
-        <div className="h-[420px] w-full md:h-[560px]">
+      {/* MAPA z obrysem */}
+      <div className="overflow-hidden rounded-2xl border border-fg/12">
+        <div className="h-[360px] w-full md:h-[440px]">
           <RaportMap rings={parcel.rings} center={parcel.center} />
         </div>
       </div>
 
       {/* NAGŁÓWEK */}
-      <div className="mt-10">
+      <div className="mt-8">
         <Eyebrow>Twoja działka</Eyebrow>
-        <h3 className="mt-3 text-3xl font-semibold tracking-tight text-fg md:text-5xl">
+        <h3 className="mt-2 text-[26px] font-semibold tracking-tight text-fg md:text-[38px]">
           {areaLabel(parcel.areaM2)}
         </h3>
-        <p className="mt-3 text-[15px] text-fg/65">
+        <p className="mt-2 text-[15px] text-fg/65">
           {[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(' · ')}
         </p>
       </div>
 
-      {/* CENA — ważna klasą, nie zielenią */}
-      <div className="mt-10 border-y border-fg/12 py-8">
+      {/* CENA */}
+      <div className="mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Orientacyjna cena okolicy</Eyebrow>
         {v ? (
           <>
-            <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-              <span className="text-4xl font-semibold tracking-tight text-fg md:text-6xl">
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-3">
+              <span className="text-[34px] font-semibold tracking-tight text-fg md:text-[46px]">
                 {formatIntPL(v.median)}
               </span>
-              <span className="text-lg font-medium text-fg/55 md:text-xl">zł/m²</span>
+              <span className="text-lg font-medium text-fg/55">zł/m²</span>
             </div>
-            <p className="mt-3 text-sm text-fg/65">
+            <p className="mt-2 text-sm text-fg/65">
               {v.low === v.high
                 ? `${formatIntPL(v.low)} zł/m²`
                 : `Zakres od ${formatIntPL(v.low)} do ${formatIntPL(v.high)} zł/m²`}{' '}
-              · na podstawie {valuation.sampleCount}{' '}
-              {valuation.sampleCount === 1 ? 'oferty' : 'ofert'} w promieniu {valuation.radiusKm} km.
-            </p>
-            <p className="mt-2 max-w-2xl text-xs leading-6 text-fg/45">
-              To orientacja z aktualnych ogłoszeń, nie operat rzeczoznawcy. O cenie decydują media,
-              dojazd, kształt i przeznaczenie konkretnej działki.
+              · z {valuation.sampleCount} {valuation.sampleCount === 1 ? 'oferty' : 'ofert'} w
+              promieniu {valuation.radiusKm} km. To orientacja z ogłoszeń, nie operat rzeczoznawcy.
             </p>
           </>
         ) : (
-          <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/65">
+          <p className="mt-2 max-w-2xl text-[15px] leading-7 text-fg/65">
             W promieniu {valuation.radiusKm} km mamy zbyt mało porównywalnych działek, żeby uczciwie
             oszacować cenę. Nie zgadujemy.
           </p>
         )}
       </div>
 
-      {/* PLAN MIEJSCOWY (MPZP) — realne przeznaczenie z KIMPZP albo uczciwe „brak planu" */}
-      <div className="mt-10 border-b border-fg/12 pb-8">
+      {/* PLAN MIEJSCOWY (MPZP) — przeczytany plan, najważniejsze fakty */}
+      <div className="mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Plan miejscowy (MPZP)</Eyebrow>
         {mpzp ? (
           <>
-            <h3 className="mt-3 text-2xl font-semibold tracking-tight text-fg md:text-3xl">
-              {mpzp.functionName ?? 'Działka objęta planem'}
-              {mpzp.functionSymbol ? (
-                <span className="ml-2 align-middle text-base font-medium text-fg/45">
-                  {mpzp.functionSymbol}
-                </span>
+            <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/80">
+              Dla tej działki obowiązuje miejscowy plan zagospodarowania
+              {mpzp.planName ? (
+                <>
+                  {' '}
+                  „<span className="text-fg">{mpzp.planName}</span>”
+                </>
               ) : null}
-            </h3>
-            <div className="mt-4 border-t border-fg/10">
-              <SpecRow label="Nazwa planu" value={mpzp.planName} />
-              <SpecRow label="Maks. wysokość zabudowy" value={mpzp.maxHeight} />
+              . Najważniejsze, co z niego wynika:
+            </p>
+            <div className="mt-5 border-t border-fg/10">
+              <Row
+                label="Przeznaczenie"
+                value={
+                  mpzp.functionName
+                    ? mpzp.functionSymbol
+                      ? `${mpzp.functionName} (${mpzp.functionSymbol})`
+                      : mpzp.functionName
+                    : mpzp.functionSymbol
+                }
+              />
+              <Row label="Maks. wysokość zabudowy" value={mpzp.maxHeight ? `${mpzp.maxHeight} m` : null} />
+              <Row label="Intensywność zabudowy" value={mpzp.intensity} />
             </div>
-            <p className="mt-4 text-xs leading-6 text-fg/45">
-              Przeznaczenie ze środka działki, z Krajowej Integracji MPZP (GUGiK). Cały plan
-              podejrzysz na mapie wyżej, włączając warstwę „Plan miejscowy".
+            <p className="mt-3 text-xs leading-6 text-fg/45">
+              Odczytane z Krajowej Integracji MPZP (GUGiK) dla środka działki. Cały plan podejrzysz
+              na mapie wyżej, włączając warstwę „Plan miejscowy”.
             </p>
           </>
         ) : (
           <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/70">
-            W tym punkcie nie znaleźliśmy planu miejscowego. Zwykle znaczy to, że gmina nie ma tu
-            planu i o zabudowie decydują warunki zabudowy (WZ), albo że plan nie jest jeszcze w
-            krajowej integracji.{' '}
-            <Link href="/blog/warunki-zabudowy-wz-co-to-jest" className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright">
+            W tym punkcie nie ma planu miejscowego w krajowej integracji. Zwykle znaczy to, że o
+            zabudowie decydują warunki zabudowy (WZ).{' '}
+            <Link
+              href="/blog/warunki-zabudowy-wz-co-to-jest"
+              className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+            >
               Sprawdź, czym są warunki zabudowy
             </Link>{' '}
             i dopytaj w gminie.
@@ -156,66 +162,36 @@ export default function Raport({
         )}
       </div>
 
-      {/* MEDIA W OKOLICY — realny sygnał z naszych danych zamiast zmyślonej odległości do rury */}
-      {media ? (
-        <div className="mt-10">
-          <Eyebrow>Media w okolicy</Eyebrow>
-          <p className="mt-2 text-sm text-fg/60">
-            Udział działek z danym medium na działce wśród {valuation.offersNearby} ofert w promieniu{' '}
-            {valuation.radiusKm} km.
-          </p>
-          <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-fg/12 bg-fg/10 md:grid-cols-4">
-            {[
-              { label: 'Prąd', value: media.prad },
-              { label: 'Wodociąg', value: media.woda },
-              { label: 'Gaz', value: media.gaz },
-              { label: 'Kanalizacja', value: media.kanalizacja },
-            ].map((m) => (
-              <div key={m.label} className="bg-bg px-5 py-6">
-                <div className="text-3xl font-semibold tracking-tight text-fg">{pct(m.value)}</div>
-                <div className="mt-1 text-[13px] text-fg/55">{m.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {/* DANE DZIAŁKI */}
-      <div className="mt-10">
+      {/* DANE Z EWIDENCJI */}
+      <div className="mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Dane z ewidencji</Eyebrow>
         <div className="mt-5 border-t border-fg/10">
-          <SpecRow label="Numer działki" value={parcel.parcelNumber} />
-          <SpecRow
+          <Row label="Numer działki" value={parcel.parcelNumber} />
+          <Row
             label="Wymiary (ok.)"
             value={parcel.dims ? `${parcel.dims.widthM} × ${parcel.dims.depthM} m` : null}
           />
-          <SpecRow label="Obręb" value={parcel.region} />
-          <SpecRow label="Identyfikator" value={parcel.id} />
-          <SpecRow label="Gmina" value={parcel.commune} />
-          <SpecRow label="Powiat" value={parcel.county} />
-          <SpecRow label="Województwo" value={parcel.voivodeship} />
+          <Row label="Obręb" value={parcel.region} />
+          <Row label="Identyfikator" value={parcel.id} />
+          <Row label="Gmina" value={parcel.commune} />
+          <Row label="Powiat" value={parcel.county} />
+          <Row label="Województwo" value={parcel.voivodeship} />
         </div>
-        <p className="mt-4 text-xs leading-6 text-fg/45">
-          Granice, powierzchnia i numer pochodzą z ewidencji gruntów (ULDK, GUGiK) dla wskazanego
-          przez Ciebie punktu. Wymiary to boki prostokąta opisanego na działce, orientacyjnie.
+        <p className="mt-3 text-xs leading-6 text-fg/45">
+          Granice, powierzchnia i numer z ewidencji gruntów (ULDK, GUGiK) dla wskazanego punktu.
+          Wymiary to boki prostokąta opisanego na działce, orientacyjnie.
         </p>
       </div>
 
-      {/* CO SPRAWDZIĆ DALEJ — w stylu FAQ (czysta lista z liniami) */}
-      <div className="mt-14">
-        <h3 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
-          Co sprawdzić dalej
-        </h3>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-fg/60">
-          Plan miejscowy, uzbrojenie, dojazd i księgę wieczystą sprawdza się osobno w gminie i
-          źródłach urzędowych. Prowadzimy Cię krok po kroku:
-        </p>
-        <div className="mt-6 border-t border-fg/10">
+      {/* CO SPRAWDZIĆ DALEJ */}
+      <div className="mt-10 border-t border-fg/12 pt-8">
+        <Eyebrow>Co sprawdzić dalej</Eyebrow>
+        <div className="mt-5 border-t border-fg/10">
           {NEXT_STEPS.map((s) => (
             <Link
               key={s.href}
               href={s.href}
-              className="group flex items-center justify-between gap-4 border-b border-fg/10 py-4 text-[15px] text-fg/85 transition hover:text-fg"
+              className="group flex items-center justify-between gap-4 border-b border-fg/10 py-3.5 text-[15px] text-fg/85 transition hover:text-fg"
             >
               {s.label}
               <span aria-hidden className="text-fg/35 transition group-hover:translate-x-0.5">

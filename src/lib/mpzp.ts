@@ -18,7 +18,8 @@ export type MpzpInfo = {
   planName: string | null; // NAZWA_PLAN
   functionName: string | null; // FUN_NAZWA (przeznaczenie)
   functionSymbol: string | null; // FUN_SYMB
-  maxHeight: string | null; // MAX_WYS
+  maxHeight: string | null; // MAX_WYS (maks. wysokość zabudowy, m)
+  intensity: string | null; // INTEN_ZAB (intensywność zabudowy)
 };
 
 // WGS84 (lat/lng) -> Web Mercator (EPSG:3857), którego używa WMS i kafle Google.
@@ -71,11 +72,15 @@ export async function getMpzpAtPoint(lat: number, lng: number): Promise<MpzpInfo
     if (!rowMatch) return null; // pusty wynik = brak planu w tym punkcie
 
     const row = rowMatch[0];
+    // MAX_WYS / INTEN_ZAB bywają "0" dla terenów bez zabudowy (drogi) — traktuj "0" jak brak.
+    const nonZero = (v: string | null) => (v && v !== '0' && v !== '0,0' ? v : null);
+
     const info: MpzpInfo = {
       planName: tag(row, 'NAZWA_PLAN'),
       functionName: tag(row, 'FUN_NAZWA'),
       functionSymbol: tag(row, 'FUN_SYMB'),
-      maxHeight: tag(row, 'MAX_WYS'),
+      maxHeight: nonZero(tag(row, 'MAX_WYS')),
+      intensity: nonZero(tag(row, 'INTEN_ZAB')),
     };
 
     // Gdyby usługa zwróciła wiersz bez sensownej treści — traktuj jak brak.

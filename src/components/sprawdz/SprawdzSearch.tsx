@@ -6,10 +6,9 @@ import { useSession } from 'next-auth/react';
 import { loadGoogleMaps } from '@/lib/googleMaps';
 import Raport, { type RaportData } from './Raport';
 
-// P24: wyszukiwarka narzędzia. Punkt wskazuje UŻYTKOWNIK (pinezka / adres / numer ewidencyjny) —
-// to daje precyzję, której nie mają nasze przybliżone geo ofert (omija blokadę P23).
-// Formularz i mapa na całą szerokość (bez kafelka). Bramka logowania: pierwszy raport bez konta,
-// kolejny wymaga zalogowania (daje nam użytkowników).
+// P24: wyszukiwarka narzędzia. Punkt wskazuje UŻYTKOWNIK (adres / numer ewidencyjny / pinezka).
+// Wszystko od lewej, kompaktowo (styl /dla-biur). Mapa domyślnie schowana — rozwijana przyciskiem,
+// żeby nie dominowała. Bramka logowania: pierwszy raport bez konta, kolejny wymaga zalogowania.
 
 type Point = { lat: number; lng: number };
 
@@ -25,6 +24,7 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
 
+  const [mapOpen, setMapOpen] = useState(false);
   const [point, setPoint] = useState<Point | null>(null);
   const [parcelId, setParcelId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,6 +91,7 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
             const p = { lat: loc.lat(), lng: loc.lng() };
             setPoint(p);
             setError(null);
+            setMapOpen(true);
             placeMarker(p);
           });
         }
@@ -115,11 +116,10 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
         : null;
 
     if (!body) {
-      setError('Wskaż działkę: kliknij ją na mapie, wpisz adres albo numer ewidencyjny.');
+      setError('Wskaż działkę: wpisz adres, numer ewidencyjny albo kliknij ją na mapie.');
       return;
     }
 
-    // Bramka: pierwszy raport bez konta, kolejny wymaga logowania.
     if (!isLogged) {
       const used = Number(localStorage.getItem(USED_KEY) || '0');
       if (used >= FREE_LIMIT) {
@@ -148,7 +148,6 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
         const used = Number(localStorage.getItem(USED_KEY) || '0');
         localStorage.setItem(USED_KEY, String(used + 1));
       }
-      placeMarker(json.parcel.center);
     } catch {
       setError('Coś poszło nie tak. Spróbuj ponownie za chwilę.');
     } finally {
@@ -156,61 +155,72 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
     }
   }
 
-  return (
-    <div className="w-full">
-      {/* FORMULARZ — na całą szerokość, bez kafelka */}
-      <div className="mx-auto max-w-2xl text-center">
-        <input
-          ref={addrRef}
-          placeholder="Wpisz adres lub miejscowość…"
-          className="w-full rounded-2xl border border-fg/15 bg-surface px-5 py-4 text-center text-lg text-fg outline-none placeholder:text-fg/45 focus:border-brand/60"
-        />
-        <p className="mt-3 text-[13px] text-fg/55">
-          albo kliknij działkę na mapie i przeciągnij pinezkę, żeby trafić dokładnie
-        </p>
-      </div>
+  const inputCls =
+    'rounded-xl border border-fg/15 bg-surface px-4 py-2.5 text-[15px] text-fg outline-none placeholder:text-fg/45 focus:border-brand/60';
 
-      {/* MAPA — pełna szerokość, wysoka */}
-      <div className="relative mt-8 overflow-hidden rounded-[24px] border border-fg/12">
-        <div ref={mapDivRef} className="h-[440px] w-full md:h-[560px]" />
+  return (
+    <div className="w-full text-left">
+      {/* FORMULARZ — od lewej, kompaktowo */}
+      <div className="max-w-3xl">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <input
+            ref={addrRef}
+            placeholder="Wpisz adres lub miejscowość…"
+            className={`${inputCls} sm:flex-1`}
+          />
+          <button
+            type="button"
+            onClick={handleCheck}
+            disabled={loading}
+            className="inline-flex h-[46px] shrink-0 items-center justify-center rounded-xl bg-brand px-6 text-[15px] font-semibold text-ink transition hover:bg-brand-bright disabled:opacity-60"
+          >
+            {loading ? 'Sprawdzam…' : 'Sprawdź działkę'}
+          </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <input
+            value={parcelId}
+            onChange={(e) => setParcelId(e.target.value)}
+            placeholder="Numer ewidencyjny (opcjonalnie)"
+            className={`${inputCls} w-full sm:w-80`}
+          />
+          <button
+            type="button"
+            onClick={() => setMapOpen((s) => !s)}
+            className="text-sm font-medium text-brand-text underline decoration-1 underline-offset-4 transition hover:text-brand-bright"
+          >
+            {mapOpen ? 'Ukryj mapę' : 'albo wskaż na mapie'}
+          </button>
+        </div>
 
         {loading ? (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-bg/80 backdrop-blur-sm">
-            <HourglassIcon className="h-9 w-9 animate-spin text-brand" />
-            <p className="px-6 text-center text-sm text-fg/80">
-              Zbieramy dane z ewidencji. To dobry moment na kawę, raport będzie za chwilę.
-            </p>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Numer ewidencyjny (opcja) + akcja */}
-      <div className="mx-auto mt-6 flex max-w-2xl flex-col items-center gap-4">
-        <input
-          value={parcelId}
-          onChange={(e) => setParcelId(e.target.value)}
-          placeholder="Znasz numer ewidencyjny? Wpisz go tutaj (opcjonalnie)"
-          className="w-full rounded-xl border border-fg/12 bg-surface px-4 py-3 text-center text-sm text-fg outline-none placeholder:text-fg/45 focus:border-brand/60"
-        />
-
-        {error ? (
-          <p className="w-full rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-300">
-            {error}
+          <p className="mt-4 text-sm text-fg/65">
+            Zbieramy dane z ewidencji i planu. To dobry moment na kawę, raport będzie za chwilę.
           </p>
         ) : null}
 
-        <button
-          type="button"
-          onClick={handleCheck}
-          disabled={loading}
-          className="inline-flex h-14 w-full items-center justify-center rounded-2xl bg-brand px-8 text-[16px] font-semibold text-ink transition hover:bg-brand-bright disabled:opacity-60"
-        >
-          {loading ? 'Sprawdzam…' : 'Sprawdź działkę'}
-        </button>
+        {error ? (
+          <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">
+            {error}
+          </p>
+        ) : null}
+      </div>
+
+      {/* MAPA — rozwijana */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ${mapOpen ? 'mt-5 max-h-[560px]' : 'max-h-0'}`}
+      >
+        <div className="overflow-hidden rounded-2xl border border-fg/12">
+          <div ref={mapDivRef} className="h-[400px] w-full md:h-[500px]" />
+        </div>
+        <p className="mt-2 text-[13px] text-fg/55">
+          Kliknij działkę na mapie i przeciągnij pinezkę, żeby trafić dokładnie.
+        </p>
       </div>
 
       {/* WYNIK / BRAMKA / PRZYKŁAD */}
-      <div className="mt-16">
+      <div className="mt-14">
         {result ? (
           <Raport data={result} />
         ) : gated ? (
@@ -225,33 +235,21 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
 
 function LoginGate() {
   return (
-    <div className="mx-auto max-w-xl border-y border-fg/12 py-12 text-center">
+    <div className="max-w-xl border-l-2 border-brand/50 py-2 pl-5">
       <div className="text-[12px] uppercase tracking-[0.2em] text-fg/45">Kolejny raport</div>
-      <h3 className="mt-3 text-2xl font-semibold tracking-tight text-fg md:text-3xl">
+      <h3 className="mt-2 text-2xl font-semibold tracking-tight text-fg">
         Zaloguj się, żeby sprawdzić dalej
       </h3>
-      <p className="mx-auto mt-4 max-w-md text-[15px] leading-7 text-fg/65">
+      <p className="mt-3 max-w-md text-[15px] leading-7 text-fg/65">
         Pierwsza działka jest bez konta. Załóż darmowe konto albo zaloguj się, a sprawdzisz kolejne
-        działki bez limitu i zapiszesz swoje raporty.
+        działki bez limitu.
       </p>
       <Link
         href="/logowanie?callbackUrl=/sprawdz-dzialke"
-        className="mt-7 inline-flex h-13 items-center justify-center rounded-2xl bg-brand px-8 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
+        className="mt-6 inline-flex h-12 items-center justify-center rounded-xl bg-brand px-6 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
       >
         Zaloguj się lub załóż konto
       </Link>
     </div>
-  );
-}
-
-function HourglassIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-      <path
-        d="M6 3h12M6 21h12M7 3c0 4 5 5 5 9s-5 5-5 9M17 3c0 4-5 5-5 9s5 5 5 9"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }
