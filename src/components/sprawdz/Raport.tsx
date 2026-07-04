@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { formatIntPL } from '@/lib/format';
 import type { ParcelReport } from '@/lib/uldk';
 import type { PointValuation } from '@/lib/seoHub';
+import type { MpzpInfo } from '@/lib/mpzp';
 import RaportMap from './RaportMap';
 
 // P24: raport „Sprawdź działkę" — układ redakcyjny (przepływ na całą szerokość, cienkie linie
@@ -13,7 +14,7 @@ import RaportMap from './RaportMap';
 export type RaportData = {
   parcel: ParcelReport;
   valuation: PointValuation;
-  elevationM: number | null;
+  mpzp: MpzpInfo | null;
 };
 
 // Żywe artykuły (potwierdzone w bazie) — linkowanie wewnętrzne domyka P4b/P25.
@@ -54,7 +55,7 @@ export default function Raport({
   data: RaportData;
   isExample?: boolean;
 }) {
-  const { parcel, valuation, elevationM } = data;
+  const { parcel, valuation, mpzp } = data;
   const v = valuation.pricePerM2;
   const media = valuation.mediaShares;
   const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -120,6 +121,41 @@ export default function Raport({
         )}
       </div>
 
+      {/* PLAN MIEJSCOWY (MPZP) — realne przeznaczenie z KIMPZP albo uczciwe „brak planu" */}
+      <div className="mt-10 border-b border-fg/12 pb-8">
+        <Eyebrow>Plan miejscowy (MPZP)</Eyebrow>
+        {mpzp ? (
+          <>
+            <h3 className="mt-3 text-2xl font-semibold tracking-tight text-fg md:text-3xl">
+              {mpzp.functionName ?? 'Działka objęta planem'}
+              {mpzp.functionSymbol ? (
+                <span className="ml-2 align-middle text-base font-medium text-fg/45">
+                  {mpzp.functionSymbol}
+                </span>
+              ) : null}
+            </h3>
+            <div className="mt-4 border-t border-fg/10">
+              <SpecRow label="Nazwa planu" value={mpzp.planName} />
+              <SpecRow label="Maks. wysokość zabudowy" value={mpzp.maxHeight} />
+            </div>
+            <p className="mt-4 text-xs leading-6 text-fg/45">
+              Przeznaczenie ze środka działki, z Krajowej Integracji MPZP (GUGiK). Cały plan
+              podejrzysz na mapie wyżej, włączając warstwę „Plan miejscowy".
+            </p>
+          </>
+        ) : (
+          <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/70">
+            W tym punkcie nie znaleźliśmy planu miejscowego. Zwykle znaczy to, że gmina nie ma tu
+            planu i o zabudowie decydują warunki zabudowy (WZ), albo że plan nie jest jeszcze w
+            krajowej integracji.{' '}
+            <Link href="/blog/warunki-zabudowy-wz-co-to-jest" className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright">
+              Sprawdź, czym są warunki zabudowy
+            </Link>{' '}
+            i dopytaj w gminie.
+          </p>
+        )}
+      </div>
+
       {/* MEDIA W OKOLICY — realny sygnał z naszych danych zamiast zmyślonej odległości do rury */}
       {media ? (
         <div className="mt-10">
@@ -153,7 +189,6 @@ export default function Raport({
             label="Wymiary (ok.)"
             value={parcel.dims ? `${parcel.dims.widthM} × ${parcel.dims.depthM} m` : null}
           />
-          <SpecRow label="Wysokość n.p.m." value={elevationM != null ? `${elevationM} m` : null} />
           <SpecRow label="Obręb" value={parcel.region} />
           <SpecRow label="Identyfikator" value={parcel.id} />
           <SpecRow label="Gmina" value={parcel.commune} />

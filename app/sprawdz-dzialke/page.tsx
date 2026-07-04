@@ -5,7 +5,7 @@ import SprawdzSearch from '@/components/sprawdz/SprawdzSearch';
 import type { RaportData } from '@/components/sprawdz/Raport';
 import { getParcelById } from '@/lib/uldk';
 import { getPointValuation } from '@/lib/seoHub';
-import { fetchElevation } from '@/lib/elevation';
+import { getMpzpAtPoint } from '@/lib/mpzp';
 
 // P24: narzędzie „Sprawdź działkę". Publiczny magnes na linki + fraza SEO „sprawdź działkę".
 export const revalidate = 3600;
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 // Stały, znany identyfikator do przykładowego raportu (centrum Warszawy). Realne dane z ULDK —
 // jeśli usługa nie odpowie, przykład się nie renderuje (nie wywala strony).
-const EXAMPLE_PARCEL_ID = '146510_8.0502.1/3';
+const EXAMPLE_PARCEL_ID = '146510_8.0309.1/11';
 
 const FAQ: FaqItem[] = [
   {
@@ -45,9 +45,9 @@ const FAQ: FaqItem[] = [
       'To udział działek, które w naszych ogłoszeniach w pobliżu mają dane medium (prąd, wodociąg, gaz, kanalizację) fizycznie na działce. To realny sygnał, jak uzbrojona jest okolica, a nie odległość do konkretnej sieci, której nie da się rzetelnie policzyć dla całej Polski.',
   },
   {
-    question: 'Czy pokazujecie plan miejscowy (MPZP) i klasę gruntu?',
+    question: 'Czy pokazujecie plan miejscowy (MPZP)?',
     answer:
-      'MPZP i klasę gruntu sprawdza się w gminie i w ewidencji, bo nie ma jednego ogólnopolskiego rejestru, z którego dałoby się je pobrać w pełni automatycznie. W raporcie prowadzimy Cię krok po kroku, gdzie i jak to zweryfikować, zamiast zgadywać.',
+      'Tak, tam gdzie gmina jest w Krajowej Integracji MPZP (GUGiK). Dla środka działki pokazujemy przeznaczenie, nazwę planu i maksymalną wysokość zabudowy, a cały plan możesz podejrzeć jako warstwę na mapie. Gdzie planu nie ma w integracji, mówimy o tym wprost i odsyłamy do gminy, zamiast zgadywać.',
   },
   {
     question: 'Czy narzędzie jest darmowe?',
@@ -60,11 +60,11 @@ async function loadExample(): Promise<RaportData | null> {
   try {
     const parcel = await getParcelById(EXAMPLE_PARCEL_ID);
     if (!parcel) return null;
-    const [valuation, elevationM] = await Promise.all([
+    const [valuation, mpzp] = await Promise.all([
       getPointValuation(parcel.center.lat, parcel.center.lng),
-      fetchElevation(parcel.center.lat, parcel.center.lng),
+      getMpzpAtPoint(parcel.center.lat, parcel.center.lng),
     ]);
-    return { parcel, valuation, elevationM };
+    return { parcel, valuation, mpzp };
   } catch {
     return null;
   }
