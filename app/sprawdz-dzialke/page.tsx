@@ -45,6 +45,26 @@ const FAQ: FaqItem[] = [
       'Tak, tam gdzie gmina jest w Krajowej Integracji MPZP (GUGiK). Dla środka działki pokazujemy przeznaczenie, nazwę planu i maksymalną wysokość zabudowy, a cały plan możesz podejrzeć jako warstwę na mapie. Gdzie planu nie ma w integracji, mówimy o tym wprost i odsyłamy do gminy, zamiast zgadywać.',
   },
   {
+    question: 'Co oznaczają wymiary i długości boków na mapie?',
+    answer:
+      'To orientacyjne długości granic działki policzone z jej obrysu w ewidencji. Pokazujemy je przy bokach na mapie oraz jako przybliżone „bok na bok" w danych. Pomagają szybko ocenić kształt i to, czy zmieści się na niej dom, ale przed zakupem warto potwierdzić je geodezyjnie.',
+  },
+  {
+    question: 'Czym różni się plan miejscowy (MPZP) od warunków zabudowy (WZ)?',
+    answer:
+      'Plan miejscowy to prawo lokalne, które z góry określa, co i jak można zbudować na działce. Gdy planu nie ma, o zabudowie decyduje indywidualna decyzja o warunkach zabudowy (WZ). Jeśli dla wskazanej działki nie znajdziemy planu w krajowej integracji, mówimy o tym wprost, bo najczęściej znaczy to właśnie tryb WZ.',
+  },
+  {
+    question: 'Czy mogę sprawdzić działkę po samym numerze ewidencyjnym?',
+    answer:
+      'Tak. Jeśli znasz pełny numer ewidencyjny (na przykład 146502_8.1103.110/4), wpisz go w pole numeru, a odpytamy ewidencję bezpośrednio po nim. Nie musisz wtedy wskazywać punktu na mapie.',
+  },
+  {
+    question: 'Czy dane są aktualne i wiążące?',
+    answer:
+      'Granice, powierzchnia i plan pochodzą z publicznych rejestrów GUGiK i są tak aktualne, jak dane w tych rejestrach. Raport jest rzetelnym punktem startu, ale przy zakupie zawsze potwierdź kluczowe rzeczy w urzędzie gminy, ewidencji i księdze wieczystej.',
+  },
+  {
     question: 'Czy narzędzie jest darmowe?',
     answer:
       'Pierwszą działkę sprawdzisz bez konta. Kolejne raporty są też darmowe, wymagają tylko zalogowania.',
@@ -75,10 +95,8 @@ export default async function SprawdzDzialkePage() {
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(122,163,51,0.14),transparent_45%)]" />
 
         <div className="relative z-10 mx-auto max-w-6xl px-6 pb-2 pt-12 text-left md:px-10 md:pt-16">
-          <div className="text-[12px] uppercase tracking-[0.2em] text-fg/45">Sprawdź działkę</div>
-
-          <h1 className="mt-3 max-w-2xl text-[28px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[40px]">
-            Sprawdź działkę, zanim ją kupisz.
+          <h1 className="text-[24px] font-semibold uppercase tracking-[0.14em] text-brand-text md:text-[28px]">
+            Sprawdź działkę
           </h1>
 
           <p className="mt-4 max-w-2xl text-[15px] leading-7 text-fg/65">
@@ -94,10 +112,13 @@ export default async function SprawdzDzialkePage() {
         <SprawdzSearch example={example} />
       </section>
 
-      {/* SEO / JAK TO DZIAŁA */}
+      {/* FAQ najpierw */}
+      <FaqSection items={FAQ} green />
+
+      {/* SEO / JAK TO DZIAŁA — pod najczęstszymi pytaniami */}
       <section className="relative overflow-hidden border-t border-fg/10">
         <div className="relative z-10 mx-auto max-w-3xl px-6 py-16 md:px-10 md:py-20">
-          <h2 className="text-[22px] font-semibold tracking-tight text-fg md:text-[28px]">
+          <h2 className="text-xl font-semibold tracking-tight text-brand-text md:text-2xl">
             Co możesz sprawdzić i skąd to wiemy
           </h2>
 
@@ -122,8 +143,6 @@ export default async function SprawdzDzialkePage() {
           </div>
         </div>
       </section>
-
-      <FaqSection items={FAQ} />
 
       <div className="h-16" />
     </main>

@@ -7,9 +7,11 @@ import type { FaqItem } from '@/lib/seoCategoryContent';
 export default function FaqSection({
   items,
   title = 'Najczęstsze pytania',
+  green = false,
 }: {
   items: FaqItem[];
   title?: string;
+  green?: boolean;
 }) {
   if (items.length === 0) return null;
 
@@ -25,7 +27,9 @@ export default function FaqSection({
 
   return (
     <section className="mx-auto mt-12 max-w-6xl px-3 md:px-4">
-      <h2 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">{title}</h2>
+      <h2 className={`text-xl font-semibold tracking-tight md:text-2xl ${green ? 'text-brand-text' : 'text-fg'}`}>
+        {title}
+      </h2>
 
       <div className="mt-6 border-t border-fg/10">
         {items.map((it, i) => (

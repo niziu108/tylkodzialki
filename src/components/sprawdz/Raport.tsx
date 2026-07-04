@@ -27,7 +27,7 @@ const NEXT_STEPS: { href: string; label: string }[] = [
 ];
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <div className="text-[12px] uppercase tracking-[0.2em] text-fg/45">{children}</div>;
+  return <div className="text-[12px] uppercase tracking-[0.2em] text-brand-text">{children}</div>;
 }
 
 function areaLabel(m2: number): string {
@@ -185,7 +185,9 @@ export default function Raport({
 
       {/* CO SPRAWDZIĆ DALEJ */}
       <div className="mt-10 border-t border-fg/12 pt-8">
-        <Eyebrow>Co sprawdzić dalej</Eyebrow>
+        <h3 className="text-xl font-semibold tracking-tight text-brand-text md:text-2xl">
+          Co sprawdzić dalej
+        </h3>
         <div className="mt-5 border-t border-fg/10">
           {NEXT_STEPS.map((s) => (
             <Link

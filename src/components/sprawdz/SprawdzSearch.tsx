@@ -155,36 +155,50 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
     }
   }
 
-  const inputCls =
-    'rounded-xl border border-fg/15 bg-surface px-4 py-2.5 text-[15px] text-fg outline-none placeholder:text-fg/45 focus:border-brand/60';
+  const labelCls = 'block text-[12px] uppercase tracking-[0.14em] text-fg/45';
+  const fieldCls =
+    'field-line mt-2 w-full bg-transparent px-0 pb-2.5 text-[16px] text-fg outline-none placeholder:text-fg/30';
+
+  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') handleCheck();
+  }
 
   return (
     <div className="w-full text-left">
-      {/* FORMULARZ — od lewej, kompaktowo */}
-      <div className="max-w-3xl">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <input
-            ref={addrRef}
-            placeholder="Wpisz adres lub miejscowość…"
-            className={`${inputCls} sm:flex-1`}
-          />
+      {/* FORMULARZ — pola jako linie, przycisk jak na głównej */}
+      <div className="max-w-2xl">
+        <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
+          <div>
+            <label className={labelCls}>Adres lub miejscowość</label>
+            <input
+              ref={addrRef}
+              onKeyDown={onKey}
+              placeholder="np. Warszawa, ul. Marszałkowska"
+              className={fieldCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Numer ewidencyjny (opcjonalnie)</label>
+            <input
+              value={parcelId}
+              onChange={(e) => setParcelId(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="np. 146502_8.1103.110/4"
+              className={fieldCls}
+            />
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-col items-start gap-4">
           <button
             type="button"
             onClick={handleCheck}
             disabled={loading}
-            className="inline-flex h-[46px] shrink-0 items-center justify-center rounded-xl bg-brand px-6 text-[15px] font-semibold text-ink transition hover:bg-brand-bright disabled:opacity-60"
+            className="inline-flex h-13 items-center justify-center rounded-2xl bg-brand px-10 py-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright disabled:opacity-60"
           >
             {loading ? 'Sprawdzam…' : 'Sprawdź działkę'}
           </button>
-        </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <input
-            value={parcelId}
-            onChange={(e) => setParcelId(e.target.value)}
-            placeholder="Numer ewidencyjny (opcjonalnie)"
-            className={`${inputCls} w-full sm:w-80`}
-          />
           <button
             type="button"
             onClick={() => setMapOpen((s) => !s)}
