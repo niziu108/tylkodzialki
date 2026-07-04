@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import { loadGoogleMaps } from '@/lib/googleMaps';
 import Raport, { type RaportData } from './Raport';
 
@@ -139,26 +138,11 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
 
   return (
     <div className="w-full">
-      {/* HERO z wyszukiwarką — zdjęcie jak na głównej, karta wyśrodkowana */}
-      <div className="relative overflow-hidden rounded-[28px] border border-fg/10">
-        <Image
-          src="/hero-kup-mobile.webp"
-          alt=""
-          fill
-          priority
-          sizes="(min-width: 768px) 1px, 100vw"
-          quality={60}
-          className="object-cover object-center md:hidden"
-        />
-        <Image
-          src="/hero-kup.webp"
-          alt=""
-          fill
-          sizes="100vw"
-          quality={68}
-          className="hidden object-cover object-center md:block"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/25 to-black/45" />
+      {/* HERO z wyszukiwarką — jasna oprawa jak na /dla-biur (gradient + siateczka + poświata) */}
+      <div className="relative overflow-hidden rounded-[28px] border border-fg/10 bg-bg">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.05),transparent_34%)]" />
+        <div className="pointer-events-none absolute left-[-140px] top-16 h-[420px] w-[420px] rounded-full bg-brand/10 blur-[120px]" />
 
         <div className="relative mx-auto max-w-2xl px-4 py-12 md:py-16">
           <div className="rounded-2xl border border-fg/10 bg-surface-2/85 p-6 backdrop-blur-sm md:p-8">
