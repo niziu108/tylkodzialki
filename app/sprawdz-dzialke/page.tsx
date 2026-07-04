@@ -1,32 +1,31 @@
 import type { Metadata } from 'next';
-import Breadcrumbs from '@/components/Breadcrumbs';
 import FaqSection from '@/components/FaqSection';
 import type { FaqItem } from '@/lib/seoCategoryContent';
 import SprawdzSearch from '@/components/sprawdz/SprawdzSearch';
-import Raport, { type RaportData } from '@/components/sprawdz/Raport';
+import type { RaportData } from '@/components/sprawdz/Raport';
 import { getParcelById } from '@/lib/uldk';
 import { getPointValuation } from '@/lib/seoHub';
+import { fetchElevation } from '@/lib/elevation';
 
 // P24: narzędzie „Sprawdź działkę". Publiczny magnes na linki + fraza SEO „sprawdź działkę".
-// Strona jest głównym, linkowalnym zasobem: wyszukiwarka + realny przykładowy raport + FAQ.
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Sprawdź działkę: granice, powierzchnia i orientacyjna cena w jednym raporcie',
   description:
-    'Wskaż działkę na mapie lub wpisz adres, a pokażemy jej granice, powierzchnię i numer ewidencyjny z rejestru GUGiK oraz orientacyjną cenę okolicy z ofert w serwisie. Za darmo.',
+    'Wskaż działkę na mapie lub wpisz adres, a pokażemy jej granice, powierzchnię i numer ewidencyjny z rejestru GUGiK, media w okolicy oraz orientacyjną cenę. Za darmo.',
   alternates: { canonical: '/sprawdz-dzialke' },
   openGraph: {
     title: 'Sprawdź działkę | tylkodzialki.pl',
     description:
-      'Granice, powierzchnia i numer ewidencyjny z GUGiK plus orientacyjna cena okolicy. Wskaż punkt na mapie i pobierz raport.',
+      'Granice, powierzchnia i numer ewidencyjny z GUGiK, media w okolicy i orientacyjna cena. Wskaż punkt na mapie i pobierz raport.',
     url: '/sprawdz-dzialke',
     type: 'website',
   },
 };
 
 // Stały, znany identyfikator do przykładowego raportu (centrum Warszawy). Realne dane z ULDK —
-// jeśli usługa akurat nie odpowie, sekcja przykładu po prostu się nie renderuje (nie wywala strony).
+// jeśli usługa nie odpowie, przykład się nie renderuje (nie wywala strony).
 const EXAMPLE_PARCEL_ID = '146510_8.0502.1/3';
 
 const FAQ: FaqItem[] = [
@@ -41,6 +40,11 @@ const FAQ: FaqItem[] = [
       'Nie. To mediana i zakres cen z aktualnych ogłoszeń działek w okolicy wskazanego punktu. Pokazuje rząd wielkości, ale nie zastępuje operatu rzeczoznawcy. O realnej cenie decydują media, dojazd, kształt i przeznaczenie konkretnej działki.',
   },
   {
+    question: 'Co oznacza „media w okolicy"?',
+    answer:
+      'To udział działek, które w naszych ogłoszeniach w pobliżu mają dane medium (prąd, wodociąg, gaz, kanalizację) fizycznie na działce. To realny sygnał, jak uzbrojona jest okolica, a nie odległość do konkretnej sieci, której nie da się rzetelnie policzyć dla całej Polski.',
+  },
+  {
     question: 'Czy pokazujecie plan miejscowy (MPZP) i klasę gruntu?',
     answer:
       'MPZP i klasę gruntu sprawdza się w gminie i w ewidencji, bo nie ma jednego ogólnopolskiego rejestru, z którego dałoby się je pobrać w pełni automatycznie. W raporcie prowadzimy Cię krok po kroku, gdzie i jak to zweryfikować, zamiast zgadywać.',
@@ -48,7 +52,7 @@ const FAQ: FaqItem[] = [
   {
     question: 'Czy narzędzie jest darmowe?',
     answer:
-      'Tak. Sprawdzenie działki jest bezpłatne i nie wymaga logowania.',
+      'Pierwszą działkę sprawdzisz bez konta. Kolejne raporty są też darmowe, wymagają tylko zalogowania.',
   },
 ];
 
@@ -56,8 +60,11 @@ async function loadExample(): Promise<RaportData | null> {
   try {
     const parcel = await getParcelById(EXAMPLE_PARCEL_ID);
     if (!parcel) return null;
-    const valuation = await getPointValuation(parcel.center.lat, parcel.center.lng);
-    return { parcel, valuation };
+    const [valuation, elevationM] = await Promise.all([
+      getPointValuation(parcel.center.lat, parcel.center.lng),
+      fetchElevation(parcel.center.lat, parcel.center.lng),
+    ]);
+    return { parcel, valuation, elevationM };
   } catch {
     return null;
   }
@@ -69,55 +76,28 @@ export default async function SprawdzDzialkePage() {
   return (
     <main className="relative w-full overflow-hidden" style={{ background: 'var(--bg)' }}>
       {/* HERO */}
-      <section className="relative overflow-hidden border-b border-fg/10">
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_12%,rgba(122,163,51,0.16),transparent_38%),radial-gradient(circle_at_85%_80%,rgba(47,94,70,0.05),transparent_34%)]" />
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(122,163,51,0.14),transparent_45%)]" />
 
-        <div className="relative z-10 mx-auto max-w-6xl px-6 pb-10 pt-10 md:px-10 md:pb-14 md:pt-14">
-          <Breadcrumbs
-            items={[
-              { label: 'Start', href: '/' },
-              { label: 'Sprawdź działkę' },
-            ]}
-          />
+        <div className="relative z-10 mx-auto max-w-3xl px-6 pb-4 pt-14 text-center md:pt-20">
+          <div className="text-[12px] uppercase tracking-[0.2em] text-fg/45">Sprawdź działkę</div>
 
-          <h1 className="mt-6 max-w-3xl text-[28px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[42px]">
+          <h1 className="mt-4 text-[30px] font-semibold leading-[1.1] tracking-tight text-fg md:text-[46px]">
             Sprawdź działkę, zanim ją kupisz.
           </h1>
 
-          <p className="mt-5 max-w-2xl text-[15px] leading-7 text-fg/68 md:text-base">
+          <p className="mx-auto mt-5 max-w-2xl text-[15px] leading-7 text-fg/65 md:text-base">
             Wskaż działkę na mapie albo wpisz adres. Pokażemy jej granice, powierzchnię i numer
-            ewidencyjny z rejestru GUGiK oraz orientacyjną cenę okolicy z ofert w serwisie.
-            Za darmo, bez logowania.
+            ewidencyjny z rejestru GUGiK, media w okolicy oraz orientacyjną cenę. Pierwsza za darmo,
+            bez konta.
           </p>
         </div>
       </section>
 
-      {/* WYSZUKIWARKA + WYNIK */}
+      {/* NARZĘDZIE (formularz + mapa + wynik/przykład) */}
       <section className="relative mx-auto max-w-6xl px-6 py-12 md:px-10 md:py-16">
-        <SprawdzSearch />
+        <SprawdzSearch example={example} />
       </section>
-
-      {/* PRZYKŁADOWY RAPORT */}
-      {example ? (
-        <section className="relative overflow-hidden border-t border-fg/10 bg-surface-2/40">
-          <div className="relative z-10 mx-auto max-w-6xl px-6 py-14 md:px-10 md:py-20">
-            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
-              Przykładowy raport
-            </div>
-            <h2 className="mt-4 max-w-3xl text-[24px] font-semibold tracking-tight text-fg md:text-[32px]">
-              Tak wygląda raport, który dostaniesz.
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-fg/68">
-              Poniżej realny przykład dla działki w centrum Warszawy. Twój raport powstanie po
-              wskazaniu własnej działki wyżej.
-            </p>
-
-            <div className="mt-10">
-              <Raport data={example} />
-            </div>
-          </div>
-        </section>
-      ) : null}
 
       {/* SEO / JAK TO DZIAŁA */}
       <section className="relative overflow-hidden border-t border-fg/10">
@@ -131,16 +111,16 @@ export default async function SprawdzDzialkePage() {
               Kupno działki zaczyna się od prostego pytania: gdzie dokładnie leżą jej granice i ile
               ma metrów. Nasze narzędzie odpowiada na nie od razu. Klikasz działkę na mapie albo
               wpisujesz adres, a my odpytujemy publiczny rejestr ewidencji gruntów (ULDK, GUGiK) i
-              rysujemy obrys działki na zdjęciu lotniczym wraz z powierzchnią i numerem
-              ewidencyjnym.
+              rysujemy obrys działki wraz z powierzchnią, wymiarami i numerem ewidencyjnym.
             </p>
             <p>
-              Do tego dokładamy orientacyjną cenę okolicy: medianę i zakres z aktualnych ogłoszeń
-              działek w pobliżu wskazanego punktu. To rząd wielkości, a nie operat rzeczoznawcy, więc
-              podajemy go uczciwie i pokazujemy, na ilu ofertach się opiera.
+              Do tego dokładamy orientacyjną cenę okolicy oraz media w okolicy, czyli udział
+              pobliskich działek z prądem, wodociągiem, gazem i kanalizacją na działce. Wszystko z
+              naszych aktualnych ogłoszeń, więc podajemy to uczciwie i pokazujemy, na ilu ofertach
+              się opiera.
             </p>
             <p>
-              Plan miejscowy, klasę gruntu, uzbrojenie i dojazd sprawdza się w gminie i źródłach
+              Plan miejscowy, klasę gruntu i księgę wieczystą sprawdza się w gminie i źródłach
               urzędowych, bo nie ma jednego rejestru, z którego dałoby się je pobrać automatycznie
               dla całej Polski. Zamiast zgadywać, w raporcie prowadzimy Cię krok po kroku, gdzie i
               jak każdą z tych rzeczy zweryfikować.

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getParcelById, getParcelByXY, UldkError, type ParcelReport } from '@/lib/uldk';
 import { getPointValuation, type PointValuation } from '@/lib/seoHub';
+import { fetchElevation } from '@/lib/elevation';
 
 export const runtime = 'nodejs';
 
@@ -15,6 +16,7 @@ type Body = { lat?: unknown; lng?: unknown; parcelId?: unknown };
 export type SprawdzResponse = {
   parcel: ParcelReport;
   valuation: PointValuation;
+  elevationM: number | null; // wysokość n.p.m. (Google Elevation); null gdy niedostępna
 };
 
 function isNum(v: unknown): v is number {
@@ -50,10 +52,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Wycenę liczymy od środka znalezionej działki (spójnie z jej realną lokalizacją).
-    const valuation = await getPointValuation(parcel.center.lat, parcel.center.lng);
+    // Wycenę i wysokość liczymy od środka znalezionej działki (spójnie z jej realną lokalizacją).
+    const [valuation, elevationM] = await Promise.all([
+      getPointValuation(parcel.center.lat, parcel.center.lng),
+      fetchElevation(parcel.center.lat, parcel.center.lng),
+    ]);
 
-    const payload: SprawdzResponse = { parcel, valuation };
+    const payload: SprawdzResponse = { parcel, valuation, elevationM };
     return NextResponse.json(payload);
   } catch (err) {
     if (err instanceof UldkError) {

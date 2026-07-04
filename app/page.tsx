@@ -232,35 +232,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* P24: wejście do narzędzia „Sprawdź działkę" — lekki pasek (zwykły link, bez wpływu na LCP). */}
-      <section className="relative overflow-hidden border-y border-fg/10 bg-surface-2">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(122,163,51,0.14),transparent_34%)]" />
-
-        <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-start gap-6 px-6 py-12 md:flex-row md:items-center md:justify-between md:px-10 md:py-14">
-          <div className="max-w-2xl">
-            <div className="text-[12px] uppercase tracking-[0.18em] text-brand-bright">
-              Sprawdź działkę
-            </div>
-
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-fg md:text-3xl">
-              Poznaj granice, powierzchnię i cenę okolicy w minutę.
-            </h2>
-
-            <p className="mt-3 text-sm leading-7 text-fg/70 md:text-base">
-              Wskaż działkę na mapie albo wpisz adres. Pokażemy jej obrys i metraż z rejestru GUGiK
-              oraz orientacyjną cenę z ofert w pobliżu. Za darmo.
-            </p>
-          </div>
-
-          <Link
-            href="/sprawdz-dzialke"
-            className="inline-flex h-13 shrink-0 items-center justify-center rounded-2xl bg-brand px-8 py-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
-          >
-            Sprawdź działkę →
-          </Link>
-        </div>
-      </section>
-
       {featuredCards.length > 0 ? (
         <section className="relative overflow-hidden">
           {/* zielona „siateczka" — żeby sekcja nie była monolitem */}
@@ -287,6 +258,30 @@ export default async function HomePage() {
           </div>
         </section>
       ) : null}
+
+      {/* P24: wejście do narzędzia „Sprawdź działkę" — po wyróżnionych, klasowo (zwykły link, bez LCP). */}
+      <section className="relative overflow-hidden border-y border-fg/10">
+        <div className="relative z-10 mx-auto max-w-5xl px-6 py-16 text-center md:py-20">
+          <div className="text-[12px] uppercase tracking-[0.2em] text-fg/45">Sprawdź działkę</div>
+
+          <h2 className="mx-auto mt-4 max-w-3xl text-[26px] font-semibold leading-[1.14] tracking-tight text-fg md:text-4xl">
+            Poznaj granice, powierzchnię i cenę okolicy w minutę.
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-2xl text-[15px] leading-7 text-fg/65 md:text-base">
+            Wskaż działkę na mapie albo wpisz adres. Pokażemy jej obrys, metraż i numer ewidencyjny
+            z rejestru GUGiK, media w okolicy oraz orientacyjną cenę. Pierwsza za darmo.
+          </p>
+
+          <Link
+            href="/sprawdz-dzialke"
+            className="mt-8 inline-flex items-center gap-2 text-[15px] font-semibold text-brand-text underline decoration-1 underline-offset-[6px] transition hover:text-brand-bright"
+          >
+            Sprawdź działkę
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
+      </section>
 
       <section className="relative overflow-hidden">
         <ScrollFill />

@@ -349,11 +349,25 @@ export const getCategoryDetail = cache(
 // ofert z ceną zwracamy `null` (UI pokaże „za mało danych", nie zmyśloną liczbę,
 // [[feedback-filtry-twarde]]).
 
+// Udział ofert w okolicy z danym medium FIZYCZNIE NA DZIAŁCE (0..1). Uczciwa odpowiedź na pytanie
+// „czy jest tu prąd/wodociąg" — z naszych danych, bez zmyślania odległości do rury
+// ([[feedback-filtry-twarde]]). null przy zbyt małej próbce.
+export type MediaShares = {
+  prad: number;
+  woda: number;
+  gaz: number;
+  kanalizacja: number;
+};
+
 export type PointValuation = {
   // mediana + zakres p10..p90 zł/m² z ofert w okolicy; null przy zbyt małej próbce
   pricePerM2: RangeStat | null;
   // liczba ofert z ceną i powierzchnią, na których policzono medianę
   sampleCount: number;
+  // liczba wszystkich aktywnych ofert w promieniu (baza dla „media w okolicy")
+  offersNearby: number;
+  // udział ofert z danym medium na działce; null gdy za mało ofert
+  mediaShares: MediaShares | null;
   radiusKm: number;
 };
 
@@ -387,6 +401,8 @@ export const getPointValuation = cache(
         sprzedajacyTyp: true,
         prad: true,
         woda: true,
+        kanalizacja: true,
+        gaz: true,
         mpzp: true,
         wzWydane: true,
       },
@@ -401,7 +417,25 @@ export const getPointValuation = cache(
     const detail = computeDetail(near);
     const sampleCount = near.filter((r) => r.cenaPln > 0 && r.powierzchniaM2 > 0).length;
 
-    return { pricePerM2: detail.pricePerM2, sampleCount, radiusKm: km };
+    // Media „twardo na działce" (spójnie z filtrami listy). null przy próbce < MIN_SAMPLE.
+    const mediaShares =
+      near.length >= MIN_SAMPLE
+        ? {
+            prad: near.filter((r) => r.prad === 'PRZYLACZE_NA_DZIALCE').length / near.length,
+            woda: near.filter((r) => r.woda === 'WODOCIAG_NA_DZIALCE').length / near.length,
+            gaz: near.filter((r) => r.gaz === 'GAZ_NA_DZIALCE').length / near.length,
+            kanalizacja:
+              near.filter((r) => r.kanalizacja === 'MIEJSKA_NA_DZIALCE').length / near.length,
+          }
+        : null;
+
+    return {
+      pricePerM2: detail.pricePerM2,
+      sampleCount,
+      offersNearby: near.length,
+      mediaShares,
+      radiusKm: km,
+    };
   }
 );
 

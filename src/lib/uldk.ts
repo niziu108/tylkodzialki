@@ -31,6 +31,8 @@ export type ParcelReport = {
   commune: string; // np. Warszawa (miasto)
   region: string; // obręb ewidencyjny, np. 5-05-02
   areaM2: number; // powierzchnia z geometrii 2180 (metry)
+  // przybliżone wymiary z prostokąta opisanego na działce (metry) — orientacyjne „bok x bok"
+  dims: { widthM: number; depthM: number } | null;
   rings: LatLng[][]; // obrys(y) w WGS84 do mapy (kolejno: kontur zewnętrzny + ewentualne otwory)
   center: LatLng; // środek do wycentrowania mapy
 };
@@ -100,6 +102,29 @@ function ringsAreaM2(rings: Ring[]): number {
   return Math.abs(Math.round(sum));
 }
 
+// Przybliżone wymiary działki = boki prostokąta opisanego na geometrii 2180 (metry). To NIE są
+// dokładne długości boków (działki bywają nieregularne), stąd w UI etykieta „ok.". Realne, tanie,
+// a robi wrażenie — nikt tego nie pokazuje.
+function ringsDimsM(rings: Ring[]): { widthM: number; depthM: number } | null {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const ring of rings) {
+    for (const [x, y] of ring) {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
+  const widthM = Math.round(maxX - minX);
+  const depthM = Math.round(maxY - minY);
+  if (widthM <= 0 || depthM <= 0) return null;
+  return { widthM, depthM };
+}
+
 function extractId(row: string): string {
   return (row.split('|')[0] ?? '').trim();
 }
@@ -155,7 +180,8 @@ function baseFromRow2180(row: string): Omit<ParcelReport, 'rings' | 'center'> {
   if (!id) throw new UldkError('ULDK nie zwrócił identyfikatora działki.');
 
   const wkt2180 = cols[5] ?? '';
-  const areaM2 = ringsAreaM2(parseWktRings(wkt2180));
+  const rings2180 = parseWktRings(wkt2180);
+  const areaM2 = ringsAreaM2(rings2180);
 
   return {
     id,
@@ -165,6 +191,7 @@ function baseFromRow2180(row: string): Omit<ParcelReport, 'rings' | 'center'> {
     commune: (cols[3] ?? '').trim(),
     region: (cols[4] ?? '').trim(),
     areaM2,
+    dims: ringsDimsM(rings2180),
   };
 }
 
