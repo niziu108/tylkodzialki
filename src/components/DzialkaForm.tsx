@@ -186,26 +186,30 @@ const MAX_PHOTOS = MAX_PHOTOS_PER_OFFER; // limit zdjęć na ofertę — jedno �
 
 type WizardStep = { title: string; short: string };
 
+// Kolejność kroków: NAJPIERW lokalizacja (pinezka + autouzupełnianie z GUGiK zaciąga
+// powierzchnię i gminę), potem reszta. Treść bloków renderujemy po kluczu, nie po indeksie,
+// żeby zmiana kolejności nie wymagała żmudnego przenumerowania rozproszonych `step === N`.
 const STEPS: WizardStep[] = [
+  { title: 'Lokalizacja', short: 'Lokalizacja' },
   { title: 'Podstawowe informacje', short: 'Podstawy' },
   { title: 'Zdjęcia', short: 'Zdjęcia' },
-  { title: 'Lokalizacja', short: 'Lokalizacja' },
   { title: 'Szczegóły i uzbrojenie', short: 'Szczegóły' },
   { title: 'Kto sprzedaje', short: 'Sprzedający' },
 ];
+const STEP_KEYS = ['location', 'basics', 'photos', 'details', 'seller'] as const;
 const LAST_STEP = STEPS.length - 1;
 
 // Każde pole wymagane mapujemy na krok, w którym się znajduje. Dzięki temu „Dalej"
 // waliduje tylko bieżący krok, a „Opublikuj" potrafi przeskoczyć do najwcześniejszego
 // kroku, w którym czegoś brakuje.
 const FIELD_STEP: Record<FieldKey, number> = {
-  tytul: 0,
-  cenaPln: 0,
-  powierzchniaM2: 0,
-  telefon: 0,
-  przeznaczenia: 0,
-  photos: 1,
-  location: 2,
+  location: 0,
+  tytul: 1,
+  cenaPln: 1,
+  powierzchniaM2: 1,
+  telefon: 1,
+  przeznaczenia: 1,
+  photos: 2,
   sprzedajacyImie: 4,
   biuroNazwa: 4,
   biuroOpiekun: 4,
@@ -638,6 +642,7 @@ export default function DzialkaForm({
 
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(mode === 'edit' ? STEPS.length - 1 : 0);
+  const stepKey = STEP_KEYS[step];
 
   const [activeIdx, setActiveIdx] = useState(0);
   const [uploaded, setUploaded] = useState<UploadedPhoto[]>(
@@ -1717,7 +1722,7 @@ export default function DzialkaForm({
             </div>
           ) : null}
 
-          {step === 0 && (
+          {stepKey === 'basics' && (
           <div className="space-y-6">
             <SectionTitle>
               Tytuł ogłoszenia <span className="text-brand-bright">*</span>
@@ -1738,7 +1743,7 @@ export default function DzialkaForm({
 
           )}
 
-          {step === 1 && (
+          {stepKey === 'photos' && (
           <div className="space-y-6">
             <div className="flex items-end justify-between gap-4">
               <SectionTitle>
@@ -1876,7 +1881,7 @@ export default function DzialkaForm({
 
           )}
 
-          {step === 0 && (
+          {stepKey === 'basics' && (
           <div className="space-y-8">
             <div>
               <div className="mb-3 text-[12px] uppercase tracking-[0.22em] text-fg/70">Typ oferty</div>
@@ -1924,12 +1929,30 @@ export default function DzialkaForm({
               />
             </div>
 
+            {(() => {
+              const c = Number(cenaPln.replace(/\s/g, ''));
+              const a = Number(powierzchniaM2.replace(/\s/g, ''));
+              if (c > 0 && a > 0) {
+                const per = Math.round(c / a);
+                return (
+                  <div className="text-[13px] text-fg/70">
+                    To około{' '}
+                    <span className="font-semibold text-brand-text">
+                      {per.toLocaleString('pl-PL')} zł/m²
+                    </span>
+                    .
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             <Hr className="mt-8" />
           </div>
 
           )}
 
-          {step === 4 && (
+          {stepKey === 'seller' && (
           <div className="space-y-6">
             <SectionTitle>Kto sprzedaje?</SectionTitle>
 
@@ -2032,7 +2055,7 @@ export default function DzialkaForm({
 
           )}
 
-          {step === 0 && (
+          {stepKey === 'basics' && (
           <div className="space-y-6">
             <SectionTitle>
               Przeznaczenie <span className="text-brand-bright">*</span>
@@ -2060,7 +2083,7 @@ export default function DzialkaForm({
 
           )}
 
-          {step === 3 && (
+          {stepKey === 'details' && (
           <div className="space-y-10">
             <div className="space-y-6">
               <SectionTitle>Prąd</SectionTitle>
@@ -2144,7 +2167,7 @@ export default function DzialkaForm({
 
           )}
 
-          {step === 3 && (
+          {stepKey === 'details' && (
           <div className="space-y-8">
             <SectionTitle>Opcjonalne informacje</SectionTitle>
 
@@ -2304,7 +2327,7 @@ export default function DzialkaForm({
 
           )}
 
-          {step === 2 && (
+          {stepKey === 'location' && (
           <div className="space-y-6">
             <Hr className="mt-8" />
             <SectionTitle>

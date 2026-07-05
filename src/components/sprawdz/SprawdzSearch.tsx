@@ -115,7 +115,7 @@ export default function SprawdzSearch() {
         : null;
 
     if (!body) {
-      setError('Wskaż działkę: wpisz adres, obręb i numer działki albo kliknij ją na mapie.');
+      setError('Wskaż działkę: wpisz adres, numer ewidencyjny albo kliknij ją na mapie.');
       return;
     }
 
@@ -174,7 +174,7 @@ export default function SprawdzSearch() {
               Sprawdź działkę
             </h1>
             <p className="mt-2 text-center text-[15px] text-fg/65">
-              Wpisz adres albo obręb i numer działki, a otrzymasz raport. Za darmo, bez logowania.
+              Wpisz adres albo numer ewidencyjny, a otrzymasz raport. Za darmo, bez logowania.
             </p>
 
             <div className="mt-6 grid gap-4 text-left">
@@ -194,7 +194,7 @@ export default function SprawdzSearch() {
 
               <div>
                 <label className="block text-[12px] uppercase tracking-[0.18em] text-fg/70">
-                  Obręb i numer działki (jak na geoportalu)
+                  Numer ewidencyjny
                 </label>
                 <div className="mt-2 rounded-xl border border-fg/25">
                   <input
