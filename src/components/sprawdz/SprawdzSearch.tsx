@@ -155,7 +155,7 @@ export default function SprawdzSearch() {
           fill
           priority
           sizes="(min-width: 768px) 1px, 100vw"
-          quality={78}
+          quality={84}
           className="object-cover object-center md:hidden"
         />
         <Image
@@ -163,7 +163,7 @@ export default function SprawdzSearch() {
           alt=""
           fill
           sizes="100vw"
-          quality={68}
+          quality={82}
           className="hidden object-cover object-center md:block"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/32 to-black/48" />
