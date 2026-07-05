@@ -654,6 +654,9 @@ export default function DzialkaForm({
 
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  // Auto-zdjęcie z lotu ptaka (ortofoto GUGiK) dodawane raz, gdy brak własnych zdjęć.
+  const aerialAddedRef = useRef(false);
+  const [aerialNote, setAerialNote] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -1288,6 +1291,37 @@ export default function DzialkaForm({
     return true;
   }
 
+  // Po zaznaczeniu działki (autofill z GUGiK) dokładamy zdjęcie z lotu ptaka, ale tylko gdy
+  // użytkownik nie ma jeszcze własnych zdjęć. Cichy fallback: gdy ortofoto nie wyjdzie, nic nie robimy.
+  async function maybeAddAerialPhoto(lat: number, lng: number) {
+    if (aerialAddedRef.current) return;
+    if (uploaded.length > 0) return;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    aerialAddedRef.current = true;
+    try {
+      const res = await fetch(`/api/parcel-photo?lat=${lat}&lng=${lng}`);
+      if (!res.ok) {
+        aerialAddedRef.current = false;
+        return;
+      }
+      const blob = await res.blob();
+      if (!blob.type.startsWith('image/') || blob.size < 1500) {
+        aerialAddedRef.current = false;
+        return;
+      }
+      const file = new File([blob], 'dzialka-z-lotu-ptaka.jpg', { type: 'image/jpeg' });
+      const { url, key } = await uploadImageViaApi(file);
+      setUploaded((prev) => {
+        if (prev.length > 0) return prev; // w międzyczasie ktoś dodał własne
+        return [{ url, publicId: key, kolejnosc: 0 }];
+      });
+      clearFieldError('photos');
+      setAerialNote(true);
+    } catch {
+      aerialAddedRef.current = false;
+    }
+  }
+
   function goNext() {
     if (!validateStep(step)) return;
     setValidationErrors([]);
@@ -1753,6 +1787,13 @@ export default function DzialkaForm({
                 minimum 1 zdjęcie, maksymalnie {MAX_PHOTOS}
               </div>
             </div>
+
+            {aerialNote ? (
+              <div className="rounded-2xl border border-brand/25 bg-brand/[0.06] px-4 py-3 text-[13px] leading-6 text-fg/75">
+                Dodaliśmy zdjęcie z lotu ptaka Twojej działki (ortofotomapa z geoportalu). Możesz je
+                zostawić albo dodać własne, one zwykle robią lepsze wrażenie.
+              </div>
+            ) : null}
 
             <div className={cx(
               'overflow-hidden rounded-3xl border bg-fg/[0.03]',
@@ -2345,6 +2386,8 @@ export default function DzialkaForm({
                     clearFieldError('powierzchniaM2');
                   }
                   clearFieldError('location');
+                  // Auto-zdjęcie z lotu ptaka (jeśli brak własnych zdjęć).
+                  void maybeAddAerialPhoto(d.lat, d.lng);
                 }}
               />
             </div>

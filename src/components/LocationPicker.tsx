@@ -17,6 +17,8 @@ export type LocationValue = {
 };
 
 export type ParcelAutofill = {
+  lat: number;
+  lng: number;
   areaM2: number;
   parcelNumber: string | null;
   locationFull: string | null;
@@ -141,6 +143,8 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
       });
 
       onAutofill?.({
+        lat,
+        lng,
         areaM2: p.areaM2,
         parcelNumber: p.parcelNumber,
         locationFull: admin || null,
