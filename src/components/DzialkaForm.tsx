@@ -2282,13 +2282,13 @@ export default function DzialkaForm({
 
           {stepKey === 'location' && (
           <div className="space-y-5" data-field-error={fieldErrors.has('location') ? 'true' : undefined}>
-            <SectionTitle>
-              Lokalizacja <span className="text-brand-bright">*</span>
-            </SectionTitle>
-
-            <p className="max-w-2xl text-[13px] leading-6 text-fg/70">
-              Wskaż działkę na mapie. Wystarczy lokalizacja, cenę i resztę uzupełnisz dalej.
-            </p>
+            <div className={cx(
+              'text-[11px] uppercase tracking-[0.18em]',
+              fieldErrors.has('location') ? 'text-red-400/90' : 'text-fg/70'
+            )}>
+              Lokalizacja
+              <span className={fieldErrors.has('location') ? 'text-red-400' : 'text-brand-bright'}> *</span>
+            </div>
 
             <div className="mt-1">
               <LocationPicker
