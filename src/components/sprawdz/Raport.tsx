@@ -53,7 +53,7 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
   if (!stat.pricePerM2) return null;
   return (
     <div
-      className={`grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-b border-fg/10 py-3 md:grid-cols-[14rem_1fr] ${sub ? 'pl-4' : ''}`}
+      className={`grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-t border-fg/10 py-3 md:grid-cols-[14rem_1fr] ${sub ? 'pl-4' : ''}`}
     >
       <span className={`text-[13px] uppercase tracking-[0.1em] text-fg/45 ${sub ? 'normal-case tracking-normal' : ''}`}>
         {label}
@@ -97,10 +97,10 @@ export default function Raport({ data }: { data: RaportData }) {
         </button>
       </div>
 
-      {/* MAPA — rozwijana na pełną szerokość ekranu (full-bleed): więcej powietrza niż tkafelek. */}
+      {/* MAPA — na mobile full-bleed (pełna szerokość ekranu), na desktopie kafelek w kolumnie. */}
       {mapShown ? (
-        <div className="relative left-1/2 mt-6 w-screen -translate-x-1/2 border-y border-fg/12">
-          <div className="h-[70vh] max-h-[760px] min-h-[420px] w-full">
+        <div className="relative left-1/2 mt-6 w-screen -translate-x-1/2 border-y border-fg/12 md:left-auto md:w-full md:translate-x-0 md:overflow-hidden md:rounded-2xl md:border">
+          <div className="h-[60vh] max-h-[620px] min-h-[360px] w-full md:h-[460px] md:max-h-none md:min-h-0">
             <RaportMap rings={parcel.rings} center={parcel.center} />
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function Raport({ data }: { data: RaportData }) {
 
             {/* Rozbicie: budowlane, a przy gęstej okolicy uzbrojone vs bez. Puste rubryki znikają. */}
             {valuation.budowlana.pricePerM2 ? (
-              <div className="mt-6 border-t border-fg/10">
+              <div className="mt-6">
                 <PriceRow label="Działki budowlane" stat={valuation.budowlana} />
                 {valuation.budowlanaUzbrojona.pricePerM2 &&
                 valuation.budowlanaNieuzbrojona.pricePerM2 ? (

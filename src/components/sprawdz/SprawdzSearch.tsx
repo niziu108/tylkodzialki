@@ -169,11 +169,7 @@ export default function SprawdzSearch() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/32 to-black/48" />
 
         <div className="relative z-10 flex flex-col items-center px-4 py-16 md:py-24">
-          <div
-            className={`w-full rounded-3xl border border-fg/10 bg-surface-2/92 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm transition-[max-width] duration-300 md:p-8 ${
-              mapOpen ? 'max-w-5xl' : 'max-w-2xl'
-            }`}
-          >
+          <div className="w-full max-w-2xl rounded-3xl border border-fg/10 bg-surface-2/92 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm md:p-8">
             <h1 className="text-center text-[24px] font-semibold tracking-tight text-fg md:text-[30px]">
               Sprawdź działkę
             </h1>
@@ -233,10 +229,10 @@ export default function SprawdzSearch() {
 
             {/* MAPA — rozwijana w karcie */}
             <div
-              className={`overflow-hidden transition-all duration-300 ${mapOpen ? 'mt-5 max-h-[680px]' : 'max-h-0'}`}
+              className={`overflow-hidden transition-all duration-300 ${mapOpen ? 'mt-5 max-h-[460px]' : 'max-h-0'}`}
             >
               <div className="overflow-hidden rounded-xl border border-fg/15">
-                <div ref={mapDivRef} className="h-[420px] w-full md:h-[580px]" />
+                <div ref={mapDivRef} className="h-[360px] w-full" />
               </div>
               <p className="mt-2 text-[13px] text-fg/60">
                 Kliknij działkę na mapie i przeciągnij pinezkę, żeby trafić dokładnie.
