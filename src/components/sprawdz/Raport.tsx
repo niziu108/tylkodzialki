@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { formatIntPL } from '@/lib/format';
 import type { ParcelReport } from '@/lib/uldk';
-import type { PointValuation } from '@/lib/seoHub';
+import type { PointValuation, PriceStat } from '@/lib/seoHub';
 import type { MpzpInfo } from '@/lib/mpzp';
 import RaportMap from './RaportMap';
 
@@ -48,6 +48,26 @@ function Row({ label, value }: { label: string; value: string | null }) {
   );
 }
 
+// Wiersz rozbicia cenowego — renderuje się tylko, gdy podpróbka dobiła progu (pricePerM2 != null).
+function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat; sub?: boolean }) {
+  if (!stat.pricePerM2) return null;
+  return (
+    <div
+      className={`grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-b border-fg/10 py-3 md:grid-cols-[14rem_1fr] ${sub ? 'pl-4' : ''}`}
+    >
+      <span className={`text-[13px] uppercase tracking-[0.1em] text-fg/45 ${sub ? 'normal-case tracking-normal' : ''}`}>
+        {label}
+      </span>
+      <span className="text-[15px] font-medium text-fg">
+        {formatIntPL(stat.pricePerM2.median)} zł/m²
+        <span className="ml-2 text-[13px] font-normal text-fg/45">
+          z {stat.sampleCount} {stat.sampleCount === 1 ? 'oferty' : 'ofert'}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 export default function Raport({ data }: { data: RaportData }) {
   const { parcel, valuation, mpzp } = data;
   const v = valuation.pricePerM2;
@@ -77,16 +97,14 @@ export default function Raport({ data }: { data: RaportData }) {
         </button>
       </div>
 
-      {/* MAPA — rozwijana */}
-      <div
-        className={`overflow-hidden transition-all duration-300 ${mapShown ? 'mt-6 max-h-[520px]' : 'max-h-0'}`}
-      >
-        <div className="overflow-hidden rounded-2xl border border-fg/12">
-          <div className="h-[380px] w-full md:h-[460px]">
+      {/* MAPA — rozwijana na pełną szerokość ekranu (full-bleed): więcej powietrza niż tkafelek. */}
+      {mapShown ? (
+        <div className="relative left-1/2 mt-6 w-screen -translate-x-1/2 border-y border-fg/12">
+          <div className="h-[70vh] max-h-[760px] min-h-[420px] w-full">
             <RaportMap rings={parcel.rings} center={parcel.center} />
           </div>
         </div>
-      </div>
+      ) : null}
 
       {/* CENA */}
       <div className="mt-8 border-t border-fg/12 pt-8">
@@ -106,6 +124,20 @@ export default function Raport({ data }: { data: RaportData }) {
               · z {valuation.sampleCount} {valuation.sampleCount === 1 ? 'oferty' : 'ofert'} w
               promieniu {valuation.radiusKm} km. To orientacja z ogłoszeń, nie operat rzeczoznawcy.
             </p>
+
+            {/* Rozbicie: budowlane, a przy gęstej okolicy uzbrojone vs bez. Puste rubryki znikają. */}
+            {valuation.budowlana.pricePerM2 ? (
+              <div className="mt-6 border-t border-fg/10">
+                <PriceRow label="Działki budowlane" stat={valuation.budowlana} />
+                {valuation.budowlanaUzbrojona.pricePerM2 &&
+                valuation.budowlanaNieuzbrojona.pricePerM2 ? (
+                  <>
+                    <PriceRow label="z uzbrojeniem" stat={valuation.budowlanaUzbrojona} sub />
+                    <PriceRow label="bez uzbrojenia" stat={valuation.budowlanaNieuzbrojona} sub />
+                  </>
+                ) : null}
+              </div>
+            ) : null}
           </>
         ) : (
           <p className="mt-2 max-w-2xl text-[15px] leading-7 text-fg/65">

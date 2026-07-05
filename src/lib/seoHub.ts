@@ -359,11 +359,20 @@ export type MediaShares = {
   kanalizacja: number;
 };
 
+// Jedno „rozbicie" cenowe: mediana zł/m² + liczba ofert, na których ją policzono.
+// pricePerM2 = null, gdy podpróbka nie dobija MIN_SAMPLE (nie zmyślamy przy 1-2 ofertach).
+export type PriceStat = { pricePerM2: RangeStat | null; sampleCount: number };
+
 export type PointValuation = {
-  // mediana + zakres p10..p90 zł/m² z ofert w okolicy; null przy zbyt małej próbce
+  // mediana + zakres p10..p90 zł/m² ze WSZYSTKICH ofert w okolicy; null przy zbyt małej próbce
   pricePerM2: RangeStat | null;
   // liczba ofert z ceną i powierzchnią, na których policzono medianę
   sampleCount: number;
+  // rozbicie: same działki budowlane, oraz budowlane uzbrojone „twardo" vs bez uzbrojenia.
+  // Każde świeci tylko przy wystarczającej próbce — inaczej pricePerM2 = null i UI je chowa.
+  budowlana: PriceStat;
+  budowlanaUzbrojona: PriceStat;
+  budowlanaNieuzbrojona: PriceStat;
   // liczba wszystkich aktywnych ofert w promieniu (baza dla „media w okolicy")
   offersNearby: number;
   // udział ofert z danym medium na działce; null gdy za mało ofert
@@ -417,6 +426,18 @@ export const getPointValuation = cache(
     const detail = computeDetail(near);
     const sampleCount = near.filter((r) => r.cenaPln > 0 && r.powierzchniaM2 > 0).length;
 
+    // Rozbicie cenowe bez dodatkowych zapytań — te same wiersze, filtrowane w pamięci.
+    const priceStat = (subset: typeof near): PriceStat => {
+      const ppm2: number[] = [];
+      for (const r of subset) {
+        if (r.cenaPln > 0 && r.powierzchniaM2 > 0) ppm2.push(Math.round(r.cenaPln / r.powierzchniaM2));
+      }
+      return { pricePerM2: rangeStat(ppm2), sampleCount: ppm2.length };
+    };
+    const budowlaneRows = near.filter((r) => r.przeznaczenia.includes('BUDOWLANA'));
+    const budUzbr = budowlaneRows.filter(isUzbrojona);
+    const budNieuzbr = budowlaneRows.filter((r) => !isUzbrojona(r));
+
     // Media „twardo na działce" (spójnie z filtrami listy). null przy próbce < MIN_SAMPLE.
     const mediaShares =
       near.length >= MIN_SAMPLE
@@ -432,6 +453,9 @@ export const getPointValuation = cache(
     return {
       pricePerM2: detail.pricePerM2,
       sampleCount,
+      budowlana: priceStat(budowlaneRows),
+      budowlanaUzbrojona: priceStat(budUzbr),
+      budowlanaNieuzbrojona: priceStat(budNieuzbr),
       offersNearby: near.length,
       mediaShares,
       radiusKm: km,
