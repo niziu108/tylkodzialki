@@ -2233,6 +2233,16 @@ export default function DzialkaForm({
 
           {stepKey === 'details' && (
           <div className="space-y-10">
+            <div className="rounded-2xl border border-fg/12 bg-fg/[0.03] px-4 py-3">
+              <div className="text-[13px] font-semibold uppercase tracking-[0.14em] text-brand-text">
+                Krok opcjonalny
+              </div>
+              <p className="mt-1 text-[13px] leading-6 text-fg/68">
+                Uzbrojenie i szczegóły podnoszą zainteresowanie kupujących, ale nie są wymagane.
+                Możesz je uzupełnić albo kliknąć „Pomiń” i przejść dalej.
+              </p>
+            </div>
+
             <div className="space-y-6">
               <SectionTitle>Prąd</SectionTitle>
               <ChoiceRow
@@ -2482,6 +2492,11 @@ export default function DzialkaForm({
               Lokalizacja <span className="text-brand-bright">*</span>
             </SectionTitle>
 
+            <p className="max-w-2xl text-[14px] leading-6 text-fg/70">
+              Zacznij od wskazania działki na mapie. Do publikacji wystarczy lokalizacja, cena i
+              kontakt, resztę albo uzupełnimy z rejestrów, albo spokojnie pominiesz.
+            </p>
+
             <div className="mt-2">
               <LocationPicker
                 value={location ?? undefined}
@@ -2554,7 +2569,7 @@ export default function DzialkaForm({
                   onClick={goNext}
                   className="inline-flex items-center gap-2 rounded-2xl bg-brand px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90"
                 >
-                  Dalej →
+                  {stepKey === 'details' ? 'Pomiń →' : 'Dalej →'}
                 </button>
               </div>
             ) : (
