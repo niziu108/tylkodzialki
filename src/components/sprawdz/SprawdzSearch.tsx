@@ -1,20 +1,22 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { loadGoogleMaps } from '@/lib/googleMaps';
 import Raport, { type RaportData } from './Raport';
 
-// P24: wyszukiwarka narzędzia w stylu wyszukiwarki z głównej (/kup) — karta na zdjęciu hero,
-// wyśrodkowana, z tytułem „Sprawdź działkę". Punkt wskazuje UŻYTKOWNIK (adres / numer / pinezka).
-// Darmowe, bez logowania. Mapa i raport pojawiają się pod spodem, na jasnym tle.
+// P24: wyszukiwarka narzędzia w oprawie hero jak na stronie głównej (zdjęcie + ciemna
+// nakładka + karta z polami). Punkt wskazuje UŻYTKOWNIK (adres / obręb i numer / pinezka).
+// Darmowe, bez logowania. Po sprawdzeniu strona zjeżdża do gotowego raportu.
 
 type Point = { lat: number; lng: number };
 
-export default function SprawdzSearch({ example }: { example?: RaportData | null }) {
+export default function SprawdzSearch() {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const addrRef = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
+  const reportRef = useRef<HTMLDivElement | null>(null);
 
   const [mapOpen, setMapOpen] = useState(false);
   const [point, setPoint] = useState<Point | null>(null);
@@ -95,6 +97,13 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Po otrzymaniu raportu zjeżdżamy do niego, żeby było jasne, że jest gotowy.
+  useEffect(() => {
+    if (result && reportRef.current) {
+      reportRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [result]);
+
   async function handleCheck() {
     if (loading) return;
     setError(null);
@@ -106,7 +115,7 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
         : null;
 
     if (!body) {
-      setError('Wskaż działkę: wpisz adres, numer ewidencyjny albo kliknij ją na mapie.');
+      setError('Wskaż działkę: wpisz adres, obręb i numer działki albo kliknij ją na mapie.');
       return;
     }
 
@@ -138,19 +147,34 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
 
   return (
     <div className="w-full">
-      {/* HERO z wyszukiwarką — jasna oprawa jak na /dla-biur (gradient + siateczka + poświata) */}
-      <div className="relative overflow-hidden rounded-[28px] border border-fg/10 bg-bg">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.05),transparent_34%)]" />
-        <div className="pointer-events-none absolute left-[-140px] top-16 h-[420px] w-[420px] rounded-full bg-brand/10 blur-[120px]" />
+      {/* HERO ze zdjęciem jak na stronie głównej: lekka wersja na mobile, ciężka na desktop. */}
+      <section className="relative w-full overflow-hidden">
+        <Image
+          src="/hero-kup-home-mobile.webp"
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 768px) 1px, 100vw"
+          quality={78}
+          className="object-cover object-center md:hidden"
+        />
+        <Image
+          src="/hero-kup.webp"
+          alt=""
+          fill
+          sizes="100vw"
+          quality={68}
+          className="hidden object-cover object-center md:block"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/32 to-black/48" />
 
-        <div className="relative mx-auto max-w-2xl px-4 py-12 md:py-16">
-          <div className="rounded-2xl border border-fg/10 bg-surface-2/85 p-6 backdrop-blur-sm md:p-8">
+        <div className="relative z-10 flex flex-col items-center px-4 py-16 md:py-24">
+          <div className="w-full max-w-2xl rounded-3xl border border-fg/10 bg-surface-2/92 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm md:p-8">
             <h1 className="text-center text-[24px] font-semibold tracking-tight text-fg md:text-[30px]">
               Sprawdź działkę
             </h1>
             <p className="mt-2 text-center text-[15px] text-fg/65">
-              Wpisz adres i otrzymaj raport. Za darmo, bez logowania.
+              Wpisz adres albo obręb i numer działki, a otrzymasz raport. Za darmo, bez logowania.
             </p>
 
             <div className="mt-6 grid gap-4 text-left">
@@ -170,7 +194,7 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
 
               <div>
                 <label className="block text-[12px] uppercase tracking-[0.18em] text-fg/70">
-                  Numer ewidencyjny (opcjonalnie)
+                  Obręb i numer działki (jak na geoportalu)
                 </label>
                 <div className="mt-2 rounded-xl border border-fg/25">
                   <input
@@ -228,11 +252,15 @@ export default function SprawdzSearch({ example }: { example?: RaportData | null
             ) : null}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* WYNIK / PRZYKŁAD — pod spodem, na jasnym tle, od lewej */}
-      <div className="mt-14">
-        {result ? <Raport data={result} /> : example ? <Raport data={example} isExample /> : null}
+      {/* WYNIK — pod hero, na jasnym tle, od lewej */}
+      <div ref={reportRef} className="mx-auto max-w-6xl scroll-mt-24 px-6 md:px-10">
+        {result ? (
+          <div className="mt-14">
+            <Raport data={result} />
+          </div>
+        ) : null}
       </div>
     </div>
   );

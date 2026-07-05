@@ -1592,11 +1592,8 @@ export default function DzialkaForm({
         <div className="mx-auto max-w-5xl px-6 pb-5 pt-7 md:px-10">
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-fg/68">
+              <h1 className="truncate text-[24px] font-semibold leading-tight tracking-tight text-fg md:text-[30px]">
                 {mode === 'edit' ? 'Edycja ogłoszenia' : 'Dodaj działkę'}
-              </div>
-              <h1 className="mt-1.5 truncate text-[24px] font-semibold leading-tight tracking-tight text-fg md:text-[30px]">
-                {STEPS[step].title}
               </h1>
             </div>
             <div className="hidden shrink-0 text-right text-[13px] font-medium text-fg/68 sm:block">
@@ -1881,8 +1878,6 @@ export default function DzialkaForm({
 
           {step === 0 && (
           <div className="space-y-8">
-            <SectionTitle>Podstawowe informacje</SectionTitle>
-
             <div>
               <div className="mb-3 text-[12px] uppercase tracking-[0.22em] text-fg/70">Typ oferty</div>
               <Tabs

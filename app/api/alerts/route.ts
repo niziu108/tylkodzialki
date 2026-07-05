@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/auth-options';
 import { prisma } from '@/lib/prisma';
+import { sendAlertConfirmation } from '@/lib/alertEmails';
 import {
   normalizeCriteria,
   criteriaIsEmpty,
@@ -38,28 +39,33 @@ function criteriaFromRow(a: {
   };
 }
 
+function normalizeEmail(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const email = raw.trim().toLowerCase();
+  // Prosty, wystarczający walidator (dokładność i tak weryfikuje double opt-in).
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 190) return null;
+  return email;
+}
+
+// Pola kryteriów wspólne dla create (żeby nie powtarzać).
+function criteriaData(c: AlertCriteria) {
+  return {
+    query: c.query,
+    priceMin: c.priceMin,
+    priceMax: c.priceMax,
+    areaMin: c.areaMin,
+    areaMax: c.areaMax,
+    przeznaczenia: c.przeznaczenia,
+    transakcja: c.transakcja,
+    lat: c.lat,
+    lng: c.lng,
+    radiusKm: c.radiusKm,
+  };
+}
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
-
-  if (!userId) {
-    return NextResponse.json(
-      { ok: false, message: 'Zaloguj się, aby włączyć alert.' },
-      { status: 401 }
-    );
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true },
-  });
-
-  if (!user) {
-    return NextResponse.json(
-      { ok: false, message: 'Nie znaleziono użytkownika.' },
-      { status: 401 }
-    );
-  }
+  const userId = session?.user?.id ?? null;
 
   const body = await req.json().catch(() => null);
   const criteria = normalizeCriteria(body ?? {});
@@ -74,44 +80,91 @@ export async function POST(req: Request) {
     );
   }
 
-  // Deduplikacja: jeśli użytkownik ma już aktywny alert o tych samych kryteriach, zwracamy go.
   const fingerprint = criteriaFingerprint(criteria);
-  const existing = await prisma.offerAlert.findMany({
-    where: { userId: user.id, isActive: true },
-  });
+  const label = buildAlertLabel(criteria);
 
+  // ── ZALOGOWANY: alert od razu aktywny na e-mail z konta, bez pytania o adres. ──
+  if (userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ ok: false, message: 'Nie znaleziono użytkownika.' }, { status: 401 });
+    }
+
+    const existing = await prisma.offerAlert.findMany({ where: { userId: user.id, isActive: true } });
+    const duplicate = existing.find((a) => criteriaFingerprint(criteriaFromRow(a)) === fingerprint);
+    if (duplicate) {
+      return NextResponse.json({
+        ok: true,
+        alreadyExists: true,
+        alert: { id: duplicate.id, label: duplicate.label },
+      });
+    }
+
+    const created = await prisma.offerAlert.create({
+      data: {
+        userId: user.id,
+        email: user.email,
+        confirmedAt: new Date(),
+        label,
+        ...criteriaData(criteria),
+        unsubscribeToken: crypto.randomUUID(),
+        // lastCheckedAt = teraz: alert dotyczy ofert, które pojawią się OD TERAZ.
+        lastCheckedAt: new Date(),
+      },
+      select: { id: true, label: true },
+    });
+
+    return NextResponse.json({ ok: true, alert: created });
+  }
+
+  // ── NIEZALOGOWANY: subskrypcja na sam e-mail z potwierdzeniem (double opt-in). ──
+  const email = normalizeEmail(body?.email);
+  if (!email) {
+    return NextResponse.json(
+      { ok: false, message: 'Podaj poprawny adres e-mail.' },
+      { status: 400 }
+    );
+  }
+
+  // Dedup po adresie: jeśli ten e-mail ma już taki alert, nie tworzymy drugiego.
+  const existing = await prisma.offerAlert.findMany({ where: { email, userId: null } });
   const duplicate = existing.find((a) => criteriaFingerprint(criteriaFromRow(a)) === fingerprint);
   if (duplicate) {
+    // Potwierdzony → już działa; niepotwierdzony → czeka na kliknięcie w mailu.
     return NextResponse.json({
       ok: true,
-      alreadyExists: true,
-      alert: { id: duplicate.id, label: duplicate.label },
+      alreadyExists: Boolean(duplicate.confirmedAt),
+      pending: !duplicate.confirmedAt,
     });
   }
 
-  const label = buildAlertLabel(criteria);
+  const confirmToken = crypto.randomUUID();
 
-  const created = await prisma.offerAlert.create({
+  await prisma.offerAlert.create({
     data: {
-      userId: user.id,
+      email,
       label,
-      query: criteria.query,
-      priceMin: criteria.priceMin,
-      priceMax: criteria.priceMax,
-      areaMin: criteria.areaMin,
-      areaMax: criteria.areaMax,
-      przeznaczenia: criteria.przeznaczenia,
-      transakcja: criteria.transakcja,
-      lat: criteria.lat,
-      lng: criteria.lng,
-      radiusKm: criteria.radiusKm,
+      ...criteriaData(criteria),
+      isActive: false, // nieaktywny do potwierdzenia w mailu
+      confirmToken,
       unsubscribeToken: crypto.randomUUID(),
-      // lastCheckedAt = teraz: nie zalewamy maila całym istniejącym katalogiem,
-      // alert dotyczy ofert, które pojawią się OD TERAZ.
       lastCheckedAt: new Date(),
     },
-    select: { id: true, label: true },
   });
 
-  return NextResponse.json({ ok: true, alert: created });
+  try {
+    await sendAlertConfirmation({ email, label, confirmToken });
+  } catch (error) {
+    console.error('ALERT_CONFIRM_SEND_ERROR', { email, error });
+    return NextResponse.json(
+      { ok: false, message: 'Nie udało się wysłać maila potwierdzającego. Spróbuj ponownie.' },
+      { status: 502 }
+    );
+  }
+
+  return NextResponse.json({ ok: true, pending: true });
 }

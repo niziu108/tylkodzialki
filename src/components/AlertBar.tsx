@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   buildAlertLabel,
@@ -9,9 +9,7 @@ import {
   type AlertCriteria,
 } from '@/lib/alertCriteria';
 
-const PENDING_KEY = 'TD_PENDING_ALERT';
-
-type AlertState = 'idle' | 'sending' | 'ok' | 'exists' | 'error';
+type AlertState = 'idle' | 'sending' | 'ok' | 'exists' | 'pending' | 'error';
 
 function BellIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -22,37 +20,41 @@ function BellIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
+function isValidEmail(v: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+}
+
 export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
   const { status } = useSession();
   const isLogged = status === 'authenticated';
 
   const [state, setState] = useState<AlertState>('idle');
   const [msg, setMsg] = useState<string | null>(null);
-  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
-  const autoTriedRef = useRef(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [email, setEmail] = useState('');
 
   const empty = criteriaIsEmpty(criteria);
   const label = empty ? '' : buildAlertLabel(criteria);
 
-  // Reset przy zmianie filtrów: nowa lokalizacja/filtry = nowy alert, więc przycisk wraca
-  // (można mieć kilka alertów). Wzorzec „adjust state on prop change" (setState w renderze, guard).
+  // Reset przy zmianie filtrów: nowa lokalizacja/filtry = nowy alert, więc przycisk wraca.
   const fingerprint = criteriaFingerprint(criteria);
   const [lastFingerprint, setLastFingerprint] = useState(fingerprint);
   if (fingerprint !== lastFingerprint) {
     setLastFingerprint(fingerprint);
     if (state !== 'idle') setState('idle');
     if (msg !== null) setMsg(null);
-    if (loginPromptOpen) setLoginPromptOpen(false);
+    if (emailOpen) setEmailOpen(false);
+    if (email) setEmail('');
   }
 
-  async function createAlert(c: AlertCriteria) {
+  async function createAlert(emailArg?: string) {
     setState('sending');
     setMsg(null);
     try {
       const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(c),
+        body: JSON.stringify(emailArg ? { ...criteria, email: emailArg } : criteria),
       });
       const data = await res.json().catch(() => null);
 
@@ -61,65 +63,37 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
         setMsg(data?.message ?? 'Nie udało się włączyć powiadomień.');
         return;
       }
-      setState(data?.alreadyExists ? 'exists' : 'ok');
+
+      if (data?.pending) setState('pending');
+      else if (data?.alreadyExists) setState('exists');
+      else setState('ok');
     } catch {
       setState('error');
       setMsg('Nie udało się włączyć powiadomień. Spróbuj ponownie.');
     }
   }
 
-  function goToLogin() {
-    try {
-      sessionStorage.setItem(PENDING_KEY, JSON.stringify(criteria));
-    } catch {}
-
-    const sp = new URLSearchParams(window.location.search);
-    sp.set('autoalert', '1');
-    const cb = `${window.location.pathname}?${sp.toString()}`;
-    window.location.href = `/logowanie?callbackUrl=${encodeURIComponent(cb)}`;
-  }
-
-  // Po powrocie z logowania dokończ włączanie powiadomień (wzorzec jak /sprzedaj autopublish).
-  useEffect(() => {
-    if (autoTriedRef.current) return;
-    if (status !== 'authenticated') return;
-    if (typeof window === 'undefined') return;
-
-    const sp = new URLSearchParams(window.location.search);
-    if (sp.get('autoalert') !== '1') return;
-
-    let pending: AlertCriteria | null = null;
-    try {
-      const raw = sessionStorage.getItem(PENDING_KEY);
-      if (raw) pending = JSON.parse(raw) as AlertCriteria;
-    } catch {}
-
-    autoTriedRef.current = true;
-
-    try {
-      sessionStorage.removeItem(PENDING_KEY);
-    } catch {}
-
-    sp.delete('autoalert');
-    const qs = sp.toString();
-    window.history.replaceState(null, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-
-    if (pending && !criteriaIsEmpty(pending)) {
-      const c = pending;
-      queueMicrotask(() => createAlert(c));
-    }
-  }, [status]);
-
+  // Zalogowany → jedno kliknięcie (automat na e-mail z konta). Niezalogowany → pole e-mail.
   function handleClick() {
     if (empty || state === 'sending') return;
-    if (!isLogged) {
-      setLoginPromptOpen(true);
+    if (isLogged) {
+      createAlert();
       return;
     }
-    createAlert(criteria);
+    setEmailOpen(true);
   }
 
-  // Bez filtrów nie pokazujemy nic — alert dotyczy konkretnego wyszukiwania (decyzja właściciela).
+  function submitEmail() {
+    if (state === 'sending') return;
+    if (!isValidEmail(email)) {
+      setState('error');
+      setMsg('Podaj poprawny adres e-mail.');
+      return;
+    }
+    createAlert(email.trim().toLowerCase());
+  }
+
+  // Bez filtrów nie pokazujemy nic — alert dotyczy konkretnego wyszukiwania.
   if (empty) return null;
 
   if (state === 'ok' || state === 'exists') {
@@ -131,9 +105,20 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
     );
   }
 
+  if (state === 'pending') {
+    return (
+      <div className="flex items-start gap-2 text-[13px] text-brand-bright">
+        <BellIcon className="mt-0.5 h-4 w-4 shrink-0" />
+        <span className="leading-snug text-fg/80">
+          Sprawdź skrzynkę i potwierdź adres, żeby włączyć powiadomienia.
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <div className="group flex flex-col items-start gap-0.5">
+    <div className="group flex flex-col items-start gap-0.5">
+      {!emailOpen ? (
         <button
           type="button"
           onClick={handleClick}
@@ -145,52 +130,55 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
           </span>
           {state === 'sending' ? 'Włączam…' : 'Powiadom mnie o nowych ofertach'}
         </button>
+      ) : (
+        <div className="flex w-full max-w-sm flex-col gap-2">
+          <div className="flex items-center gap-2 text-[13px] font-medium text-fg/75">
+            <span className="text-brand-bright">
+              <BellIcon />
+            </span>
+            Podaj e-mail, wyślemy Ci powiadomienia o nowych ofertach
+          </div>
 
-        {/* Kontekst pod przyciskiem (w tym samym miejscu): na mobile zawsze, na desktopie na hover. */}
+          <div className="flex items-stretch gap-2">
+            <input
+              type="email"
+              value={email}
+              autoFocus
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (state === 'error') {
+                  setState('idle');
+                  setMsg(null);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitEmail();
+              }}
+              placeholder="twoj@email.pl"
+              className="h-10 min-w-0 flex-1 rounded-xl border border-fg/25 bg-transparent px-3 text-[14px] text-fg outline-none transition placeholder:text-fg/40 focus:border-brand"
+            />
+            <button
+              type="button"
+              onClick={submitEmail}
+              disabled={state === 'sending'}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-brand px-4 text-[13px] font-semibold text-ink transition hover:bg-brand-bright disabled:opacity-60"
+            >
+              {state === 'sending' ? 'Wysyłam…' : 'Włącz'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Kontekst pod przyciskiem: na mobile zawsze, na desktopie na hover. */}
+      {!emailOpen ? (
         <span className="block pl-6 text-[12px] leading-snug text-fg/68 sm:hidden sm:group-hover:block">
           {label}
         </span>
-
-        {state === 'error' && msg ? (
-          <span className="pl-6 text-[12px] text-red-400/85">{msg}</span>
-        ) : null}
-      </div>
-
-      {loginPromptOpen ? (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/65 px-5 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-fg/12 bg-bg p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.12)]">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/12 text-brand-bright">
-              <BellIcon className="h-6 w-6" />
-            </div>
-
-            <h2 className="mt-5 text-[22px] font-semibold leading-tight text-fg">
-              Powiadomienia o nowych ofertach
-            </h2>
-
-            <p className="mt-3 text-sm leading-6 text-fg/70">
-              Zaloguj się, aby otrzymywać e-mail, gdy pojawi się nowa działka pasująca do Twoich filtrów.
-            </p>
-
-            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setLoginPromptOpen(false)}
-                className="h-12 rounded-2xl border border-fg/14 bg-transparent px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/75 transition hover:border-fg/30 hover:text-fg"
-              >
-                Może później
-              </button>
-
-              <button
-                type="button"
-                onClick={goToLogin}
-                className="h-12 rounded-2xl border border-brand/60 bg-brand px-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-ink transition hover:bg-brand-strong"
-              >
-                Zaloguj się
-              </button>
-            </div>
-          </div>
-        </div>
       ) : null}
-    </>
+
+      {state === 'error' && msg ? (
+        <span className="pl-1 text-[12px] text-red-400/85">{msg}</span>
+      ) : null}
+    </div>
   );
 }

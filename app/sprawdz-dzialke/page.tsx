@@ -2,10 +2,6 @@ import type { Metadata } from 'next';
 import FaqSection from '@/components/FaqSection';
 import type { FaqItem } from '@/lib/seoCategoryContent';
 import SprawdzSearch from '@/components/sprawdz/SprawdzSearch';
-import type { RaportData } from '@/components/sprawdz/Raport';
-import { getParcelById } from '@/lib/uldk';
-import { getPointValuation } from '@/lib/seoHub';
-import { getMpzpAtPoint } from '@/lib/mpzp';
 
 // P24: narzędzie „Sprawdź działkę". Publiczny magnes na linki + fraza SEO „sprawdź działkę".
 export const revalidate = 3600;
@@ -23,10 +19,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
 };
-
-// Stały, znany identyfikator do przykładowego raportu (centrum Warszawy). Realne dane z ULDK —
-// jeśli usługa nie odpowie, przykład się nie renderuje (nie wywala strony).
-const EXAMPLE_PARCEL_ID = '146502_8.1103.110/4';
 
 const FAQ: FaqItem[] = [
   {
@@ -71,29 +63,11 @@ const FAQ: FaqItem[] = [
   },
 ];
 
-async function loadExample(): Promise<RaportData | null> {
-  try {
-    const parcel = await getParcelById(EXAMPLE_PARCEL_ID);
-    if (!parcel) return null;
-    const [valuation, mpzp] = await Promise.all([
-      getPointValuation(parcel.center.lat, parcel.center.lng),
-      getMpzpAtPoint(parcel.center.lat, parcel.center.lng),
-    ]);
-    return { parcel, valuation, mpzp };
-  } catch {
-    return null;
-  }
-}
-
-export default async function SprawdzDzialkePage() {
-  const example = await loadExample();
-
+export default function SprawdzDzialkePage() {
   return (
     <main className="relative w-full overflow-hidden" style={{ background: 'var(--bg)' }}>
-      {/* NARZĘDZIE (wyszukiwarka-hero + mapa + wynik/przykład) */}
-      <section className="relative mx-auto max-w-6xl px-6 pb-14 pt-8 md:px-10 md:pt-12">
-        <SprawdzSearch example={example} />
-      </section>
+      {/* NARZĘDZIE (wyszukiwarka-hero na zdjęciu + mapa + wynik) */}
+      <SprawdzSearch />
 
       {/* FAQ najpierw */}
       <FaqSection items={FAQ} green wide />

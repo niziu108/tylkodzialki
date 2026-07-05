@@ -187,7 +187,13 @@ model FavoriteDzialka {
 
 model OfferAlert {
   id               String          @id @default(cuid())
-  userId           String
+  // P26: alert może istnieć bez konta (subskrypcja na sam e-mail z double opt-in).
+  // Zalogowany: userId ustawione, email z konta, confirmedAt od razu. Anonim: userId null,
+  // email podany, alert nieaktywny do potwierdzenia (confirmToken -> confirmedAt).
+  userId           String?
+  email            String?
+  confirmToken     String?         @unique
+  confirmedAt      DateTime?
   label            String
   query            String?
   priceMin         Int?
@@ -206,10 +212,11 @@ model OfferAlert {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isActive])
+  @@index([email])
 }
 
 // P16 (fundament raportu leadów): dzienny snapshot kumulacyjnych liczników PER BIURO (właściciel ofert).

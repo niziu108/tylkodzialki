@@ -171,9 +171,11 @@ export async function runOfferAlerts() {
   for (const alert of alerts) {
     processed++;
     const user = alert.user;
+    // P26: adres z alertu (subskrypcja na sam e-mail) albo z konta (alerty zalogowanych).
+    const targetEmail = alert.email ?? user?.email ?? null;
 
     // Brak maila → nie wysyłamy, ale przesuwamy okno, żeby nie skanować w kółko tego samego.
-    if (!user?.email) {
+    if (!targetEmail) {
       skipped++;
       await prisma.offerAlert.update({ where: { id: alert.id }, data: { lastCheckedAt: now } }).catch(() => {});
       continue;
@@ -183,11 +185,15 @@ export async function runOfferAlerts() {
 
     const andFilters: Prisma.DzialkaWhereInput[] = [
       { ownerId: { not: null } },
-      { ownerId: { not: user.id } }, // nigdy nie alarmuj o WŁASNEJ ofercie
       { status: DzialkaStatus.AKTYWNE },
       { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
       { createdAt: { gt: alert.lastCheckedAt, lte: now } },
     ];
+
+    // Nigdy nie alarmuj subskrybenta o JEGO WŁASNEJ ofercie (dotyczy alertów z kontem).
+    if (alert.userId) {
+      andFilters.push({ ownerId: { not: alert.userId } });
+    }
 
     if (criteria.priceMin !== null || criteria.priceMax !== null) {
       const cenaPln: Prisma.IntFilter = {};
@@ -236,8 +242,8 @@ export async function runOfferAlerts() {
       : candidates;
 
     // Nie alarmuj o ofercie, której kontaktowy e-mail = e-mail subskrybenta (własne, też przez import).
-    const userEmailLc = user.email.toLowerCase();
-    const matches = geoMatched.filter((d) => (d.email ?? '').toLowerCase() !== userEmailLc);
+    const targetEmailLc = targetEmail.toLowerCase();
+    const matches = geoMatched.filter((d) => (d.email ?? '').toLowerCase() !== targetEmailLc);
 
     if (matches.length === 0) {
       await prisma.offerAlert.update({ where: { id: alert.id }, data: { lastCheckedAt: now } });
@@ -248,7 +254,7 @@ export async function runOfferAlerts() {
     // Po udanej wysyłce okno się przesuwa, więc następny przebieg ma inny klucz (nowy mail możliwy).
     const campaignKey = `${alert.id}:${alert.lastCheckedAt.toISOString()}`;
     const already = await prisma.emailSendLog.findUnique({
-      where: { type_campaignKey_email: { type: 'ALERT', campaignKey, email: user.email } },
+      where: { type_campaignKey_email: { type: 'ALERT', campaignKey, email: targetEmail } },
     });
 
     if (already) {
@@ -261,13 +267,13 @@ export async function runOfferAlerts() {
       const { subject, html, text } = buildAlertEmail({
         label: alert.label,
         matches,
-        userName: user.name,
+        userName: user?.name ?? null,
         criteria,
         unsubscribeUrl: `${baseUrl()}/api/alerts/unsubscribe?token=${alert.unsubscribeToken}`,
       });
 
       await sendMail({
-        to: user.email,
+        to: targetEmail,
         subject,
         html,
         text,
@@ -275,7 +281,7 @@ export async function runOfferAlerts() {
       });
 
       await prisma.emailSendLog.create({
-        data: { type: 'ALERT', campaignKey, email: user.email, userId: user.id },
+        data: { type: 'ALERT', campaignKey, email: targetEmail, userId: alert.userId ?? null },
       });
 
       await prisma.offerAlert.update({
@@ -288,9 +294,37 @@ export async function runOfferAlerts() {
     } catch (error) {
       // NIE przesuwamy okna przy błędzie → ponowna próba w następnym przebiegu.
       failed++;
-      console.error('ALERT_SEND_ERROR', { alertId: alert.id, email: user.email, error });
+      console.error('ALERT_SEND_ERROR', { alertId: alert.id, email: targetEmail, error });
     }
   }
 
   return { ok: true, processed, sent, skipped, failed, matchedTotal };
+}
+
+// P26: mail double opt-in dla alertu włączonego bez logowania (sam e-mail).
+export async function sendAlertConfirmation(params: { email: string; label: string; confirmToken: string }) {
+  const { email, label, confirmToken } = params;
+  const confirmUrl = `${baseUrl()}/api/alerts/confirm?token=${confirmToken}`;
+
+  const html = buildMailTemplate({
+    preheader: 'Potwierdź, aby włączyć powiadomienia o nowych działkach.',
+    title: 'Potwierdź powiadomienia',
+    intro: `Dzień dobry,
+
+Będziemy Cię informować o nowych działkach pasujących do „${label}". Potwierdź tylko, że to Twój adres, a od tej chwili damy Ci znać, gdy pojawi się nowa oferta.`,
+    buttonLabel: 'Potwierdzam powiadomienia',
+    buttonUrl: confirmUrl,
+    showLinkFallback: true,
+    note: 'Jeśli to nie Ty prosiłeś o powiadomienia, zignoruj tę wiadomość. Bez potwierdzenia nic nie wyślemy.',
+  });
+
+  const text = `Potwierdź powiadomienia o nowych działkach „${label}":\n${confirmUrl}`;
+
+  await sendMail({
+    to: email,
+    subject: 'Potwierdź powiadomienia o nowych działkach',
+    html,
+    text,
+    attachments: [mailLogoAttachment()],
+  });
 }

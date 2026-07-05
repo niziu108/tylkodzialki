@@ -350,35 +350,13 @@ export default async function HomePage() {
             w planie miejscowym oraz orientacyjna wycena z ofert w okolicy.
           </p>
 
-          <div className="mt-12 grid gap-5 md:grid-cols-2">
-            <div className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur">
-              <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
-                01
-              </div>
-              <h3 className="mt-5 text-xl font-semibold text-fg">Wskazujesz działkę</h3>
-              <p className="mt-3 text-sm leading-7 text-fg/72">
-                Adres, numer ewidencyjny albo punkt na mapie. Precyzję podajesz Ty, więc raport
-                dotyczy konkretnej działki, nie przybliżenia.
-              </p>
-            </div>
-
-            <div className="group flex flex-col rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur">
-              <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
-                02
-              </div>
-              <h3 className="mt-5 text-xl font-semibold text-fg">Otrzymujesz raport</h3>
-              <p className="mt-3 text-sm leading-7 text-fg/72">
-                Komplet informacji o działce na jednym ekranie, gotowy do decyzji zakupowej.
-              </p>
-              <div className="mt-6">
-                <Link
-                  href="/sprawdz-dzialke"
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
-                >
-                  Sprawdź działkę
-                </Link>
-              </div>
-            </div>
+          <div className="mt-8">
+            <Link
+              href="/sprawdz-dzialke"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
+            >
+              Sprawdź działkę
+            </Link>
           </div>
         </div>
       </section>
