@@ -52,10 +52,10 @@ function Row({ label, value }: { label: string; value: string | null }) {
 function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat; sub?: boolean }) {
   if (!stat.pricePerM2) return null;
   return (
-    <div
-      className={`grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-t border-fg/10 py-3 md:grid-cols-[14rem_1fr] ${sub ? 'pl-4' : ''}`}
-    >
-      <span className={`text-[13px] uppercase tracking-[0.1em] text-fg/45 ${sub ? 'normal-case tracking-normal' : ''}`}>
+    <div className="grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-t border-fg/10 py-3 md:grid-cols-[14rem_1fr]">
+      <span
+        className={`text-[13px] uppercase tracking-[0.1em] text-fg/45 ${sub ? 'pl-4 normal-case tracking-normal' : ''}`}
+      >
         {label}
       </span>
       <span className="text-[15px] font-medium text-fg">
