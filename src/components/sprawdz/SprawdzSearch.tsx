@@ -187,7 +187,7 @@ export default function SprawdzSearch() {
                     ref={addrRef}
                     onKeyDown={onKey}
                     placeholder="np. Warszawa, ul. Marszałkowska"
-                    className="w-full bg-transparent px-4 py-3 text-[15px] text-fg outline-none placeholder:text-fg/45"
+                    className="w-full bg-transparent px-4 py-3 text-[16px] text-fg outline-none placeholder:text-fg/45"
                   />
                 </div>
               </div>
@@ -202,7 +202,7 @@ export default function SprawdzSearch() {
                     onChange={(e) => setParcelId(e.target.value)}
                     onKeyDown={onKey}
                     placeholder="np. 146502_8.1103.110/4"
-                    className="w-full bg-transparent px-4 py-3 text-[15px] text-fg outline-none placeholder:text-fg/45"
+                    className="w-full bg-transparent px-4 py-3 text-[16px] text-fg outline-none placeholder:text-fg/45"
                   />
                 </div>
               </div>
