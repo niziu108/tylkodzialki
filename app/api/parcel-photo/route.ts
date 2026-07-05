@@ -33,8 +33,18 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: 'Punkt poza Polską.' }, { status: 400 });
   }
 
-  const { x, y } = to3857(lat, lng);
-  const d = 125; // kadr ~250 m, dobrze ramuje typową działkę
+  // Kadr: dopasowany do działki (bbox z klienta, EPSG:3857, kwadrat) albo domyślny ~250 m.
+  // Klient rysuje obrys w TYM SAMYM bboxie, więc muszą się zgadzać.
+  const bboxParam = searchParams.get('bbox');
+  let bbox: string;
+  if (bboxParam && /^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/.test(bboxParam)) {
+    bbox = bboxParam;
+  } else {
+    const { x, y } = to3857(lat, lng);
+    const d = 125;
+    bbox = `${x - d},${y - d},${x + d},${y + d}`;
+  }
+
   const params = new URLSearchParams({
     SERVICE: 'WMS',
     VERSION: '1.3.0',
@@ -42,7 +52,7 @@ export async function GET(req: Request) {
     LAYERS: 'Raster',
     STYLES: '',
     CRS: 'EPSG:3857',
-    BBOX: `${x - d},${y - d},${x + d},${y + d}`,
+    BBOX: bbox,
     WIDTH: '800',
     HEIGHT: '800',
     FORMAT: 'image/jpeg',

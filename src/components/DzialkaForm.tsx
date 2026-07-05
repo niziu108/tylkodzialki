@@ -302,6 +302,105 @@ async function uploadImageViaApi(file: File): Promise<{ url: string; key: string
   };
 }
 
+// WGS84 -> Web Mercator (EPSG:3857), spójne z /api/parcel-photo i geoportalem.
+function to3857(lat: number, lng: number): { x: number; y: number } {
+  const x = (lng * 20037508.34) / 180;
+  let y = Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180);
+  y = (y * 20037508.34) / 180;
+  return { x, y };
+}
+
+// Auto-zdjęcie z obrysem: pobieramy ortofoto dla bboxu działki i rysujemy jej granice
+// na canvasie (same-origin przez nasz proxy => brak taintu). Zwraca gotowy plik albo null.
+async function buildAerialFile(
+  lat: number,
+  lng: number,
+  rings: { lat: number; lng: number }[][]
+): Promise<File | null> {
+  try {
+    const flat = rings.flat();
+    const pts = (flat.length ? flat : [{ lat, lng }]).map((p) => to3857(p.lat, p.lng));
+    const xs = pts.map((p) => p.x);
+    const ys = pts.map((p) => p.y);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    let half = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2;
+    half = Math.max(half * 1.3, 70); // margines wokół działki + minimalny kadr
+    const bx0 = cx - half;
+    const by0 = cy - half;
+    const bx1 = cx + half;
+    const by1 = cy + half;
+
+    const res = await fetch(`/api/parcel-photo?lat=${lat}&lng=${lng}&bbox=${bx0},${by0},${bx1},${by1}`);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/') || blob.size < 1500) return null;
+
+    const bmp = await createImageBitmap(blob);
+    const S = 800;
+    const canvas = document.createElement('canvas');
+    canvas.width = S;
+    canvas.height = S;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(bmp, 0, 0, S, S);
+
+    for (const ring of rings) {
+      if (ring.length < 3) continue;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#7aa333';
+      ctx.fillStyle = 'rgba(122,163,51,0.18)';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ring.forEach((p, i) => {
+        const { x, y } = to3857(p.lat, p.lng);
+        const px = ((x - bx0) / (bx1 - bx0)) * S;
+        const py = ((by1 - y) / (by1 - by0)) * S;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    const out = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9)
+    );
+    if (!out || out.size < 1500) return null;
+    return new File([out], 'dzialka-z-lotu-ptaka.jpg', { type: 'image/jpeg' });
+  } catch {
+    return null;
+  }
+}
+
+// Podpowiedź tytułu z danych działki (przeznaczenie + miejscowość + metraż).
+const PRZEZN_ADJ_F: Record<string, string> = {
+  INWESTYCYJNA: 'inwestycyjna',
+  BUDOWLANA: 'budowlana',
+  ROLNA: 'rolna',
+  LESNA: 'leśna',
+  REKREACYJNA: 'rekreacyjna',
+  SIEDLISKOWA: 'siedliskowa',
+};
+
+function cleanPlace(locationFull: string | null): string {
+  if (!locationFull) return '';
+  return locationFull
+    .split(',')[0]
+    .replace(/\s*\((miasto|gmina)\)\s*/i, '')
+    .replace(/^gmina\s+/i, '')
+    .trim();
+}
+
+function suggestTitle(areaM2: number, przezn: string | undefined, locationFull: string | null): string {
+  const adj = przezn ? PRZEZN_ADJ_F[przezn] : undefined;
+  const place = cleanPlace(locationFull);
+  const areaTxt = Math.round(areaM2).toLocaleString('pl-PL');
+  const head = adj ? `Działka ${adj}` : 'Działka';
+  return `${head}${place ? ` ${place}` : ''} ${areaTxt} m²`.replace(/\s+/g, ' ').trim();
+}
+
 function UnderlineField({
   label,
   value,
@@ -1293,23 +1392,31 @@ export default function DzialkaForm({
 
   // Po zaznaczeniu działki (autofill z GUGiK) dokładamy zdjęcie z lotu ptaka, ale tylko gdy
   // użytkownik nie ma jeszcze własnych zdjęć. Cichy fallback: gdy ortofoto nie wyjdzie, nic nie robimy.
-  async function maybeAddAerialPhoto(lat: number, lng: number) {
+  async function maybeAddAerialPhoto(
+    lat: number,
+    lng: number,
+    rings: { lat: number; lng: number }[][]
+  ) {
     if (aerialAddedRef.current) return;
     if (uploaded.length > 0) return;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     aerialAddedRef.current = true;
     try {
-      const res = await fetch(`/api/parcel-photo?lat=${lat}&lng=${lng}`);
-      if (!res.ok) {
-        aerialAddedRef.current = false;
-        return;
+      // Najpierw wersja z obrysem działki; gdy się nie uda (brak rings/canvas), zwykłe ortofoto.
+      let file = await buildAerialFile(lat, lng, rings);
+      if (!file) {
+        const res = await fetch(`/api/parcel-photo?lat=${lat}&lng=${lng}`);
+        if (!res.ok) {
+          aerialAddedRef.current = false;
+          return;
+        }
+        const blob = await res.blob();
+        if (!blob.type.startsWith('image/') || blob.size < 1500) {
+          aerialAddedRef.current = false;
+          return;
+        }
+        file = new File([blob], 'dzialka-z-lotu-ptaka.jpg', { type: 'image/jpeg' });
       }
-      const blob = await res.blob();
-      if (!blob.type.startsWith('image/') || blob.size < 1500) {
-        aerialAddedRef.current = false;
-        return;
-      }
-      const file = new File([blob], 'dzialka-z-lotu-ptaka.jpg', { type: 'image/jpeg' });
       const { url, key } = await uploadImageViaApi(file);
       setUploaded((prev) => {
         if (prev.length > 0) return prev; // w międzyczasie ktoś dodał własne
@@ -2386,8 +2493,16 @@ export default function DzialkaForm({
                     clearFieldError('powierzchniaM2');
                   }
                   clearFieldError('location');
-                  // Auto-zdjęcie z lotu ptaka (jeśli brak własnych zdjęć).
-                  void maybeAddAerialPhoto(d.lat, d.lng);
+                  // Podpowiedź tytułu z danych działki, tylko gdy pole puste (nie nadpisujemy).
+                  if (!tytul.trim() && typeof d.areaM2 === 'number' && d.areaM2 > 0) {
+                    const suggested = suggestTitle(d.areaM2, przeznaczenia[0], d.locationFull);
+                    if (suggested) {
+                      setTytul(suggested.slice(0, MAX_TITLE_CHARS));
+                      clearFieldError('tytul');
+                    }
+                  }
+                  // Auto-zdjęcie z lotu ptaka z obrysem działki (jeśli brak własnych zdjęć).
+                  void maybeAddAerialPhoto(d.lat, d.lng, d.rings);
                 }}
               />
             </div>

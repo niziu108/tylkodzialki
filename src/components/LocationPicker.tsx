@@ -22,6 +22,7 @@ export type ParcelAutofill = {
   areaM2: number;
   parcelNumber: string | null;
   locationFull: string | null;
+  rings: { lat: number; lng: number }[][];
 };
 
 type Props = {
@@ -122,6 +123,7 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
         commune: string | null;
         county: string | null;
         voivodeship: string | null;
+        rings: { lat: number; lng: number }[][];
       };
 
       const admin = [p.commune, p.county, p.voivodeship].filter(Boolean).join(', ');
@@ -148,6 +150,7 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
         areaM2: p.areaM2,
         parcelNumber: p.parcelNumber,
         locationFull: admin || null,
+        rings: Array.isArray(p.rings) ? p.rings : [],
       });
 
       const areaTxt = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 }).format(Math.round(p.areaM2));
