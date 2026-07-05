@@ -269,9 +269,24 @@ async function geocodeOfferLocation(offer: ParsedDomyOffer): Promise<GeocodeResu
   }
 }
 
-async function enrichOfferWithGeocoding(offer: ParsedDomyOffer): Promise<ParsedDomyOffer> {
+async function enrichOfferWithGeocoding(
+  offer: ParsedDomyOffer,
+  existing?: { lat: number | null; lng: number | null } | null,
+): Promise<ParsedDomyOffer> {
   if (typeof offer.lat === "number" && typeof offer.lng === "number") {
     return offer;
+  }
+
+  // Reużyj współrzędnych zapisanych w bazie z wcześniejszej synchronizacji zamiast
+  // wołać płatne Google Geocoding API przy każdym przebiegu. Geokoduj wyłącznie nowe,
+  // dotąd nierozwiązane adresy.
+  if (typeof existing?.lat === "number" && typeof existing?.lng === "number") {
+    return {
+      ...offer,
+      lat: existing.lat,
+      lng: existing.lng,
+      mapsUrl: buildMapsUrl(existing.lat, existing.lng),
+    };
   }
 
   const geocoded = await geocodeOfferLocation(offer);
@@ -1378,8 +1393,6 @@ async function processOffer(
   const now = new Date();
   const expiresAt = null;
 
-  const offerForDb = await enrichOfferWithGeocoding(offer);
-
   const existingLink = await prisma.crmOfferLink.findUnique({
     where: {
       integrationId_externalId: {
@@ -1391,6 +1404,8 @@ async function processOffer(
       dzialka: true,
     },
   });
+
+  const offerForDb = await enrichOfferWithGeocoding(offer, existingLink?.dzialka);
 
   if (!existingLink) {
     const user = await prisma.user.findUnique({

@@ -1075,17 +1075,6 @@ async function processOffer(
   const now = new Date();
   const expiresAt = null;
 
-  // Fallback geokodowania: gdy feed nie podał współrzędnych (albo zostały odrzucone
-  // jako spoza Polski), dolicz je z adresu — z kontrolą granic PL w geocode.ts.
-  if (offer.lat == null || offer.lng == null) {
-    const hit = await geocodeAddressInPoland(offer.locationFull || offer.locationLabel);
-    if (hit) {
-      offer.lat = hit.lat;
-      offer.lng = hit.lng;
-      offer.mapsUrl = buildMapsUrl(hit.lat, hit.lng);
-    }
-  }
-
   const existingLink = await prisma.crmOfferLink.findUnique({
     where: {
       integrationId_externalId: {
@@ -1097,6 +1086,28 @@ async function processOffer(
       dzialka: true,
     },
   });
+
+  // Fallback geokodowania: TYLKO gdy feed nie podał współrzędnych. Jeśli mamy je już
+  // zapisane w bazie z wcześniejszej synchronizacji — reużyj gotowych zamiast wołać
+  // płatne Google Geocoding API przy każdym przebiegu. Geokoduj wyłącznie nowe,
+  // dotąd nierozwiązane adresy (z kontrolą granic PL w geocode.ts).
+  if (offer.lat == null || offer.lng == null) {
+    const existingLat = existingLink?.dzialka.lat ?? null;
+    const existingLng = existingLink?.dzialka.lng ?? null;
+
+    if (existingLat != null && existingLng != null) {
+      offer.lat = existingLat;
+      offer.lng = existingLng;
+      offer.mapsUrl = buildMapsUrl(existingLat, existingLng);
+    } else {
+      const hit = await geocodeAddressInPoland(offer.locationFull || offer.locationLabel);
+      if (hit) {
+        offer.lat = hit.lat;
+        offer.lng = hit.lng;
+        offer.mapsUrl = buildMapsUrl(hit.lat, hit.lng);
+      }
+    }
+  }
 
   if (!existingLink) {
     const user = await prisma.user.findUnique({
