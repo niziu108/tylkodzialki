@@ -14,7 +14,7 @@ export function Hr({ className }: { className?: string }) {
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight text-fg">{children}</h2>;
+  return <h2 className="text-[17px] md:text-[19px] font-semibold tracking-tight text-fg">{children}</h2>;
 }
 
 export function UnderlineField({
@@ -43,7 +43,7 @@ export function UnderlineField({
   error?: boolean;
 }) {
   return (
-    <label className="block">
+    <label className="block" data-field-error={error ? 'true' : undefined}>
       <div className="flex items-end justify-between gap-4">
         <div className={cx(
           'text-[11px] uppercase tracking-[0.18em]',

@@ -338,7 +338,7 @@ async function buildAerialFile(
     if (!blob.type.startsWith('image/') || blob.size < 1500) return null;
 
     const bmp = await createImageBitmap(blob);
-    const S = 800;
+    const S = 1280; // spójne z rozdzielczością ortofoto z /api/parcel-photo (ostrzejszy kadr)
     const canvas = document.createElement('canvas');
     canvas.width = S;
     canvas.height = S;
@@ -366,7 +366,7 @@ async function buildAerialFile(
     }
 
     const out = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9)
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92)
     );
     if (!out || out.size < 1500) return null;
     return new File([out], 'dzialka-z-lotu-ptaka.jpg', { type: 'image/jpeg' });
@@ -616,13 +616,16 @@ export default function DzialkaForm({
     }
   }, [step]);
 
-  // Blokada przewijania tła, gdy otwarty jest pełnoekranowy podgląd.
+  // Pełnoekranowy podgląd: blokujemy przewijanie tła i chowamy globalne menu
+  // (klasa .preview-active → reguła w globals.css), żeby pod podglądem nic nie klikać.
   useEffect(() => {
     if (!previewOpen) return;
     const prev = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
+    document.documentElement.classList.add('preview-active');
     return () => {
       document.documentElement.style.overflow = prev;
+      document.documentElement.classList.remove('preview-active');
     };
   }, [previewOpen]);
 
@@ -1130,15 +1133,26 @@ export default function DzialkaForm({
     return issues;
   }
 
+  // Po nieudanej walidacji przewijamy prosto do PIERWSZEGO brakującego pola (podświetlonego
+  // na czerwono), żeby użytkownik od razu wiedział, co uzupełnić — a nie tylko do listy braków.
+  function scrollToFirstError() {
+    requestAnimationFrame(() => {
+      const el = document.querySelector('[data-field-error="true"]');
+      if (el) {
+        (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        errSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+
   function validateStep(targetStep: number): boolean {
     const issues = collectContentIssues().filter((i) => FIELD_STEP[i.field] === targetStep);
 
     if (issues.length > 0) {
       setValidationErrors(issues.map((i) => i.message));
       setFieldErrors(new Set(issues.map((i) => i.field)));
-      requestAnimationFrame(() => {
-        errSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      });
+      scrollToFirstError();
       return false;
     }
 
@@ -1237,9 +1251,7 @@ export default function DzialkaForm({
         setStep(Math.min(...issues.map((i) => FIELD_STEP[i.field])));
       }
 
-      requestAnimationFrame(() => {
-        errSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      });
+      scrollToFirstError();
       return;
     }
 
@@ -1595,8 +1607,8 @@ export default function DzialkaForm({
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-6 pb-24 pt-10 md:px-10">
-        <form onSubmit={onSubmit} className="space-y-10">
+      <div className="mx-auto max-w-5xl px-6 pb-24 pt-7 md:px-10">
+        <form onSubmit={onSubmit} className="space-y-7">
           <div className="text-xs text-fg/64">
             <span className="text-brand-bright">*</span> pole wymagane
           </div>
@@ -1620,21 +1632,18 @@ export default function DzialkaForm({
 
           {stepKey === 'basics' && (
           <div className="space-y-6">
-            <SectionTitle>
-              Tytuł ogłoszenia <span className="text-brand-bright">*</span>
-            </SectionTitle>
-
             <UnderlineField
-              label=""
+              label="Tytuł ogłoszenia"
+              required
               value={tytul}
               onChange={(v) => { setTytul(v.slice(0, MAX_TITLE_CHARS)); clearFieldError('tytul'); }}
-              placeholder="Wpisz tutaj np. Działka budowlana"
+              placeholder="Np. Działka budowlana"
               maxLength={MAX_TITLE_CHARS}
               showCounter
               error={fieldErrors.has('tytul')}
             />
 
-            <Hr className="mt-8" />
+            <Hr className="mt-6" />
           </div>
 
           )}
@@ -1658,6 +1667,7 @@ export default function DzialkaForm({
             ) : null}
 
             <div
+              data-field-error={fieldErrors.has('photos') ? 'true' : undefined}
               onDragOver={(e) => {
                 e.preventDefault();
                 if (uploaded.length < MAX_PHOTOS && !photoDragOver) setPhotoDragOver(true);
@@ -1801,13 +1811,13 @@ export default function DzialkaForm({
               )}
             </div>
 
-            <Hr className="mt-8" />
+            <Hr className="mt-6" />
           </div>
 
           )}
 
           {stepKey === 'basics' && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <div>
               <div className="mb-3 text-[12px] uppercase tracking-[0.22em] text-fg/70">Typ oferty</div>
               <Tabs
@@ -1820,7 +1830,7 @@ export default function DzialkaForm({
               />
             </div>
 
-            <div className="grid gap-10 md:grid-cols-2">
+            <div className="grid gap-8 md:grid-cols-2">
               <UnderlineField
                 label="Telefon"
                 value={telefon}
@@ -1872,7 +1882,7 @@ export default function DzialkaForm({
               return null;
             })()}
 
-            <Hr className="mt-8" />
+            <Hr className="mt-6" />
           </div>
 
           )}
@@ -1905,7 +1915,7 @@ export default function DzialkaForm({
 
             {sprzedajacyTyp === 'BIURO_NIERUCHOMOSCI' && (
               <div className="space-y-8 pt-4">
-                <div className="grid gap-10 md:grid-cols-2">
+                <div className="grid gap-8 md:grid-cols-2">
                   <UnderlineField
                     label="Nazwa biura"
                     value={biuroNazwa}
@@ -1975,13 +1985,13 @@ export default function DzialkaForm({
               </div>
             )}
 
-            <Hr className="mt-8" />
+            <Hr className="mt-6" />
           </div>
 
           )}
 
           {stepKey === 'basics' && (
-          <div className="space-y-6">
+          <div className="space-y-6" data-field-error={fieldErrors.has('przeznaczenia') ? 'true' : undefined}>
             <SectionTitle>
               Przeznaczenie <span className="text-brand-bright">*</span>
             </SectionTitle>
@@ -2003,21 +2013,29 @@ export default function DzialkaForm({
               <div className="text-[12px] text-red-400/90">Wybierz minimum 1 przeznaczenie.</div>
             ) : null}
 
-            <Hr className="mt-8" />
+            <Hr className="mt-6" />
           </div>
 
           )}
 
           {stepKey === 'details' && (
-          <div className="space-y-10">
-            <div className="rounded-2xl border border-fg/12 bg-fg/[0.03] px-4 py-3">
-              <div className="text-[13px] font-semibold uppercase tracking-[0.14em] text-brand-text">
-                Krok opcjonalny
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-fg/12 bg-fg/[0.03] px-4 py-3">
+              <div className="min-w-0">
+                <div className="text-[13px] font-semibold uppercase tracking-[0.14em] text-brand-text">
+                  Krok opcjonalny
+                </div>
+                <p className="mt-1 text-[13px] leading-6 text-fg/68">
+                  Uzbrojenie i szczegóły podnoszą zainteresowanie, ale nie są wymagane.
+                </p>
               </div>
-              <p className="mt-1 text-[13px] leading-6 text-fg/68">
-                Uzbrojenie i szczegóły podnoszą zainteresowanie kupujących, ale nie są wymagane.
-                Możesz je uzupełnić albo kliknąć „Pomiń” i przejść dalej.
-              </p>
+              <button
+                type="button"
+                onClick={goNext}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-fg/15 bg-fg/[0.03] px-4 py-2.5 text-[13px] font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
+              >
+                Pomiń ten krok →
+              </button>
             </div>
 
             <div className="space-y-6">
@@ -2033,7 +2051,7 @@ export default function DzialkaForm({
                   { value: 'MOZLIWOSC_PRZYLACZENIA', label: 'Możliwość przyłączenia' },
                 ]}
               />
-              <Hr className="mt-8" />
+              <Hr className="mt-6" />
             </div>
 
             <div className="space-y-6">
@@ -2049,7 +2067,7 @@ export default function DzialkaForm({
                   { value: 'MOZLIWOSC_PODLACZENIA', label: 'Możliwość podłączenia' },
                 ]}
               />
-              <Hr className="mt-8" />
+              <Hr className="mt-6" />
             </div>
 
             <div className="space-y-6">
@@ -2066,7 +2084,7 @@ export default function DzialkaForm({
                   { value: 'MOZLIWOSC_PODLACZENIA', label: 'Możliwość podłączenia' },
                 ]}
               />
-              <Hr className="mt-8" />
+              <Hr className="mt-6" />
             </div>
 
             <div className="space-y-6">
@@ -2081,7 +2099,7 @@ export default function DzialkaForm({
                   { value: 'MOZLIWOSC_PODLACZENIA', label: 'Możliwość podłączenia' },
                 ]}
               />
-              <Hr className="mt-8" />
+              <Hr className="mt-6" />
             </div>
 
             <div className="space-y-6">
@@ -2096,14 +2114,14 @@ export default function DzialkaForm({
                   { value: 'MOZLIWOSC_PODLACZENIA', label: 'Możliwość podłączenia' },
                 ]}
               />
-              <Hr className="mt-8" />
+              <Hr className="mt-6" />
             </div>
           </div>
 
           )}
 
           {stepKey === 'details' && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <SectionTitle>Opcjonalne informacje</SectionTitle>
 
             <div className="flex flex-wrap gap-8">
@@ -2130,7 +2148,7 @@ export default function DzialkaForm({
               ))}
             </div>
 
-            <div className="grid gap-10 md:grid-cols-2">
+            <div className="grid gap-8 md:grid-cols-2">
               <UnderlineField label="Klasa ziemi" value={klasaZiemi} onChange={setKlasaZiemi} placeholder="Np. IIIa / IVb" />
               <UnderlineField label="Wymiary" value={wymiary} onChange={setWymiary} placeholder="Np. 25×90 m" />
             </div>
@@ -2139,7 +2157,7 @@ export default function DzialkaForm({
               <UnderlineField label="Księga wieczysta" value={ksiegaWieczysta} onChange={setKsiegaWieczysta} placeholder="Np. AB1C/00012345/6" />
             </div>
 
-            <Hr className="mt-8" />
+            <Hr className="mt-6" />
 
             <div
               ref={opisWrapRef}
@@ -2263,18 +2281,16 @@ export default function DzialkaForm({
           )}
 
           {stepKey === 'location' && (
-          <div className="space-y-6">
-            <Hr className="mt-8" />
+          <div className="space-y-5" data-field-error={fieldErrors.has('location') ? 'true' : undefined}>
             <SectionTitle>
               Lokalizacja <span className="text-brand-bright">*</span>
             </SectionTitle>
 
-            <p className="max-w-2xl text-[14px] leading-6 text-fg/70">
-              Zacznij od wskazania działki na mapie. Do publikacji wystarczy lokalizacja, cena i
-              kontakt, resztę albo uzupełnimy z rejestrów, albo spokojnie pominiesz.
+            <p className="max-w-2xl text-[13px] leading-6 text-fg/70">
+              Wskaż działkę na mapie. Wystarczy lokalizacja, cenę i resztę uzupełnisz dalej.
             </p>
 
-            <div className="mt-2">
+            <div className="mt-1">
               <LocationPicker
                 value={location ?? undefined}
                 onChange={(v: any) => { setLocation(v); clearFieldError('location'); }}
@@ -2303,7 +2319,7 @@ export default function DzialkaForm({
               <div className="text-[12px] text-red-400/90">Wybierz lokalizację działki z listy.</div>
             ) : null}
 
-            <Hr className="mt-8" />
+            <Hr className="mt-6" />
           </div>
 
           )}
@@ -2346,7 +2362,7 @@ export default function DzialkaForm({
                   onClick={goNext}
                   className="inline-flex items-center gap-2 rounded-2xl bg-brand px-7 py-3 text-sm font-semibold text-black transition hover:opacity-90"
                 >
-                  {stepKey === 'details' ? 'Pomiń →' : 'Dalej →'}
+                  Dalej →
                 </button>
               </div>
             ) : (
@@ -2414,9 +2430,8 @@ export default function DzialkaForm({
           {/* Pasek górny: tytuł, przełącznik urządzenia (tylko na komputerze), zamknięcie */}
           <div className="flex items-center justify-between gap-3 border-b border-fg/10 px-4 py-3 md:px-6">
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-fg/68">Podgląd</div>
-              <div className="truncate text-[15px] font-semibold tracking-tight text-fg">
-                Tak zobaczą Twoje ogłoszenie
+              <div className="truncate text-[15px] font-semibold tracking-tight text-brand-bright">
+                Podgląd Twojego ogłoszenia
               </div>
             </div>
 

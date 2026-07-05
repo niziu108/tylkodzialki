@@ -53,8 +53,10 @@ export async function GET(req: Request) {
     STYLES: '',
     CRS: 'EPSG:3857',
     BBOX: bbox,
-    WIDTH: '800',
-    HEIGHT: '800',
+    // Wyższa rozdzielczość = ostrzejsze auto-zdjęcie działki (kadr jest ciasny,
+    // więc każdy dodatkowy piksel realnie poprawia jakość ortofoto).
+    WIDTH: '1280',
+    HEIGHT: '1280',
     FORMAT: 'image/jpeg',
   });
 

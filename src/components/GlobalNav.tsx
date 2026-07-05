@@ -125,7 +125,7 @@ export default function GlobalNav() {
 
   return (
     <>
-      <header className="sticky top-0 left-0 z-[100] w-full border-b border-fg/10 bg-bg backdrop-blur">
+      <header className="global-nav sticky top-0 left-0 z-[100] w-full border-b border-fg/10 bg-bg backdrop-blur">
         <div className="flex h-[72px] w-full items-center justify-between px-4 sm:px-8">
           <button onClick={() => go('/')} className="flex items-center" aria-label="Strona główna">
             <Logo className="h-10 sm:h-12" />

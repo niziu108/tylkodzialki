@@ -147,6 +147,10 @@ input[type="checkbox"] {
 input::placeholder { text-decoration: none !important; }
 textarea::placeholder { text-decoration: none !important; }
 
+/* Pełnoekranowy podgląd ogłoszenia chowa globalne menu, żeby nic pod nim
+   przypadkiem nie kliknąć (podgląd i tak zasłania cały ekran). */
+html.preview-active .global-nav { display: none !important; }
+
 /* Podpowiedzi Google Places — zgodne z motywem */
 .pac-container {
   background: var(--surface) !important;

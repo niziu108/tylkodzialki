@@ -328,7 +328,7 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
                 textDecoration: active ? 'underline' : 'none',
                 textUnderlineOffset: '10px',
                 textDecorationThickness: '1px',
-                textDecorationColor: active ? 'rgba(243,239,245,0.95)' : 'transparent',
+                textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
               }}
             >
               {label}
@@ -337,16 +337,21 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
         })}
       </div>
 
-      <input
-        placeholder="Numer działki / obręb (opcjonalnie)"
-        className="w-full rounded-xl border border-fg/15 bg-surface px-4 py-3 text-fg outline-none placeholder:text-fg/62 focus:border-brand/60"
-        value={parcelText}
-        onChange={(e) => setParcelText(e.target.value)}
-      />
-
-      <div className="overflow-hidden rounded-2xl border border-fg/10">
-        <div ref={mapDivRef} className="h-80 w-full" />
+      {/* Mapa: na telefonie pełna szerokość ekranu (bez ramki), na desktopie w ramce. */}
+      <div className="-mx-6 overflow-hidden border-y border-fg/10 md:mx-0 md:rounded-2xl md:border">
+        <div
+          ref={mapDivRef}
+          className="h-[68vh] max-h-[560px] min-h-[360px] w-full md:h-[440px]"
+        />
       </div>
+
+      {value?.lat != null && value?.lng != null && (
+        <p className="text-xs text-fg/68">
+          {mode === 'EXACT'
+            ? 'Na mapie ogłoszenia pokażemy dokładny punkt.'
+            : 'Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}
+        </p>
+      )}
 
       {/* Autouzupełnianie z GUGiK: dostępne, gdy jest już punkt na mapie. */}
       {value?.lat != null && value?.lng != null && (
@@ -354,7 +359,7 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-md text-[13px] leading-6 text-fg/75">
               Postaw pinezkę dokładnie na swojej działce, a zaciągniemy jej powierzchnię, numer
-              i gminę z rejestru gruntów (GUGiK). Nie musisz wpisywać ręcznie.
+              i gminę z rejestru gruntów (GUGiK).
             </p>
             <button
               type="button"
@@ -372,14 +377,6 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
             </p>
           ) : null}
         </div>
-      )}
-
-      {value?.lat != null && value?.lng != null && (
-        <p className="text-xs text-fg/68">
-          {mode === 'EXACT'
-            ? 'Na mapie ogłoszenia pokażemy dokładny punkt.'
-            : 'Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}
-        </p>
       )}
     </div>
   );
