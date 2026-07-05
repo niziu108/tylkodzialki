@@ -2312,7 +2312,18 @@ export default function DzialkaForm({
             </SectionTitle>
 
             <div className="mt-2">
-              <LocationPicker value={location ?? undefined} onChange={(v: any) => { setLocation(v); clearFieldError('location'); }} />
+              <LocationPicker
+                value={location ?? undefined}
+                onChange={(v: any) => { setLocation(v); clearFieldError('location'); }}
+                onAutofill={(d) => {
+                  // Powierzchnia z ewidencji (GUGiK) uzupełnia pole z kroku „Podstawy”.
+                  if (typeof d.areaM2 === 'number' && d.areaM2 > 0) {
+                    setPowierzchniaM2(formatThousandsSpaces(String(Math.round(d.areaM2))));
+                    clearFieldError('powierzchniaM2');
+                  }
+                  clearFieldError('location');
+                }}
+              />
             </div>
 
             {fieldErrors.has('location') ? (

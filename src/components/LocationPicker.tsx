@@ -16,9 +16,17 @@ export type LocationValue = {
   parcelText: string | null;
 };
 
+export type ParcelAutofill = {
+  areaM2: number;
+  parcelNumber: string | null;
+  locationFull: string | null;
+};
+
 type Props = {
   value?: LocationValue;
   onChange: (val: LocationValue) => void;
+  // Autouzupełnianie z ewidencji (GUGiK): powierzchnię ustawia rodzic (pole w kroku 1).
+  onAutofill?: (data: ParcelAutofill) => void;
 };
 
 const DEFAULT_CENTER = { lat: 52.2297, lng: 21.0122 };
@@ -33,7 +41,7 @@ function fallbackLabel(lat: number, lng: number, typed?: string) {
   return `Punkt: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 }
 
-export default function LocationPicker({ value, onChange }: Props) {
+export default function LocationPicker({ value, onChange, onAutofill }: Props) {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -43,6 +51,9 @@ export default function LocationPicker({ value, onChange }: Props) {
 
   const [mode, setMode] = useState<LocationMode>(value?.locationMode ?? 'EXACT');
   const [parcelText, setParcelText] = useState(value?.parcelText ?? '');
+  const [autofilling, setAutofilling] = useState(false);
+  const [autofillNote, setAutofillNote] = useState<string | null>(null);
+  const [autofillOk, setAutofillOk] = useState(false);
 
   const center = useMemo(() => {
     if (value?.lat != null && value?.lng != null) return { lat: value.lat, lng: value.lng };
@@ -73,6 +84,76 @@ export default function LocationPicker({ value, onChange }: Props) {
       locationMode: partial.locationMode ?? mode,
       parcelText: (partial.parcelText ?? parcelText ?? '').trim() || null,
     });
+  }
+
+  // Autouzupełnianie z ewidencji gruntów (ULDK/GUGiK) dla punktu z pinezki:
+  // powierzchnia, numer działki i ścieżka administracyjna (gmina/powiat/województwo).
+  async function runAutofill() {
+    if (autofilling) return;
+    const lat = value?.lat;
+    const lng = value?.lng;
+    if (lat == null || lng == null) return;
+
+    setAutofilling(true);
+    setAutofillNote(null);
+    setAutofillOk(false);
+    try {
+      const res = await fetch('/api/sprawdz-dzialke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng }),
+      });
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok || !json || 'error' in json || !json.parcel) {
+        setAutofillNote(
+          (json && json.error) ||
+            'Nie znaleziono działki w tym punkcie. Przesuń pinezkę dokładnie na swoją działkę.'
+        );
+        return;
+      }
+
+      const p = json.parcel as {
+        areaM2: number;
+        parcelNumber: string | null;
+        region: string | null;
+        commune: string | null;
+        county: string | null;
+        voivodeship: string | null;
+      };
+
+      const admin = [p.commune, p.county, p.voivodeship].filter(Boolean).join(', ');
+      const parcelLabel = [
+        p.region ? `obręb ${p.region}` : null,
+        p.parcelNumber ? `dz. ${p.parcelNumber}` : null,
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      if (parcelLabel) setParcelText(parcelLabel);
+
+      emit({
+        lat,
+        lng,
+        locationFull: admin || undefined,
+        parcelText: parcelLabel || parcelText,
+        locationMode: mode,
+      });
+
+      onAutofill?.({
+        areaM2: p.areaM2,
+        parcelNumber: p.parcelNumber,
+        locationFull: admin || null,
+      });
+
+      const areaTxt = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 }).format(Math.round(p.areaM2));
+      setAutofillOk(true);
+      setAutofillNote(`Zaciągnięto z ewidencji: ${areaTxt} m²${admin ? ' · ' + admin : ''}.`);
+    } catch {
+      setAutofillNote('Nie udało się pobrać danych z ewidencji. Spróbuj ponownie za chwilę.');
+    } finally {
+      setAutofilling(false);
+    }
   }
 
   useEffect(() => {
@@ -259,6 +340,32 @@ export default function LocationPicker({ value, onChange }: Props) {
       <div className="overflow-hidden rounded-2xl border border-fg/10">
         <div ref={mapDivRef} className="h-80 w-full" />
       </div>
+
+      {/* Autouzupełnianie z GUGiK: dostępne, gdy jest już punkt na mapie. */}
+      {value?.lat != null && value?.lng != null && (
+        <div className="rounded-2xl border border-brand/25 bg-brand/[0.06] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="max-w-md text-[13px] leading-6 text-fg/75">
+              Postaw pinezkę dokładnie na swojej działce, a zaciągniemy jej powierzchnię, numer
+              i gminę z rejestru gruntów (GUGiK). Nie musisz wpisywać ręcznie.
+            </p>
+            <button
+              type="button"
+              onClick={runAutofill}
+              disabled={autofilling}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-[14px] font-semibold text-ink transition hover:bg-brand-bright disabled:opacity-60"
+            >
+              {autofilling ? 'Sprawdzam ewidencję…' : 'Zaciągnij dane działki'}
+            </button>
+          </div>
+
+          {autofillNote ? (
+            <p className={`mt-3 text-[13px] leading-6 ${autofillOk ? 'text-brand-bright' : 'text-amber-500'}`}>
+              {autofillNote}
+            </p>
+          ) : null}
+        </div>
+      )}
 
       {value?.lat != null && value?.lng != null && (
         <p className="text-xs text-fg/68">
