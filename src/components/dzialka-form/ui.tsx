@@ -68,14 +68,11 @@ export function UnderlineField({
         placeholder={placeholder}
         maxLength={maxLength}
         className={cx(
-          'mt-2 w-full bg-transparent text-[18px] md:text-[19px] text-fg/90',
-          error ? 'border-0 border-b border-red-400/70 pb-2' : 'border-0 border-b border-fg/20 pb-2',
-          'placeholder:text-fg/62',
-          error ? 'outline-none focus:border-red-400/90 focus:ring-0' : 'outline-none focus:border-fg/70 focus:ring-0',
-          error
-            ? 'underline decoration-red-400/55 decoration-[1px] underline-offset-[10px]'
-            : 'underline decoration-brand-bright/55 decoration-[1px] underline-offset-[10px]',
-          error ? 'focus:decoration-red-400/80' : 'focus:decoration-brand-bright',
+          // .field-line = pełna linia pod polem (przebija globalny reset input{border:none});
+          // zielona w foku i gdy wypełnione, czerwona przy błędzie.
+          'field-line mt-2 w-full bg-transparent pb-2 text-[18px] md:text-[19px] text-fg/90',
+          'placeholder:text-fg/62 outline-none focus:ring-0',
+          error ? 'field-line-error' : value ? 'field-line-filled' : '',
           'selection:bg-fg/20 selection:text-fg'
         )}
       />
