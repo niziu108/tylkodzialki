@@ -69,10 +69,10 @@ export function UnderlineField({
         maxLength={maxLength}
         className={cx(
           // .field-line = pełna linia pod polem (przebija globalny reset input{border:none});
-          // zielona w foku i gdy wypełnione, czerwona przy błędzie.
+          // szara w spoczynku, zielona tylko w foku (podczas pisania), czerwona przy błędzie.
           'field-line mt-2 w-full bg-transparent pb-2 text-[18px] md:text-[19px] text-fg/90',
           'placeholder:text-fg/62 outline-none focus:ring-0',
-          error ? 'field-line-error' : value ? 'field-line-filled' : '',
+          error ? 'field-line-error' : '',
           'selection:bg-fg/20 selection:text-fg'
         )}
       />

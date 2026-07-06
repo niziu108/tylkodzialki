@@ -143,10 +143,6 @@ input[type="checkbox"] {
 .field-line:focus {
   border-bottom-color: var(--brand);
 }
-/* Pole wypełnione — linia na zielono, żeby było widać, że coś już wpisano. */
-.field-line-filled {
-  border-bottom-color: var(--brand);
-}
 /* Błąd walidacji — czerwona linia, także w foku (musi być PO .field-line:focus,
    żeby wygrać remis specyficzności i nie zzielenieć po kliknięciu w pole). */
 .field-line-error,
