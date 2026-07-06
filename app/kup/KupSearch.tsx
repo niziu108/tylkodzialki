@@ -1469,12 +1469,10 @@ export default function KupSearch({
         {/* Gradient spójny ze stroną główną (bez zdjęcia => szybki LCP). */}
         <HeroGradientBg />
 
-        <div className="relative z-10 mx-auto max-w-6xl px-3 py-10 md:px-4 md:py-14">
+        <div className="relative z-10 mx-auto max-w-6xl px-3 py-8 md:px-4 md:py-10">
           <div className="rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
             {filterContent}
           </div>
-
-          <div className="h-6 md:h-10" />
         </div>
       </section>
 

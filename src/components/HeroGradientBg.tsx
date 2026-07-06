@@ -1,24 +1,23 @@
-// Wspólne tło hero (główna, /kup, /sprawdź działkę): lekki gradient jak na
-// /dla-biur zamiast zdjęcia — siatka + zielone poświaty. Zero ciężkiego obrazu,
-// więc LCP to tekst => pewny, wysoki wynik szybkości także na mobilnym LTE.
+// Wspólne tło hero (główna, /kup, /sprawdź działkę, /blog): lekki gradient
+// zamiast zdjęcia — zero ciężkiego obrazu, więc LCP to tekst => pewny, wysoki
+// wynik szybkości także na mobilnym LTE.
 //
-// Na desktopie (md:) poświaty są BOGATSZE i we wszystkich 4 rogach, żeby duże
-// pole widzenia nie było pustą białą płachtą (właściciel: „za biało na kompie").
-// Na mobile delikatniejsze, bo pole jest wąskie.
+// Styl „premium/minimalizm": zamiast plamistych poświat w rogach (rozjeżdżały
+// się na szerokim ekranie) — jeden RÓWNOMIERNY, delikatny tint zieleni od góry
+// + miękki SPOTLIGHT na środku u góry, żeby oko miało fokus za nagłówkiem.
+// Ten sam język na mobile i desktopie (na desktopie spotlight węższy = pula
+// światła, nie rozlana płachta).
 export default function HeroGradientBg() {
   return (
     <>
-      {/* subtelna siatka */}
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
+      {/* subtelna siatka (DNA /dla-biur) — ledwie widoczna tekstura */}
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:54px_54px] opacity-30" />
 
-      {/* poświaty — mobile: delikatne, dwa narożniki */}
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_82%,rgba(47,94,70,0.06),transparent_34%)] md:hidden" />
+      {/* równomierny, delikatny tint zieleni od góry — jeden kierunek, bez plam */}
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(122,163,51,0.10),rgba(122,163,51,0.028)_45%,transparent_80%)]" />
 
-      {/* poświaty — desktop: mocniejsze, wszystkie 4 rogi (mniej bieli) */}
-      <div className="pointer-events-none absolute inset-0 z-0 hidden bg-[radial-gradient(circle_at_10%_12%,rgba(122,163,51,0.26),transparent_36%),radial-gradient(circle_at_90%_14%,rgba(122,163,51,0.16),transparent_32%),radial-gradient(circle_at_8%_90%,rgba(47,94,70,0.12),transparent_36%),radial-gradient(circle_at_92%_88%,rgba(122,163,51,0.2),transparent_34%)] md:block" />
-
-      {/* miękka plama brandu w rogu */}
-      <div className="pointer-events-none absolute left-[-140px] top-24 z-0 h-[420px] w-[420px] rounded-full bg-brand/10 blur-[120px] md:h-[560px] md:w-[560px]" />
+      {/* SPOTLIGHT — miękka poświata w górnej części, fokus za nagłówkiem */}
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(78%_56%_at_50%_28%,rgba(122,163,51,0.2),transparent_72%)] md:bg-[radial-gradient(50%_56%_at_50%_30%,rgba(122,163,51,0.24),transparent_70%)]" />
     </>
   );
 }
