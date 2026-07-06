@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import HomeHorizontalSlider from "@/components/HomeHorizontalSlider";
@@ -177,41 +176,21 @@ export default async function HomePage() {
       className="relative w-full overflow-hidden"
       style={{ background: PAGE_BG }}
     >
-      <section className="relative min-h-[100svh] w-full overflow-hidden">
-        {/* Zdjęcie hero na obu ekranach (bardziej wiarygodne, od razu wiadomo o co
-            chodzi), ale art direction pod szybkość: telefon dostaje LEKKĄ wersję
-            hero-kup-mobile.webp (~66 KB, 900px) zamiast desktopowej 670 KB => niski
-            LCP na mobile. Oba przez next/image z priority (preload + fetchpriority). */}
-        {/* sizes ze sztuczką: każdy breakpoint pobiera TYLKO swoje zdjęcie
-            (drugie, ukryte, dostaje 1px), więc preload priority nie dubluje transferu. */}
-        <Image
-          src="/hero-kup-home-mobile.webp"
-          alt=""
-          fill
-          priority
-          sizes="(min-width: 768px) 1px, 100vw"
-          quality={84}
-          className="object-cover object-center md:hidden"
-        />
-        {/* Desktop bez priority => domyślnie lazy, a lazy + display:none na telefonie
-            oznacza, że ta ciężka wersja w ogóle nie ładuje się na mobile (zero
-            marnotrawstwa). Na desktopie jest w viewporcie, więc i tak rusza od razu. */}
-        <Image
-          src="/hero-kup.webp"
-          alt=""
-          fill
-          sizes="100vw"
-          quality={82}
-          className="hidden object-cover object-center md:block"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/24 to-black/38" />
+      <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden border-b border-fg/10">
+        {/* Lekki gradient jak na /dla-biur zamiast zdjęcia hero: siatka + zielone
+            poświaty. Zero ciężkiego obrazu => LCP to tekst, więc pewny, wysoki wynik
+            szybkości także na mobilnym LTE (poprzednie zdjęcie 1200x900 skalowało się
+            w górę na pionowym ekranie telefonu = miękkie i ciężkie). */}
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.05),transparent_34%)]" />
+        <div className="pointer-events-none absolute left-[-140px] top-24 z-0 h-[420px] w-[420px] rounded-full bg-brand/10 blur-[120px]" />
 
-        <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-8 text-center">
-          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-white/95 [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] md:text-[70px] md:leading-none">
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 py-16 text-center">
+          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-[70px] md:leading-none">
             Znajdź swoją działkę
           </h1>
 
-          <HeroCounter target={listingCount} />
+          <HeroCounter target={listingCount} tone="onLight" />
 
           <div className="mt-6 w-full max-w-4xl">
             <KupSearch navigationMode={true} />
@@ -220,10 +199,10 @@ export default async function HomePage() {
           <div className="mt-6">
             <Link
               href="/sprzedaj"
-              className="text-sm text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] transition hover:text-white/80"
+              className="text-sm text-fg/70 transition hover:text-fg"
             >
               Sprzedajesz działkę?{" "}
-              <span className="text-[#9fd14b] underline decoration-1 underline-offset-4">
+              <span className="text-brand-bright underline decoration-1 underline-offset-4">
                 Dodaj ogłoszenie
               </span>{" "}
               →
