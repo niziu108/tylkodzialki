@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import { loadGoogleMaps } from '@/lib/googleMaps';
+import HeroGradientBg from '@/components/HeroGradientBg';
 import Raport, { type RaportData } from './Raport';
 
 // P24: wyszukiwarka narzędzia w oprawie hero jak na stronie głównej (zdjęcie + ciemna
@@ -147,26 +147,9 @@ export default function SprawdzSearch() {
 
   return (
     <div className="w-full">
-      {/* HERO ze zdjęciem jak na stronie głównej: lekka wersja na mobile, ciężka na desktop. */}
+      {/* HERO gradient spójny ze stroną główną (bez zdjęcia => szybki LCP). */}
       <section className="relative w-full overflow-hidden">
-        <Image
-          src="/hero-kup-home-mobile.webp"
-          alt=""
-          fill
-          priority
-          sizes="(min-width: 768px) 1px, 100vw"
-          quality={84}
-          className="object-cover object-center md:hidden"
-        />
-        <Image
-          src="/hero-kup.webp"
-          alt=""
-          fill
-          sizes="100vw"
-          quality={82}
-          className="hidden object-cover object-center md:block"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/32 to-black/48" />
+        <HeroGradientBg />
 
         <div className="relative z-10 flex flex-col items-center px-4 py-16 md:py-24">
           <div className="w-full max-w-2xl rounded-3xl border border-fg/10 bg-surface-2/92 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm md:p-8">

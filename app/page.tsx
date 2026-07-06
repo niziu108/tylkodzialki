@@ -6,6 +6,7 @@ import ArticleCardCover from "@/components/ArticleCardCover";
 import ArticleMeta from "@/components/ArticleMeta";
 import KupSearch from "./kup/KupSearch";
 import HeroCounter from "@/components/HeroCounter";
+import HeroGradientBg from "@/components/HeroGradientBg";
 import FeaturedRail from "@/components/FeaturedRail";
 import ScrollFill from "@/components/ScrollFill";
 import type { OfferData } from "@/components/OfferCard";
@@ -177,13 +178,7 @@ export default async function HomePage() {
       style={{ background: PAGE_BG }}
     >
       <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden border-b border-fg/10">
-        {/* Lekki gradient jak na /dla-biur zamiast zdjęcia hero: siatka + zielone
-            poświaty. Zero ciężkiego obrazu => LCP to tekst, więc pewny, wysoki wynik
-            szybkości także na mobilnym LTE (poprzednie zdjęcie 1200x900 skalowało się
-            w górę na pionowym ekranie telefonu = miękkie i ciężkie). */}
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.05),transparent_34%)]" />
-        <div className="pointer-events-none absolute left-[-140px] top-24 z-0 h-[420px] w-[420px] rounded-full bg-brand/10 blur-[120px]" />
+        <HeroGradientBg />
 
         <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 py-16 text-center">
           <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-[70px] md:leading-none">

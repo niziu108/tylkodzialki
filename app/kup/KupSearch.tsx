@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import HeroGradientBg from '@/components/HeroGradientBg';
 import { useRouter } from 'next/navigation';
 import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
@@ -1466,31 +1466,10 @@ export default function KupSearch({
   return (
     <div className="w-full overflow-x-hidden">
       <section ref={searchTopRef} className="relative w-full overflow-hidden">
-        {/* Art direction spójny ze stroną główną: telefon dostaje LEKKĄ wersję
-            hero-kup-mobile.webp (~66 KB) zamiast desktopowej 670 KB => szybki LCP.
-            Oba przez next/image z priority. */}
-        <Image
-          src="/hero-kup-mobile.webp"
-          alt=""
-          fill
-          priority
-          sizes="(min-width: 768px) 1px, 100vw"
-          quality={60}
-          className="object-cover object-center md:hidden"
-        />
-        {/* Desktop bez priority => lazy; lazy + display:none na telefonie = nie ładuje
-            się na mobile w ogóle. Na desktopie w viewporcie, więc rusza od razu. */}
-        <Image
-          src="/hero-kup.webp"
-          alt=""
-          fill
-          sizes="100vw"
-          quality={68}
-          className="hidden object-cover object-center md:block"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/24 to-black/38" />
+        {/* Gradient spójny ze stroną główną (bez zdjęcia => szybki LCP). */}
+        <HeroGradientBg />
 
-        <div className="relative mx-auto max-w-6xl px-3 py-10 md:px-4 md:py-14">
+        <div className="relative z-10 mx-auto max-w-6xl px-3 py-10 md:px-4 md:py-14">
           <div className="rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
             {filterContent}
           </div>
