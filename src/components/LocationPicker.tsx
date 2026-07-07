@@ -53,9 +53,6 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
   const circleRef = useRef<google.maps.Circle | null>(null);
 
   const [mode, setMode] = useState<LocationMode>(value?.locationMode ?? 'EXACT');
-  // Widok mapy: domyślnie satelita z opisami (hybryda) — na ortofoto łatwiej trafić
-  // pinezką w konkretną działkę, także gdy nie ma adresu.
-  const [mapType, setMapType] = useState<'hybrid' | 'roadmap'>('hybrid');
   const [parcelText, setParcelText] = useState(value?.parcelText ?? '');
   const [autofilling, setAutofilling] = useState(false);
   const [autofillNote, setAutofillNote] = useState<string | null>(null);
@@ -191,7 +188,6 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
       const map = new google.maps.Map(mapDivRef.current, {
         center,
         zoom: value?.lat ? 15 : 6,
-        mapTypeId: mapType,
         backgroundColor: 'var(--surface)',
         clickableIcons: false,
         mapTypeControl: false,
@@ -200,6 +196,41 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
       });
 
       mapRef.current = map;
+
+      // Nakładka granic działek ewidencyjnych (WMS GUGiK / KIEG). Renderuje się po
+      // przybliżeniu — user widzi obrys każdej działki z numerem i klika w swoją.
+      const EXTENT = 20037508.342789244;
+      const parcelLayer = new google.maps.ImageMapType({
+        name: 'dzialki',
+        tileSize: new google.maps.Size(256, 256),
+        maxZoom: 21,
+        opacity: 0.85,
+        getTileUrl: (coord, zoom) => {
+          // Działki ewidencyjne mają sens dopiero po przybliżeniu; niżej nie odpytujemy.
+          if (zoom < 15) return null as unknown as string;
+          const worldSize = 2 * EXTENT;
+          const tile = worldSize / Math.pow(2, zoom);
+          const minx = -EXTENT + coord.x * tile;
+          const maxx = -EXTENT + (coord.x + 1) * tile;
+          const maxy = EXTENT - coord.y * tile;
+          const miny = EXTENT - (coord.y + 1) * tile;
+          const params = new URLSearchParams({
+            SERVICE: 'WMS',
+            VERSION: '1.1.1',
+            REQUEST: 'GetMap',
+            LAYERS: 'dzialki,numery_dzialek',
+            STYLES: '',
+            SRS: 'EPSG:3857',
+            BBOX: `${minx},${miny},${maxx},${maxy}`,
+            WIDTH: '256',
+            HEIGHT: '256',
+            FORMAT: 'image/png',
+            TRANSPARENT: 'TRUE',
+          });
+          return `https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow?${params.toString()}`;
+        },
+      });
+      map.overlayMapTypes.push(parcelLayer);
 
       const marker = new google.maps.Marker({
         map,
@@ -308,10 +339,6 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parcelText]);
 
-  useEffect(() => {
-    mapRef.current?.setMapTypeId(mapType);
-  }, [mapType]);
-
   return (
     <div className="space-y-4">
       <input
@@ -345,30 +372,6 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
         })}
       </div>
 
-      {/* Przełącznik widoku mapy: satelita (łatwiej trafić w działkę) / mapa drogowa. */}
-      <div className="flex items-center gap-6">
-        {([['hybrid', 'Satelita'], ['roadmap', 'Mapa']] as const).map(([v, label]) => {
-          const active = mapType === v;
-          return (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setMapType(v)}
-              aria-pressed={active}
-              className={`text-[13px] font-semibold tracking-tight transition ${active ? 'text-fg' : 'text-fg/60 hover:text-fg'}`}
-              style={{
-                textDecoration: active ? 'underline' : 'none',
-                textUnderlineOffset: '8px',
-                textDecorationThickness: '1px',
-                textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Mapa: na telefonie pełna szerokość ekranu (bez ramki), na desktopie w ramce. */}
       <div className="-mx-6 overflow-hidden border-y border-fg/10 md:mx-0 md:rounded-2xl md:border">
         <div
@@ -376,6 +379,11 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
           className="h-[68vh] max-h-[560px] min-h-[360px] w-full md:h-[440px]"
         />
       </div>
+
+      <p className="text-xs text-fg/62">
+        Przybliż mapę do swojej okolicy — pokażą się granice działek z numerami (ewidencja
+        GUGiK). Kliknij w swoją działkę, żeby postawić pinezkę.
+      </p>
 
       {value?.lat != null && value?.lng != null && (
         <p className="text-xs text-fg/68">
