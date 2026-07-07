@@ -53,6 +53,9 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
   const circleRef = useRef<google.maps.Circle | null>(null);
 
   const [mode, setMode] = useState<LocationMode>(value?.locationMode ?? 'EXACT');
+  // Widok mapy: domyślnie satelita z opisami (hybryda) — na ortofoto łatwiej trafić
+  // pinezką w konkretną działkę, także gdy nie ma adresu.
+  const [mapType, setMapType] = useState<'hybrid' | 'roadmap'>('hybrid');
   const [parcelText, setParcelText] = useState(value?.parcelText ?? '');
   const [autofilling, setAutofilling] = useState(false);
   const [autofillNote, setAutofillNote] = useState<string | null>(null);
@@ -188,6 +191,7 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
       const map = new google.maps.Map(mapDivRef.current, {
         center,
         zoom: value?.lat ? 15 : 6,
+        mapTypeId: mapType,
         backgroundColor: 'var(--surface)',
         clickableIcons: false,
         mapTypeControl: false,
@@ -304,6 +308,10 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parcelText]);
 
+  useEffect(() => {
+    mapRef.current?.setMapTypeId(mapType);
+  }, [mapType]);
+
   return (
     <div className="space-y-4">
       <input
@@ -327,6 +335,30 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
               style={{
                 textDecoration: active ? 'underline' : 'none',
                 textUnderlineOffset: '10px',
+                textDecorationThickness: '1px',
+                textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Przełącznik widoku mapy: satelita (łatwiej trafić w działkę) / mapa drogowa. */}
+      <div className="flex items-center gap-6">
+        {([['hybrid', 'Satelita'], ['roadmap', 'Mapa']] as const).map(([v, label]) => {
+          const active = mapType === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setMapType(v)}
+              aria-pressed={active}
+              className={`text-[13px] font-semibold tracking-tight transition ${active ? 'text-fg' : 'text-fg/60 hover:text-fg'}`}
+              style={{
+                textDecoration: active ? 'underline' : 'none',
+                textUnderlineOffset: '8px',
                 textDecorationThickness: '1px',
                 textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
               }}
