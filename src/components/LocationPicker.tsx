@@ -193,6 +193,9 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
+        // Sterowanie jak w Google Maps / „Sprawdź działkę": kółko zbliża bez CTRL,
+        // na telefonie jeden palec przesuwa mapę (dwa = zoom).
+        gestureHandling: 'greedy',
       });
 
       mapRef.current = map;

@@ -506,8 +506,12 @@ export default function DzialkaForm({
 
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  // Auto-zdjęcie z lotu ptaka (ortofoto GUGiK) dodawane raz, gdy brak własnych zdjęć.
-  const aerialAddedRef = useRef(false);
+  // Auto-zdjęcie z lotu ptaka (ortofoto GUGiK). Trzymamy lokalizację, dla której je dodaliśmy,
+  // i id samego zdjęcia — dzięki temu po zmianie działki podmieniamy ortofoto na nowe, a własnych
+  // zdjęć użytkownika nigdy nie ruszamy.
+  const aerialKeyRef = useRef<string | null>(null);
+  const aerialIdRef = useRef<string | null>(null);
+  const aerialBusyRef = useRef(false);
   const [aerialNote, setAerialNote] = useState(false);
   // Podświetlenie obszaru zdjęć przy przeciąganiu plików z pulpitu.
   const [photoDragOver, setPhotoDragOver] = useState(false);
@@ -1159,42 +1163,57 @@ export default function DzialkaForm({
     return true;
   }
 
-  // Po zaznaczeniu działki (autofill z GUGiK) dokładamy zdjęcie z lotu ptaka, ale tylko gdy
-  // użytkownik nie ma jeszcze własnych zdjęć. Cichy fallback: gdy ortofoto nie wyjdzie, nic nie robimy.
+  // Po zaznaczeniu działki (autofill z GUGiK) dokładamy zdjęcie z lotu ptaka. Podmieniamy je, gdy
+  // zmieni się lokalizacja, ale nigdy nie ruszamy własnych zdjęć użytkownika. Cichy fallback: gdy
+  // ortofoto nie wyjdzie, nic nie robimy.
   async function maybeAddAerialPhoto(
     lat: number,
     lng: number,
     rings: { lat: number; lng: number }[][]
   ) {
-    if (aerialAddedRef.current) return;
-    if (uploaded.length > 0) return;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    aerialAddedRef.current = true;
+    if (aerialBusyRef.current) return;
+
+    const locKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    // Mamy już ortofoto dokładnie dla tej działki — nic nie rób.
+    if (aerialKeyRef.current === locKey && aerialIdRef.current) return;
+    // Użytkownik ma własne zdjęcia (inne niż nasze auto-ortofoto) — nie dokładamy niczego.
+    const hasOwnPhotos = uploaded.some((p) => (p.publicId ?? p.url) !== aerialIdRef.current);
+    if (hasOwnPhotos) return;
+    // Skasował auto-ortofoto i nie zmienił lokalizacji — respektujemy usunięcie.
+    if (uploaded.length === 0 && aerialKeyRef.current === locKey) return;
+
+    aerialBusyRef.current = true;
     try {
       // Najpierw wersja z obrysem działki; gdy się nie uda (brak rings/canvas), zwykłe ortofoto.
       let file = await buildAerialFile(lat, lng, rings);
       if (!file) {
         const res = await fetch(`/api/parcel-photo?lat=${lat}&lng=${lng}`);
-        if (!res.ok) {
-          aerialAddedRef.current = false;
-          return;
-        }
+        if (!res.ok) return;
         const blob = await res.blob();
-        if (!blob.type.startsWith('image/') || blob.size < 1500) {
-          aerialAddedRef.current = false;
-          return;
-        }
+        if (!blob.type.startsWith('image/') || blob.size < 1500) return;
         file = new File([blob], 'dzialka-z-lotu-ptaka.jpg', { type: 'image/jpeg' });
       }
       const { url, key } = await uploadImageViaApi(file);
+      const prevAerialId = aerialIdRef.current;
+      let applied = false;
       setUploaded((prev) => {
-        if (prev.length > 0) return prev; // w międzyczasie ktoś dodał własne
+        // Zostaw własne zdjęcia użytkownika (dodane w międzyczasie); podmień tylko stare auto-ortofoto.
+        const own = prev.filter((p) => (p.publicId ?? p.url) !== prevAerialId);
+        if (own.length > 0) return prev;
+        applied = true;
         return [{ url, publicId: key, kolejnosc: 0 }];
       });
-      clearFieldError('photos');
-      setAerialNote(true);
+      if (applied) {
+        aerialIdRef.current = key;
+        aerialKeyRef.current = locKey;
+        clearFieldError('photos');
+        setAerialNote(true);
+      }
     } catch {
-      aerialAddedRef.current = false;
+      // cicho — brak ortofoto nie blokuje dodawania
+    } finally {
+      aerialBusyRef.current = false;
     }
   }
 
