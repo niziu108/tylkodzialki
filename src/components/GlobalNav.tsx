@@ -135,20 +135,13 @@ export default function GlobalNav() {
             {isLogged ? (
               <button
                 onClick={() => go('/ulubione')}
-                className={`${navBtnBase} ${navBtnWhite} gap-2`}
+                className={`${navBtnBase} ${navBtnWhite} text-brand-text hover:text-brand-bright`}
                 aria-label="Ulubione działki"
+                title="Ulubione"
               >
-                <HeartIcon className="h-4 w-4 text-brand-text" />
-                <span>Ulubione</span>
+                <HeartIcon className="h-[22px] w-[22px]" />
               </button>
             ) : null}
-
-            <button
-              onClick={() => go('/')}
-              className={`${navBtnBase} ${navBtnWhite}`}
-            >
-              Start
-            </button>
 
             <button
               onClick={() => go('/kup')}
@@ -309,10 +302,6 @@ export default function GlobalNav() {
               <Logo className="h-12" />
 
               <div className="flex w-full max-w-sm flex-col divide-y divide-fg/10">
-                <button onClick={() => go('/')} className={linkMobile}>
-                  Start
-                </button>
-
                 <button onClick={() => go('/kup')} className={linkMobile}>
                   Szukaj działki
                 </button>
