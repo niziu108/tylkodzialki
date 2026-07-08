@@ -182,11 +182,11 @@ export default async function HomePage() {
           zaglądają nad zgięciem (jak w dużych portalach: produkt widać od razu).
           Mobile: pełne 100svh zostaje (tam jest idealnie), zdejmujemy tylko kreskę
           dzielącą — na obu widokach przejście hero→oferty jest płynne. */}
-      <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden md:min-h-[50svh]">
+      <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden md:min-h-[44svh]">
         <HeroGradientBg />
 
         <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 py-16 text-center">
-          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-[52px] md:leading-none">
+          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-[40px] md:leading-none">
             Znajdź swoją działkę
           </h1>
 
@@ -220,8 +220,8 @@ export default async function HomePage() {
               Na mobile hero jest pełnoekranowy, więc poświata zostaje. */}
           <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.05),transparent_32%)] md:hidden" />
 
-          <div className="relative z-10 mx-auto max-w-7xl px-6 pt-14 pb-14 md:px-10 md:pt-11 md:pb-16">
-            <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-center md:text-4xl">
+          <div className="relative z-10 mx-auto max-w-7xl px-6 pt-14 pb-14 md:px-10 md:pt-8 md:pb-16">
+            <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Wyróżnione oferty
             </h2>
 
@@ -229,7 +229,7 @@ export default async function HomePage() {
               <FeaturedRail items={featuredCards} />
             </div>
 
-            <div className="mt-6 flex justify-center">
+            <div className="mt-6 flex justify-center md:justify-start">
               <Link
                 href="/kup"
                 className="inline-flex text-sm text-fg/72 transition hover:text-fg"
