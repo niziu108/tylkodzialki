@@ -21,6 +21,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   ASARI: "Asari",
   ESTI_CRM: "EstiCRM",
   IMOX: "IMOX",
+  PROPERTLY: "Propertly",
 };
 
 const HEALTH_META: Record<

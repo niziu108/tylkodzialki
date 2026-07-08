@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 type CreateIntegrationBody = {
   name?: string;
-  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA";
+  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY";
 };
 
 type RouteContext = {

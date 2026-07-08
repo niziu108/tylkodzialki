@@ -7,7 +7,7 @@ import DlaBiurForm from "./DlaBiurForm";
 type Integration = {
   id: string;
   name: string;
-  provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA";
+  provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY";
   isActive: boolean;
   transportType: "API" | "FTP";
   feedFormat: "DOMY_PL" | "EBIURO_V2" | "ESTICRM_XML";

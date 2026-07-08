@@ -710,6 +710,7 @@ enum CrmProvider {
   ESTI_CRM
   IMOX
   GALACTICA
+  PROPERTLY
 }
 
 enum CrmTransportType {

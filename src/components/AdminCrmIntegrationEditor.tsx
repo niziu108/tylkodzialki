@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 type Integration = {
   id: string;
   name: string;
-  provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA";
+  provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY";
   isActive: boolean;
   transportType: "API" | "FTP";
   feedFormat: "DOMY_PL" | "EBIURO_V2" | "ESTICRM_XML";
@@ -89,7 +89,8 @@ export default function AdminCrmIntegrationEditor({
       | "ASARI"
       | "ESTI_CRM"
       | "IMOX"
-      | "GALACTICA",
+      | "GALACTICA"
+      | "PROPERTLY",
     isActive: integration?.isActive ?? true,
     ftpHost: integration?.ftpHost ?? "",
     ftpPort: String(integration?.ftpPort ?? 21),
@@ -109,7 +110,8 @@ export default function AdminCrmIntegrationEditor({
         | "ASARI"
         | "ESTI_CRM"
         | "IMOX"
-        | "GALACTICA",
+        | "GALACTICA"
+        | "PROPERTLY",
       isActive: currentIntegration?.isActive ?? true,
       ftpHost: currentIntegration?.ftpHost ?? "",
       ftpPort: String(currentIntegration?.ftpPort ?? 21),
@@ -480,12 +482,14 @@ export default function AdminCrmIntegrationEditor({
                             | "ASARI"
                             | "ESTI_CRM"
                             | "IMOX"
-                            | "GALACTICA",
+                            | "GALACTICA"
+                            | "PROPERTLY",
                         }))
                       }
                       className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                     >
                       <option value="GALACTICA">GALACTICA</option>
+                      <option value="PROPERTLY">PROPERTLY</option>
                       <option value="GENERIC">GENERIC</option>
                       <option value="ASARI">ASARI</option>
                       <option value="ESTI_CRM">ESTI_CRM</option>
