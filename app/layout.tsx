@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     locale: 'pl_PL',
     images: [
       {
-        url: '/logo.png',
+        url: '/og.png',
         width: 1200,
         height: 630,
         alt: 'tylkodzialki.pl',
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     title: 'tylkodzialki.pl – działki na sprzedaż w całej Polsce',
     description:
       'Portal poświęcony wyłącznie działkom. Szukaj działek i dodawaj ogłoszenia w całej Polsce.',
-    images: ['/logo.png'],
+    images: ['/og.png'],
   },
   robots: {
     index: true,

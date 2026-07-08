@@ -117,7 +117,7 @@ export function buildKsefInvoiceXml(input: BuildKsefInvoiceXmlInput) {
     <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
     <WariantFormularza>3</WariantFormularza>
     <DataWytworzeniaFa>${createdAtZulu}</DataWytworzeniaFa>
-    <SystemInfo>TylkoDzialki</SystemInfo>
+    <SystemInfo>tylkodzialki</SystemInfo>
   </Naglowek>
 
   <Podmiot1>
