@@ -177,11 +177,12 @@ export default async function HomePage() {
       className="relative w-full overflow-hidden"
       style={{ background: PAGE_BG }}
     >
-      {/* Desktop: hero nieco niższy niż pełny ekran (85svh) + brak linii na dole,
-          żeby góra „Wyróżnionych" delikatnie zaglądała nad zgięciem — jak w dużych
-          portalach (produkt widać od razu, oko wie, że jest co przewijać).
-          Mobile bez zmian: pełne 100svh + hairline (tam jest idealnie). */}
-      <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden border-b border-fg/10 md:min-h-[85svh] md:border-b-0">
+      {/* Desktop: hero wyraźnie niższy niż ekran (70svh) — „Znajdź swoją działkę"
+          siada wyżej, bliżej menu, a nagłówek „Wyróżnione oferty" i góra kart już
+          zaglądają nad zgięciem (jak w dużych portalach: produkt widać od razu).
+          Mobile: pełne 100svh zostaje (tam jest idealnie), zdejmujemy tylko kreskę
+          dzielącą — na obu widokach przejście hero→oferty jest płynne. */}
+      <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden md:min-h-[70svh]">
         <HeroGradientBg />
 
         <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 py-16 text-center">
@@ -216,7 +217,7 @@ export default async function HomePage() {
           <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
           <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.05),transparent_32%)]" />
 
-          <div className="relative z-10 mx-auto max-w-7xl px-6 pt-14 pb-14 md:px-10 md:pt-16 md:pb-16">
+          <div className="relative z-10 mx-auto max-w-7xl px-6 pt-14 pb-14 md:px-10 md:pt-11 md:pb-16">
             <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
               Wyróżnione oferty
             </h2>
