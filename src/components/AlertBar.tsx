@@ -132,11 +132,16 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
         </button>
       ) : (
         <div className="flex w-full max-w-sm flex-col gap-2">
-          <div className="flex items-center gap-2 text-[13px] font-medium text-fg/75">
-            <span className="text-brand-bright">
-              <BellIcon />
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2 text-[13px] font-medium text-fg/75">
+              <span className="text-brand-bright">
+                <BellIcon />
+              </span>
+              Podaj e-mail, wyślemy Ci powiadomienia o nowych ofertach
+            </div>
+            <span className="pl-6 text-[12px] leading-snug text-fg/68">
+              {label ? `Dotyczy: ${label}` : 'Dotyczy tej okolicy i wybranych filtrów'}
             </span>
-            Podaj e-mail, wyślemy Ci powiadomienia o nowych ofertach
           </div>
 
           <div className="flex items-stretch gap-2">
@@ -169,9 +174,9 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
         </div>
       )}
 
-      {/* Kontekst pod przyciskiem: na mobile zawsze, na desktopie na hover. */}
+      {/* Kontekst pod przyciskiem: zawsze widoczny, żeby było jasne, jakiej okolicy/filtrów dotyczy. */}
       {!emailOpen ? (
-        <span className="block pl-6 text-[12px] leading-snug text-fg/68 sm:hidden sm:group-hover:block">
+        <span className="block pl-6 text-[12px] leading-snug text-fg/68">
           {label}
         </span>
       ) : null}

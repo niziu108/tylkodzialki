@@ -49,6 +49,14 @@ function formatPLN(value: number) {
   return `${intFmt.format(value)} zł`;
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 // Polska liczba mnoga dla „działka".
 function dzialkaWord(n: number) {
   if (n === 1) return 'działka';
@@ -104,13 +112,6 @@ function buildAlertEmail(params: {
       : `${n} ${dzialkaWord(n)} ${matchingWord(n)} do alertu: ${label}`;
 
   const shown = matches.slice(0, MAX_OFFERS_IN_EMAIL);
-  const bullets = shown.map((d) => {
-    const loc = d.locationLabel?.trim();
-    const bits = [`${intFmt.format(d.powierzchniaM2)} m²`, formatPLN(d.cenaPln)];
-    if (loc) bits.push(loc);
-    return bits.join(' · ');
-  });
-
   const more = n - shown.length;
 
   const intro = `${hello}
@@ -122,25 +123,64 @@ ${countText} ${matchingWord(n)} do Twojego alertu „${label}":`;
       ? `Pokazujemy pierwsze ${shown.length}. Pozostałe ${more} ${dzialkaWord(more)} zobaczysz w wyszukiwarce.`
       : 'Dostajesz tę wiadomość, bo masz włączony alert o nowych działkach w tylkodzialki.pl.';
 
-  // 1 oferta → prosto na nią (najszybsza droga do kontaktu); więcej → wyszukiwarka z kryteriami.
-  const buttonUrl =
-    n === 1
-      ? `${baseUrl()}/dzialka/${matches[0].id}`
-      : `${baseUrl()}${buildKupPathFromCriteria(criteria)}`;
-  const buttonLabel = n === 1 ? 'Zobacz ofertę' : 'Zobacz oferty';
+  // 1 oferta → duży przycisk prosto na nią (najszybsza droga do kontaktu).
+  // Więcej → lista, gdzie KAŻDA oferta ma swój drobny link „Zobacz ofertę", a na dole
+  // jeden zielony przycisk do wyszukiwarki (żeby maila nie zawalić wieloma zielonymi klockami).
+  if (n === 1) {
+    const d = matches[0];
+    const loc = d.locationLabel?.trim();
+    const bits = [`${intFmt.format(d.powierzchniaM2)} m²`, formatPLN(d.cenaPln)];
+    if (loc) bits.push(loc);
+
+    const html = buildMailTemplate({
+      preheader: `${countText} ${matchingWord(n)} do Twojego alertu.`,
+      title: countText,
+      intro,
+      bullets: [bits.join(' · ')],
+      buttonLabel: 'Zobacz ofertę',
+      buttonUrl: `${baseUrl()}/dzialka/${d.id}`,
+      note,
+      unsubscribeUrl,
+    });
+
+    const text = `${countText} ${matchingWord(n)} do Twojego alertu „${label}".\n\n${baseUrl()}/dzialka/${d.id}`;
+    return { subject, html, text };
+  }
+
+  const offersRows = shown
+    .map((d) => {
+      const loc = d.locationLabel?.trim();
+      const head = `${intFmt.format(d.powierzchniaM2)} m² · ${formatPLN(d.cenaPln)}`;
+      const url = `${baseUrl()}/dzialka/${d.id}`;
+      const locHtml = loc
+        ? `<div style="margin:2px 0 0 0;font-size:14px;line-height:1.5;color:#6a6a6a;">${escapeHtml(loc)}</div>`
+        : '';
+      return `<tr><td style="padding:14px 0;border-bottom:1px solid #f0f0ed;">
+<div style="font-size:15px;line-height:1.5;color:#1a1a1a;font-weight:600;">${escapeHtml(head)}</div>
+${locHtml}
+<a href="${escapeHtml(url)}" style="display:inline-block;margin-top:8px;font-size:13px;font-weight:600;color:#6f7d4f;text-decoration:none;">Zobacz ofertę &rarr;</a>
+</td></tr>`;
+    })
+    .join('');
+
+  const bodyHtml = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px 0;width:100%;">${offersRows}</table>`;
 
   const html = buildMailTemplate({
     preheader: `${countText} ${matchingWord(n)} do Twojego alertu.`,
     title: countText,
     intro,
-    bullets,
-    buttonLabel,
-    buttonUrl,
+    bodyHtml,
+    buttonLabel: 'Zobacz wszystkie oferty',
+    buttonUrl: `${baseUrl()}${buildKupPathFromCriteria(criteria)}`,
     note,
     unsubscribeUrl,
   });
 
-  const text = `${countText} ${matchingWord(n)} do Twojego alertu „${label}".\n\n${buttonUrl}`;
+  const offersText = shown
+    .map((d) => `- ${intFmt.format(d.powierzchniaM2)} m² · ${formatPLN(d.cenaPln)} — ${baseUrl()}/dzialka/${d.id}`)
+    .join('\n');
+  const searchUrl = `${baseUrl()}${buildKupPathFromCriteria(criteria)}`;
+  const text = `${countText} ${matchingWord(n)} do Twojego alertu „${label}".\n\n${offersText}\n\nWszystkie oferty: ${searchUrl}`;
 
   return { subject, html, text };
 }
