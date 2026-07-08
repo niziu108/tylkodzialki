@@ -121,10 +121,19 @@ input:-webkit-autofill:active {
   border-radius: 10px;
 }
 
-/* checkbox/radio w kolorze marki */
+/* checkbox/radio/select w kolorze marki — podświetlenie zaznaczonej opcji w
+   natywnym dropdownie <select> leciało domyślnym niebieskim przeglądarki. */
 input[type="radio"],
-input[type="checkbox"] {
+input[type="checkbox"],
+select {
   accent-color: var(--brand);
+}
+
+/* zapas na starsze/inne silniki, gdzie accent-color nie koloruje listy opcji */
+select option:checked,
+select option:hover {
+  background: color-mix(in srgb, var(--brand) 22%, transparent);
+  color: var(--fg);
 }
 
 /* helper klasy (opcjonalnie używamy w page) */
