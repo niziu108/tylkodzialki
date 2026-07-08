@@ -184,7 +184,7 @@ export default function BlogSearchSection({
 
       <section
         id="blog-wyniki"
-        className="mx-auto max-w-7xl px-6 py-10 md:px-8 md:py-12"
+        className="mx-auto max-w-7xl scroll-mt-24 px-6 py-10 md:px-8 md:py-12"
       >
         {filteredArticles.length === 0 ? (
           <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] px-6 py-16 text-center">
