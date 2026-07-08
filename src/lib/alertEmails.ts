@@ -351,11 +351,13 @@ export async function sendAlertConfirmation(params: { email: string; label: stri
   const html = buildMailTemplate({
     preheader: 'Potwierdź, aby włączyć powiadomienia o nowych działkach.',
     title: 'Potwierdź powiadomienia',
+    hideTitle: true,
     intro: `Dzień dobry,
 
 Będziemy Cię informować o nowych działkach pasujących do „${label}". Potwierdź tylko, że to Twój adres, a od tej chwili damy Ci znać, gdy pojawi się nowa oferta.`,
     buttonLabel: 'Potwierdzam powiadomienia',
     buttonUrl: confirmUrl,
+    centerButton: true,
     showLinkFallback: true,
     note: 'Jeśli to nie Ty prosiłeś o powiadomienia, zignoruj tę wiadomość. Bez potwierdzenia nic nie wyślemy.',
   });

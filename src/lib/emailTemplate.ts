@@ -30,6 +30,7 @@ export function buildMailTemplate({
   bodyHtml,
   buttonLabel,
   buttonUrl,
+  centerButton = false,
   showLinkFallback = false,
   note,
   unsubscribeUrl,
@@ -47,6 +48,8 @@ export function buildMailTemplate({
   bodyHtml?: string;
   buttonLabel?: string;
   buttonUrl?: string;
+  /** Wyśrodkuj przycisk (pojedyncze, jasne CTA — np. potwierdzenie alertu). Domyślnie do lewej. */
+  centerButton?: boolean;
   /** Pokaż link tekstowy pod przyciskiem (tylko maile z tokenem: weryfikacja, reset). */
   showLinkFallback?: boolean;
   note?: string;
@@ -78,11 +81,17 @@ export function buildMailTemplate({
           .join("")}</table>`
       : "";
 
+  const btnRadius = centerButton ? "12px" : "10px";
+  const btnPadding = centerButton ? "15px 42px" : "14px 30px";
+  const btnMargin = centerButton ? "20px auto 12px auto" : "6px 0 6px 0";
+
   const buttonHtml = hasButton
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 6px 0;">
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" ${
+        centerButton ? 'align="center" ' : ""
+      }style="margin:${btnMargin};">
 <tr>
-<td bgcolor="#7aa333" style="border-radius:10px;">
-<a href="${safeButtonUrl}" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">${safeButtonLabel}</a>
+<td bgcolor="#7aa333" style="border-radius:${btnRadius};">
+<a href="${safeButtonUrl}" style="display:inline-block;padding:${btnPadding};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:${btnRadius};">${safeButtonLabel}</a>
 </td>
 </tr>
 </table>`
