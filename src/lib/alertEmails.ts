@@ -135,6 +135,7 @@ ${countText} ${matchingWord(n)} do Twojego alertu „${label}":`;
     const html = buildMailTemplate({
       preheader: `${countText} ${matchingWord(n)} do Twojego alertu.`,
       title: countText,
+      hideTitle: true,
       intro,
       bullets: [bits.join(' · ')],
       buttonLabel: 'Zobacz ofertę',
@@ -168,6 +169,7 @@ ${locHtml}
   const html = buildMailTemplate({
     preheader: `${countText} ${matchingWord(n)} do Twojego alertu.`,
     title: countText,
+    hideTitle: true,
     intro,
     bodyHtml,
     buttonLabel: 'Zobacz wszystkie oferty',

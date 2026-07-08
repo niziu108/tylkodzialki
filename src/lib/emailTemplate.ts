@@ -24,6 +24,7 @@ export function mailLogoAttachment() {
 export function buildMailTemplate({
   preheader,
   title,
+  hideTitle = false,
   intro,
   bullets,
   bodyHtml,
@@ -36,6 +37,8 @@ export function buildMailTemplate({
   /** Tekst widoczny w podglądzie skrzynki przed otwarciem maila. */
   preheader: string;
   title: string;
+  /** Ukryj widoczny nagłówek <h1> (tag <title> w <head> zostaje). Gdy treść i tak powtarza tytuł. */
+  hideTitle?: boolean;
   /** Akapity treści — podwójny enter robi odstęp między akapitami. */
   intro?: string;
   /** Lista punktów z zielonym „✓". */
@@ -127,7 +130,7 @@ export function buildMailTemplate({
 <tr>
 <td style="padding:30px 44px 8px 44px;">
 
-<h1 style="margin:0 0 18px 0;font-size:22px;line-height:1.3;color:#1a1a1a;font-weight:700;">${safeTitle}</h1>
+${hideTitle ? "" : `<h1 style="margin:0 0 18px 0;font-size:22px;line-height:1.3;color:#1a1a1a;font-weight:700;">${safeTitle}</h1>`}
 
 ${introHtml}
 ${bulletsHtml}
