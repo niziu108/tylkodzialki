@@ -30,7 +30,7 @@ const PAGE_BG = 'var(--bg)';
 
 function PopularSearchesSection() {
   return (
-    <section className="relative overflow-hidden border-t border-fg/10 bg-surface-2">
+    <section className="relative overflow-hidden bg-surface-2">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.13),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
@@ -182,11 +182,11 @@ export default async function HomePage() {
           zaglądają nad zgięciem (jak w dużych portalach: produkt widać od razu).
           Mobile: pełne 100svh zostaje (tam jest idealnie), zdejmujemy tylko kreskę
           dzielącą — na obu widokach przejście hero→oferty jest płynne. */}
-      <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden md:min-h-[70svh]">
+      <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden md:min-h-[50svh]">
         <HeroGradientBg />
 
         <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 py-16 text-center">
-          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-[70px] md:leading-none">
+          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-[52px] md:leading-none">
             Znajdź swoją działkę
           </h1>
 
@@ -311,7 +311,7 @@ export default async function HomePage() {
       </section>
 
       {/* P24: wejście do narzędzia „Sprawdź działkę" — pod blogiem, od lewej, styl /dla-biur. */}
-      <section className="relative overflow-hidden border-y border-fg/10 bg-surface-2">
+      <section className="relative overflow-hidden border-t border-fg/10 bg-surface-2">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">

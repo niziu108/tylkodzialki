@@ -19,7 +19,7 @@ export default function HeroCounter({
   return (
     <div className="mt-4 flex flex-col items-center leading-none">
       <span
-        className={`tabular-nums text-[44px] font-bold md:text-[56px] ${
+        className={`tabular-nums text-[44px] font-bold md:text-[40px] ${
           isLight
             ? 'text-brand'
             : 'text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.45)]'
