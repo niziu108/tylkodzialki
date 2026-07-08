@@ -513,6 +513,15 @@ export default function DzialkaForm({
   const aerialIdRef = useRef<string | null>(null);
   const aerialBusyRef = useRef(false);
   const [aerialNote, setAerialNote] = useState(false);
+  const [pullingAerial, setPullingAerial] = useState(false);
+  // Zapamiętana działka z autofillu (GUGiK) — na jej podstawie user ręcznie zaciąga zdjęcie
+  // z lotu ptaka przyciskiem. Nie robimy tego automatycznie, żeby po zmianie działki nie
+  // zostawało stare, błędne ortofoto (mamy autozapis).
+  const [parcelForPhoto, setParcelForPhoto] = useState<{
+    lat: number;
+    lng: number;
+    rings: { lat: number; lng: number }[][];
+  } | null>(null);
   // Podświetlenie obszaru zdjęć przy przeciąganiu plików z pulpitu.
   const [photoDragOver, setPhotoDragOver] = useState(false);
 
@@ -1163,57 +1172,56 @@ export default function DzialkaForm({
     return true;
   }
 
-  // Po zaznaczeniu działki (autofill z GUGiK) dokładamy zdjęcie z lotu ptaka. Podmieniamy je, gdy
-  // zmieni się lokalizacja, ale nigdy nie ruszamy własnych zdjęć użytkownika. Cichy fallback: gdy
-  // ortofoto nie wyjdzie, nic nie robimy.
-  async function maybeAddAerialPhoto(
-    lat: number,
-    lng: number,
-    rings: { lat: number; lng: number }[][]
-  ) {
+  // Ręczne zaciągnięcie zdjęcia z lotu ptaka (ortofoto GUGiK) dla wybranej działki — user klika
+  // przycisk dopiero, gdy upewni się, że wskazał właściwą działkę. Wcześniejsze nasze ortofoto
+  // podmieniamy na nowe, własnych zdjęć użytkownika nie ruszamy.
+  async function pullAerialPhoto() {
+    const parcel = parcelForPhoto;
+    if (!parcel) return;
+    const { lat, lng, rings } = parcel;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     if (aerialBusyRef.current) return;
 
     const locKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
-    // Mamy już ortofoto dokładnie dla tej działki — nic nie rób.
+    // Mamy już nasze ortofoto dokładnie dla tej działki — nie dubluj.
     if (aerialKeyRef.current === locKey && aerialIdRef.current) return;
-    // Użytkownik ma własne zdjęcia (inne niż nasze auto-ortofoto) — nie dokładamy niczego.
-    const hasOwnPhotos = uploaded.some((p) => (p.publicId ?? p.url) !== aerialIdRef.current);
-    if (hasOwnPhotos) return;
-    // Skasował auto-ortofoto i nie zmienił lokalizacji — respektujemy usunięcie.
-    if (uploaded.length === 0 && aerialKeyRef.current === locKey) return;
 
     aerialBusyRef.current = true;
+    setPullingAerial(true);
+    setErr(null);
     try {
       // Najpierw wersja z obrysem działki; gdy się nie uda (brak rings/canvas), zwykłe ortofoto.
       let file = await buildAerialFile(lat, lng, rings);
       if (!file) {
         const res = await fetch(`/api/parcel-photo?lat=${lat}&lng=${lng}`);
-        if (!res.ok) return;
+        if (!res.ok) throw new Error('parcel-photo');
         const blob = await res.blob();
-        if (!blob.type.startsWith('image/') || blob.size < 1500) return;
+        if (!blob.type.startsWith('image/') || blob.size < 1500) throw new Error('empty');
         file = new File([blob], 'dzialka-z-lotu-ptaka.jpg', { type: 'image/jpeg' });
       }
       const { url, key } = await uploadImageViaApi(file);
       const prevAerialId = aerialIdRef.current;
       let applied = false;
       setUploaded((prev) => {
-        // Zostaw własne zdjęcia użytkownika (dodane w międzyczasie); podmień tylko stare auto-ortofoto.
+        // Wyrzuć poprzednie nasze ortofoto (jeśli było), zostaw zdjęcia użytkownika i dołóż nowe.
         const own = prev.filter((p) => (p.publicId ?? p.url) !== prevAerialId);
-        if (own.length > 0) return prev;
+        if (own.length >= MAX_PHOTOS) return prev;
         applied = true;
-        return [{ url, publicId: key, kolejnosc: 0 }];
+        return normalizeUploadedOrder([...own, { url, publicId: key }]);
       });
       if (applied) {
         aerialIdRef.current = key;
         aerialKeyRef.current = locKey;
         clearFieldError('photos');
         setAerialNote(true);
+      } else {
+        setErr(`Masz już ${MAX_PHOTOS} zdjęć — usuń jedno, żeby dodać zdjęcie z lotu ptaka.`);
       }
     } catch {
-      // cicho — brak ortofoto nie blokuje dodawania
+      setErr('Nie udało się zaciągnąć zdjęcia działki. Spróbuj ponownie za chwilę.');
     } finally {
       aerialBusyRef.current = false;
+      setPullingAerial(false);
     }
   }
 
@@ -1752,6 +1760,21 @@ export default function DzialkaForm({
                     disabled={uploaded.length >= MAX_PHOTOS}
                   />
                 </label>
+
+                <button
+                  type="button"
+                  onClick={() => void pullAerialPhoto()}
+                  disabled={!parcelForPhoto || pullingAerial || uploaded.length >= MAX_PHOTOS}
+                  title={!parcelForPhoto ? 'Najpierw wybierz lokalizację działki' : undefined}
+                  className={cx(
+                    'inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-semibold transition',
+                    !parcelForPhoto || pullingAerial || uploaded.length >= MAX_PHOTOS
+                      ? 'cursor-not-allowed border-fg/10 bg-fg/[0.03] text-fg/55'
+                      : 'border-brand/40 bg-brand/[0.08] text-brand-text hover:border-brand/60 hover:bg-brand/[0.12]'
+                  )}
+                >
+                  {pullingAerial ? 'Zaciągam…' : 'Zaciągnij zdjęcie działki'}
+                </button>
 
                 {uploaded.length > 0 ? (
                   <button
@@ -2328,8 +2351,11 @@ export default function DzialkaForm({
                       clearFieldError('tytul');
                     }
                   }
-                  // Auto-zdjęcie z lotu ptaka z obrysem działki (jeśli brak własnych zdjęć).
-                  void maybeAddAerialPhoto(d.lat, d.lng, d.rings);
+                  // Zapamiętujemy działkę — zdjęcie z lotu ptaka user zaciąga ręcznie przyciskiem
+                  // w kroku „Zdjęcia" (nie automatycznie), gdy potwierdzi, że to właściwa działka.
+                  if (Number.isFinite(d.lat) && Number.isFinite(d.lng)) {
+                    setParcelForPhoto({ lat: d.lat, lng: d.lng, rings: d.rings });
+                  }
                 }}
               />
             </div>
