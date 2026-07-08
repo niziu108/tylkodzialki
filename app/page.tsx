@@ -186,7 +186,7 @@ export default async function HomePage() {
         <HeroGradientBg />
 
         <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 py-16 text-center md:py-9">
-          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-[40px] md:leading-none">
+          <h1 className="font-hero text-[38px] uppercase tracking-[0.06em] text-fg md:text-[52px] md:leading-none">
             Znajdź swoją działkę
           </h1>
 
