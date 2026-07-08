@@ -49,18 +49,23 @@ function Row({ label, value }: { label: string; value: string | null }) {
 }
 
 // Wiersz rozbicia cenowego — renderuje się tylko, gdy podpróbka dobiła progu (pricePerM2 != null).
+// Kolumny: etykieta | liczba (do prawej, tabular) zł/m² | z N ofert. Dzięki temu jednostka i
+// licznik ustawiają się w równych pionach niezależnie od liczby cyfr w cenie.
 function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat; sub?: boolean }) {
   if (!stat.pricePerM2) return null;
   return (
-    <div className="grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-t border-fg/10 py-3 md:grid-cols-[14rem_1fr]">
+    <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 border-t border-fg/10 py-3">
       <span
         className={`text-[13px] uppercase tracking-[0.1em] text-fg/45 ${sub ? 'pl-4 normal-case tracking-normal' : ''}`}
       >
         {label}
       </span>
       <span className="text-[15px] font-medium text-fg">
-        {formatIntPL(stat.pricePerM2.median)} zł/m²
-        <span className="ml-2 text-[13px] font-normal text-fg/45">
+        <span className="inline-block min-w-[2.75rem] text-right tabular-nums">
+          {formatIntPL(stat.pricePerM2.median)}
+        </span>{' '}
+        zł/m²
+        <span className="ml-2 inline-block w-[5.5rem] text-[13px] font-normal text-fg/45">
           z {stat.sampleCount} {stat.sampleCount === 1 ? 'oferty' : 'ofert'}
         </span>
       </span>
