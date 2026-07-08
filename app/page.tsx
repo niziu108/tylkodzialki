@@ -177,7 +177,11 @@ export default async function HomePage() {
       className="relative w-full overflow-hidden"
       style={{ background: PAGE_BG }}
     >
-      <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden border-b border-fg/10">
+      {/* Desktop: hero nieco niższy niż pełny ekran (85svh) + brak linii na dole,
+          żeby góra „Wyróżnionych" delikatnie zaglądała nad zgięciem — jak w dużych
+          portalach (produkt widać od razu, oko wie, że jest co przewijać).
+          Mobile bez zmian: pełne 100svh + hairline (tam jest idealnie). */}
+      <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden border-b border-fg/10 md:min-h-[85svh] md:border-b-0">
         <HeroGradientBg />
 
         <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 py-16 text-center">
