@@ -327,7 +327,7 @@ export default async function HomePage() {
           <div className="mt-8">
             <Link
               href="/sprawdz-dzialke"
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright"
             >
               Sprawdź działkę
             </Link>

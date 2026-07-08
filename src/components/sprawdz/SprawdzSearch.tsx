@@ -209,7 +209,7 @@ export default function SprawdzSearch() {
                 type="button"
                 onClick={handleCheck}
                 disabled={loading}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-8 text-[15px] font-semibold text-ink transition hover:bg-brand-bright disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright disabled:opacity-60"
               >
                 {loading ? 'Sprawdzam…' : 'Sprawdź działkę'}
               </button>
