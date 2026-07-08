@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import HeroGradientBg from "@/components/HeroGradientBg";
 import ArticleCardCover from "@/components/ArticleCardCover";
 import ArticleMeta from "@/components/ArticleMeta";
+import Pager from "@/components/Pager";
 import { ARTICLE_CATEGORIES } from "@/lib/articleCategories";
+
+// Tyle artykułów na stronę, żeby lista nie rosła w nieskończoność (1 kolumna
+// mobile, do 3 kolumn na xl => 24 dzieli się równo po 8 rzędów).
+const PAGE_SIZE = 24;
 
 type BlogArticle = {
   id: string;
@@ -60,6 +65,31 @@ export default function BlogSearchSection({
   }, [articles, query, category]);
 
   const isFiltering = query.trim() !== "" || category !== null;
+
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(filteredArticles.length / PAGE_SIZE));
+
+  // Zmiana filtra/tematu => wracamy na 1. stronę (inaczej można utknąć na
+  // pustej stronie po zawężeniu wyników).
+  useEffect(() => {
+    setPage(1);
+  }, [query, category]);
+
+  // Gdyby liczba wyników spadła poniżej bieżącej strony (np. bezpiecznik).
+  const safePage = Math.min(page, totalPages);
+
+  const pageArticles = useMemo(
+    () => filteredArticles.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filteredArticles, safePage]
+  );
+
+  const goToPage = (p: number) => {
+    setPage(Math.max(1, Math.min(totalPages, p)));
+    document
+      .getElementById("blog-wyniki")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <>
@@ -177,8 +207,9 @@ export default function BlogSearchSection({
             </button>
           </div>
         ) : (
+          <>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {filteredArticles.map((article) => (
+            {pageArticles.map((article) => (
               <article
                 key={article.id}
                 className="group overflow-hidden rounded-[28px] border border-fg/10 bg-fg/[0.03] transition hover:border-fg/20 hover:bg-fg/[0.045]"
@@ -213,6 +244,18 @@ export default function BlogSearchSection({
               </article>
             ))}
           </div>
+
+          {totalPages > 1 && (
+            <Pager
+              className="mt-12 border-t border-fg/10 pt-8"
+              page={safePage}
+              totalPages={totalPages}
+              onPrev={() => goToPage(safePage - 1)}
+              onNext={() => goToPage(safePage + 1)}
+              onGo={goToPage}
+            />
+          )}
+          </>
         )}
       </section>
     </>
