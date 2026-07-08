@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { loadGoogleMaps } from '@/lib/googleMaps';
+import { createParcelOverlay } from '@/lib/parcelOverlay';
 import HeroGradientBg from '@/components/HeroGradientBg';
 import Raport, { type RaportData } from './Raport';
 
@@ -54,40 +55,9 @@ export default function SprawdzSearch() {
         });
         mapRef.current = map;
 
-        // Nakładka granic działek ewidencyjnych (WMS GUGiK / KIEG) — po przybliżeniu user widzi
-        // obrys każdej działki z numerem, więc ma pewność, że kliknął właściwą
-        // ([[project-wms-dzialki-overlay]]). Ten sam kafel co w dodawaniu oferty.
-        const EXTENT = 20037508.342789244;
-        const parcelLayer = new google.maps.ImageMapType({
-          name: 'dzialki',
-          tileSize: new google.maps.Size(256, 256),
-          maxZoom: 21,
-          opacity: 0.85,
-          getTileUrl: (coord, zoom) => {
-            if (zoom < 15) return null as unknown as string;
-            const worldSize = 2 * EXTENT;
-            const tile = worldSize / Math.pow(2, zoom);
-            const minx = -EXTENT + coord.x * tile;
-            const maxx = -EXTENT + (coord.x + 1) * tile;
-            const maxy = EXTENT - coord.y * tile;
-            const miny = EXTENT - (coord.y + 1) * tile;
-            const params = new URLSearchParams({
-              SERVICE: 'WMS',
-              VERSION: '1.1.1',
-              REQUEST: 'GetMap',
-              LAYERS: 'dzialki,numery_dzialek',
-              STYLES: '',
-              SRS: 'EPSG:3857',
-              BBOX: `${minx},${miny},${maxx},${maxy}`,
-              WIDTH: '256',
-              HEIGHT: '256',
-              FORMAT: 'image/png',
-              TRANSPARENT: 'TRUE',
-            });
-            return `https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow?${params.toString()}`;
-          },
-        });
-        map.overlayMapTypes.push(parcelLayer);
+        // Nakładka granic działek ewidencyjnych — po przybliżeniu user widzi obrys każdej działki
+        // z numerem, więc ma pewność, że kliknął właściwą ([[project-wms-dzialki-overlay]]).
+        map.overlayMapTypes.push(createParcelOverlay());
 
         const marker = new google.maps.Marker({ map, draggable: true, visible: false });
         markerRef.current = marker;

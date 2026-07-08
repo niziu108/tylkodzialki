@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import { createParcelOverlay } from '@/lib/parcelOverlay';
 
 type LocationMode = 'EXACT' | 'APPROX';
 
@@ -202,38 +203,7 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
 
       // Nakładka granic działek ewidencyjnych (WMS GUGiK / KIEG). Renderuje się po
       // przybliżeniu — user widzi obrys każdej działki z numerem i klika w swoją.
-      const EXTENT = 20037508.342789244;
-      const parcelLayer = new google.maps.ImageMapType({
-        name: 'dzialki',
-        tileSize: new google.maps.Size(256, 256),
-        maxZoom: 21,
-        opacity: 0.85,
-        getTileUrl: (coord, zoom) => {
-          // Działki ewidencyjne mają sens dopiero po przybliżeniu; niżej nie odpytujemy.
-          if (zoom < 15) return null as unknown as string;
-          const worldSize = 2 * EXTENT;
-          const tile = worldSize / Math.pow(2, zoom);
-          const minx = -EXTENT + coord.x * tile;
-          const maxx = -EXTENT + (coord.x + 1) * tile;
-          const maxy = EXTENT - coord.y * tile;
-          const miny = EXTENT - (coord.y + 1) * tile;
-          const params = new URLSearchParams({
-            SERVICE: 'WMS',
-            VERSION: '1.1.1',
-            REQUEST: 'GetMap',
-            LAYERS: 'dzialki,numery_dzialek',
-            STYLES: '',
-            SRS: 'EPSG:3857',
-            BBOX: `${minx},${miny},${maxx},${maxy}`,
-            WIDTH: '256',
-            HEIGHT: '256',
-            FORMAT: 'image/png',
-            TRANSPARENT: 'TRUE',
-          });
-          return `https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow?${params.toString()}`;
-        },
-      });
-      map.overlayMapTypes.push(parcelLayer);
+      map.overlayMapTypes.push(createParcelOverlay());
 
       const marker = new google.maps.Marker({
         map,
