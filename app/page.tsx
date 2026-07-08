@@ -215,10 +215,13 @@ export default async function HomePage() {
         <section className="relative overflow-hidden">
           {/* zielona „siateczka" — żeby sekcja nie była monolitem */}
           <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
-          <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.05),transparent_32%)]" />
+          {/* poświata schowana na desktopie (md:hidden): przy krótkim hero sekcja
+              siedzi tuż pod spotlightem hero i zielone poświaty by się dublowały.
+              Na mobile hero jest pełnoekranowy, więc poświata zostaje. */}
+          <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_20%,rgba(122,163,51,0.16),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(47,94,70,0.05),transparent_32%)] md:hidden" />
 
           <div className="relative z-10 mx-auto max-w-7xl px-6 pt-14 pb-14 md:px-10 md:pt-11 md:pb-16">
-            <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-center md:text-4xl">
               Wyróżnione oferty
             </h2>
 
@@ -226,7 +229,7 @@ export default async function HomePage() {
               <FeaturedRail items={featuredCards} />
             </div>
 
-            <div className="mt-6 flex justify-center md:justify-start">
+            <div className="mt-6 flex justify-center">
               <Link
                 href="/kup"
                 className="inline-flex text-sm text-fg/72 transition hover:text-fg"
