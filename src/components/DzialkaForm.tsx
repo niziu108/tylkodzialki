@@ -1201,22 +1201,23 @@ export default function DzialkaForm({
       }
       const { url, key } = await uploadImageViaApi(file);
       const prevAerialId = aerialIdRef.current;
-      let applied = false;
+      // Ile zostanie zdjęć po wyrzuceniu naszego poprzedniego ortofoto (własnych nie ruszamy).
+      // Decyzję o limicie podejmujemy TU, przed setUploaded — updater w React 18 wykonuje się
+      // dopiero przy renderze, więc flaga odczytana zaraz po nim byłaby zawsze nieaktualna.
+      const ownCount = uploaded.filter((p) => (p.publicId ?? p.url) !== prevAerialId).length;
+      if (ownCount >= MAX_PHOTOS) {
+        setErr(`Masz już ${MAX_PHOTOS} zdjęć — usuń jedno, żeby dodać zdjęcie z lotu ptaka.`);
+        return;
+      }
       setUploaded((prev) => {
         // Wyrzuć poprzednie nasze ortofoto (jeśli było), zostaw zdjęcia użytkownika i dołóż nowe.
         const own = prev.filter((p) => (p.publicId ?? p.url) !== prevAerialId);
-        if (own.length >= MAX_PHOTOS) return prev;
-        applied = true;
         return normalizeUploadedOrder([...own, { url, publicId: key }]);
       });
-      if (applied) {
-        aerialIdRef.current = key;
-        aerialKeyRef.current = locKey;
-        clearFieldError('photos');
-        setAerialNote(true);
-      } else {
-        setErr(`Masz już ${MAX_PHOTOS} zdjęć — usuń jedno, żeby dodać zdjęcie z lotu ptaka.`);
-      }
+      aerialIdRef.current = key;
+      aerialKeyRef.current = locKey;
+      clearFieldError('photos');
+      setAerialNote(true);
     } catch {
       setErr('Nie udało się zaciągnąć zdjęcia działki. Spróbuj ponownie za chwilę.');
     } finally {

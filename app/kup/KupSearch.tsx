@@ -6,6 +6,7 @@ import HeroGradientBg from '@/components/HeroGradientBg';
 import { useRouter } from 'next/navigation';
 import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
+import RadiusSelect from '@/components/RadiusSelect';
 import type { MapPoint } from '@/components/KupMap';
 import { loadGoogleMaps } from '@/lib/googleMaps';
 
@@ -1246,19 +1247,12 @@ export default function KupSearch({
           <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
             Zasięg
           </label>
-          <div className="mt-3 rounded-xl border border-fg/25">
-            <select
-              value={radiusKm}
-              onChange={(e) => setRadiusKm(Number(e.target.value) as (typeof KM_OPTIONS)[number])}
-              className="w-full bg-transparent px-4 py-3 text-fg/90 outline-none"
-            >
-              {KM_OPTIONS.map((km) => (
-                <option key={km} value={km} className="bg-bg">
-                  + {km} km
-                </option>
-              ))}
-            </select>
-          </div>
+          <RadiusSelect
+            className="mt-3"
+            value={radiusKm}
+            options={KM_OPTIONS}
+            onChange={(v) => setRadiusKm(v as (typeof KM_OPTIONS)[number])}
+          />
         </div>
       </div>
 
