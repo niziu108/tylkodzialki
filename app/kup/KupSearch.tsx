@@ -1459,7 +1459,10 @@ export default function KupSearch({
 
   return (
     <div className="w-full overflow-x-hidden">
-      <section ref={searchTopRef} className="relative w-full overflow-hidden">
+      {/* bez overflow-hidden: rozwijana lista „Zasięg" wysuwa się poniżej karty i
+          była nią ucinana. HeroGradientBg jest absolute inset-0, więc nie wycieka;
+          poziomy scroll trzyma zewnętrzny wrapper (overflow-x-hidden). */}
+      <section ref={searchTopRef} className="relative w-full">
         {/* Gradient spójny ze stroną główną (bez zdjęcia => szybki LCP). */}
         <HeroGradientBg />
 
