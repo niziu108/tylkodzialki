@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import HeroGradientBg from "@/components/HeroGradientBg";
 import ArticleCardCover from "@/components/ArticleCardCover";
 import ArticleMeta from "@/components/ArticleMeta";
@@ -84,12 +84,24 @@ export default function BlogSearchSection({
     [filteredArticles, safePage]
   );
 
+  // Przewijamy DOPIERO po przerysowaniu nowej strony (useEffect poniżej).
+  // Gdyby scroll odpalał się od razu w handlerze, płynna animacja celowałaby w
+  // pozycję ze starego, wyższego układu; przy krótszej stronie dokument się
+  // kurczy i przeglądarka docina scroll do maksimum => ląduje na stopce.
+  const pendingScroll = useRef(false);
+
   const goToPage = (p: number) => {
     setPage(Math.max(1, Math.min(totalPages, p)));
+    pendingScroll.current = true;
+  };
+
+  useEffect(() => {
+    if (!pendingScroll.current) return;
+    pendingScroll.current = false;
     document
       .getElementById("blog-wyniki")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  }, [safePage]);
 
   return (
     <>
