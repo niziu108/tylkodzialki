@@ -154,7 +154,7 @@ export default function GlobalNav() {
               onClick={() => go('/sprzedaj')}
               className={`${navBtnBase} ${navBtnWhite}`}
             >
-              Dodaj ogłoszenie
+              Dodaj działkę
             </button>
 
             <button
@@ -307,7 +307,7 @@ export default function GlobalNav() {
                 </button>
 
                 <button onClick={() => go('/sprzedaj')} className={linkMobile}>
-                  Dodaj ogłoszenie
+                  Dodaj działkę
                 </button>
 
                 <button onClick={() => go('/sprawdz-dzialke')} className={linkMobile}>
