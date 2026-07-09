@@ -194,29 +194,29 @@ const MAX_PHOTOS = MAX_PHOTOS_PER_OFFER; // limit zdjęć na ofertę — jedno �
 
 type WizardStep = { title: string; short: string };
 
-// Kolejność kroków: NAJPIERW lokalizacja (pinezka + autouzupełnianie z GUGiK zaciąga
-// powierzchnię i gminę), potem reszta. Treść bloków renderujemy po kluczu, nie po indeksie,
-// żeby zmiana kolejności nie wymagała żmudnego przenumerowania rozproszonych `step === N`.
+// Kolejność kroków: NAJPIERW podstawy, potem lokalizacja, dalej reszta. Treść bloków
+// renderujemy po kluczu, nie po indeksie, żeby zmiana kolejności nie wymagała żmudnego
+// przenumerowania rozproszonych `stepKey === '...'`.
 const STEPS: WizardStep[] = [
-  { title: 'Lokalizacja', short: 'Lokalizacja' },
   { title: 'Podstawowe informacje', short: 'Podstawy' },
+  { title: 'Lokalizacja', short: 'Lokalizacja' },
   { title: 'Zdjęcia', short: 'Zdjęcia' },
   { title: 'Szczegóły i uzbrojenie', short: 'Szczegóły' },
   { title: 'Kto sprzedaje', short: 'Sprzedający' },
 ];
-const STEP_KEYS = ['location', 'basics', 'photos', 'details', 'seller'] as const;
+const STEP_KEYS = ['basics', 'location', 'photos', 'details', 'seller'] as const;
 const LAST_STEP = STEPS.length - 1;
 
 // Każde pole wymagane mapujemy na krok, w którym się znajduje. Dzięki temu „Dalej"
 // waliduje tylko bieżący krok, a „Opublikuj" potrafi przeskoczyć do najwcześniejszego
 // kroku, w którym czegoś brakuje.
 const FIELD_STEP: Record<FieldKey, number> = {
-  location: 0,
-  tytul: 1,
-  cenaPln: 1,
-  powierzchniaM2: 1,
-  telefon: 1,
-  przeznaczenia: 1,
+  tytul: 0,
+  cenaPln: 0,
+  powierzchniaM2: 0,
+  telefon: 0,
+  przeznaczenia: 0,
+  location: 1,
   photos: 2,
   sprzedajacyImie: 4,
   biuroNazwa: 4,
@@ -375,34 +375,6 @@ async function buildAerialFile(
   }
 }
 
-// Podpowiedź tytułu z danych działki (przeznaczenie + miejscowość + metraż).
-const PRZEZN_ADJ_F: Record<string, string> = {
-  INWESTYCYJNA: 'inwestycyjna',
-  BUDOWLANA: 'budowlana',
-  ROLNA: 'rolna',
-  LESNA: 'leśna',
-  REKREACYJNA: 'rekreacyjna',
-  SIEDLISKOWA: 'siedliskowa',
-};
-
-function cleanPlace(locationFull: string | null): string {
-  if (!locationFull) return '';
-  return locationFull
-    .split(',')[0]
-    .replace(/\s*\((miasto|gmina)\)\s*/i, '')
-    .replace(/^gmina\s+/i, '')
-    .trim();
-}
-
-function suggestTitle(areaM2: number, przezn: string | undefined, locationFull: string | null): string {
-  const adj = przezn ? PRZEZN_ADJ_F[przezn] : undefined;
-  const place = cleanPlace(locationFull);
-  const areaTxt = Math.round(areaM2).toLocaleString('pl-PL');
-  const head = adj ? `Działka ${adj}` : 'Działka';
-  return `${head}${place ? ` ${place}` : ''} ${areaTxt} m²`.replace(/\s+/g, ' ').trim();
-}
-
-
 export default function DzialkaForm({
   mode,
   initialData,
@@ -514,14 +486,6 @@ export default function DzialkaForm({
   const aerialBusyRef = useRef(false);
   const [aerialNote, setAerialNote] = useState(false);
   const [pullingAerial, setPullingAerial] = useState(false);
-  // Zapamiętana działka z autofillu (GUGiK) — na jej podstawie user ręcznie zaciąga zdjęcie
-  // z lotu ptaka przyciskiem. Nie robimy tego automatycznie, żeby po zmianie działki nie
-  // zostawało stare, błędne ortofoto (mamy autozapis).
-  const [parcelForPhoto, setParcelForPhoto] = useState<{
-    lat: number;
-    lng: number;
-    rings: { lat: number; lng: number }[][];
-  } | null>(null);
   // Podświetlenie obszaru zdjęć przy przeciąganiu plików z pulpitu.
   const [photoDragOver, setPhotoDragOver] = useState(false);
 
@@ -1172,13 +1136,14 @@ export default function DzialkaForm({
     return true;
   }
 
-  // Ręczne zaciągnięcie zdjęcia z lotu ptaka (ortofoto GUGiK) dla wybranej działki — user klika
-  // przycisk dopiero, gdy upewni się, że wskazał właściwą działkę. Wcześniejsze nasze ortofoto
-  // podmieniamy na nowe, własnych zdjęć użytkownika nie ruszamy.
+  // Ręczne pobranie zdjęcia z lotu ptaka (ortofoto GUGiK) dla wskazanej działki — dostępne tylko,
+  // gdy user podał DOKŁADNĄ lokalizację (pinezka). Obrys działki do narysowania na zdjęciu
+  // pobieramy dopiero teraz, na kliknięcie (nie zaciągamy żadnych danych do pól formularza).
+  // Wcześniejsze nasze ortofoto podmieniamy na nowe, własnych zdjęć użytkownika nie ruszamy.
   async function pullAerialPhoto() {
-    const parcel = parcelForPhoto;
-    if (!parcel) return;
-    const { lat, lng, rings } = parcel;
+    const loc = location;
+    if (!loc || loc.locationMode !== 'EXACT') return;
+    const { lat, lng } = loc;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     if (aerialBusyRef.current) return;
 
@@ -1190,6 +1155,22 @@ export default function DzialkaForm({
     setPullingAerial(true);
     setErr(null);
     try {
+      // Obrys działki (best-effort) — sam do narysowania granicy na zdjęciu, bez wypełniania pól.
+      let rings: { lat: number; lng: number }[][] = [];
+      try {
+        const gr = await fetch('/api/sprawdz-dzialke', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lng }),
+        });
+        const gj = await gr.json().catch(() => null);
+        if (gr.ok && gj?.parcel?.rings && Array.isArray(gj.parcel.rings)) {
+          rings = gj.parcel.rings;
+        }
+      } catch {
+        // brak obrysu — trudno, zrobimy zdjęcie samego punktu
+      }
+
       // Najpierw wersja z obrysem działki; gdy się nie uda (brak rings/canvas), zwykłe ortofoto.
       let file = await buildAerialFile(lat, lng, rings);
       if (!file) {
@@ -1529,67 +1510,73 @@ export default function DzialkaForm({
 
   return (
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
-      <header className="border-b border-fg/10">
-        <div className="mx-auto max-w-5xl px-6 pb-5 pt-7 md:px-10">
-          <div className="flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="truncate text-[24px] font-semibold leading-tight tracking-tight text-fg md:text-[30px]">
-                {mode === 'edit' ? 'Edycja ogłoszenia' : 'Dodaj działkę'}
-              </h1>
-            </div>
-            <div className="hidden shrink-0 text-right text-[13px] font-medium text-fg/68 sm:block">
-              Krok {step + 1} / {STEPS.length}
-            </div>
+      <div className="mx-auto flex max-w-6xl justify-center md:gap-10 lg:gap-14">
+        {/* Pasek kroków — desktop: pionowy, po lewej stronie ekranu */}
+        <aside className="hidden shrink-0 md:block md:w-52 lg:w-56">
+          <div className="sticky top-8 pl-10 pt-12">
+            {mode === 'edit' ? (
+              <div className="mb-6 text-[13px] font-semibold tracking-tight text-fg/55">
+                Edycja ogłoszenia
+              </div>
+            ) : null}
+            <ol>
+              {STEPS.map((s, i) => {
+                const done = i < step;
+                const active = i === step;
+                const reachable = i <= maxStep;
+                const last = i === STEPS.length - 1;
+
+                return (
+                  <li key={i} className="relative flex pb-7 last:pb-0">
+                    {!last ? (
+                      <span
+                        className={cx(
+                          'absolute bottom-1 left-[18px] top-9 w-px -translate-x-1/2 transition',
+                          i < step ? 'bg-brand/50' : 'bg-fg/12'
+                        )}
+                      />
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => goToStep(i)}
+                      disabled={!reachable}
+                      aria-current={active ? 'step' : undefined}
+                      className={cx(
+                        'group flex items-center gap-3 text-left',
+                        reachable ? 'cursor-pointer' : 'cursor-default'
+                      )}
+                    >
+                      <span
+                        className={cx(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[14px] font-semibold transition',
+                          active
+                            ? 'border-brand-bright bg-brand text-black'
+                            : done
+                            ? 'border-brand/60 bg-brand/15 text-brand-bright'
+                            : 'border-fg/20 bg-fg/[0.03] text-fg/70 group-hover:border-fg/35'
+                        )}
+                      >
+                        {done ? '✓' : i + 1}
+                      </span>
+                      <span
+                        className={cx(
+                          'whitespace-nowrap text-[13px] font-semibold tracking-tight transition',
+                          active ? 'text-fg' : done ? 'text-fg/70 group-hover:text-fg' : 'text-fg/64 group-hover:text-fg/70'
+                        )}
+                      >
+                        {s.short}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
           </div>
+        </aside>
 
-          {/* Pasek kroków — desktop */}
-          <ol className="mt-6 hidden items-center md:flex">
-            {STEPS.map((s, i) => {
-              const done = i < step;
-              const active = i === step;
-              const reachable = i <= maxStep;
-
-              return (
-                <li key={i} className="flex flex-1 items-center last:flex-none">
-                  <button
-                    type="button"
-                    onClick={() => goToStep(i)}
-                    disabled={!reachable}
-                    aria-current={active ? 'step' : undefined}
-                    className={cx('group flex items-center gap-3', reachable ? 'cursor-pointer' : 'cursor-default')}
-                  >
-                    <span
-                      className={cx(
-                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[14px] font-semibold transition',
-                        active
-                          ? 'border-brand-bright bg-brand text-black'
-                          : done
-                          ? 'border-brand/60 bg-brand/15 text-brand-bright'
-                          : 'border-fg/20 bg-fg/[0.03] text-fg/70 group-hover:border-fg/35'
-                      )}
-                    >
-                      {done ? '✓' : i + 1}
-                    </span>
-                    <span
-                      className={cx(
-                        'whitespace-nowrap text-[13px] font-semibold tracking-tight transition',
-                        active ? 'text-fg' : done ? 'text-fg/70 group-hover:text-fg' : 'text-fg/64 group-hover:text-fg/70'
-                      )}
-                    >
-                      {s.short}
-                    </span>
-                  </button>
-
-                  {i < STEPS.length - 1 ? (
-                    <span className={cx('mx-3 h-px flex-1 transition', i < step ? 'bg-brand/50' : 'bg-fg/10')} />
-                  ) : null}
-                </li>
-              );
-            })}
-          </ol>
-
-          {/* Pasek kroków — mobile (klikalny, jak na desktopie) */}
-          <div className="mt-5 md:hidden">
+        <div className="w-full min-w-0 max-w-3xl px-6 pb-24 pt-7 md:px-10 md:pt-12">
+          {/* Pasek kroków — mobile (klikalny, poziomy u góry) */}
+          <div className="mb-7 md:hidden">
             <div className="mb-3 flex items-center justify-between text-[12px] font-medium">
               <span className="text-fg/75">{STEPS[step].short}</span>
               <span className="text-fg/68">Krok {step + 1} / {STEPS.length}</span>
@@ -1632,10 +1619,7 @@ export default function DzialkaForm({
               })}
             </ol>
           </div>
-        </div>
-      </header>
 
-      <div className="mx-auto max-w-5xl px-6 pb-24 pt-7 md:px-10">
         <form onSubmit={onSubmit} className="space-y-7">
           <div className="text-xs text-fg/64">
             <span className="text-brand-bright">*</span> pole wymagane
@@ -1761,20 +1745,21 @@ export default function DzialkaForm({
                   />
                 </label>
 
-                <button
-                  type="button"
-                  onClick={() => void pullAerialPhoto()}
-                  disabled={!parcelForPhoto || pullingAerial || uploaded.length >= MAX_PHOTOS}
-                  title={!parcelForPhoto ? 'Najpierw wybierz lokalizację działki' : undefined}
-                  className={cx(
-                    'inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-semibold transition',
-                    !parcelForPhoto || pullingAerial || uploaded.length >= MAX_PHOTOS
-                      ? 'cursor-not-allowed border-fg/10 bg-fg/[0.03] text-fg/55'
-                      : 'border-brand/40 bg-brand/[0.08] text-brand-text hover:border-brand/60 hover:bg-brand/[0.12]'
-                  )}
-                >
-                  {pullingAerial ? 'Zaciągam…' : 'Zaciągnij zdjęcie działki'}
-                </button>
+                {location && location.locationMode === 'EXACT' ? (
+                  <button
+                    type="button"
+                    onClick={() => void pullAerialPhoto()}
+                    disabled={pullingAerial || uploaded.length >= MAX_PHOTOS}
+                    className={cx(
+                      'inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-semibold transition',
+                      pullingAerial || uploaded.length >= MAX_PHOTOS
+                        ? 'cursor-not-allowed border-fg/10 bg-fg/[0.03] text-fg/55'
+                        : 'border-brand/40 bg-brand/[0.08] text-brand-text hover:border-brand/60 hover:bg-brand/[0.12]'
+                    )}
+                  >
+                    {pullingAerial ? 'Pobieram…' : 'Pobierz zdjęcie działki z lotu ptaka'}
+                  </button>
+                ) : null}
 
                 {uploaded.length > 0 ? (
                   <button
@@ -2330,27 +2315,6 @@ export default function DzialkaForm({
               <LocationPicker
                 value={location ?? undefined}
                 onChange={(v: any) => { setLocation(v); clearFieldError('location'); }}
-                onAutofill={(d) => {
-                  // Powierzchnia z ewidencji (GUGiK) uzupełnia pole z kroku „Podstawy”.
-                  if (typeof d.areaM2 === 'number' && d.areaM2 > 0) {
-                    setPowierzchniaM2(formatThousandsSpaces(String(Math.round(d.areaM2))));
-                    clearFieldError('powierzchniaM2');
-                  }
-                  clearFieldError('location');
-                  // Podpowiedź tytułu z danych działki, tylko gdy pole puste (nie nadpisujemy).
-                  if (!tytul.trim() && typeof d.areaM2 === 'number' && d.areaM2 > 0) {
-                    const suggested = suggestTitle(d.areaM2, przeznaczenia[0], d.locationFull);
-                    if (suggested) {
-                      setTytul(suggested.slice(0, MAX_TITLE_CHARS));
-                      clearFieldError('tytul');
-                    }
-                  }
-                  // Zapamiętujemy działkę — zdjęcie z lotu ptaka user zaciąga ręcznie przyciskiem
-                  // w kroku „Zdjęcia" (nie automatycznie), gdy potwierdzi, że to właściwa działka.
-                  if (Number.isFinite(d.lat) && Number.isFinite(d.lng)) {
-                    setParcelForPhoto({ lat: d.lat, lng: d.lng, rings: d.rings });
-                  }
-                }}
               />
             </div>
 
@@ -2458,6 +2422,7 @@ export default function DzialkaForm({
             )}
           </div>
         </form>
+        </div>
       </div>
 
       {previewOpen ? (() => {
