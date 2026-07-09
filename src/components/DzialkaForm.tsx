@@ -1510,10 +1510,13 @@ export default function DzialkaForm({
 
   return (
     <main className="min-h-screen" style={{ background: BG, color: FG }}>
-      <div className="mx-auto flex max-w-6xl justify-center md:gap-10 lg:gap-14">
-        {/* Pasek kroków — desktop: pionowy, po lewej stronie ekranu */}
-        <aside className="hidden shrink-0 md:block md:w-52 lg:w-56">
-          <div className="sticky top-8 pl-10 pt-12">
+      {/* Siatka 3-kolumnowa: lewy margines (kroki) — formularz (środek strony) — prawy margines.
+          Równe kolumny 1fr wyśrodkowują formularz na stronie, a kroki lądują w lewym marginesie.
+          Pasek boczny pokazujemy od xl (niżej za mało miejsca w gutterze → poziomy pasek u góry). */}
+      <div className="mx-auto grid max-w-[88rem] grid-cols-1 xl:grid-cols-[1fr_minmax(0,48rem)_1fr]">
+        {/* Pasek kroków — desktop: pionowy, przy lewej krawędzi */}
+        <aside className="hidden xl:block xl:justify-self-start">
+          <div className="sticky top-8 pl-6 pt-12">
             {mode === 'edit' ? (
               <div className="mb-6 text-[13px] font-semibold tracking-tight text-fg/55">
                 Edycja ogłoszenia
@@ -1574,9 +1577,9 @@ export default function DzialkaForm({
           </div>
         </aside>
 
-        <div className="w-full min-w-0 max-w-3xl px-6 pb-24 pt-7 md:px-10 md:pt-12">
-          {/* Pasek kroków — mobile (klikalny, poziomy u góry) */}
-          <div className="mb-7 md:hidden">
+        <div className="w-full min-w-0 px-6 pb-24 pt-7 md:px-10 md:pt-12">
+          {/* Pasek kroków — mobile/tablet (klikalny, poziomy u góry) */}
+          <div className="mb-7 xl:hidden">
             <div className="mb-3 flex items-center justify-between text-[12px] font-medium">
               <span className="text-fg/75">{STEPS[step].short}</span>
               <span className="text-fg/68">Krok {step + 1} / {STEPS.length}</span>
@@ -2423,6 +2426,9 @@ export default function DzialkaForm({
           </div>
         </form>
         </div>
+
+        {/* Prawy margines siatki — dla symetrii, żeby formularz był wyśrodkowany na stronie. */}
+        <div className="hidden xl:block" aria-hidden="true" />
       </div>
 
       {previewOpen ? (() => {
