@@ -45,6 +45,25 @@ function fallbackLabel(lat: number, lng: number, typed?: string) {
   return `Punkt: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 }
 
+// Publiczna etykieta oferty ma być miejscowością (Bełchatów, Radomsko…), nie surowymi
+// współrzędnymi. Z odwrotnego geokodowania wybieramy najbardziej „ludzki" poziom nazwy.
+function pickLocalityLabel(results: google.maps.GeocoderResult[]): string | null {
+  const wanted = [
+    'locality',
+    'postal_town',
+    'administrative_area_level_3',
+    'sublocality',
+    'administrative_area_level_2',
+  ];
+  for (const type of wanted) {
+    for (const r of results) {
+      const comp = r.address_components?.find((c) => c.types.includes(type));
+      if (comp?.long_name) return comp.long_name;
+    }
+  }
+  return null;
+}
+
 export default function LocationPicker({ value, onChange, onAutofill }: Props) {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -52,6 +71,8 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
   const circleRef = useRef<google.maps.Circle | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const lastGeocodedRef = useRef<string | null>(null);
 
   const [mode, setMode] = useState<LocationMode>(value?.locationMode ?? 'EXACT');
   const [parcelText, setParcelText] = useState(value?.parcelText ?? '');
@@ -186,6 +207,8 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
       await loader.load();
       if (cancelled) return;
 
+      geocoderRef.current = new google.maps.Geocoder();
+
       const map = new google.maps.Map(mapDivRef.current, {
         center,
         zoom: value?.lat ? 15 : 6,
@@ -311,6 +334,36 @@ export default function LocationPicker({ value, onChange, onAutofill }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parcelText]);
+
+  // Gdy user postawi pinezkę bez wpisywania miejscowości, publiczna etykieta to na razie
+  // „Punkt: 51.2, 19.1". Odwrotnym geokodowaniem zamieniamy ją na nazwę miejscowości —
+  // współrzędne zostają tylko wewnętrznie (pinezka na mapie oferty). Jeden strzał na punkt.
+  useEffect(() => {
+    const lat = value?.lat;
+    const lng = value?.lng;
+    if (lat == null || lng == null) return;
+    const geocoder = geocoderRef.current;
+    if (!geocoder) return;
+
+    const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    if (lastGeocodedRef.current === key) return;
+
+    const label = (value?.locationLabel ?? '').trim();
+    const needsTown = !label || label.startsWith('Punkt:');
+    if (!needsTown) {
+      lastGeocodedRef.current = key;
+      return;
+    }
+
+    lastGeocodedRef.current = key;
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status !== 'OK' || !results || results.length === 0) return;
+      const town = pickLocalityLabel(results);
+      if (!town) return;
+      emit({ lat, lng, locationLabel: town, locationMode: mode, parcelText });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value?.lat, value?.lng, value?.locationLabel]);
 
   return (
     <div className="space-y-4">

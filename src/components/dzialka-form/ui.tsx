@@ -29,6 +29,7 @@ export function UnderlineField({
   showCounter,
   required,
   error,
+  multiline,
 }: {
   label: string;
   value: string;
@@ -41,6 +42,8 @@ export function UnderlineField({
   showCounter?: boolean;
   required?: boolean;
   error?: boolean;
+  // Pole rośnie i zawija tekst do kolejnych linii (zamiast chować go poza kadr na telefonie).
+  multiline?: boolean;
 }) {
   return (
     <label className="block" data-field-error={error ? 'true' : undefined}>
@@ -59,23 +62,50 @@ export function UnderlineField({
         ) : null}
       </div>
 
-      <input
-        type={type}
-        inputMode={inputMode}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        className={cx(
-          // .field-line = pełna linia pod polem (przebija globalny reset input{border:none});
-          // szara w spoczynku, zielona tylko w foku (podczas pisania), czerwona przy błędzie.
-          'field-line mt-2 w-full bg-transparent pb-2 text-[18px] md:text-[19px] text-fg/90',
-          'placeholder:text-fg/62 outline-none focus:ring-0',
-          error ? 'field-line-error' : '',
-          'selection:bg-fg/20 selection:text-fg'
-        )}
-      />
+      {multiline ? (
+        <textarea
+          rows={1}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          // Auto-rozrost: wysokość dopasowana do treści, żeby całość była widoczna bez suwaka.
+          ref={(el) => {
+            if (!el) return;
+            el.style.height = 'auto';
+            el.style.height = `${el.scrollHeight}px`;
+          }}
+          onInput={(e) => {
+            const t = e.currentTarget;
+            t.style.height = 'auto';
+            t.style.height = `${t.scrollHeight}px`;
+          }}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          className={cx(
+            'field-line mt-2 w-full resize-none overflow-hidden bg-transparent pb-2 text-[18px] leading-snug text-fg/90 md:text-[19px]',
+            'placeholder:text-fg/62 outline-none focus:ring-0',
+            error ? 'field-line-error' : '',
+            'selection:bg-fg/20 selection:text-fg'
+          )}
+        />
+      ) : (
+        <input
+          type={type}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          className={cx(
+            // .field-line = pełna linia pod polem (przebija globalny reset input{border:none});
+            // szara w spoczynku, zielona tylko w foku (podczas pisania), czerwona przy błędzie.
+            'field-line mt-2 w-full bg-transparent pb-2 text-[18px] md:text-[19px] text-fg/90',
+            'placeholder:text-fg/62 outline-none focus:ring-0',
+            error ? 'field-line-error' : '',
+            'selection:bg-fg/20 selection:text-fg'
+          )}
+        />
+      )}
     </label>
   );
 }

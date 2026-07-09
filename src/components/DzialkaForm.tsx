@@ -1663,15 +1663,14 @@ export default function DzialkaForm({
             <UnderlineField
               label="Tytuł ogłoszenia"
               required
+              multiline
               value={tytul}
-              onChange={(v) => { setTytul(v.slice(0, MAX_TITLE_CHARS)); clearFieldError('tytul'); }}
+              onChange={(v) => { setTytul(v.replace(/\n/g, ' ').slice(0, MAX_TITLE_CHARS)); clearFieldError('tytul'); }}
               placeholder="Np. Działka budowlana"
               maxLength={MAX_TITLE_CHARS}
               showCounter
               error={fieldErrors.has('tytul')}
             />
-
-            <Hr className="mt-6" />
           </div>
 
           )}
@@ -1798,7 +1797,7 @@ export default function DzialkaForm({
                     <span className="text-brand-bright">Pierwsze zdjęcie będzie zdjęciem głównym.</span>
                   </div>
 
-                  <div ref={stripRef} className="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 md:grid-cols-6">
+                  <div ref={stripRef} className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 md:grid-cols-6">
                     {uploaded.map((item, idx) => {
                       const isMain = idx === 0;
                       const dragging = draggingId === photoKey(item);
@@ -1924,8 +1923,6 @@ export default function DzialkaForm({
               }
               return null;
             })()}
-
-            <Hr className="mt-6" />
           </div>
 
           )}
@@ -1963,7 +1960,7 @@ export default function DzialkaForm({
                     label="Nazwa biura"
                     value={biuroNazwa}
                     onChange={(v) => { setBiuroNazwa(v); clearFieldError('biuroNazwa'); }}
-                    placeholder="Np. TylkoDziałki Nieruchomości"
+                    placeholder="Np. tylkodziałki Nieruchomości"
                     required
                     error={fieldErrors.has('biuroNazwa')}
                   />
@@ -2027,8 +2024,6 @@ export default function DzialkaForm({
                 </div>
               </div>
             )}
-
-            <Hr className="mt-6" />
           </div>
 
           )}
@@ -2199,8 +2194,6 @@ export default function DzialkaForm({
             <div className="max-w-2xl">
               <UnderlineField label="Księga wieczysta" value={ksiegaWieczysta} onChange={setKsiegaWieczysta} placeholder="Np. AB1C/00012345/6" />
             </div>
-
-            <Hr className="mt-6" />
 
             <div
               ref={opisWrapRef}
