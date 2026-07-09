@@ -13,8 +13,10 @@ export function Hr({ className }: { className?: string }) {
   return <div className={cx('border-b border-fg/10', className)} />;
 }
 
+// Nagłówek sekcji = ten sam styl co etykiety pól (UnderlineField), żeby cały kreator był
+// typograficznie spójny: jedna, cicha mikro-etykieta wersalikami nad każdą grupą.
 export function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="text-[17px] md:text-[19px] font-semibold tracking-tight text-fg">{children}</h2>;
+  return <h2 className="text-[11px] uppercase tracking-[0.18em] text-fg/70">{children}</h2>;
 }
 
 export function UnderlineField({

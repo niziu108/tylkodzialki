@@ -1849,7 +1849,7 @@ export default function DzialkaForm({
           {stepKey === 'basics' && (
           <div className="space-y-6">
             <div>
-              <div className="mb-3 text-[12px] uppercase tracking-[0.22em] text-fg/70">Typ oferty</div>
+              <div className="mb-3 text-[11px] uppercase tracking-[0.18em] text-fg/70">Typ oferty</div>
               <Tabs
                 value={transakcja}
                 onChange={(v) => setTransakcja(v as 'SPRZEDAZ' | 'WYNAJEM')}
@@ -2017,7 +2017,7 @@ export default function DzialkaForm({
           )}
 
           {stepKey === 'basics' && (
-          <div className="space-y-6" data-field-error={fieldErrors.has('przeznaczenia') ? 'true' : undefined}>
+          <div className="space-y-3" data-field-error={fieldErrors.has('przeznaczenia') ? 'true' : undefined}>
             <SectionTitle>
               Przeznaczenie <span className="text-brand-bright">*</span>
             </SectionTitle>
