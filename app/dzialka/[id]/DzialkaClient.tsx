@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { HeartIcon } from '@/components/OfferCard';
 import { OfficeLogo } from '@/components/OfficeLogo';
 import { formatOpis } from '@/lib/formatOpis';
+import AlertBar from '@/components/AlertBar';
+import type { AlertCriteria } from '@/lib/alertCriteria';
 
 type Photo = { id?: string; url: string; publicId?: string; kolejnosc?: number };
 
@@ -252,6 +254,11 @@ export default function DzialkaPage({
 const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const [shareDone, setShareDone] = useState(false);
 
+  // Alert pod tytułem oferty pokazujemy dopiero, gdy ktoś ogląda drugą (lub kolejną)
+  // działkę w tej sesji — czyli już widać, że przegląda, a nie na pierwszej sekundzie
+  // pierwszego wejścia. Wtedy prośba o e-mail jest zasłużona, a nie nachalna.
+  const [showAlert, setShowAlert] = useState(false);
+
   // Formularz „Napisz wiadomość" (desktop) — lead leci mailem do sprzedającego.
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgName, setMsgName] = useState('');
@@ -327,6 +334,27 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       method: 'POST',
       cache: 'no-store',
     }).catch(() => {});
+  }, [id, preview]);
+
+  // Licznik obejrzanych ofert w sesji — reużywa kluczy TD_DETAIL_VIEWED_* zapisywanych
+  // wyżej przy każdym wejściu w ofertę. Bieżącą działkę doliczamy zawsze. Od drugiej
+  // różnej oferty odsłaniamy alert pod tytułem.
+  useEffect(() => {
+    if (!id) return;
+    if (preview) return;
+
+    try {
+      const PREFIX = 'TD_DETAIL_VIEWED_';
+      const viewed = new Set<string>();
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith(PREFIX)) viewed.add(k.slice(PREFIX.length));
+      }
+      viewed.add(id);
+      setShowAlert(viewed.size >= 2);
+    } catch {
+      setShowAlert(false);
+    }
   }, [id, preview]);
 
   useEffect(() => {
@@ -405,6 +433,31 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const hasUzbrojenie = Boolean(prad || woda || kan || gaz || sw);
 
   const opis = formatOpis(d?.opis);
+
+  // Kryteria alertu wyciągnięte z oglądanej działki: okolica (miejscowość z etykiety
+  // + współrzędne w promieniu 10 km) oraz przeznaczenie. Ten sam kształt, co alert
+  // z wyszukiwarki, więc silnik dopasowania (geo) działa identycznie.
+  const alertCriteria = useMemo<AlertCriteria | null>(() => {
+    if (!d) return null;
+    const town = (d.locationLabel ?? '').split(',')[0]?.trim() || null;
+    const hasGeo = typeof d.lat === 'number' && typeof d.lng === 'number';
+    if (!town && !hasGeo) return null;
+
+    return {
+      query: town,
+      priceMin: null,
+      priceMax: null,
+      areaMin: null,
+      areaMax: null,
+      przeznaczenia: (Array.isArray(d.przeznaczenia)
+        ? d.przeznaczenia
+        : []) as AlertCriteria['przeznaczenia'],
+      transakcja: [],
+      lat: hasGeo ? (d.lat as number) : null,
+      lng: hasGeo ? (d.lng as number) : null,
+      radiusKm: hasGeo ? 10 : null,
+    };
+  }, [d]);
 
   const isEnded = (d?.status ?? '') === 'ZAKONCZONE';
   // Dla ofert zakończonych chowamy cały kontakt (telefon, SMS, formularz), żeby archiwalna
@@ -910,6 +963,12 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               <h1 className="mt-0 text-[24px] md:text-[28px] font-semibold tracking-tight text-fg leading-[1.12] break-words lg:mt-2">
                 {d.tytul}
               </h1>
+
+              {!preview && !isEnded && showAlert && alertCriteria ? (
+                <div className="mt-5">
+                  <AlertBar criteria={alertCriteria} />
+                </div>
+              ) : null}
 
               <Hr className="mt-6" />
 
