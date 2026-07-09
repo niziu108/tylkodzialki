@@ -24,7 +24,15 @@ function isValidEmail(v: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 }
 
-export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
+export default function AlertBar({
+  criteria,
+  onCreated,
+}: {
+  criteria: AlertCriteria;
+  // Wołane po udanym włączeniu/istnieniu alertu (ok, pending, exists). Strona oferty
+  // korzysta z tego, żeby zapamiętać okolicę i nie proponować jej ponownie.
+  onCreated?: () => void;
+}) {
   const { status } = useSession();
   const isLogged = status === 'authenticated';
 
@@ -67,6 +75,8 @@ export default function AlertBar({ criteria }: { criteria: AlertCriteria }) {
       if (data?.pending) setState('pending');
       else if (data?.alreadyExists) setState('exists');
       else setState('ok');
+
+      onCreated?.();
     } catch {
       setState('error');
       setMsg('Nie udało się włączyć powiadomień. Spróbuj ponownie.');

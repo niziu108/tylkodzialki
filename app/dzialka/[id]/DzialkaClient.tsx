@@ -259,6 +259,34 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   // pierwszego wejścia. Wtedy prośba o e-mail jest zasłużona, a nie nachalna.
   const [showAlert, setShowAlert] = useState(false);
 
+  // Klucz okolicy dla alertu: miejscowość (a przy jej braku zaokrąglone współrzędne).
+  // Po nim rozpoznajemy, czy dla tej okolicy ktoś już włączył powiadomienie.
+  const alertLocationKey = useMemo<string | null>(() => {
+    if (!d) return null;
+    const town = (d.locationLabel ?? '').split(',')[0]?.trim();
+    if (town) return town.toLowerCase();
+    if (typeof d.lat === 'number' && typeof d.lng === 'number') {
+      return `geo:${d.lat.toFixed(2)},${d.lng.toFixed(2)}`;
+    }
+    return null;
+  }, [d]);
+
+  // Po włączeniu powiadomienia zapamiętujemy okolicę w localStorage (trzyma się między
+  // sesjami). Bieżącej oferty tu NIE chowamy — alert ma zostać, żeby pokazać „Sprawdź
+  // skrzynkę". Chowa się dopiero przy wejściu w kolejną ofertę z tej samej okolicy.
+  const rememberAlertLocation = () => {
+    if (!alertLocationKey) return;
+    try {
+      const raw = localStorage.getItem('TD_ALERT_SUBSCRIBED');
+      const arr = raw ? JSON.parse(raw) : [];
+      const set = Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === 'string') : [];
+      if (!set.includes(alertLocationKey)) {
+        set.push(alertLocationKey);
+        localStorage.setItem('TD_ALERT_SUBSCRIBED', JSON.stringify(set.slice(-100)));
+      }
+    } catch {}
+  };
+
   // Formularz „Napisz wiadomość" (desktop) — lead leci mailem do sprzedającego.
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgName, setMsgName] = useState('');
@@ -336,14 +364,18 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     }).catch(() => {});
   }, [id, preview]);
 
-  // Licznik obejrzanych ofert w sesji — reużywa kluczy TD_DETAIL_VIEWED_* zapisywanych
-  // wyżej przy każdym wejściu w ofertę. Bieżącą działkę doliczamy zawsze. Od drugiej
-  // różnej oferty odsłaniamy alert pod tytułem.
+  // Widoczność alertu liczymy raz na ofertę (zależy od id i okolicy, NIE od zapisu na
+  // bieżącej stronie — dlatego czytamy localStorage bezpośrednio, a nie ze stanu Reacta).
+  // Dzięki temu po kliknięciu „Włącz" alert zostaje z potwierdzeniem, a chowa się dopiero
+  // przy wejściu w kolejną ofertę z okolicy, którą ktoś już zapisał.
   useEffect(() => {
-    if (!id) return;
-    if (preview) return;
+    if (!id || preview) {
+      setShowAlert(false);
+      return;
+    }
 
     try {
+      // Ile różnych ofert obejrzanych w tej sesji (klucze TD_DETAIL_VIEWED_*, bieżącą doliczamy).
       const PREFIX = 'TD_DETAIL_VIEWED_';
       const viewed = new Set<string>();
       for (let i = 0; i < sessionStorage.length; i++) {
@@ -351,11 +383,21 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
         if (k && k.startsWith(PREFIX)) viewed.add(k.slice(PREFIX.length));
       }
       viewed.add(id);
-      setShowAlert(viewed.size >= 2);
+      const enough = viewed.size >= 2;
+
+      // Czy dla tej okolicy ktoś już włączył powiadomienie (localStorage, między sesjami).
+      let subscribed = false;
+      if (alertLocationKey) {
+        const raw = localStorage.getItem('TD_ALERT_SUBSCRIBED');
+        const arr = raw ? JSON.parse(raw) : [];
+        subscribed = Array.isArray(arr) && arr.includes(alertLocationKey);
+      }
+
+      setShowAlert(enough && !!alertLocationKey && !subscribed);
     } catch {
       setShowAlert(false);
     }
-  }, [id, preview]);
+  }, [id, preview, alertLocationKey]);
 
   useEffect(() => {
   if (!d?.id) return;
@@ -966,7 +1008,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
               {!preview && !isEnded && showAlert && alertCriteria ? (
                 <div className="mt-5">
-                  <AlertBar criteria={alertCriteria} />
+                  <AlertBar criteria={alertCriteria} onCreated={rememberAlertLocation} />
                 </div>
               ) : null}
 
