@@ -123,8 +123,8 @@ export default function SprawdzDzialkePage() {
           żeby od razu było jasne, co jest w raporcie, zanim ktoś wpisze adres. */}
       <section className="border-t border-fg/10">
         <div className="mx-auto max-w-6xl px-6 py-16 md:px-10 md:py-20">
-          <h2 className="text-2xl font-semibold tracking-tight text-brand-text md:text-3xl">
-            Co dostajesz w raporcie
+          <h2 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">
+            Co dostajesz w raporcie?
           </h2>
           <p className="mt-4 max-w-3xl text-[15px] leading-8 text-fg/70 md:text-base">
             Jedno wskazanie działki, a masz komplet danych z publicznych rejestrów w jednym
