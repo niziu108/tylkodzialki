@@ -64,6 +64,9 @@ export default function LocationPicker({ value, onChange }: Props) {
   const lastGeocodedRef = useRef<string | null>(null);
 
   const [mode, setMode] = useState<LocationMode>(value?.locationMode ?? 'EXACT');
+  // Mapa nie jest już zawsze na widoku (za duża na telefonie i desktopie). Otwiera się
+  // pełnoekranowo z zielonego przycisku „Wskaż na mapie" — spójnie z „Sprawdź działkę".
+  const [mapOpen, setMapOpen] = useState(false);
   // parcelText już się nie zmienia w UI (usunęliśmy autouzupełnianie), ale zostaje jako
   // wartość początkowa z wartości/draftu i leci dalej w emit().
   const [parcelText] = useState(value?.parcelText ?? '');
@@ -227,6 +230,17 @@ export default function LocationPicker({ value, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Mapa startuje ukryta (opacity-0), więc przy otwarciu wymuszamy przerysowanie i wracamy
+  // na aktualną pinezkę — inaczej kafelki bywają szare do pierwszego ruchu.
+  useEffect(() => {
+    if (!mapOpen) return;
+    const map = mapRef.current;
+    if (!map || !window.google?.maps) return;
+    google.maps.event.trigger(map, 'resize');
+    const pos = markerRef.current?.getPosition();
+    if (pos) map.setCenter(pos);
+  }, [mapOpen]);
+
   useEffect(() => {
     const marker = markerRef.current;
     const circle = circleRef.current;
@@ -312,26 +326,75 @@ export default function LocationPicker({ value, onChange }: Props) {
         })}
       </div>
 
-      {/* Mapa: na telefonie pełna szerokość ekranu (bez ramki), na desktopie w ramce. */}
-      <div className="-mx-6 overflow-hidden border-y border-fg/10 md:mx-0 md:rounded-2xl md:border">
-        <div
-          ref={mapDivRef}
-          className="h-[68vh] max-h-[560px] min-h-[360px] w-full md:h-[440px]"
-        />
-      </div>
-
-      <p className="text-xs text-fg/62">
-        Przybliż mapę do swojej okolicy — pokażą się granice działek z numerami (ewidencja
-        GUGiK). Kliknij w swoją działkę, żeby postawić pinezkę.
-      </p>
+      {/* Zielony przycisk otwiera mapę na cały ekran (mapa inicjuje się w tle). */}
+      <button
+        type="button"
+        onClick={() => setMapOpen(true)}
+        className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-6 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright"
+      >
+        <PinGlyph />
+        {value?.lat != null && value?.lng != null ? 'Popraw na mapie' : 'Wskaż na mapie'}
+      </button>
 
       {value?.lat != null && value?.lng != null && (
         <p className="text-xs text-fg/68">
           {mode === 'EXACT'
-            ? 'Na mapie ogłoszenia pokażemy dokładny punkt.'
-            : 'Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}
+            ? 'Pinezka ustawiona. Na mapie ogłoszenia pokażemy dokładny punkt.'
+            : 'Pinezka ustawiona. Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}
         </p>
       )}
+
+      {/* MAPA NA CAŁY EKRAN — spójna ze „Sprawdź działkę". Zawsze zamontowana (mapa inicjuje
+          się w pełnym rozmiarze), zamknięta chowa się przez opacity/-z bez display:none. */}
+      <div
+        className={[
+          'fixed inset-0 transition-opacity duration-200',
+          mapOpen ? 'z-[120] opacity-100' : 'pointer-events-none -z-10 opacity-0',
+        ].join(' ')}
+        aria-hidden={!mapOpen}
+      >
+        <div ref={mapDivRef} className="h-full w-full bg-[#e8eaed]" />
+
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
+          <div className="pointer-events-auto max-w-[70%] rounded-xl bg-surface/95 px-4 py-2.5 text-[13px] leading-snug text-fg/80 shadow-lg backdrop-blur">
+            Przybliż mapę — pokażą się granice działek z numerami (ewidencja GUGiK). Kliknij
+            swoją działkę i dociągnij pinezkę.
+          </div>
+          <button
+            type="button"
+            onClick={() => setMapOpen(false)}
+            className="pointer-events-auto inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-surface/95 px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-fg/80 shadow-lg backdrop-blur transition hover:text-fg"
+          >
+            Zamknij ✕
+          </button>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 flex justify-center p-5">
+          <button
+            type="button"
+            onClick={() => setMapOpen(false)}
+            disabled={value?.lat == null || value?.lng == null}
+            className="inline-flex h-12 items-center justify-center rounded-full bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink shadow-[0_12px_40px_rgba(0,0,0,0.25)] transition hover:bg-brand-bright disabled:opacity-60"
+          >
+            Gotowe
+          </button>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function PinGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-[18px] w-[18px]">
+      <path
+        d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
   );
 }
