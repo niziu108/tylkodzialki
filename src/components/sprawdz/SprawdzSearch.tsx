@@ -21,7 +21,6 @@ export default function SprawdzSearch() {
 
   const [mapOpen, setMapOpen] = useState(false);
   const [point, setPoint] = useState<Point | null>(null);
-  const [parcelId, setParcelId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RaportData | null>(null);
@@ -113,14 +112,8 @@ export default function SprawdzSearch() {
     if (loading) return;
     setError(null);
 
-    const body = parcelId.trim()
-      ? { parcelId: parcelId.trim() }
-      : point
-        ? { lat: point.lat, lng: point.lng }
-        : null;
-
-    if (!body) {
-      setError('Wskaż działkę: wpisz adres, numer ewidencyjny albo kliknij ją na mapie.');
+    if (!point) {
+      setError('Wskaż działkę: wpisz adres i wybierz podpowiedź albo kliknij ją na mapie.');
       return;
     }
 
@@ -130,7 +123,7 @@ export default function SprawdzSearch() {
       const res = await fetch('/api/sprawdz-dzialke', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ lat: point.lat, lng: point.lng }),
       });
       const json = (await res.json()) as RaportData | { error: string };
 
@@ -156,53 +149,30 @@ export default function SprawdzSearch() {
       <section className="relative w-full overflow-hidden">
         <HeroGradientBg />
 
-        <div className="relative z-10 flex flex-col items-center px-4 py-16 md:py-24">
-          <div className="w-full max-w-2xl rounded-3xl border border-fg/10 bg-surface-2/92 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm md:p-8">
-            <h1 className="text-center text-[24px] font-semibold tracking-tight text-fg md:text-[30px]">
-              Sprawdź działkę
+        <div className="relative z-10 flex flex-col items-center px-4 py-10 md:py-14">
+          <div className="w-full max-w-2xl rounded-3xl border border-fg/10 bg-surface-2/92 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm md:p-7">
+            {/* Nagłówek dla SEO/czytników — bez wizualnego tytułu, wyszukiwarka jak na /kup. */}
+            <h1 className="sr-only">
+              Sprawdź działkę: granice, powierzchnia, przeznaczenie z planu i orientacyjna cena okolicy
             </h1>
-            <p className="mt-2 text-center text-[15px] text-fg/65">
-              Wpisz adres albo numer ewidencyjny, a otrzymasz raport. Za darmo, bez logowania.
-            </p>
 
-            <div className="mt-6 grid gap-4 text-left">
-              <div>
-                <label className="block text-[12px] uppercase tracking-[0.18em] text-fg/70">
-                  Adres lub miejscowość
-                </label>
-                <div className="mt-2 rounded-xl border border-fg/25">
-                  <input
-                    ref={addrRef}
-                    onKeyDown={onKey}
-                    placeholder="np. Warszawa, ul. Marszałkowska"
-                    className="w-full bg-transparent px-4 py-3 text-[16px] text-fg outline-none placeholder:text-fg/45"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] uppercase tracking-[0.18em] text-fg/70">
-                  Numer ewidencyjny
-                </label>
-                <div className="mt-2 rounded-xl border border-fg/25">
-                  <input
-                    value={parcelId}
-                    onChange={(e) => setParcelId(e.target.value)}
-                    onKeyDown={onKey}
-                    placeholder="np. 146502_8.1103.110/4"
-                    className="w-full bg-transparent px-4 py-3 text-[16px] text-fg outline-none placeholder:text-fg/45"
-                  />
-                </div>
-              </div>
+            <div className="rounded-xl border border-fg/25">
+              <input
+                ref={addrRef}
+                onKeyDown={onKey}
+                placeholder="Wpisz adres, a dostaniesz raport"
+                aria-label="Adres lub miejscowość działki"
+                className="w-full bg-transparent px-4 py-4 text-[16px] text-fg outline-none placeholder:text-fg/45"
+              />
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setMapOpen((s) => !s)}
                 className="text-sm font-medium text-brand-text underline decoration-1 underline-offset-4 transition hover:text-brand-bright"
               >
-                {mapOpen ? 'Ukryj mapę' : 'wskaż na mapie'}
+                {mapOpen ? 'Ukryj mapę' : 'Wskaż na mapie (polecane)'}
               </button>
 
               <button
