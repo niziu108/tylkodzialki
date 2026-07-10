@@ -20,6 +20,56 @@ export const metadata: Metadata = {
   },
 };
 
+// Ptaszek marki — czysty glif bez kółka/plakietki ([[feedback-ui-podkreslenia]]);
+// stroke dziedziczy zieleń przez text-brand (currentColor).
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 22 22"
+      aria-hidden="true"
+      className="mt-0.5 h-[22px] w-[22px] shrink-0 text-brand"
+    >
+      <path
+        d="M4 11.5l4.5 4.5L18 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// Co realnie ląduje w raporcie — tylko rzeczy, które faktycznie zwracamy
+// (ewidencja ULDK, MPZP z KIMPZP, wycena z naszych ofert, obrys na mapie, checklista).
+const CO_DOSTANIESZ: { title: string; sub: string }[] = [
+  {
+    title: 'Granice i powierzchnia działki',
+    sub: 'Dokładny obrys i metraż prosto z ewidencji gruntów (ULDK, GUGiK), a nie przybliżenie z mapy. Widzisz kształt i realną wielkość w m², arach lub hektarach.',
+  },
+  {
+    title: 'Numer ewidencyjny i dane z rejestru',
+    sub: 'Pełny numer działki, obręb, identyfikator oraz gmina, powiat i województwo. To dane, którymi posłużysz się w urzędzie, ewidencji i księdze wieczystej.',
+  },
+  {
+    title: 'Przeznaczenie z planu miejscowego (MPZP)',
+    sub: 'Co i jak można na działce zbudować: przeznaczenie, nazwa planu, maksymalna wysokość i intensywność zabudowy. Gdy planu nie ma, mówimy o tym wprost i kierujemy do warunków zabudowy.',
+  },
+  {
+    title: 'Orientacyjna cena okolicy',
+    sub: 'Mediana i zakres cen z aktualnych ogłoszeń działek w pobliżu, z rozbiciem na budowlane oraz uzbrojone i nieuzbrojone. Znasz rząd wielkości, zanim zadzwonisz.',
+  },
+  {
+    title: 'Obrys działki na mapie',
+    sub: 'Granice narysowane na mapie z warstwą działek ewidencyjnych, żebyś od razu widział, gdzie dokładnie leży i jak sąsiaduje z innymi.',
+  },
+  {
+    title: 'Co sprawdzić dalej',
+    sub: 'Gotowa checklista kolejnych kroków: klasa gruntu, uzbrojenie, droga dojazdowa i księga wieczysta, z linkami do poradników krok po kroku.',
+  },
+];
+
 const FAQ: FaqItem[] = [
   {
     question: 'Skąd bierzecie granice i powierzchnię działki?',
@@ -68,6 +118,39 @@ export default function SprawdzDzialkePage() {
     <main className="relative w-full overflow-hidden" style={{ background: 'var(--bg)' }}>
       {/* NARZĘDZIE (wyszukiwarka-hero na zdjęciu + mapa + wynik) */}
       <SprawdzSearch />
+
+      {/* CO DOSTAJESZ — od lewej, spójne z FAQ i sekcjami niżej. Zaraz pod narzędziem,
+          żeby od razu było jasne, co jest w raporcie, zanim ktoś wpisze adres. */}
+      <section className="border-t border-fg/10">
+        <div className="mx-auto max-w-6xl px-6 py-16 md:px-10 md:py-20">
+          <h2 className="text-2xl font-semibold tracking-tight text-brand-text md:text-3xl">
+            Co dostajesz w raporcie
+          </h2>
+          <p className="mt-4 max-w-3xl text-[15px] leading-8 text-fg/70 md:text-base">
+            Jedno wskazanie działki, a masz komplet danych z publicznych rejestrów w jednym
+            miejscu. Za darmo, bez logowania i bez zakładania konta.
+          </p>
+
+          <div className="mt-10 grid gap-x-14 gap-y-9 md:mt-12 md:grid-cols-2">
+            {CO_DOSTANIESZ.map((item) => (
+              <div
+                key={item.title}
+                className="flex items-start gap-4 border-t border-fg/12 pt-6"
+              >
+                <CheckIcon />
+                <div>
+                  <h3 className="text-[17px] font-semibold text-fg md:text-[19px]">
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 text-[14px] leading-7 text-fg/62 md:text-[15px]">
+                    {item.sub}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* FAQ najpierw */}
       <FaqSection items={FAQ} green wide />

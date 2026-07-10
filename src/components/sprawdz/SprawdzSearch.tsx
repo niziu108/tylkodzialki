@@ -12,36 +12,6 @@ import Raport, { type RaportData } from './Raport';
 
 type Point = { lat: number; lng: number };
 
-// Ptaszek marki — czysty glif bez kółka/plakietki ([[feedback-ui-podkreslenia]]);
-// stroke bierze kolor z currentColor, więc dziedziczy zieleń przez text-brand.
-function CheckMark() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      aria-hidden="true"
-      className="mt-[3px] h-[17px] w-[17px] shrink-0 text-brand"
-    >
-      <path
-        d="M4 10.5l4 4 8-9"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-// Co realnie ląduje w raporcie — pokazujemy to nad wynikiem, żeby przed wpisaniem
-// było jasne, po co się wpisuje adres. Tylko rzeczy, które faktycznie zwracamy.
-const CO_DOSTANIESZ: { title: string; sub: string }[] = [
-  { title: 'Granice i powierzchnia', sub: 'obrys i metraż z rejestru GUGiK' },
-  { title: 'Numer ewidencyjny', sub: 'identyfikator działki w ewidencji' },
-  { title: 'Przeznaczenie z planu (MPZP)', sub: 'co i jak można na niej zbudować' },
-  { title: 'Orientacyjna cena okolicy', sub: 'z aktualnych ofert w pobliżu' },
-];
-
 export default function SprawdzSearch() {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const addrRef = useRef<HTMLInputElement | null>(null);
@@ -268,28 +238,6 @@ export default function SprawdzSearch() {
                 {error}
               </p>
             ) : null}
-          </div>
-
-          {/* CO DOSTANIESZ — ptaszki tuż pod wyszukiwarką. Zanim ktoś wpisze adres,
-              od razu wie, co będzie w raporcie. */}
-          <div className="mt-8 w-full max-w-2xl">
-            <p className="text-center text-[11px] font-medium uppercase tracking-[0.22em] text-fg/55">
-              Co dostajesz w raporcie
-            </p>
-            <ul className="mt-5 grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-2">
-              {CO_DOSTANIESZ.map((item) => (
-                <li key={item.title} className="flex items-start gap-3">
-                  <CheckMark />
-                  <span className="leading-snug">
-                    <span className="block text-[14px] font-medium text-fg">{item.title}</span>
-                    <span className="mt-0.5 block text-[12.5px] text-fg/55">{item.sub}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-6 text-center text-[12.5px] text-fg/55">
-              Wszystko za darmo i bez logowania. Dane prosto z publicznych rejestrów GUGiK.
-            </p>
           </div>
         </div>
       </section>
