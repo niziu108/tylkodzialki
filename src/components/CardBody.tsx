@@ -10,6 +10,7 @@
 import type { ReactNode } from 'react';
 import type { SprzedajacyTyp } from '@prisma/client';
 import { offerPriceLabel, pricePerM2, formatIntPL } from '@/lib/format';
+import { plainText } from '@/lib/formatOpis';
 import { IconPin, IconArea, IconLayers, IconPlug, IconUser, IconBuilding } from './CardIcons';
 import { OfficeLogo } from './OfficeLogo';
 
@@ -59,6 +60,9 @@ export function CardBody({
   const price = offerPriceLabel(cena);
   const zlM2 = isRent ? 0 : pricePerM2(cena, area);
   const ic = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
+  // Tytuł i lokalizacja to czysty tekst — dekodujemy encje (ó, m²) i ucinamy tagi z CRM.
+  const tytulClean = plainText(tytul);
+  const locClean = plainText(loc);
 
   return (
     <div className={`${compact ? 'px-4 py-4' : 'p-5 pt-6 lg:pt-5'} ${horizontal ? 'lg:flex lg:h-full lg:flex-col' : ''} ${fill ? 'flex h-full flex-1 flex-col' : ''}`}>
@@ -80,13 +84,13 @@ export function CardBody({
           {heartSlot ? <div className="-mt-1 shrink-0">{heartSlot}</div> : null}
         </div>
 
-        {tytul ? (
+        {tytulClean ? (
           <div
             className={`mt-2 line-clamp-2 font-medium leading-snug text-fg/95 ${
               compact ? 'text-[15px]' : 'text-[16px] md:text-[17px]'
             }`}
           >
-            {tytul}
+            {tytulClean}
           </div>
         ) : null}
 
@@ -96,7 +100,7 @@ export function CardBody({
           }`}
         >
           <IconPin className={`${ic} shrink-0 text-fg/64`} />
-          <span className="truncate">{loc}</span>
+          <span className="truncate">{locClean}</span>
         </div>
 
         <div

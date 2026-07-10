@@ -2,7 +2,7 @@
  * Test formatOpis: formatowanie + bezpieczeństwo (XSS).
  * Uruchom: npx tsx scripts/format-opis-test.ts
  */
-import { formatOpis } from "@/lib/formatOpis";
+import { formatOpis, plainText } from "@/lib/formatOpis";
 
 let pass = 0;
 let fail = 0;
@@ -92,6 +92,14 @@ check("atrybuty listy wycięte", listAttr.includes("<ul><li>poz</li></ul>") && !
 
 const listBold = formatOpis("<ul><li><b>ważne</b> auto</li></ul>") ?? "";
 check("pogrubienie wewnątrz <li> zachowane", listBold.includes("<li><b>ważne</b> auto</li>"), listBold);
+
+const sup = formatOpis("Powierzchnia 100 m<sup>2</sup> i 50 m<sup>3</sup>") ?? "";
+check("prawdziwy <sup> zachowany (m²/m³)", sup.includes("m<sup>2</sup>") && sup.includes("m<sup>3</sup>"), sup);
+
+// --- plainText (tytuł / lokalizacja — czysty tekst, bez tagów) ---
+check("plainText dekoduje encje tytułu", plainText("Dzia&#322;ka Malin&oacute;wka 3750 m&sup2;") === "Działka Malinówka 3750 m²", plainText("Dzia&#322;ka Malin&oacute;wka 3750 m&sup2;"));
+check("plainText usuwa tagi z tytułu", plainText("<b>OKAZJA</b> dzia&#322;ka") === "OKAZJA działka", plainText("<b>OKAZJA</b> dzia&#322;ka"));
+check("plainText skleja białe znaki", plainText("  Krak&oacute;w,   Podg&oacute;rze  ") === "Kraków, Podgórze", plainText("  Krak&oacute;w,   Podg&oacute;rze  "));
 
 // --- Bezpieczeństwo (XSS musi być zamknięty) ---
 const script = (formatOpis("<script>alert(1)</script>") ?? "").toLowerCase();

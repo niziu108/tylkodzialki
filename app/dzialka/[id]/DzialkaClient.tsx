@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HeartIcon } from '@/components/OfferCard';
 import { OfficeLogo } from '@/components/OfficeLogo';
-import { formatOpis } from '@/lib/formatOpis';
+import { formatOpis, plainText } from '@/lib/formatOpis';
 import AlertBar from '@/components/AlertBar';
 import type { AlertCriteria } from '@/lib/alertCriteria';
 
@@ -444,7 +444,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const przezn = Array.isArray(d?.przeznaczenia) ? d.przeznaczenia.filter(Boolean) : [];
   const przeznText = przezn.length ? przezn.map(labelPrzeznaczenie).join(', ') : null;
 
-  const loc = d?.locationLabel?.trim() || null;
+  const loc = plainText(d?.locationLabel) || null;
   const isApproxLocation = d?.locationMode === 'APPROX';
 
   const mapSrc = useMemo(() => {
@@ -496,6 +496,8 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const hasUzbrojenie = Boolean(prad || woda || kan || gaz || sw);
 
   const opis = formatOpis(d?.opis);
+  // Tytuł to czysty tekst — dekodujemy encje (ó, m²) i usuwamy ewentualne tagi z eksportu CRM.
+  const tytul = plainText(d?.tytul);
 
   // Kryteria alertu wyciągnięte z oglądanej działki: okolica (miejscowość z etykiety
   // + współrzędne w promieniu 10 km) oraz przeznaczenie. Ten sam kształt, co alert
@@ -541,7 +543,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   const sprzedajacyTyp = d?.sprzedajacyTyp ?? null;
   const sprzedajacyImie = (d?.sprzedajacyImie ?? '').trim() || null;
-  const biuroOpiekun = (d?.biuroOpiekun ?? '').trim() || null;
+  const biuroOpiekun = plainText(d?.biuroOpiekun) || null;
   const biuroLogoUrl = (d?.biuroLogoUrl ?? '').trim() || null;
   const biuroLogoBg = Boolean(d?.biuroLogoBg);
 
@@ -926,7 +928,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   <>
                     <SmartImg
                       src={cover}
-                      alt={d.tytul}
+                      alt={tytul}
                       className="h-full w-full object-cover cursor-zoom-in"
                       eager
                       onClick={() => {
@@ -1022,7 +1024,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               ) : null}
 
               <h1 className="mt-0 text-[24px] md:text-[28px] font-semibold tracking-tight text-fg leading-[1.12] break-words lg:mt-2">
-                {d.tytul}
+                {tytul}
               </h1>
 
               {!preview && !isEnded && showAlert && alertCriteria ? (
@@ -1280,7 +1282,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   <div className="relative w-full" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
                     <SmartImg
                       src={cover ?? photos[0]}
-                      alt={d.tytul}
+                      alt={tytul}
                       className="mx-auto w-full object-contain max-h-[82svh] sm:max-h-[78vh]"
                       eager
                     />

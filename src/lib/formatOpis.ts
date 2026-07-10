@@ -14,7 +14,8 @@
 // Funkcja jest izomorficzna (czyste operacje na stringach, bez DOM) — działa tak samo w SSR i w przeglądarce.
 
 // Tagi inline, które zachowujemy (zawsze bez atrybutów).
-const INLINE_ALLOWED = new Set(["b", "strong", "i", "em", "u"]);
+// sup/sub — dla poprawnego m²/m³, gdy biuro wpisze prawdziwy <sup> zamiast encji.
+const INLINE_ALLOWED = new Set(["b", "strong", "i", "em", "u", "sup", "sub"]);
 
 // Tagi listy — zachowujemy jako prawdziwe znaczniki (bez atrybutów), żeby wypunktowanie
 // i numeracja z CRM/edytora renderowały się jako lista, a nie płaskie linijki.
@@ -83,6 +84,16 @@ export function decodeHtmlEntities(input?: string | null): string {
     cur = next;
   }
   return cur;
+}
+
+// Czysty tekst jednoliniowy: dekoduje encje, usuwa wszelkie tagi i skleja białe znaki.
+// Do pól, które NIE są sformatowanym opisem (tytuł, lokalizacja, meta description) — tam
+// nie chcemy żadnych znaczników, tylko poprawne polskie znaki i symbole.
+export function plainText(input?: string | null): string {
+  return decodeHtmlEntities(input ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function escapeText(s: string): string {
