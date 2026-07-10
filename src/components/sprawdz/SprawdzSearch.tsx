@@ -12,6 +12,45 @@ import Raport, { type RaportData } from './Raport';
 
 type Point = { lat: number; lng: number };
 
+// Geokodowanie wpisanego adresu: najpierw klient (żądania z tylkodzialki.pl przechodzą
+// restrykcje klucza po Referrer), potem serwerowy fallback /api/geocode. Reużyte podejście
+// z wyszukiwarki /kup, żeby po wpisaniu adresu i kliknięciu „Sprawdź" od razu otworzyć mapę.
+async function geocodeAddress(text: string): Promise<Point | null> {
+  const q = text.trim();
+  if (!q) return null;
+
+  if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
+    const client = await new Promise<Point | null>((resolve) => {
+      const geocoder = new window.google.maps.Geocoder();
+      const address = /polska|poland/i.test(q) ? q : `${q}, Polska`;
+      geocoder.geocode(
+        { address, region: 'pl' },
+        (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+          if (status !== 'OK' || !results?.[0]?.geometry?.location) {
+            resolve(null);
+          } else {
+            const loc = results[0].geometry.location;
+            resolve({ lat: loc.lat(), lng: loc.lng() });
+          }
+        }
+      );
+    });
+    if (client) return client;
+  }
+
+  try {
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { lat?: unknown; lng?: unknown };
+    if (typeof data.lat === 'number' && typeof data.lng === 'number') {
+      return { lat: data.lat, lng: data.lng };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export default function SprawdzSearch() {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const addrRef = useRef<HTMLInputElement | null>(null);
@@ -108,12 +147,39 @@ export default function SprawdzSearch() {
     }
   }, [result]);
 
+  // Mapa startuje ukryta (opacity-0), więc przy otwarciu wymuszamy przerysowanie i wracamy
+  // na aktualny punkt — inaczej kafelki bywają szare do pierwszego ruchu.
+  useEffect(() => {
+    if (!mapOpen) return;
+    const map = mapRef.current;
+    if (!map || !window.google?.maps) return;
+    google.maps.event.trigger(map, 'resize');
+    if (point) map.setCenter(point);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapOpen]);
+
   async function handleCheck() {
     if (loading) return;
     setError(null);
 
+    // Brak wskazanego punktu, ale user wpisał adres → geokodujemy, otwieramy mapę na tym
+    // miejscu i pozwalamy dociągnąć pinezkę do właściwej działki (adres ≠ działka ewidencyjna).
     if (!point) {
-      setError('Wskaż działkę: wpisz adres i wybierz podpowiedź albo kliknij ją na mapie.');
+      const typed = addrRef.current?.value?.trim() ?? '';
+      if (!typed) {
+        setError('Wpisz adres działki albo wskaż ją na mapie.');
+        return;
+      }
+      setLoading(true);
+      const geo = await geocodeAddress(typed);
+      setLoading(false);
+      if (!geo) {
+        setError('Nie znaleźliśmy tego adresu. Doprecyzuj go albo wskaż działkę na mapie.');
+        return;
+      }
+      setPoint(geo);
+      setMapOpen(true);
+      placeMarker(geo, 17);
       return;
     }
 
@@ -132,6 +198,7 @@ export default function SprawdzSearch() {
         return;
       }
       setResult(json);
+      setMapOpen(false);
     } catch {
       setError('Coś poszło nie tak. Spróbuj ponownie za chwilę.');
     } finally {
@@ -169,10 +236,10 @@ export default function SprawdzSearch() {
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={() => setMapOpen((s) => !s)}
+                onClick={() => setMapOpen(true)}
                 className="text-sm font-medium text-brand-text underline decoration-1 underline-offset-4 transition hover:text-brand-bright"
               >
-                {mapOpen ? 'Ukryj mapę' : 'Wskaż na mapie (polecane)'}
+                Wskaż na mapie (polecane)
               </button>
 
               <button
@@ -183,18 +250,6 @@ export default function SprawdzSearch() {
               >
                 {loading ? 'Sprawdzam…' : 'Sprawdź działkę'}
               </button>
-            </div>
-
-            {/* MAPA — rozwijana w karcie */}
-            <div
-              className={`overflow-hidden transition-all duration-300 ${mapOpen ? 'mt-5 max-h-[460px]' : 'max-h-0'}`}
-            >
-              <div className="overflow-hidden rounded-xl border border-fg/15">
-                <div ref={mapDivRef} className="h-[360px] w-full" />
-              </div>
-              <p className="mt-2 text-[13px] text-fg/60">
-                Kliknij działkę na mapie i przeciągnij pinezkę, żeby trafić dokładnie.
-              </p>
             </div>
 
             {loading ? (
@@ -211,6 +266,54 @@ export default function SprawdzSearch() {
           </div>
         </div>
       </section>
+
+      {/* MAPA NA CAŁY EKRAN — wskazujesz działkę i zatwierdzasz. Spójne z mapą na /kup.
+          Nakładka jest zawsze zamontowana (mapa inicjuje się w pełnym rozmiarze przy starcie),
+          a zamknięta chowa się przez opacity/-z bez display:none, żeby kafelki były gotowe. */}
+      <div
+        className={[
+          'fixed inset-0 transition-opacity duration-200',
+          mapOpen ? 'z-[120] opacity-100' : 'pointer-events-none -z-10 opacity-0',
+        ].join(' ')}
+        aria-hidden={!mapOpen}
+      >
+        <div ref={mapDivRef} className="h-full w-full bg-[#e8eaed]" />
+
+        {/* Pasek górny: podpowiedź + zamknij */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
+          <div className="pointer-events-auto max-w-[70%] rounded-xl bg-surface/95 px-4 py-2.5 text-[13px] leading-snug text-fg/80 shadow-lg backdrop-blur">
+            Przybliż mapę, kliknij swoją działkę i dociągnij pinezkę, żeby trafić dokładnie.
+          </div>
+          <button
+            type="button"
+            onClick={() => setMapOpen(false)}
+            className="pointer-events-auto inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-surface/95 px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-fg/80 shadow-lg backdrop-blur transition hover:text-fg"
+          >
+            Zamknij ✕
+          </button>
+        </div>
+
+        {/* Błąd (np. punkt między działkami) — pokazany na mapie, nie tylko w karcie pod spodem */}
+        {error && mapOpen ? (
+          <div className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-4">
+            <p className="pointer-events-auto max-w-md rounded-xl border border-red-500/30 bg-red-500/15 px-4 py-2.5 text-center text-sm text-red-100 shadow-lg backdrop-blur">
+              {error}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Zatwierdź wskazaną działkę */}
+        <div className="absolute inset-x-0 bottom-0 flex justify-center p-5">
+          <button
+            type="button"
+            onClick={handleCheck}
+            disabled={loading || !point}
+            className="inline-flex h-12 items-center justify-center rounded-full bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink shadow-[0_12px_40px_rgba(0,0,0,0.25)] transition hover:bg-brand-bright disabled:opacity-60"
+          >
+            {loading ? 'Sprawdzam…' : 'Sprawdź tę działkę'}
+          </button>
+        </div>
+      </div>
 
       {/* WYNIK — pod hero, na jasnym tle, od lewej */}
       <div ref={reportRef} className="mx-auto max-w-6xl scroll-mt-24 px-6 md:px-10">
