@@ -150,7 +150,7 @@ export default function SprawdzSearch() {
         <HeroGradientBg />
 
         <div className="relative z-10 flex flex-col items-center px-4 py-10 md:py-14">
-          <div className="w-full max-w-2xl rounded-3xl border border-fg/10 bg-surface-2/92 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm md:p-7">
+          <div className="w-full max-w-2xl rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
             {/* Nagłówek dla SEO/czytników — bez wizualnego tytułu, wyszukiwarka jak na /kup. */}
             <h1 className="sr-only">
               Sprawdź działkę: granice, powierzchnia, przeznaczenie z planu i orientacyjna cena okolicy
