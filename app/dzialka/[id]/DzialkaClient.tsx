@@ -467,6 +467,23 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     return `/kup?${sp.toString()}`;
   }, [d]);
 
+  // Miejscowość oferty (pierwszy człon etykiety) do pre-fillu wyszukiwarki.
+  const town = useMemo(() => (d?.locationLabel ?? '').split(',')[0]?.trim() || null, [d]);
+
+  // „Więcej działek w okolicy" — wyszukiwarka z JUŻ wpisaną miejscowością i wyśrodkowana
+  // na tej okolicy (współrzędne oferty). To pre-fill: z oferty user wpada w listę ofert
+  // z tego miasta bez wpisywania czegokolwiek. Bez współrzędnych /kup sam zgeokoduje tekst.
+  const kupTownHref = useMemo(() => {
+    if (!town) return null;
+    const sp = new URLSearchParams({ loc: town });
+    if (typeof d?.lat === 'number' && typeof d?.lng === 'number') {
+      sp.set('lat', String(d.lat));
+      sp.set('lng', String(d.lng));
+      sp.set('radius', '10');
+    }
+    return `/kup?${sp.toString()}`;
+  }, [town, d]);
+
   const prad = labelPrad(d?.prad ?? null);
   const woda = labelWoda(d?.woda ?? null);
   const kan = labelKanalizacja(d?.kanalizacja ?? null);
@@ -1169,6 +1186,15 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <div className="mt-2 min-w-0 text-fg/90 text-[14px] leading-snug whitespace-normal break-words">
                       {loc}
                     </div>
+                  ) : null}
+
+                  {kupTownHref && town ? (
+                    <Link
+                      href={kupTownHref}
+                      className="mt-3 inline-flex text-[12px] tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition underline decoration-white/20 underline-offset-8"
+                    >
+                      Więcej działek: {town}
+                    </Link>
                   ) : null}
 
                   {isApproxLocation ? (
