@@ -696,14 +696,18 @@ export default function KupSearch({
   const [media, setMedia] = useState<MediaKey[]>(initial.filters.media);
   const [transakcja, setTransakcja] = useState<TransakcjaKey[]>(initial.filters.transakcja);
   const [applied, setApplied] = useState<AppliedFilters>(initial.filters);
+  // Na stronach SEO (huby) trzymamy wyszukiwarkę zwiniętą do docelowej, małej wersji
+  // (lokalizacja + zasięg). Typ/filtry są ustawione w środku, ale panel „więcej filtrów"
+  // startuje zamknięty — kto chce doprecyzować, sam go rozwinie.
   const [expanded, setExpanded] = useState(
-    initial.filters.przezn.length > 0 ||
-      initial.filters.media.length > 0 ||
-      initial.filters.transakcja.length > 0 ||
-      !!initial.filters.priceMin ||
-      !!initial.filters.priceMax ||
-      !!initial.filters.areaMin ||
-      !!initial.filters.areaMax
+    !seoMode &&
+      (initial.filters.przezn.length > 0 ||
+        initial.filters.media.length > 0 ||
+        initial.filters.transakcja.length > 0 ||
+        !!initial.filters.priceMin ||
+        !!initial.filters.priceMax ||
+        !!initial.filters.areaMin ||
+        !!initial.filters.areaMax)
   );
   const [locError, setLocError] = useState<string | null>(null);
 
@@ -763,13 +767,14 @@ export default function KupSearch({
     setTransakcja(f.transakcja);
     setApplied(f);
     setExpanded(
-      f.przezn.length > 0 ||
-        f.media.length > 0 ||
-        f.transakcja.length > 0 ||
-        !!f.priceMin ||
-        !!f.priceMax ||
-        !!f.areaMin ||
-        !!f.areaMax
+      !seoMode &&
+        (f.przezn.length > 0 ||
+          f.media.length > 0 ||
+          f.transakcja.length > 0 ||
+          !!f.priceMin ||
+          !!f.priceMax ||
+          !!f.areaMin ||
+          !!f.areaMax)
     );
   }
 
