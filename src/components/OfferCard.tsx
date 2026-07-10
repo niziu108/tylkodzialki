@@ -252,6 +252,7 @@ function Carousel({
   rent = false,
   eagerImage = false,
   horizontal = false,
+  fill = false,
 }: {
   photos: { url: string }[];
   coverFallback: string | null;
@@ -261,6 +262,8 @@ function Carousel({
   eagerImage?: boolean;
   /** Desktop: zdjęcie po lewej, wypełnia wysokość karty (układ poziomy). */
   horizontal?: boolean;
+  /** Rail wyróżnionych: wyższy kadr zdjęcia na mobile (karta szersza, foto większe). */
+  fill?: boolean;
 }) {
   const list = useMemo(
     () => (photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : []),
@@ -330,9 +333,9 @@ function Carousel({
 
   return (
     <div
-      className={`relative aspect-[16/10] overflow-hidden bg-fg/5 md:aspect-video ${
-        horizontal ? 'lg:aspect-auto lg:h-full lg:w-[42%] lg:shrink-0' : ''
-      }`}
+      className={`relative overflow-hidden bg-fg/5 md:aspect-video ${
+        fill ? 'aspect-[4/3]' : 'aspect-[16/10]'
+      } ${horizontal ? 'lg:aspect-auto lg:h-full lg:w-[42%] lg:shrink-0' : ''}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -493,6 +496,7 @@ export function OfferCard({
         rent={isRent}
         eagerImage={eagerImage}
         horizontal={horizontal}
+        fill={fill}
       />
 
       <div className={horizontal ? 'lg:flex-1' : fill ? 'flex flex-1 flex-col' : ''}>

@@ -19,7 +19,7 @@ export default function FeaturedRail({ items }: { items: OfferData[] }) {
           {items.map((d) => (
             <div
               key={d.id}
-              className="flex min-w-[86%] flex-col snap-start md:min-w-[380px] xl:min-w-[420px]"
+              className="flex min-w-[90%] flex-col snap-start md:min-w-[380px] xl:min-w-[420px]"
             >
               <OfferCard
                 d={d}
