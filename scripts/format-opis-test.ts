@@ -56,6 +56,19 @@ check("pusty <div><br></div> dzieli akapity", blankDiv.includes("<p>Akapit 1</p>
 const spanUnwrap = formatOpis('<span class="y">Bez span</span>') ?? "";
 check("nieznany <span> rozwinięty (tekst zostaje, bez tagu)", spanUnwrap.includes("Bez span") && !spanUnwrap.toLowerCase().includes("span>"), spanUnwrap);
 
+// --- Encje HTML (nazwane + liczbowe) — realny przypadek Galactica/ABN ---
+const entOacute = formatOpis("W SKR&Oacute;CIE: Malin&oacute;wka") ?? "";
+check("nazwane encje ó/Ó dekodowane", entOacute.includes("W SKRÓCIE: Malinówka"), entOacute);
+
+const entSup2 = formatOpis("Powierzchnia: 3 750 m&sup2;") ?? "";
+check("encja &sup2; -> ²", entSup2.includes("3 750 m²"), entSup2);
+
+const entNumeric = formatOpis("Malin&#243;wka i &#x142;&aacute;ka") ?? "";
+check("encje liczbowe (dec + hex) dekodowane", entNumeric.includes("Malinówka i łáka"), entNumeric);
+
+const entDoubleAmp = formatOpis("gmina Cyc&amp;oacute;w") ?? "";
+check("podwójny escape &amp;oacute; -> ó", entDoubleAmp.includes("gmina Cyców"), entDoubleAmp);
+
 // --- Listy (wypunktowanie / numeracja) ---
 const ul = formatOpis("<ul><li>cisza</li><li>las</li></ul>") ?? "";
 check("lista <ul><li> zachowana", ul.includes("<ul><li>cisza</li><li>las</li></ul>"), ul);

@@ -28,15 +28,61 @@ const BLOCK_TAGS = new Set([
   "h1", "h2", "h3", "h4", "h5", "h6",
 ]);
 
-function decodeEntities(text: string): string {
-  // &amp; najpierw — rozplątuje podwójny escape: „&amp;lt;" → „&lt;" → „<".
+// Nazwane encje HTML, którymi eksporty CRM kodują polskie „ó/Ó", symbole (m², °) i typografię.
+// Świadomie szeroka lista (Latin-1 + typografia) — biura wklejają opisy z edytorów WYSIWYG.
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+  sup2: "²", sup3: "³", deg: "°", plusmn: "±", times: "×", divide: "÷",
+  micro: "µ", middot: "·", para: "¶", sect: "§", acute: "´",
+  laquo: "«", raquo: "»", hellip: "…", ndash: "–", mdash: "—",
+  lsquo: "‘", rsquo: "’", sbquo: "‚",
+  ldquo: "“", rdquo: "”", bdquo: "„",
+  bull: "•", dagger: "†", Dagger: "‡", euro: "€", pound: "£", cent: "¢",
+  yen: "¥", copy: "©", reg: "®", trade: "™",
+  frac12: "½", frac14: "¼", frac34: "¾",
+  aacute: "á", Aacute: "Á", agrave: "à", Agrave: "À", acirc: "â", Acirc: "Â",
+  atilde: "ã", Atilde: "Ã", auml: "ä", Auml: "Ä", aring: "å", Aring: "Å", aelig: "æ", AElig: "Æ",
+  ccedil: "ç", Ccedil: "Ç",
+  eacute: "é", Eacute: "É", egrave: "è", Egrave: "È", ecirc: "ê", Ecirc: "Ê", euml: "ë", Euml: "Ë",
+  iacute: "í", Iacute: "Í", igrave: "ì", Igrave: "Ì", icirc: "î", Icirc: "Î", iuml: "ï", Iuml: "Ï",
+  ntilde: "ñ", Ntilde: "Ñ",
+  oacute: "ó", Oacute: "Ó", ograve: "ò", Ograve: "Ò", ocirc: "ô", Ocirc: "Ô",
+  otilde: "õ", Otilde: "Õ", ouml: "ö", Ouml: "Ö", oslash: "ø", Oslash: "Ø",
+  uacute: "ú", Uacute: "Ú", ugrave: "ù", Ugrave: "Ù", ucirc: "û", Ucirc: "Û", uuml: "ü", Uuml: "Ü",
+  yacute: "ý", yuml: "ÿ", szlig: "ß",
+};
+
+function safeFromCodePoint(cp: number): string {
+  if (!Number.isFinite(cp) || cp <= 0 || cp > 0x10ffff) return "";
+  if (cp >= 0xd800 && cp <= 0xdfff) return "";
+  // Znaki sterujące C0 (poza tab/LF/CR) odrzucamy — nie mają czego reprezentować w opisie.
+  if (cp < 32 && cp !== 9 && cp !== 10 && cp !== 13) return "";
+  try {
+    return String.fromCodePoint(cp);
+  } catch {
+    return "";
+  }
+}
+
+function decodeEntitiesOnce(text: string): string {
   return text
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;|&apos;/g, "'")
-    .replace(/&nbsp;/g, " ");
+    .replace(/&#x([0-9a-fA-F]+);/g, (_m, hex: string) => safeFromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_m, dec: string) => safeFromCodePoint(parseInt(dec, 10)))
+    .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, (m, name: string) =>
+      Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, name) ? NAMED_ENTITIES[name] : m
+    );
+}
+
+// Dekoduje encje nazwane i liczbowe. Pętla rozplątuje podwójny/wielokrotny escape
+// z eksportów IMO (np. „&amp;oacute;" → „&oacute;" → „ó", „&amp;lt;u&amp;gt;" → „<u>").
+export function decodeHtmlEntities(input?: string | null): string {
+  let cur = input ?? "";
+  for (let i = 0; i < 3; i += 1) {
+    const next = decodeEntitiesOnce(cur);
+    if (next === cur) break;
+    cur = next;
+  }
+  return cur;
 }
 
 function escapeText(s: string): string {
@@ -47,8 +93,8 @@ export function formatOpis(raw?: string | null): string | null {
   let text = (raw ?? "").trim();
   if (!text) return null;
 
-  // 1. Dekodujemy encje (w tym podwójny escape), żeby pracować na realnych tagach.
-  text = decodeEntities(text);
+  // 1. Dekodujemy encje (nazwane, liczbowe, w tym podwójny escape), żeby pracować na realnych tagach.
+  text = decodeHtmlEntities(text);
 
   // 2. Usuwamy w całości elementy, których treść nie może trafić na stronę (z zawartością),
   //    oraz komentarze (w tym warunkowe komentarze Worda/Outlooka).

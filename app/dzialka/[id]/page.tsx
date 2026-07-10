@@ -5,6 +5,7 @@ import SimilarOffers from '@/components/SimilarOffers';
 import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
 import { getSeoRegion } from '@/lib/seo-locations';
 import { normalizeText } from '@/lib/dzialkiSearch';
+import { decodeHtmlEntities } from '@/lib/formatOpis';
 
 // Oferta renderowana po stronie serwera (ISR): Google dostaje pełny HTML,
 // użytkownik gotową treść, a baza jest odpytywana najwyżej raz na 60 s per oferta.
@@ -34,15 +35,9 @@ type DzialkaSeo = {
 };
 
 function cleanText(value?: string | null) {
-  return (value ?? '')
-    // Encje najpierw (w tym &amp; przed &lt;), potem strip tagów — inaczej odkodowane
-    // <b> zostawałoby w meta jako literalny tag.
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#0?39;|&apos;/gi, "'")
+  // Encje najpierw (nazwane + liczbowe), potem strip tagów — inaczej odkodowane <b>
+  // zostawałoby w meta jako literalny tag.
+  return decodeHtmlEntities(value ?? '')
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
