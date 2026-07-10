@@ -56,6 +56,30 @@ check("pusty <div><br></div> dzieli akapity", blankDiv.includes("<p>Akapit 1</p>
 const spanUnwrap = formatOpis('<span class="y">Bez span</span>') ?? "";
 check("nieznany <span> rozwinięty (tekst zostaje, bez tagu)", spanUnwrap.includes("Bez span") && !spanUnwrap.toLowerCase().includes("span>"), spanUnwrap);
 
+// --- Listy (wypunktowanie / numeracja) ---
+const ul = formatOpis("<ul><li>cisza</li><li>las</li></ul>") ?? "";
+check("lista <ul><li> zachowana", ul.includes("<ul><li>cisza</li><li>las</li></ul>"), ul);
+
+const ol = formatOpis("<ol><li>pierwszy</li><li>drugi</li></ol>") ?? "";
+check("lista numerowana <ol><li> zachowana", ol.includes("<ol><li>pierwszy</li><li>drugi</li></ol>"), ol);
+
+const listWithText =
+  formatOpis("<p>Zalety:</p><ul><li>cisza</li><li>las</li></ul><p>Zapraszam</p>") ?? "";
+check(
+  "tekst wokół listy w akapitach, lista osobno",
+  listWithText.includes("<p>Zalety:</p>") &&
+    listWithText.includes("<ul><li>cisza</li><li>las</li></ul>") &&
+    listWithText.includes("<p>Zapraszam</p>"),
+  listWithText
+);
+check("lista nie jest zawinięta w <p>", !/<p>\s*<ul>/i.test(listWithText), listWithText);
+
+const listAttr = formatOpis('<ul class="x"><li style="color:red">poz</li></ul>') ?? "";
+check("atrybuty listy wycięte", listAttr.includes("<ul><li>poz</li></ul>") && !listAttr.includes("style") && !listAttr.includes("class"), listAttr);
+
+const listBold = formatOpis("<ul><li><b>ważne</b> auto</li></ul>") ?? "";
+check("pogrubienie wewnątrz <li> zachowane", listBold.includes("<li><b>ważne</b> auto</li>"), listBold);
+
 // --- Bezpieczeństwo (XSS musi być zamknięty) ---
 const script = (formatOpis("<script>alert(1)</script>") ?? "").toLowerCase();
 check("script nie jest aktywnym tagiem", !script.includes("<script"), script);

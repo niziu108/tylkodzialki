@@ -270,19 +270,6 @@ function sanitizeTitle(raw: string | null, city: string | null, plotType: string
   return `Działka ${typePart}${cityPart}`.slice(0, 160);
 }
 
-function stripHtml(value: string) {
-  return value
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#039;/gi, "'")
-    .replace(/\n{3,}/g, "\n\n")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
-}
-
 function buildWymiary(width: number | null, length: number | null): string | null {
   if (width && length) return `${width} x ${length} m`;
   if (width) return `${width} m szerokości`;
@@ -448,7 +435,10 @@ function parseEstiOffer(
     tagList ? `Cechy: ${tagList}` : null,
   ].filter(Boolean);
 
-  const description = [descriptionRaw ? stripHtml(descriptionRaw) : null, ...extraDescriptionParts]
+  // Opis zapisujemy SUROWO (jak w ASARI/domy.pl) — bezpieczne czyszczenie i formatowanie
+  // robi formatOpis na renderze. Wcześniejsze stripHtml spłaszczało akapity do jednej linii
+  // i gubiło pogrubienia/kursywę, przez co oferty EstiCRM wyglądały jak ściana tekstu.
+  const description = [descriptionRaw, ...extraDescriptionParts]
     .filter(Boolean)
     .join("\n\n") || null;
 

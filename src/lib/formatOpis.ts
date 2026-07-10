@@ -16,10 +16,14 @@
 // Tagi inline, które zachowujemy (zawsze bez atrybutów).
 const INLINE_ALLOWED = new Set(["b", "strong", "i", "em", "u"]);
 
+// Tagi listy — zachowujemy jako prawdziwe znaczniki (bez atrybutów), żeby wypunktowanie
+// i numeracja z CRM/edytora renderowały się jako lista, a nie płaskie linijki.
+const LIST_TAGS = new Set(["ul", "ol", "li"]);
+
 // Tagi blokowe — zamieniamy je na łamanie linii ("\n"). Pusta linia (np. <div><br></div>
 // albo <p></p>) zamienia się dalej w przerwę między akapitami.
 const BLOCK_TAGS = new Set([
-  "div", "p", "li", "ul", "ol", "br", "tr", "table", "thead", "tbody",
+  "div", "p", "br", "tr", "table", "thead", "tbody",
   "blockquote", "section", "article", "header", "footer", "pre",
   "h1", "h2", "h3", "h4", "h5", "h6",
 ]);
@@ -76,6 +80,9 @@ export function formatOpis(raw?: string | null): string | null {
 
     if (INLINE_ALLOWED.has(name)) {
       out += closing ? `</${name}>` : `<${name}>`;
+    } else if (LIST_TAGS.has(name)) {
+      // Prawdziwe znaczniki listy, zawsze gołe (bez atrybutów).
+      out += closing ? `</${name}>` : `<${name}>`;
     } else if (BLOCK_TAGS.has(name)) {
       // Otwarcie bloku zostawiamy „przezroczyste", zamknięcie łamie linię — dzięki temu
       // sąsiednie <div>y dają pojedyncze złamanie (a nie podwójne = nowy akapit).
@@ -93,8 +100,28 @@ export function formatOpis(raw?: string | null): string | null {
     out = out.replace(/<(b|strong|i|em|u)>\s*<\/\1>/gi, "");
   } while (out !== prev);
 
-  // 5. Akapity: podwójny enter → osobny <p>, pojedynczy → <br />.
-  const html = out
+  // 5. Rozdzielamy bloki listy od zwykłego tekstu. Listę renderujemy jako prawdziwe
+  //    <ul>/<ol> (nie zawijamy jej w <p> ani nie wstrzykujemy <br />), a pozostały tekst
+  //    dzielimy na akapity: podwójny enter → osobny <p>, pojedynczy → <br />.
+  const LIST_BLOCK = /<(ul|ol)>[\s\S]*?<\/\1>/gi;
+
+  let html = "";
+  let listLast = 0;
+  let lm: RegExpExecArray | null;
+
+  while ((lm = LIST_BLOCK.exec(out)) !== null) {
+    html += renderTextChunk(out.slice(listLast, lm.index));
+    html += normalizeList(lm[0]);
+    listLast = lm.index + lm[0].length;
+  }
+  html += renderTextChunk(out.slice(listLast));
+
+  return html || null;
+}
+
+// Tekst poza listami dzielimy na akapity (podwójny enter) i łamania linii (pojedynczy).
+function renderTextChunk(chunk: string): string {
+  return chunk
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .replace(/[ \t]+\n/g, "\n")
@@ -103,6 +130,17 @@ export function formatOpis(raw?: string | null): string | null {
     .filter(Boolean)
     .map((p) => `<p>${p.replace(/\n/g, "<br />")}</p>`)
     .join("");
+}
 
-  return html || null;
+// Porządkujemy blok listy: znosimy odstępy/łamania między znacznikami (żeby nie robić z nich
+// <br />), wyrzucamy puste <li></li> oraz listy, które po sprzątaniu nie mają żadnej pozycji.
+function normalizeList(listHtml: string): string {
+  const cleaned = listHtml
+    .replace(/\s*<li>\s*/gi, "<li>")
+    .replace(/\s*<\/li>\s*/gi, "</li>")
+    .replace(/\s*<(ul|ol)>\s*/gi, "<$1>")
+    .replace(/\s*<\/(ul|ol)>\s*/gi, "</$1>")
+    .replace(/<li>\s*<\/li>/gi, "");
+
+  return /<li>/i.test(cleaned) ? cleaned : "";
 }

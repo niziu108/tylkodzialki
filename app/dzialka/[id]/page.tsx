@@ -35,9 +35,26 @@ type DzialkaSeo = {
 
 function cleanText(value?: string | null) {
   return (value ?? '')
+    // Encje najpierw (w tym &amp; przed &lt;), potem strip tagów — inaczej odkodowane
+    // <b> zostawałoby w meta jako literalny tag.
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;|&apos;/gi, "'")
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// Meta description: Google i tak ucina ~155-160 znaków — tniemy sami na granicy słowa,
+// żeby snippet nie urywał się w połowie wyrazu.
+function truncateForMeta(text: string, max = 160) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 60 ? cut.slice(0, lastSpace) : cut).replace(/[\s.,;:–-]+$/, '')}…`;
 }
 
 function formatArea(value?: number | null) {
@@ -202,8 +219,10 @@ export default async function Page({ params }: PageProps) {
       : null;
 
   const seoDescription = dzialka
-    ? cleanText(dzialka.opis) ||
-      `Działka ${isRent ? 'na wynajem' : 'na sprzedaż'}, ${cleanText(dzialka.locationLabel) || 'Polska'}`
+    ? truncateForMeta(
+        cleanText(dzialka.opis) ||
+          `Działka ${isRent ? 'na wynajem' : 'na sprzedaż'}, ${cleanText(dzialka.locationLabel) || 'Polska'}`,
+      )
     : '';
 
   const offerJsonLd = price

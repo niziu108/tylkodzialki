@@ -443,6 +443,14 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Naprawa:** dla `status === ZAKONCZONE` — baner „Ta oferta jest nieaktywna", ukrycie kontaktu (telefon, SMS, CTA „Napisz wiadomość"; `telefon=null` wygasza pasek mobilny), oraz SEO: `robots noindex` + JSON-LD `availability: SoldOut`. Zweryfikowane w preview na realnej nieaktywnej ofercie (baner widoczny, brak `tel:` i przycisku kontaktu).
 - **Status:** NAPRAWIONE i wdrożone (Vercel).
 
+### P-M: Audyt formatowania opisów — spójność między providerami [NAPRAWIONE 2026-07-10]
+- **Kontekst:** przegląd całego pipeline'u opisów (import → zapis → render `formatOpis`) pod kątem: „czy każde źródło zachowuje formatowanie, czy gdzieś je gubimy". Render jest wspólny i bezpieczny (`formatOpis`, patrz P-J) — problem leżał na etapie importu i w samym rendererze list.
+- **A — EstiCRM spłaszczał opis (`src/lib/crm/esticrm-sync.ts`):** opis przechodził przez `stripHtml` PRZED zapisem — `<p>` zamieniane na spację (akapity sklejane w jedną linię), pogrubienia/kursywa kasowane. Jako jedyny provider gubił formatowanie (ASARI i domy.pl zapisują surowo). Redundantne, bo `formatOpis` i tak czyści HTML bezpiecznie na renderze. **Naprawa:** opis zapisywany surowo (jak ASARI/domy.pl), `stripHtml` usunięty.
+- **B — Listy renderowane jako płaskie linijki (`src/lib/formatOpis.ts`):** `ul/ol/li` były w `BLOCK_TAGS` → zamieniane na łamania linii, przez co wypunktowanie/numeracja z CRM i z edytora traciły znaczniki, a CSS `.td-opis ul/ol/li` był martwy. Guziki „Punktuj/Numeruj" w edytorze produkowały listy bez kropek. **Naprawa:** `ul/ol/li` zachowywane jako prawdziwe znaczniki (gołe, bez atrybutów — XSS dalej zamknięty); krok akapitów rozdziela bloki listy od tekstu (lista nie jest zawijana w `<p>` ani łamana `<br />`).
+- **C — Meta description SEO (`app/dzialka/[id]/page.tsx`):** `cleanText` nie dekodował encji (surowe `&amp;`/`&oacute;` w snippetach Google) i nie miał limitu długości. **Naprawa:** dekodowanie encji (w tym podwójny escape) + `truncateForMeta` (~160 znaków, cięcie na granicy słowa).
+- **Weryfikacja:** `scripts/format-opis-test.ts` rozszerzony o 6 testów list — **27/27 PASS** (formatowanie + listy + XSS bez regresji); `tsc --noEmit` czysty.
+- **Status:** NAPRAWIONE i wdrożone (Vercel). Zasada na przyszłość: nowy provider = zapisywać opis SUROWO, formatowanie „samo wychodzi" na renderze; nie stripować HTML w parserze.
+
 ---
 
 ## CEL KOŃCOWY
