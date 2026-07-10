@@ -268,15 +268,15 @@ export default async function HomePage() {
                   <Link
                     key={article.id}
                     href={href}
-                    className="group min-w-[86%] snap-start md:min-w-[360px] xl:min-w-[380px]"
+                    className="group flex min-w-[86%] flex-col snap-start md:min-w-[360px] xl:min-w-[380px]"
                   >
-                    <article className="overflow-hidden rounded-[28px] border border-fg/10 bg-bg transition hover:border-fg/20">
+                    <article className="flex flex-1 flex-col overflow-hidden rounded-[28px] border border-fg/10 bg-bg transition hover:border-fg/20">
                       <ArticleCardCover
                         imageUrl={article.imageUrl}
                         title={article.title}
                       />
 
-                      <div className="p-5">
+                      <div className="flex flex-1 flex-col p-5">
                         <ArticleMeta
                           category={article.category}
                           createdAt={article.createdAt}
@@ -291,7 +291,7 @@ export default async function HomePage() {
                           {article.excerpt}
                         </p>
 
-                        <div className="mt-4 text-sm font-semibold text-brand-bright">
+                        <div className="mt-auto pt-4 text-sm font-semibold text-brand-bright">
                           Czytaj →
                         </div>
                       </div>
