@@ -100,9 +100,11 @@ export function CardBody({
         </div>
 
         <div
-          className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-fg/90 ${
-            compact ? 'mt-2.5 text-[12px]' : 'mt-3 text-[14px]'
-          }`}
+          className={`text-fg/90 ${
+            fill
+              ? 'flex flex-col items-start gap-y-2.5'
+              : 'flex flex-wrap items-center gap-x-4 gap-y-2'
+          } ${compact ? 'mt-2.5 text-[12px]' : 'mt-3 text-[14px]'}`}
         >
           <span className="inline-flex items-center gap-1.5">
             <IconArea className={`${ic} shrink-0 text-fg/75`} />
