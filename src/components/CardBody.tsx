@@ -24,6 +24,7 @@ export function CardBody({
   compact = false,
   extra,
   horizontal = false,
+  fill = false,
   sellerType,
   biuroNazwa,
   biuroLogoUrl,
@@ -45,6 +46,8 @@ export function CardBody({
   extra?: ReactNode;
   /** Lista /kup na desktopie: karta pozioma o stałej wysokości; stopka sprzedawcy u dołu. */
   horizontal?: boolean;
+  /** Rail pionowy (wyróżnione na głównej): ciało wypełnia wysokość, stopka doklejona do dołu. */
+  fill?: boolean;
   sellerType?: SprzedajacyTyp | null;
   biuroNazwa?: string | null;
   biuroLogoUrl?: string | null;
@@ -58,7 +61,7 @@ export function CardBody({
   const ic = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
 
   return (
-    <div className={`${compact ? 'px-4 py-4' : 'p-5 pt-6 lg:pt-5'} ${horizontal ? 'lg:flex lg:h-full lg:flex-col' : ''}`}>
+    <div className={`${compact ? 'px-4 py-4' : 'p-5 pt-6 lg:pt-5'} ${horizontal ? 'lg:flex lg:h-full lg:flex-col' : ''} ${fill ? 'flex h-full flex-1 flex-col' : ''}`}>
       <div>
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -124,7 +127,7 @@ export function CardBody({
 
       {sellerType ? (
         <div
-          className={`mt-4 flex items-center gap-2.5 border-t border-fg/10 pt-3.5 ${
+          className={`${fill ? 'mt-auto' : 'mt-4'} flex items-center gap-2.5 border-t border-fg/10 pt-3.5 ${
             horizontal ? 'lg:mt-auto' : ''
           }`}
         >

@@ -402,6 +402,7 @@ export function OfferCard({
   d,
   eagerImage = false,
   horizontal = false,
+  fill = false,
   isFavorite,
   onToggleFavorite,
   onClick,
@@ -412,6 +413,8 @@ export function OfferCard({
   eagerImage?: boolean;
   /** Lista /kup: na desktopie układ poziomy (zdjęcie z lewej). Raile zostają pionowe. */
   horizontal?: boolean;
+  /** Rail (np. wyróżnione na głównej): karta wypełnia wysokość rzędu, stopka u dołu. */
+  fill?: boolean;
   isFavorite: boolean;
   onToggleFavorite: (dzialkaId: string) => void;
   /** /kup: zapis pozycji scrolla przed nawigacją (przywracanie przy powrocie). */
@@ -470,8 +473,12 @@ export function OfferCard({
         if (preview) e.preventDefault();
         onClick?.();
       }}
-      className={`group block overflow-hidden rounded-3xl border transition duration-200 ${
-        horizontal ? 'lg:flex lg:items-stretch lg:h-[256px]' : ''
+      className={`group overflow-hidden rounded-3xl border transition duration-200 ${
+        horizontal
+          ? 'block lg:flex lg:items-stretch lg:h-[256px]'
+          : fill
+            ? 'flex h-full flex-1 flex-col'
+            : 'block'
       } ${
         featured
           ? 'border-brand/55 bg-surface shadow-[0_0_0_1px_rgba(122,163,51,0.30),0_0_24px_rgba(122,163,51,0.20)] hover:border-brand/80 hover:shadow-[0_0_0_1px_rgba(122,163,51,0.45),0_0_30px_rgba(122,163,51,0.30)]'
@@ -488,7 +495,7 @@ export function OfferCard({
         horizontal={horizontal}
       />
 
-      <div className={horizontal ? 'lg:flex-1' : ''}>
+      <div className={horizontal ? 'lg:flex-1' : fill ? 'flex flex-1 flex-col' : ''}>
         <CardBody
           cena={d.cenaPln}
           isRent={isRent}
@@ -498,6 +505,7 @@ export function OfferCard({
           przezn={przezn}
           media={parcelMediaLabel(d)}
           horizontal={horizontal}
+          fill={fill}
           sellerType={d.sprzedajacyTyp ?? null}
           biuroNazwa={d.biuroNazwa ?? d.owner?.defaultBiuroNazwa ?? null}
           biuroLogoUrl={d.biuroLogoUrl ?? d.owner?.defaultBiuroLogoUrl ?? null}

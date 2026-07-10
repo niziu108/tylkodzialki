@@ -38,7 +38,7 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
   return (
     <Link
       href={`/dzialka/${d.id}`}
-      className="group min-w-[86%] snap-start overflow-hidden rounded-3xl border border-fg/14 bg-surface-2/40 transition duration-200 hover:border-fg/30 md:min-w-[360px] xl:min-w-[380px]"
+      className="group flex min-w-[86%] flex-col snap-start overflow-hidden rounded-3xl border border-fg/14 bg-surface-2/40 transition duration-200 hover:border-fg/30 md:min-w-[360px] xl:min-w-[380px]"
     >
       <div className="relative aspect-video overflow-hidden bg-fg/5">
         {cover ? (
@@ -75,6 +75,7 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
         area={area}
         przezn={przezn}
         media={parcelMediaLabel(d)}
+        fill
         sellerType={d.sprzedajacyTyp}
         biuroNazwa={d.biuroNazwa}
         biuroLogoUrl={d.biuroLogoUrl}
