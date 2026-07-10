@@ -733,6 +733,11 @@ export default function KupSearch({
   }, [sortOpen]);
 
   function updateBrowserUrl(filters: AppliedFilters, nextPage: number, replace = false) {
+    // Na stronach SEO (huby /dzialki/...) trzymamy ładny, kanoniczny adres huba i NIE
+    // przepisujemy go na /kup?… — inaczej pasek adresu rozjeżdża się z okruszkami, a
+    // sesja huba zaśmiecałaby stan przywracany na /kup.
+    if (seoMode) return;
+
     const url = buildUrlFromState(filters, nextPage);
 
     try {
@@ -803,7 +808,7 @@ export default function KupSearch({
         setItems(safeData.items ?? []);
         setCount(Number(safeData.total ?? safeData.count ?? 0));
         setPage(safeNextPage);
-        saveState(nextApplied, safeNextPage);
+        if (!seoMode) saveState(nextApplied, safeNextPage);
         updateBrowserUrl(nextApplied, safeNextPage, true);
         return;
       }
@@ -811,7 +816,7 @@ export default function KupSearch({
       setItems(nextItems);
       setCount(total);
       setPage(safeNextPage);
-      saveState(nextApplied, safeNextPage);
+      if (!seoMode) saveState(nextApplied, safeNextPage);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Błąd pobierania');
       setItems([]);
@@ -913,7 +918,7 @@ export default function KupSearch({
       // Stan startowy bierzemy ze ŚWIEŻEGO adresu URL (po stronie klienta), a nie
       // z propsów serwera. Po cofnięciu z oferty Next przywraca zcache'owany render
       // strony (zwykle 1), ale w pasku adresu jest właściwy numer strony i filtry.
-      const startState = navigationMode ? initial : readStateFromUrl();
+      const startState = navigationMode || seoMode ? initial : readStateFromUrl();
       const startFilters = startState.filters;
       const startPage = startState.page;
 
