@@ -282,7 +282,8 @@ export default function SprawdzSearch() {
         {/* Pasek górny: podpowiedź + zamknij */}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
           <div className="pointer-events-auto max-w-[70%] rounded-xl bg-surface/95 px-4 py-2.5 text-[13px] leading-snug text-fg/80 shadow-lg backdrop-blur">
-            Przybliż mapę, kliknij swoją działkę i dociągnij pinezkę, żeby trafić dokładnie.
+            Przybliż mapę, pokażą się granice działek z numerami. Kliknij swoją i dociągnij
+            pinezkę.
           </div>
           <button
             type="button"
