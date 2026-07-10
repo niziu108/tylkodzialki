@@ -254,6 +254,10 @@ export default function DzialkaPage({
 const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const [shareDone, setShareDone] = useState(false);
 
+  // Numer telefonu domyślnie zakryty — dopiero „Pokaż numer" go odsłania. Samo odsłonięcie
+  // liczymy jako lead (kontakt), żeby nikt nie spisał numeru z ekranu bez śladu w statystykach.
+  const [phoneRevealed, setPhoneRevealed] = useState(false);
+
   // Alert pod tytułem oferty pokazujemy dopiero, gdy ktoś ogląda drugą (lub kolejną)
   // działkę w tej sesji — czyli już widać, że przegląda, a nie na pierwszej sekundzie
   // pierwszego wejścia. Wtedy prośba o e-mail jest zasłużona, a nie nachalna.
@@ -575,6 +579,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     }
   };
 
+  // Odsłonięcie numeru: liczymy jako lead telefoniczny (raz), potem pokazujemy klikalny numer.
+  const revealPhone = () => {
+    if (phoneRevealed) return;
+    setPhoneRevealed(true);
+    trackContact('phone');
+  };
+
   const toggleFavorite = async () => {
     if (preview) return;
     if (!d?.id) return;
@@ -840,15 +851,6 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden" style={{ color: FG }}>
-      {/* Delikatny zielony gradient od góry — dodaje charakteru jasnej stronie oferty. */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[520px]"
-        style={{
-          background:
-            'radial-gradient(80% 70% at 50% -12%, rgba(122,163,51,0.16), rgba(122,163,51,0) 70%)',
-        }}
-      />
-
       <div
         className={cx(
           'relative z-10 mx-auto max-w-6xl px-4 pt-6',
@@ -1066,6 +1068,21 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 </>
               ) : null}
 
+              {hasUzbrojenie ? (
+                <>
+                  <FieldBlock label="Uzbrojenie">
+                    <div className="space-y-2 text-[14px] text-fg/85">
+                      {prad ? <div>Prąd: <span className="text-fg/95">{prad}</span></div> : null}
+                      {woda ? <div>Woda: <span className="text-fg/95">{woda}</span></div> : null}
+                      {kan ? <div>Kanalizacja: <span className="text-fg/95">{kan}</span></div> : null}
+                      {gaz ? <div>Gaz: <span className="text-fg/95">{gaz}</span></div> : null}
+                      {sw ? <div>Światłowód: <span className="text-fg/95">{sw}</span></div> : null}
+                    </div>
+                  </FieldBlock>
+                  <Hr />
+                </>
+              ) : null}
+
               {sprzedajacyTyp === 'PRYWATNIE' ? (
                 <>
                   <FieldBlock label="Ogłoszenie prywatne">
@@ -1103,13 +1120,22 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               {telefon ? (
                 <>
                   <FieldBlock label="Kontakt">
-                    <a
-                      href={`tel:${telefon.replace(/\s+/g, '')}`}
-                      onClick={() => trackContact('phone')}
-                      className="min-w-0 text-[15px] md:text-[16px] font-medium text-fg/95 underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
-                    >
-                      {telefon}
-                    </a>
+                    {phoneRevealed ? (
+                      <a
+                        href={`tel:${telefon.replace(/\s+/g, '')}`}
+                        className="min-w-0 text-[15px] md:text-[16px] font-medium text-fg/95 underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
+                      >
+                        {telefon}
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={revealPhone}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-brand/60 bg-brand/10 px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text transition hover:bg-brand/15 active:scale-[0.98]"
+                      >
+                        Pokaż numer
+                      </button>
+                    )}
                   </FieldBlock>
                   <Hr />
                 </>
@@ -1119,21 +1145,6 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <>
                   <FieldBlock label="Numer oferty">
                     <div className="text-fg/90 text-[14px] break-words">{numerOferty}</div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {hasUzbrojenie ? (
-                <>
-                  <FieldBlock label="Uzbrojenie">
-                    <div className="space-y-2 text-[14px] text-fg/85">
-                      {prad ? <div>Prąd: <span className="text-fg/95">{prad}</span></div> : null}
-                      {woda ? <div>Woda: <span className="text-fg/95">{woda}</span></div> : null}
-                      {kan ? <div>Kanalizacja: <span className="text-fg/95">{kan}</span></div> : null}
-                      {gaz ? <div>Gaz: <span className="text-fg/95">{gaz}</span></div> : null}
-                      {sw ? <div>Światłowód: <span className="text-fg/95">{sw}</span></div> : null}
-                    </div>
                   </FieldBlock>
                   <Hr />
                 </>
