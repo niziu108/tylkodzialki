@@ -31,6 +31,12 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return <div className="text-[12px] uppercase tracking-[0.2em] text-brand-text">{children}</div>;
 }
 
+function plDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso;
+}
+
 function areaLabel(m2: number): string {
   const base = `${formatIntPL(m2)} m²`;
   if (m2 >= 5000) return `${base} · ${(m2 / 10000).toLocaleString('pl-PL', { maximumFractionDigits: 2 })} ha`;
@@ -151,32 +157,50 @@ export default function Raport({ data }: { data: RaportData }) {
       <div className="mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Plan miejscowy (MPZP)</Eyebrow>
         {mpzp ? (
-          <>
-            <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/80">
-              Dla tej działki obowiązuje miejscowy plan zagospodarowania
-              {mpzp.planName ? (
-                <>
-                  {' '}
-                  „<span className="text-fg">{mpzp.planName}</span>”
-                </>
-              ) : null}
-              . Najważniejsze, co z niego wynika:
-            </p>
-            <div className="mt-5 border-t border-fg/10">
-              <Row
-                label="Przeznaczenie"
-                value={
-                  mpzp.functionName
-                    ? mpzp.functionSymbol
-                      ? `${mpzp.functionName} (${mpzp.functionSymbol})`
-                      : mpzp.functionName
-                    : mpzp.functionSymbol
-                }
-              />
-              <Row label="Maks. wysokość zabudowy" value={mpzp.maxHeight ? `${mpzp.maxHeight} m` : null} />
-              <Row label="Intensywność zabudowy" value={mpzp.intensity} />
-            </div>
-          </>
+          (() => {
+            const hasPurpose = !!(mpzp.functionName || mpzp.functionSymbol);
+            const hasDetails =
+              hasPurpose || !!mpzp.maxHeight || !!mpzp.intensity || !!mpzp.effectiveFrom || !!mpzp.resolution;
+            return (
+              <>
+                <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/80">
+                  Dla tej działki obowiązuje miejscowy plan zagospodarowania
+                  {mpzp.planName ? (
+                    <>
+                      {' '}
+                      „<span className="text-fg">{mpzp.planName}</span>”
+                    </>
+                  ) : null}
+                  .{hasDetails ? ' Najważniejsze, co z niego wynika:' : ''}
+                </p>
+                {hasDetails ? (
+                  <div className="mt-5 border-t border-fg/10">
+                    <Row
+                      label="Przeznaczenie"
+                      value={
+                        mpzp.functionName
+                          ? mpzp.functionSymbol
+                            ? `${mpzp.functionName} (${mpzp.functionSymbol})`
+                            : mpzp.functionName
+                          : mpzp.functionSymbol
+                      }
+                    />
+                    <Row label="Maks. wysokość zabudowy" value={mpzp.maxHeight ? `${mpzp.maxHeight} m` : null} />
+                    <Row label="Intensywność zabudowy" value={mpzp.intensity} />
+                    <Row label="Obowiązuje od" value={plDate(mpzp.effectiveFrom)} />
+                    <Row label="Uchwała" value={mpzp.resolution} />
+                  </div>
+                ) : null}
+                {!hasPurpose ? (
+                  <p className="mt-4 max-w-2xl text-[13px] leading-7 text-fg/55">
+                    Samo przeznaczenie dla tego punktu nie zostało udostępnione przez gminę w
+                    krajowej integracji. Podejrzyj plan jako warstwę na mapie powyżej albo dopytaj w
+                    gminie o zapis dla tej działki.
+                  </p>
+                ) : null}
+              </>
+            );
+          })()
         ) : (
           <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/70">
             W tym punkcie nie ma planu miejscowego w krajowej integracji. Zwykle znaczy to, że o
