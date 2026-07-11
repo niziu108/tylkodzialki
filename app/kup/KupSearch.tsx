@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import dynamic from 'next/dynamic';
 import HeroGradientBg from '@/components/HeroGradientBg';
 import { useRouter } from 'next/navigation';
@@ -1562,18 +1563,18 @@ export default function KupSearch({
                 type="button"
                 onClick={() => {
                   // Tap w adres = „chcę zmienić lokalizację": rozwiń kartę i od razu ustaw
-                  // kursor w polu lokalizacji z zaznaczonym tekstem, żeby wpisać nową
-                  // miejscowość bez szukania pola. (setTimeout, bo pole jest ukryte do czasu
-                  // rozwinięcia karty — trzeba poczekać na przerysowanie.)
-                  setSearchOpen(true);
-                  setExpanded(false);
-                  setTimeout(() => {
-                    const el = inputRef.current;
-                    if (el) {
-                      el.focus();
-                      el.select();
-                    }
-                  }, 60);
+                  // kursor w polu lokalizacji z zaznaczonym tekstem. flushSync wymusza
+                  // synchroniczne rozwinięcie (pole trafia do DOM natychmiast), żeby fokus
+                  // złapał się w TYM SAMYM geście dotyku — inaczej iOS nie pokaże klawiatury.
+                  flushSync(() => {
+                    setSearchOpen(true);
+                    setExpanded(false);
+                  });
+                  const el = inputRef.current;
+                  if (el) {
+                    el.focus();
+                    el.select();
+                  }
                 }}
                 className="flex w-full items-center gap-2.5 rounded-2xl border border-fg/22 bg-surface-2/78 px-4 py-3 text-left backdrop-blur-sm md:flex-1"
               >
