@@ -1538,7 +1538,7 @@ export default function KupSearch({
             <button
               type="button"
               onClick={openMap}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-fg/25 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-fg/80 transition hover:border-fg/40"
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-fg/25 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-fg/90 transition hover:border-fg/40"
             >
               <MapGlyph className="h-3.5 w-3.5" />
               Mapa
@@ -1549,7 +1549,7 @@ export default function KupSearch({
                 setSearchOpen(true);
                 window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
               }}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-fg/25 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-fg/80 transition hover:border-fg/40"
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-fg/25 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-fg/90 transition hover:border-fg/40"
             >
               Filtry
               <span className="text-[10px] text-brand">▼</span>
@@ -1588,7 +1588,7 @@ export default function KupSearch({
                 <button
                   type="button"
                   onClick={openMap}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[11px] uppercase tracking-[0.16em] text-fg/80 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[13px] font-medium uppercase tracking-[0.10em] text-fg/90 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
                 >
                   <MapGlyph className="h-4 w-4" />
                   Mapa
@@ -1596,7 +1596,7 @@ export default function KupSearch({
                 <button
                   type="button"
                   onClick={() => setSearchOpen(true)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[11px] uppercase tracking-[0.16em] text-fg/80 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[13px] font-medium uppercase tracking-[0.10em] text-fg/90 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
                 >
                   Filtry
                   <span className="text-[10px] text-brand">▼</span>
