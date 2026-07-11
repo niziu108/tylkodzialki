@@ -642,6 +642,24 @@ function MapGlyph({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
+function MapPinGlyph({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
 export default function KupSearch({
   initialFilters,
   initialPage = 1,
@@ -1451,11 +1469,18 @@ export default function KupSearch({
 
       {/* Action buttons — always at the bottom */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-        {/* Results count (only on /kup) */}
+        {/* Desktop: wejście do mapy z karty (pływający przycisk usunięty, mapa jest tu).
+            Na mobile mapa jest w zwiniętym pasku, więc tu ukryta. Liczba ofert przeniesiona
+            do wiersza sortowania. Na głównej (navigationMode) mapy nie ma. */}
         {!navigationMode ? (
-          <div className="text-[12px] uppercase tracking-[0.18em] text-fg">
-            {loading && items.length === 0 ? 'Ładowanie ofert...' : `Wyniki: ${count}`}
-          </div>
+          <button
+            type="button"
+            onClick={openMap}
+            className="hidden items-center gap-2 rounded-xl border border-fg/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-fg/75 transition hover:border-fg/40 md:inline-flex"
+          >
+            <MapGlyph className="h-4 w-4" />
+            Mapa
+          </button>
         ) : (
           <div />
         )}
@@ -1489,22 +1514,11 @@ export default function KupSearch({
     );
   }
 
-  // Podsumowanie do zwiniętego paska na mobile (lokalizacja + typ + liczba ofert).
+  // Adres do zwiniętego paska na mobile (sam adres, bez zasięgu/liczby — te są niżej).
   const summaryLoc = applied.bbox
     ? 'Zaznaczony obszar'
     : applied.locText.trim() || 'Cała Polska';
-  const summaryType =
-    applied.przezn.length === 1
-      ? PRZEZN.find((p) => p.key === applied.przezn[0])?.label.toLowerCase() ?? null
-      : applied.przezn.length > 1
-        ? `${applied.przezn.length} typy`
-        : null;
-  const summaryCount = loading && items.length === 0 ? 'Szukam…' : `${count} ofert`;
-  // Zasięg jest schowany z pola na telefonie, ale zostaje WIDOCZNY w pasku (dla działek
-  // jest ważny) — jako informacja, nie kontrolka. Ma sens tylko przy wyszukiwaniu z punktu
-  // (jest center), nie przy „Cała Polska" ani obszarze z mapy.
-  const summaryRadius = !applied.bbox && applied.center ? `+${applied.radiusKm} km` : null;
-  const summarySub = [summaryRadius, summaryType, summaryCount].filter(Boolean).join(' · ');
+  const countLabel = loading && items.length === 0 ? 'Ładowanie ofert…' : `${count} ofert`;
 
   return (
     <div className="w-full overflow-x-hidden">
@@ -1520,28 +1534,37 @@ export default function KupSearch({
             searchOpen ? 'py-8' : 'py-4'
           }`}
         >
-          {/* Mobile: zwinięty pasek — tap rozwija kartę. Znika na desktopie (md:hidden)
-              i gdy karta jest rozwinięta (searchOpen). */}
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            className={`w-full items-center justify-between gap-3 rounded-2xl border border-fg/12 bg-surface-2/78 px-4 py-3 text-left backdrop-blur-sm md:hidden ${
-              searchOpen ? 'hidden' : 'flex'
-            }`}
-          >
-            <span className="min-w-0">
-              <span className="block truncate text-[15px] font-semibold text-fg">
-                {summaryLoc}
-              </span>
-              <span className="mt-0.5 block truncate text-[12px] text-fg/60">
-                {summarySub}
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-fg/80">
-              Filtry
-              <span className="text-[10px] text-brand">▼</span>
-            </span>
-          </button>
+          {/* Mobile: zwinięty pasek — adres (tap rozwija kartę) + dwa przyciski pół na pół:
+              Mapa i Filtry. Pływający przycisk mapy zniknął, mapa żyje tu. Znika na
+              desktopie (md:hidden) i gdy karta jest rozwinięta (searchOpen). */}
+          <div className={`md:hidden ${searchOpen ? 'hidden' : 'block'}`}>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="flex w-full items-center gap-2.5 rounded-2xl border border-fg/22 bg-surface-2/78 px-4 py-3 text-left backdrop-blur-sm"
+            >
+              <MapPinGlyph className="h-[18px] w-[18px] shrink-0 text-brand" />
+              <span className="truncate text-[15px] text-fg">{summaryLoc}</span>
+            </button>
+            <div className="mt-2.5 flex gap-2.5">
+              <button
+                type="button"
+                onClick={openMap}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[11px] uppercase tracking-[0.16em] text-fg/80 backdrop-blur-sm transition hover:border-fg/40"
+              >
+                <MapGlyph className="h-4 w-4" />
+                Mapa
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[11px] uppercase tracking-[0.16em] text-fg/80 backdrop-blur-sm transition hover:border-fg/40"
+              >
+                Filtry
+                <span className="text-[10px] text-brand">▼</span>
+              </button>
+            </div>
+          </div>
 
           {/* Pełna karta: na mobile chowana gdy zwinięte, na desktopie zawsze. */}
           <div
@@ -1569,8 +1592,11 @@ export default function KupSearch({
           jak menu→wyszukiwarka; Sortuj ma siedzieć tuż pod paskiem. */}
       <div className="pt-2 pb-20 md:pt-8">
       <section className="mx-auto max-w-6xl px-3 md:px-4">
-        <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
-          <span className="text-[11px] uppercase tracking-[0.22em] text-fg/62">Sortuj:</span>
+        {/* „Sortuj:" zdjęte — w to miejsce liczba ofert (po lewej), a sam wybór sortowania
+            po prawej. Krócej i użyteczniej niż zbędna etykieta. */}
+        <div ref={sortRef} className="relative mb-5 flex items-center justify-between gap-3">
+          <span className="text-[12px] uppercase tracking-[0.16em] text-fg/85">{countLabel}</span>
+          <div className="relative">
           <button
             type="button"
             onClick={() => setSortOpen((v) => !v)}
@@ -1580,7 +1606,7 @@ export default function KupSearch({
             <span className="text-[8px] text-fg/64">{sortOpen ? '▲' : '▼'}</span>
           </button>
           {sortOpen && (
-            <div className="absolute left-[5.5rem] top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-fg/12 bg-surface py-1.5 shadow-2xl">
+            <div className="absolute right-0 top-full z-30 mt-1.5 min-w-[180px] rounded-xl border border-fg/12 bg-surface py-1.5 shadow-2xl">
               {SORT_OPTIONS.map((opt) => {
                 const active = applied.sort === opt.value;
                 return (
@@ -1605,6 +1631,7 @@ export default function KupSearch({
               })}
             </div>
           )}
+          </div>
         </div>
 
         <AlertBar criteria={alertCriteria} />
@@ -1658,16 +1685,6 @@ export default function KupSearch({
           </aside>
         )}
 
-        {!mapOpen && (
-          <button
-            type="button"
-            onClick={openMap}
-            className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-full bg-brand px-6 py-3 text-[13px] font-medium uppercase tracking-[0.16em] text-ink shadow-[0_12px_40px_rgba(0,0,0,0.18)] transition hover:bg-brand-strong"
-          >
-            <MapGlyph />
-            Mapa
-          </button>
-        )}
       </section>
       </div>
     </div>
