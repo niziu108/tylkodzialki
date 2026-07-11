@@ -47,6 +47,11 @@ type ApiResponse = {
 
 const KM_OPTIONS = [5, 10, 20, 40] as const;
 
+// Domyślny promień wyszukiwania z punktu (główna + /kup). Podbity z 5 na 20 km: przy
+// rzadkiej podaży 5 km w mniejszym mieście dawało „pusto", a kupujący działkę i tak
+// myśli regionem, nie adresem (huby SEO celowo używają 40 km). User zawęzi Zasięgiem.
+export const DEFAULT_RADIUS_KM: (typeof KM_OPTIONS)[number] = 20;
+
 const PRZEZN: { key: Przeznaczenie; label: string }[] = [
   { key: 'INWESTYCYJNA', label: 'INWESTYCYJNA' },
   { key: 'BUDOWLANA', label: 'BUDOWLANA' },
@@ -104,7 +109,7 @@ type StoredState = {
 
 const EMPTY_APPLIED: AppliedFilters = {
   locText: '',
-  radiusKm: 5,
+  radiusKm: DEFAULT_RADIUS_KM,
   center: null,
   priceMin: '',
   priceMax: '',
@@ -248,7 +253,7 @@ function buildUrlFromState(filters: AppliedFilters, page: number) {
       sp.set('lng', String(filters.center.lng));
     }
 
-    if (filters.radiusKm !== 5) sp.set('radius', String(filters.radiusKm));
+    if (filters.radiusKm !== DEFAULT_RADIUS_KM) sp.set('radius', String(filters.radiusKm));
   }
   if (filters.priceMin) sp.set('priceMin', filters.priceMin);
   if (filters.priceMax) sp.set('priceMax', filters.priceMax);
@@ -354,10 +359,10 @@ function readStateFromUrl(useStorageFallback = true): StoredState {
     Number.isFinite(lng) &&
     !(lat === 0 && lng === 0);
 
-  const radiusRaw = Number(sp.get('radius') ?? '5');
+  const radiusRaw = Number(sp.get('radius') ?? String(DEFAULT_RADIUS_KM));
   const radiusKm = KM_OPTIONS.includes(radiusRaw as unknown as (typeof KM_OPTIONS)[number])
     ? (radiusRaw as (typeof KM_OPTIONS)[number])
-    : 5;
+    : DEFAULT_RADIUS_KM;
 
   const przeznRaw = sp.get('przezn') ?? '';
   const przezn = przeznRaw
@@ -1089,7 +1094,7 @@ export default function KupSearch({
     setLocText('');
     setCenter(null);
     setLocError(null);
-    setRadiusKm(5);
+    setRadiusKm(DEFAULT_RADIUS_KM);
     setPriceMin('');
     setPriceMax('');
     setAreaMin('');

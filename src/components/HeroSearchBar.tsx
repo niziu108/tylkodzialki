@@ -45,7 +45,9 @@ export default function HeroSearchBar() {
 
   const [locText, setLocText] = useState('');
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
-  const [radiusKm, setRadiusKm] = useState<(typeof KM_OPTIONS)[number]>(10);
+  // Domyślny promień 20 km — spójnie z /kup (DEFAULT_RADIUS_KM). Przy rzadkiej podaży
+  // 10 km w mniejszym mieście dawało za mało; kupujący działkę myśli regionem.
+  const [radiusKm, setRadiusKm] = useState<(typeof KM_OPTIONS)[number]>(20);
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>([]);
   const [searching, setSearching] = useState(false);
 

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import type { Przeznaczenie } from '@prisma/client';
-import KupSearch from './KupSearch';
+import KupSearch, { DEFAULT_RADIUS_KM } from './KupSearch';
 import type { SortOption } from './KupSearch';
 
 export const dynamic = 'force-dynamic';
@@ -50,10 +50,10 @@ export default async function KupPage({ searchParams }: KupPageProps) {
     Number.isFinite(lng) &&
     !(lat === 0 && lng === 0);
 
-  const radiusRaw = Number(one(sp.radius) || '5');
+  const radiusRaw = Number(one(sp.radius) || String(DEFAULT_RADIUS_KM));
   const radiusKm = [5, 10, 20, 40].includes(radiusRaw)
     ? (radiusRaw as 5 | 10 | 20 | 40)
-    : 5;
+    : DEFAULT_RADIUS_KM;
 
   const przezn = one(sp.przezn)
     .split(',')
