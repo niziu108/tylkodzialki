@@ -736,11 +736,15 @@ export default function KupSearch({
 
   const [sortOpen, setSortOpen] = useState(false);
 
-  // Mobile: na wejściu (zwłaszcza z Google na hub) wyszukiwarka jest ZWINIĘTA do
-  // cienkiego paska podsumowania, żeby oferty były widoczne od razu pod nią (jak
-  // Otodom/OLX), a nie schowane pod pełnym formularzem. Tap w pasek rozwija kartę.
-  // Desktop ignoruje ten stan (karta zawsze `md:block`) — tam miejsca w pionie jest dość.
+  // Na wejściu (zwłaszcza z Google na hub) wyszukiwarka jest ZWINIĘTA do paska (adres +
+  // Mapa|Filtry), żeby oferty były widoczne od razu (jak Otodom/OLX). Tap rozwija kartę.
+  // Tak samo na mobile i desktop (spójność).
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Po zjechaniu poniżej wyszukiwarki pokazujemy cienki przyklejony pasek z Mapa|Filtry,
+  // żeby były zawsze pod ręką przy przeglądaniu ofert (bez pływającego przycisku i bez
+  // przyklejania całego paska, który zjadałby ekran).
+  const [showStickyBar, setShowStickyBar] = useState(false);
 
   // Mapa (P11) — przycisk „Mapa" → pełnoekranowy overlay (desktop i mobile tak samo).
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
@@ -764,6 +768,19 @@ export default function KupSearch({
     document.addEventListener('mousedown', onOutside);
     return () => document.removeEventListener('mousedown', onOutside);
   }, [sortOpen]);
+
+  // Przyklejony pasek Mapa|Filtry pojawia się, gdy sekcja wyszukiwarki wyjedzie poza
+  // ekran (user zjechał do ofert). IntersectionObserver zamiast nasłuchu scrolla — taniej.
+  useEffect(() => {
+    const el = searchTopRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      { rootMargin: '-80px 0px 0px 0px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   function updateBrowserUrl(filters: AppliedFilters, nextPage: number, replace = false) {
     // Na stronach SEO (huby /dzialki/...) trzymamy ładny, kanoniczny adres huba i NIE
@@ -1508,6 +1525,39 @@ export default function KupSearch({
 
   return (
     <div className="w-full overflow-x-hidden">
+      {/* Cienki przyklejony pasek z Mapa|Filtry — pojawia się po zjechaniu poniżej
+          wyszukiwarki, żeby oba były zawsze pod ręką. Chowa się gdy karta rozwinięta lub
+          mapa otwarta. Pod globalnym menu (top-[72px], z poniżej nav). */}
+      {showStickyBar && !searchOpen && !mapOpen && (
+        <div className="fixed inset-x-0 top-[72px] z-[90] border-b border-fg/10 bg-surface-2/92 backdrop-blur-md">
+          <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-2 md:px-4">
+            <span className="flex min-w-0 flex-1 items-center gap-2 text-[13px] text-fg/85">
+              <MapPinGlyph className="h-4 w-4 shrink-0 text-brand" />
+              <span className="truncate">{summaryLoc}</span>
+            </span>
+            <button
+              type="button"
+              onClick={openMap}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-fg/25 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-fg/80 transition hover:border-fg/40"
+            >
+              <MapGlyph className="h-3.5 w-3.5" />
+              Mapa
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchOpen(true);
+                window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+              }}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-fg/25 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-fg/80 transition hover:border-fg/40"
+            >
+              Filtry
+              <span className="text-[10px] text-brand">▼</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* bez overflow-hidden: rozwijana lista „Zasięg" wysuwa się poniżej karty i
           była nią ucinana. HeroGradientBg jest absolute inset-0, więc nie wycieka;
           poziomy scroll trzyma zewnętrzny wrapper (overflow-x-hidden). */}
