@@ -406,6 +406,7 @@ export function OfferCard({
   eagerImage = false,
   horizontal = false,
   fill = false,
+  singleImage = false,
   isFavorite,
   onToggleFavorite,
   onClick,
@@ -418,6 +419,9 @@ export function OfferCard({
   horizontal?: boolean;
   /** Rail (np. wyróżnione na głównej): karta wypełnia wysokość rzędu, stopka u dołu. */
   fill?: boolean;
+  /** Rail promowanych na głównej: tylko okładka, bez karuzeli — swipe zdjęć gryzł się
+   *  z poziomym przewijaniem rzędu. Bok przewija kafelki, góra/dół scrolluje stronę. */
+  singleImage?: boolean;
   isFavorite: boolean;
   onToggleFavorite: (dzialkaId: string) => void;
   /** /kup: zapis pozycji scrolla przed nawigacją (przywracanie przy powrocie). */
@@ -427,7 +431,10 @@ export function OfferCard({
   /** Podgląd w kreatorze: bez śledzenia odsłon; klik nie nawiguje, tylko woła onClick. */
   preview?: boolean;
 }) {
-  const photos = (d.zdjecia ?? []).slice().sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
+  const allPhotos = (d.zdjecia ?? []).slice().sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
+  // Na promowanych zostawiamy samą okładkę: Carousel przy <2 zdjęciach wyłącza swipe
+  // i chowa strzałki/licznik, więc gest w bok trafia do przewijania rzędu, nie do foto.
+  const photos = singleImage ? allPhotos.slice(0, 1) : allPhotos;
 
   const coverFallback = photos[0]?.url ?? null;
   const loc = d.locationLabel?.trim() || 'Lokalizacja niepodana';

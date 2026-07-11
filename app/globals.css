@@ -95,6 +95,18 @@ select {
   color: color-mix(in srgb, var(--fg) 38%, transparent);
 }
 
+/* iOS/Android robią auto-zoom przy fokusie, gdy pole ma czcionkę <16px — widok
+   się „przybliża", rozjeżdża, klawiatura zasłania pole. Wymuszamy min. 16px na
+   każdym polu na wąskich ekranach (catch-all: dotyczy CRM, „Dla biur" i reszty).
+   Estetyczne 14-15px zostają tylko na desktopie, gdzie zoomu nie ma. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 input:focus,
 textarea:focus,
 select:focus {

@@ -24,6 +24,10 @@ export default function FeaturedRail({ items }: { items: OfferData[] }) {
               <OfferCard
                 d={d}
                 fill
+                // Na głównej pokazujemy tylko okładkę: swipe zdjęć w kafelku gryzł się
+                // z poziomym przewijaniem całego rzędu promowanych (na telefonie oferta
+                // uciekała, gdy chciało się przewinąć zdjęcie). Pełna galeria jest w ofercie.
+                singleImage
                 // Wyróżnione są POD pełnoekranowym hero (min-h-100svh), więc ich
                 // zdjęcia mają być lazy. Wcześniej 2 pierwsze ładowały się eager i
                 // konkurowały o pasmo z obrazem hero => wyższe LCP na głównej (4,1 s)

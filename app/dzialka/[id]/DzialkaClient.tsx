@@ -1119,13 +1119,15 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 </>
               ) : null}
 
+              {/* Kontakt tylko na desktopie — na mobile obsługuje go przyklejony dolny
+                  pasek (Zadzwoń / Napisz), więc nie dublujemy „Pokaż numer". */}
               {telefon ? (
-                <>
+                <div className="hidden md:block">
                   <FieldBlock label="Kontakt">
                     {phoneRevealed ? (
                       <a
                         href={`tel:${telefon.replace(/\s+/g, '')}`}
-                        className="min-w-0 text-[15px] md:text-[16px] font-medium text-fg/95 underline decoration-white/20 underline-offset-8 hover:decoration-white/40 transition break-all"
+                        className="min-w-0 text-[16px] font-medium text-fg/95 underline decoration-white/20 underline-offset-8 transition break-all hover:decoration-white/40"
                       >
                         {telefon}
                       </a>
@@ -1140,7 +1142,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     )}
                   </FieldBlock>
                   <Hr />
-                </>
+                </div>
               ) : null}
 
               {numerOferty ? (

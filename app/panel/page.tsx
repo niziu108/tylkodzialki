@@ -329,8 +329,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             <div className="flex shrink-0 flex-wrap gap-3">
               <Link
                 href="/sprzedaj"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-full px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-black transition hover:scale-[1.01] hover:opacity-90"
-                style={{ background: "#7aa333" }}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-brand/35 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-brand/60 hover:bg-fg/[0.05]"
               >
                 Dodaj działkę
               </Link>

@@ -97,14 +97,14 @@ export default async function DlaBiurPage() {
             <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row">
               <Link
                 href="#kontakt"
-                className="inline-flex h-13 items-center justify-center rounded-2xl bg-brand px-8 py-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright"
+                className="inline-flex h-13 w-full items-center justify-center rounded-2xl bg-brand px-8 py-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright sm:w-auto sm:min-w-[13.5rem]"
               >
                 Połącz swoje CRM
               </Link>
 
               <Link
                 href="#jak-to-dziala"
-                className="inline-flex h-13 items-center justify-center rounded-2xl border border-fg/15 px-8 py-4 text-[15px] font-medium text-fg/85 transition hover:border-fg/30 hover:text-fg"
+                className="inline-flex h-13 w-full items-center justify-center rounded-2xl border border-fg/15 px-8 py-4 text-[15px] font-medium text-fg/85 transition hover:border-fg/30 hover:text-fg sm:w-auto sm:min-w-[13.5rem]"
               >
                 Jak to działa
               </Link>
