@@ -133,7 +133,7 @@ export default function AlertBar({
           type="button"
           onClick={handleClick}
           disabled={state === 'sending'}
-          className="inline-flex items-center gap-2 text-[13px] font-medium text-fg/75 transition hover:text-fg disabled:opacity-60"
+          className="inline-flex items-center gap-2 text-[13px] font-medium text-brand-text transition hover:text-brand-bright disabled:opacity-60"
         >
           <span className="text-brand-bright">
             <BellIcon />
