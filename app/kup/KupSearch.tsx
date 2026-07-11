@@ -1566,6 +1566,7 @@ export default function KupSearch({
                   // miejscowość bez szukania pola. (setTimeout, bo pole jest ukryte do czasu
                   // rozwinięcia karty — trzeba poczekać na przerysowanie.)
                   setSearchOpen(true);
+                  setExpanded(false);
                   setTimeout(() => {
                     const el = inputRef.current;
                     if (el) {
@@ -1590,7 +1591,12 @@ export default function KupSearch({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSearchOpen(true)}
+                  onClick={() => {
+                    // „Filtry" prowadzi wprost do wszystkich filtrów (bez kroku „Więcej
+                    // filtrów"). Tap w adres otwiera samą lokalizację (expanded=false).
+                    setSearchOpen(true);
+                    setExpanded(true);
+                  }}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[13px] font-medium uppercase tracking-[0.10em] text-fg/90 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
                 >
                   Filtry
