@@ -1467,24 +1467,10 @@ export default function KupSearch({
         </div>
       )}
 
-      {/* Action buttons — always at the bottom */}
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-        {/* Desktop: wejście do mapy z karty (pływający przycisk usunięty, mapa jest tu).
-            Na mobile mapa jest w zwiniętym pasku, więc tu ukryta. Liczba ofert przeniesiona
-            do wiersza sortowania. Na głównej (navigationMode) mapy nie ma. */}
-        {!navigationMode ? (
-          <button
-            type="button"
-            onClick={openMap}
-            className="hidden items-center gap-2 rounded-xl border border-fg/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-fg/75 transition hover:border-fg/40 md:inline-flex"
-          >
-            <MapGlyph className="h-4 w-4" />
-            Mapa
-          </button>
-        ) : (
-          <div />
-        )}
-
+      {/* Action buttons — always at the bottom. Mapa jest w zwiniętym pasku (mobile i
+          desktop), więc w rozwiniętej karcie jej nie ma — wtedy filtrujesz, a po „Szukaj"
+          pasek z Mapą wraca. Liczba ofert żyje w wierszu sortowania. */}
+      <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
         <div className="flex gap-3">
           <button
             type="button"
@@ -1534,45 +1520,48 @@ export default function KupSearch({
             searchOpen ? 'py-8' : 'py-4'
           }`}
         >
-          {/* Mobile: zwinięty pasek — adres (tap rozwija kartę) + dwa przyciski pół na pół:
-              Mapa i Filtry. Pływający przycisk mapy zniknął, mapa żyje tu. Znika na
-              desktopie (md:hidden) i gdy karta jest rozwinięta (searchOpen). */}
-          <div className={`md:hidden ${searchOpen ? 'hidden' : 'block'}`}>
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="flex w-full items-center gap-2.5 rounded-2xl border border-fg/22 bg-surface-2/78 px-4 py-3 text-left backdrop-blur-sm"
-            >
-              <MapPinGlyph className="h-[18px] w-[18px] shrink-0 text-brand" />
-              <span className="truncate text-[15px] text-fg">{summaryLoc}</span>
-            </button>
-            <div className="mt-2.5 flex gap-2.5">
-              <button
-                type="button"
-                onClick={openMap}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[11px] uppercase tracking-[0.16em] text-fg/80 backdrop-blur-sm transition hover:border-fg/40"
-              >
-                <MapGlyph className="h-4 w-4" />
-                Mapa
-              </button>
+          {/* Zwinięty pasek (mobile I desktop — spójnie): adres (tap rozwija kartę) + dwa
+              przyciski Mapa|Filtry. Pływający przycisk mapy zniknął, mapa żyje tu. Na mobile
+              przyciski pod adresem (pół na pół), na desktopie w jednym rzędzie po prawej.
+              Znika gdy karta jest rozwinięta (searchOpen). */}
+          <div className={searchOpen ? 'hidden' : 'block'}>
+            <div className="md:flex md:items-center md:gap-2.5">
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[11px] uppercase tracking-[0.16em] text-fg/80 backdrop-blur-sm transition hover:border-fg/40"
+                className="flex w-full items-center gap-2.5 rounded-2xl border border-fg/22 bg-surface-2/78 px-4 py-3 text-left backdrop-blur-sm md:flex-1"
               >
-                Filtry
-                <span className="text-[10px] text-brand">▼</span>
+                <MapPinGlyph className="h-[18px] w-[18px] shrink-0 text-brand" />
+                <span className="truncate text-[15px] text-fg">{summaryLoc}</span>
               </button>
+              <div className="mt-2.5 flex gap-2.5 md:mt-0 md:shrink-0">
+                <button
+                  type="button"
+                  onClick={openMap}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[11px] uppercase tracking-[0.16em] text-fg/80 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
+                >
+                  <MapGlyph className="h-4 w-4" />
+                  Mapa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(true)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[11px] uppercase tracking-[0.16em] text-fg/80 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
+                >
+                  Filtry
+                  <span className="text-[10px] text-brand">▼</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Pełna karta: na mobile chowana gdy zwinięte, na desktopie zawsze. */}
+          {/* Pełna karta: chowana gdy zwinięte (mobile i desktop tak samo). */}
           <div
-            className={`rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:block md:p-8 ${
+            className={`rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8 ${
               searchOpen ? 'block' : 'hidden'
             }`}
           >
-            <div className="mb-3 flex justify-end md:hidden">
+            <div className="mb-3 flex justify-end">
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
