@@ -1585,7 +1585,7 @@ export default function KupSearch({
                 <button
                   type="button"
                   onClick={openMap}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand/55 bg-surface-2/78 py-3 text-[13px] font-medium uppercase tracking-[0.10em] text-fg/90 backdrop-blur-sm transition hover:border-brand md:flex-none md:px-8"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[13px] font-medium uppercase tracking-[0.10em] text-fg/90 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
                 >
                   <MapGlyph className="h-4 w-4 text-brand" />
                   Mapa
