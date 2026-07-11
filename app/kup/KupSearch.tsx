@@ -1087,6 +1087,11 @@ export default function KupSearch({
       // Mobile: po wyszukaniu zwiń pasek, żeby od razu było widać wyniki (desktop
       // i tak trzyma kartę otwartą przez `md:block`, więc stan tu nie szkodzi).
       setSearchOpen(false);
+      // Wróć na górę strony — po zwinięciu karty user widzi skondensowany pasek
+      // + pierwsze oferty, a nie środek listy w miejscu, gdzie był przycisk. Skok
+      // (instant, jak przy nowych wynikach w Google/Amazon) po zwinięciu karty —
+      // płynna animacja i tak rozbijałaby się o layout shift zwijanej karty.
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }), 80);
     }
   }
 
@@ -1267,9 +1272,10 @@ export default function KupSearch({
           )}
         </div>
 
-        {/* Zasięg tylko na desktopie w wierszu 1. Na telefonie hero = sama Lokalizacja
-            + „Więcej filtrów"; Zasięg czeka na górze rozwijanego panelu (niżej). */}
-        <div className="hidden md:block">
+        {/* Zasięg zawsze w wierszu 1 (na mobile stackuje się pod Lokalizacją). Pasek już
+            chowa wszystko na wejściu, więc gdy user ŚWIADOMIE rozwija kartę, Zasięg ma być
+            od razu widoczny — a nie pod kolejnym tapnięciem „Więcej filtrów". */}
+        <div>
           <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
             Zasięg
           </label>
@@ -1297,20 +1303,6 @@ export default function KupSearch({
       {/* Expanded: Powierzchnia + Cena + Przeznaczenie */}
       {expanded && (
         <div className="mt-5 space-y-5">
-          {/* Zasięg na telefonie — pierwsza rzecz w „Więcej filtrów" (dla działek ważniejszy
-              niż cena/media). Na desktopie stoi już w wierszu 1, więc tu ukryty. */}
-          <div className="md:hidden">
-            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
-              Zasięg
-            </label>
-            <RadiusSelect
-              className="mt-3"
-              value={radiusKm}
-              options={KM_OPTIONS}
-              onChange={(v) => setRadiusKm(v as (typeof KM_OPTIONS)[number])}
-            />
-          </div>
-
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
@@ -1545,9 +1537,9 @@ export default function KupSearch({
                 {summarySub}
               </span>
             </span>
-            <span className="flex shrink-0 items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-fg/70">
+            <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-fg/80">
               Filtry
-              <span className="text-[8px]">▼</span>
+              <span className="text-[10px] text-brand">▼</span>
             </span>
           </button>
 
@@ -1572,8 +1564,10 @@ export default function KupSearch({
         </div>
       </section>
 
-      {/* Odstępy listy (czyste tło — bez siatki i poświaty, właściciel woli przejrzystość). */}
-      <div className="pt-8 pb-20">
+      {/* Odstępy listy (czyste tło — bez siatki i poświaty, właściciel woli przejrzystość).
+          Na mobile ciasny odstęp nad Sortuj — wcześniej przerwa wyszukiwarka→Sortuj była
+          jak menu→wyszukiwarka; Sortuj ma siedzieć tuż pod paskiem. */}
+      <div className="pt-2 pb-20 md:pt-8">
       <section className="mx-auto max-w-6xl px-3 md:px-4">
         <div ref={sortRef} className="relative mb-5 inline-flex items-center gap-3">
           <span className="text-[11px] uppercase tracking-[0.22em] text-fg/62">Sortuj:</span>
