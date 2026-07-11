@@ -1525,37 +1525,19 @@ export default function KupSearch({
 
   return (
     <div className="w-full overflow-x-hidden">
-      {/* Cienki przyklejony pasek z Mapa|Filtry — pojawia się po zjechaniu poniżej
-          wyszukiwarki, żeby oba były zawsze pod ręką. Chowa się gdy karta rozwinięta lub
-          mapa otwarta. Pod globalnym menu (top-[72px], z poniżej nav). */}
+      {/* Przy scrollu (po zjechaniu poniżej wyszukiwarki) pokazujemy sam przycisk „Mapa" —
+          pływający jak dawniej, ale u góry pod menu i neutralny (nie zielony). Bez Filtry
+          (te są u góry, każdy wie gdzie) i bez lokalizacji — prostota. Chowa się gdy karta
+          rozwinięta lub mapa otwarta. */}
       {showStickyBar && !searchOpen && !mapOpen && (
-        <div className="fixed inset-x-0 top-[72px] z-[90] border-b border-fg/10 bg-surface-2/92 backdrop-blur-md">
-          <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-2 md:px-4">
-            <span className="flex min-w-0 flex-1 items-center gap-2 text-[13px] text-fg/85">
-              <MapPinGlyph className="h-4 w-4 shrink-0 text-brand" />
-              <span className="truncate">{summaryLoc}</span>
-            </span>
-            <button
-              type="button"
-              onClick={openMap}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-fg/25 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-fg/90 transition hover:border-fg/40"
-            >
-              <MapGlyph className="h-3.5 w-3.5" />
-              Mapa
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchOpen(true);
-                window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-              }}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-fg/25 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-fg/90 transition hover:border-fg/40"
-            >
-              Filtry
-              <span className="text-[10px] text-brand">▼</span>
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={openMap}
+          className="fixed left-1/2 top-[84px] z-[90] flex -translate-x-1/2 items-center gap-2 rounded-full border border-fg/15 bg-surface-2/95 px-6 py-3 text-[13px] font-medium uppercase tracking-[0.14em] text-fg/85 shadow-[0_8px_28px_rgba(0,0,0,0.12)] backdrop-blur-md transition hover:border-fg/35"
+        >
+          <MapGlyph className="h-4 w-4" />
+          Mapa
+        </button>
       )}
 
       {/* bez overflow-hidden: rozwijana lista „Zasięg" wysuwa się poniżej karty i
