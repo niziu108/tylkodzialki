@@ -1560,7 +1560,20 @@ export default function KupSearch({
             <div className="md:flex md:items-center md:gap-2.5">
               <button
                 type="button"
-                onClick={() => setSearchOpen(true)}
+                onClick={() => {
+                  // Tap w adres = „chcę zmienić lokalizację": rozwiń kartę i od razu ustaw
+                  // kursor w polu lokalizacji z zaznaczonym tekstem, żeby wpisać nową
+                  // miejscowość bez szukania pola. (setTimeout, bo pole jest ukryte do czasu
+                  // rozwinięcia karty — trzeba poczekać na przerysowanie.)
+                  setSearchOpen(true);
+                  setTimeout(() => {
+                    const el = inputRef.current;
+                    if (el) {
+                      el.focus();
+                      el.select();
+                    }
+                  }, 60);
+                }}
                 className="flex w-full items-center gap-2.5 rounded-2xl border border-fg/22 bg-surface-2/78 px-4 py-3 text-left backdrop-blur-sm md:flex-1"
               >
                 <MapPinGlyph className="h-[18px] w-[18px] shrink-0 text-brand" />
