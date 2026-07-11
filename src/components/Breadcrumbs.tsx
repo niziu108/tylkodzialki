@@ -32,7 +32,9 @@ export default function Breadcrumbs({
     <>
       {jsonLdOnly ? null : (
       <nav aria-label="Breadcrumb" className="text-[13px] text-fg/70">
-        <ol className="flex flex-wrap items-center gap-2">
+        {/* Jedna linia, przewijana palcem w poziomie — na telefonie 5 okruszków zawijało
+            się na 2-3 wiersze i zjadało pierwszy ekran. Pasek przewijania ukryty. */}
+        <ol className="flex flex-nowrap items-center gap-2 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {items.map((item, index) => (
             <li key={index} className="flex items-center gap-2">
               {index > 0 ? <span className="text-fg/30">/</span> : null}

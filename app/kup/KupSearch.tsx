@@ -713,6 +713,12 @@ export default function KupSearch({
 
   const [sortOpen, setSortOpen] = useState(false);
 
+  // Mobile: na wejściu (zwłaszcza z Google na hub) wyszukiwarka jest ZWINIĘTA do
+  // cienkiego paska podsumowania, żeby oferty były widoczne od razu pod nią (jak
+  // Otodom/OLX), a nie schowane pod pełnym formularzem. Tap w pasek rozwija kartę.
+  // Desktop ignoruje ten stan (karta zawsze `md:block`) — tam miejsca w pionie jest dość.
+  const [searchOpen, setSearchOpen] = useState(false);
+
   // Mapa (P11) — przycisk „Mapa" → pełnoekranowy overlay (desktop i mobile tak samo).
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
   const [mapLoading, setMapLoading] = useState(false);
@@ -1073,6 +1079,9 @@ export default function KupSearch({
     } else {
       setApplied(next);
       fetchDataWith(next, 1);
+      // Mobile: po wyszukaniu zwiń pasek, żeby od razu było widać wyniki (desktop
+      // i tak trzyma kartę otwartą przez `md:block`, więc stan tu nie szkodzi).
+      setSearchOpen(false);
     }
   }
 
@@ -1253,7 +1262,9 @@ export default function KupSearch({
           )}
         </div>
 
-        <div>
+        {/* Zasięg tylko na desktopie w wierszu 1. Na telefonie hero = sama Lokalizacja
+            + „Więcej filtrów"; Zasięg czeka na górze rozwijanego panelu (niżej). */}
+        <div className="hidden md:block">
           <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
             Zasięg
           </label>
@@ -1281,6 +1292,20 @@ export default function KupSearch({
       {/* Expanded: Powierzchnia + Cena + Przeznaczenie */}
       {expanded && (
         <div className="mt-5 space-y-5">
+          {/* Zasięg na telefonie — pierwsza rzecz w „Więcej filtrów" (dla działek ważniejszy
+              niż cena/media). Na desktopie stoi już w wierszu 1, więc tu ukryty. */}
+          <div className="md:hidden">
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
+              Zasięg
+            </label>
+            <RadiusSelect
+              className="mt-3"
+              value={radiusKm}
+              options={KM_OPTIONS}
+              onChange={(v) => setRadiusKm(v as (typeof KM_OPTIONS)[number])}
+            />
+          </div>
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
@@ -1467,6 +1492,23 @@ export default function KupSearch({
     );
   }
 
+  // Podsumowanie do zwiniętego paska na mobile (lokalizacja + typ + liczba ofert).
+  const summaryLoc = applied.bbox
+    ? 'Zaznaczony obszar'
+    : applied.locText.trim() || 'Cała Polska';
+  const summaryType =
+    applied.przezn.length === 1
+      ? PRZEZN.find((p) => p.key === applied.przezn[0])?.label.toLowerCase() ?? null
+      : applied.przezn.length > 1
+        ? `${applied.przezn.length} typy`
+        : null;
+  const summaryCount = loading && items.length === 0 ? 'Szukam…' : `${count} ofert`;
+  // Zasięg jest schowany z pola na telefonie, ale zostaje WIDOCZNY w pasku (dla działek
+  // jest ważny) — jako informacja, nie kontrolka. Ma sens tylko przy wyszukiwaniu z punktu
+  // (jest center), nie przy „Cała Polska" ani obszarze z mapy.
+  const summaryRadius = !applied.bbox && applied.center ? `+${applied.radiusKm} km` : null;
+  const summarySub = [summaryRadius, summaryType, summaryCount].filter(Boolean).join(' · ');
+
   return (
     <div className="w-full overflow-x-hidden">
       {/* bez overflow-hidden: rozwijana lista „Zasięg" wysuwa się poniżej karty i
@@ -1476,8 +1518,50 @@ export default function KupSearch({
         {/* Gradient spójny ze stroną główną (bez zdjęcia => szybki LCP). */}
         <HeroGradientBg />
 
-        <div className="relative z-10 mx-auto max-w-6xl px-3 py-8 md:px-4 md:py-10">
-          <div className="rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
+        <div
+          className={`relative z-10 mx-auto max-w-6xl px-3 md:px-4 md:py-10 ${
+            searchOpen ? 'py-8' : 'py-4'
+          }`}
+        >
+          {/* Mobile: zwinięty pasek — tap rozwija kartę. Znika na desktopie (md:hidden)
+              i gdy karta jest rozwinięta (searchOpen). */}
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className={`w-full items-center justify-between gap-3 rounded-2xl border border-fg/12 bg-surface-2/78 px-4 py-3 text-left backdrop-blur-sm md:hidden ${
+              searchOpen ? 'hidden' : 'flex'
+            }`}
+          >
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-semibold text-fg">
+                {summaryLoc}
+              </span>
+              <span className="mt-0.5 block truncate text-[12px] text-fg/60">
+                {summarySub}
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-fg/70">
+              Filtry
+              <span className="text-[8px]">▼</span>
+            </span>
+          </button>
+
+          {/* Pełna karta: na mobile chowana gdy zwinięte, na desktopie zawsze. */}
+          <div
+            className={`rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:block md:p-8 ${
+              searchOpen ? 'block' : 'hidden'
+            }`}
+          >
+            <div className="mb-3 flex justify-end md:hidden">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-fg/60 transition hover:text-fg"
+              >
+                Zwiń
+                <span className="text-[8px]">▲</span>
+              </button>
+            </div>
             {filterContent}
           </div>
         </div>
