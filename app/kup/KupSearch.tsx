@@ -1310,7 +1310,7 @@ export default function KupSearch({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-brand-text transition hover:text-brand-bright"
+          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-fg/85 transition hover:text-fg"
         >
           <span className="text-[8px]">{expanded ? '▲' : '▼'}</span>
           {expanded ? 'Mniej filtrów' : 'Więcej filtrów'}
@@ -1583,7 +1583,7 @@ export default function KupSearch({
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
-                className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-brand-text transition hover:text-brand-bright"
+                className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-fg/60 transition hover:text-fg"
               >
                 Zwiń
                 <span className="text-[8px]">▲</span>
