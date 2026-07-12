@@ -346,9 +346,19 @@ export const getCategoryDetail = cache(
 // całego miasta + rozbicie po typach, żeby stronę PROWADZIĆ liczbą (mediana zł/m²), a nie
 // chować ją pod listą ofert. Ten sam silnik (computeDetail) i JEDEN cache'owany odczyt
 // puli miasta co strony kategorii — spójne liczby, zero dodatkowych zapytań.
+// Okno „typowej działki budowlanej" pod dom. Uczciwie odpowiada na zapytanie kupującego:
+// bardzo duże grunty (inwestycyjne/rolne w przebraniu budowlanych) mają z natury niższą
+// stawkę zł/m² i zaniżają medianę całej puli, więc do liczby wiodącej bierzemy tylko
+// działki w rozsądnym metrażu. Poniżej progu próbki wracamy do pełnej puli budowlanych.
+export const TYPICAL_BUILD_MIN_M2 = 300;
+export const TYPICAL_BUILD_MAX_M2 = 3000;
+
 export type CityPriceBoard = {
   overall: CategoryDetail;
   byType: { type: SeoType; detail: CategoryDetail }[]; // tylko typy z >0 ofert, malejąco po liczbie
+  // Typowe działki budowlane (metraż w oknie powyżej) — liczba wiodąca strony cenowej.
+  // null, gdy próbka za mała na wiarygodną medianę (wtedy strona używa pełnej puli budowlanych).
+  budowlanaTypical: CategoryDetail | null;
 };
 
 export const getCityPriceBoard = cache(async (citySlug: string): Promise<CityPriceBoard> => {
@@ -360,7 +370,18 @@ export const getCityPriceBoard = cache(async (citySlug: string): Promise<CityPri
   }))
     .filter((x) => x.detail.count > 0)
     .sort((a, b) => b.detail.count - a.detail.count);
-  return { overall, byType };
+
+  const typicalRows = all.filter(
+    (r) =>
+      r.przeznaczenia.includes('BUDOWLANA') &&
+      r.powierzchniaM2 >= TYPICAL_BUILD_MIN_M2 &&
+      r.powierzchniaM2 <= TYPICAL_BUILD_MAX_M2
+  );
+  const typicalDetail = computeDetail(typicalRows);
+  // Uznajemy tylko, gdy realnie policzyliśmy medianę (computeDetail zwraca null przy < MIN_SAMPLE).
+  const budowlanaTypical = typicalDetail.pricePerM2 ? typicalDetail : null;
+
+  return { overall, byType, budowlanaTypical };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
