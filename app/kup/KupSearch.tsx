@@ -1602,7 +1602,7 @@ export default function KupSearch({
         {/* „Sortuj:" zdjęte — w to miejsce liczba ofert (po lewej), a sam wybór sortowania
             po prawej. Krócej i użyteczniej niż zbędna etykieta. */}
         <div ref={sortRef} className="relative mb-5 flex items-center justify-between gap-3">
-          <span className="text-[12px] uppercase tracking-[0.16em] text-fg/85">{countLabel}</span>
+          <span className="text-[15px] font-medium tracking-[0.01em] text-fg">{countLabel}</span>
           <div className="relative">
           <button
             type="button"
