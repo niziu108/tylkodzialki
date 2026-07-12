@@ -1,9 +1,10 @@
 # Auto-sync CRM (Sprint 2, strategia C)
 
-> **Status: na produkcji od 2026-06-17.** Cron na VPS (root) `0 6,18 * * *` (06:00 i 18:00 UTC).
+> **Status: na produkcji od 2026-06-17.** Cron na VPS (root) leci **co 2 godziny** (`0 */2 * * *`,
+> zmienione 2026-06-22 z `0 6,18`; doc zaktualizowany 2026-07-12, wcześniej mylnie podawał `0 6,18`).
 
 Automatyczna synchronizacja kolejkuje import wszystkich aktywnych integracji CRM
-o stałych godzinach, bez ręcznej obsługi. Ciężką pracę wykonuje istniejący worker na VPS.
+co ~2 godziny, bez ręcznej obsługi. Ciężką pracę wykonuje istniejący worker na VPS.
 
 ## Jak to działa
 
@@ -49,10 +50,11 @@ Zakolejkuje job tylko dla tej jednej integracji. Obserwuj log workera i statysty
 Wpis w crontab roota na VPS (`crontab -l`):
 
 ```cron
-0 6,18 * * * cd /var/www/tylkodzialki && PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/npm run crm:enqueue >> /var/log/crm-enqueue.log 2>&1
+0 */2 * * * cd /var/www/tylkodzialki && PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/npm run crm:enqueue >> /var/log/crm-enqueue.log 2>&1
 ```
 
-Godziny: 06:00 i 18:00 **UTC** (serwer jest na UTC), czyli ok. 08:00 i 20:00 czasu polskiego.
+Harmonogram: **co 2 godziny** (`0 */2 * * *`, zmienione 2026-06-22 z `0 6,18` = 2×/dobę,
+bo 2× było za rzadko na czas weryfikacji IMO). Globalny dla wszystkich biur.
 Podgląd logu kolejkowania: `tail -n 20 /var/log/crm-enqueue.log`.
 
 Uwagi:
