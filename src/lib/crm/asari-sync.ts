@@ -72,6 +72,18 @@ type AsariOffer = {
   payload: Prisma.InputJsonValue;
 };
 
+// Zwraca true, gdy `candidate` jest co najmniej tak świeży jak `current`. Preferujemy
+// wersję z największą datą modyfikacji; wersja z datą wygrywa z wersją bez daty; przy
+// remisie (lub obu bez daty) wygrywa późniejsza — pliki ofert iterujemy od najstarszego.
+function isSameOrNewerAsariOffer(candidate: AsariOffer, current: AsariOffer): boolean {
+  const c = candidate.externalUpdatedAt?.getTime() ?? null;
+  const p = current.externalUpdatedAt?.getTime() ?? null;
+  if (c != null && p != null) return c >= p;
+  if (c != null) return true;
+  if (p != null) return false;
+  return true;
+}
+
 
 type AsariDefinitions = {
   byId: Map<string, string>;
@@ -1294,28 +1306,13 @@ async function processOffer(
   // (reaktywacja) — pełny re-upload jak dotąd, by nie zgubić realnej zmiany.
   const storedUpdatedAt = existingLink.externalUpdatedAt;
   const incomingUpdatedAt = offer.externalUpdatedAt;
-  const zdjecieCount = await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } });
-  const dateOk =
+  const photosUnchanged =
+    !wasEnded &&
     storedUpdatedAt != null &&
     incomingUpdatedAt != null &&
-    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime();
-  const countOk = zdjecieCount === offer.photoFileNames.length;
-  const photosUnchanged = !wasEnded && dateOk && countOk;
-  // TODO(diag): tymczasowa diagnostyka guarda — usunąć po weryfikacji.
-  console.log(
-    "[ASARI GUARD]",
-    JSON.stringify({
-      ext: offer.externalId,
-      stored: storedUpdatedAt,
-      incoming: incomingUpdatedAt,
-      dateOk,
-      zdj: zdjecieCount,
-      feedLen: offer.photoFileNames.length,
-      countOk,
-      wasEnded,
-      photosUnchanged,
-    })
-  );
+    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
+    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) ===
+      offer.photoFileNames.length;
 
   if (!photosUnchanged) {
     await removeExistingR2Photos(existingLink.dzialkaId);
@@ -1587,6 +1584,13 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
       console.log("[ASARI DEBUG] Brak plików ofert XML. To jest OK, jeśli ASARI jeszcze nie wysłało eksportu.");
     }
 
+    // ASARI zostawia na FTP pełny eksport ORAZ wszystkie kolejne pliki przyrostowe, więc
+    // ta sama oferta pojawia się w wielu plikach (każdy z nowszą datą modyfikacji). Zamiast
+    // przetwarzać ją raz na plik (co przy każdym wystąpieniu re-uploadowało zdjęcia, bo data
+    // rosła), scalamy wszystkie pliki do NAJNOWSZEJ wersji per externalId i przetwarzamy raz.
+    // Dzięki temu guard photosUnchanged porównuje przebieg-do-przebiegu, a nie plik-do-pliku.
+    const latestOfferByExternalId = new Map<string, AsariOffer>();
+
     for (const offerXmlFile of downloaded.offerXmlFiles) {
       const xml = await fsp.readFile(offerXmlFile, "utf8");
       const result = parseOfferXmlFile(xml, integration.name, downloaded.definitions);
@@ -1596,35 +1600,47 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
       }
 
       for (const offer of result.offers) {
-        importedOffers += 1;
-        seenExternalIds.add(offer.externalId);
-
-        try {
-          const action = await processOffer(integration, offer, downloaded, paymentsEnabled);
-
-          if (action === "CREATE" || action === "REACTIVATE") {
-            createdCount += 1;
-          } else if (action === "UPDATE") {
-            updatedCount += 1;
-          } else if (action === "SKIP_NO_CREDITS") {
-            skippedCount += 1;
-          }
-        } catch (error) {
-          errorCount += 1;
-
-          const message =
-            error instanceof Error ? error.message : "Nieznany błąd podczas importu oferty ASARI.";
-
-          console.error("[ASARI DEBUG] Błąd zapisu oferty:", offer.externalId, message, error);
-
-          await logSync(integration.id, {
-            externalId: offer.externalId,
-            action: "ERROR",
-            status: "ERROR",
-            message,
-            payload: offer.payload,
-          });
+        const prev = latestOfferByExternalId.get(offer.externalId);
+        if (!prev || isSameOrNewerAsariOffer(offer, prev)) {
+          latestOfferByExternalId.set(offer.externalId, offer);
         }
+      }
+    }
+
+    const dedupedOffers = [...latestOfferByExternalId.values()];
+    console.log(
+      `[ASARI DEBUG] Oferty po deduplikacji (najnowsza wersja per externalId): ${dedupedOffers.length}`
+    );
+
+    for (const offer of dedupedOffers) {
+      importedOffers += 1;
+      seenExternalIds.add(offer.externalId);
+
+      try {
+        const action = await processOffer(integration, offer, downloaded, paymentsEnabled);
+
+        if (action === "CREATE" || action === "REACTIVATE") {
+          createdCount += 1;
+        } else if (action === "UPDATE") {
+          updatedCount += 1;
+        } else if (action === "SKIP_NO_CREDITS") {
+          skippedCount += 1;
+        }
+      } catch (error) {
+        errorCount += 1;
+
+        const message =
+          error instanceof Error ? error.message : "Nieznany błąd podczas importu oferty ASARI.";
+
+        console.error("[ASARI DEBUG] Błąd zapisu oferty:", offer.externalId, message, error);
+
+        await logSync(integration.id, {
+          externalId: offer.externalId,
+          action: "ERROR",
+          status: "ERROR",
+          message,
+          payload: offer.payload,
+        });
       }
     }
 

@@ -79,6 +79,18 @@ type EstiOffer = {
   payload: Prisma.InputJsonValue;
 };
 
+// Zwraca true, gdy `candidate` jest co najmniej tak świeży jak `current`. Preferujemy
+// wersję z największą datą modyfikacji; wersja z datą wygrywa z wersją bez daty; przy
+// remisie (lub obu bez daty) wygrywa późniejsza — pliki ofert iterujemy od najstarszego.
+function isSameOrNewerEstiOffer(candidate: EstiOffer, current: EstiOffer): boolean {
+  const c = candidate.externalUpdatedAt?.getTime() ?? null;
+  const p = current.externalUpdatedAt?.getTime() ?? null;
+  if (c != null && p != null) return c >= p;
+  if (c != null) return true;
+  if (p != null) return false;
+  return true;
+}
+
 type DownloadedEstiFeed = {
   remoteFileName: string;
   tempDir: string;
@@ -1279,6 +1291,11 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       console.log("[ESTICRM DEBUG] Brak plików XML ofert.");
     }
 
+    // Pełny + przyrostowe pliki XML zawierają tę samą ofertę wielokrotnie (patrz asari-sync).
+    // Scalamy je do NAJNOWSZEJ wersji per externalId i przetwarzamy raz — inaczej każde
+    // wystąpienie re-uploadowało zdjęcia, bo data modyfikacji rosła plik po pliku.
+    const latestOfferByExternalId = new Map<string, EstiOffer>();
+
     for (const offerXmlFile of downloaded.offerXmlFiles) {
       const xml = await fsp.readFile(offerXmlFile, "utf8");
       const result = parseOfferXmlFile(xml, integration.name, downloaded.definitions);
@@ -1289,22 +1306,34 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       for (const externalId of result.deletedExternalIds) deletedExternalIds.add(externalId);
 
       for (const offer of result.offers) {
-        importedOffers += 1;
-        seenExternalIds.add(offer.externalId);
-
-        try {
-          const action = await processOffer(integration, offer, downloaded, paymentsEnabled);
-
-          if (action === "CREATE" || action === "REACTIVATE") createdCount += 1;
-          else if (action === "UPDATE") updatedCount += 1;
-          else if (action === "SKIP_NO_CREDITS") skippedCount += 1;
-        } catch (error) {
-          errorCount += 1;
-          const message = error instanceof Error ? error.message : "Nieznany błąd podczas importu oferty EstiCRM.";
-          console.error("[ESTICRM DEBUG] Błąd zapisu oferty:", offer.externalId, message, error);
-
-          await logSync(integration.id, { externalId: offer.externalId, action: "ERROR", status: "ERROR", message, payload: offer.payload });
+        const prev = latestOfferByExternalId.get(offer.externalId);
+        if (!prev || isSameOrNewerEstiOffer(offer, prev)) {
+          latestOfferByExternalId.set(offer.externalId, offer);
         }
+      }
+    }
+
+    const dedupedOffers = [...latestOfferByExternalId.values()];
+    console.log(
+      `[ESTICRM DEBUG] Oferty po deduplikacji (najnowsza wersja per externalId): ${dedupedOffers.length}`
+    );
+
+    for (const offer of dedupedOffers) {
+      importedOffers += 1;
+      seenExternalIds.add(offer.externalId);
+
+      try {
+        const action = await processOffer(integration, offer, downloaded, paymentsEnabled);
+
+        if (action === "CREATE" || action === "REACTIVATE") createdCount += 1;
+        else if (action === "UPDATE") updatedCount += 1;
+        else if (action === "SKIP_NO_CREDITS") skippedCount += 1;
+      } catch (error) {
+        errorCount += 1;
+        const message = error instanceof Error ? error.message : "Nieznany błąd podczas importu oferty EstiCRM.";
+        console.error("[ESTICRM DEBUG] Błąd zapisu oferty:", offer.externalId, message, error);
+
+        await logSync(integration.id, { externalId: offer.externalId, action: "ERROR", status: "ERROR", message, payload: offer.payload });
       }
     }
 
