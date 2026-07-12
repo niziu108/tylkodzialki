@@ -182,6 +182,17 @@ function digitsOnly(s: string) {
   return s.replace(/\D/g, '');
 }
 
+// Odmiana „oferta" po polsku: 1 oferta · 2-4 oferty · 5+ ofert (z wyjątkami 12-14 → ofert,
+// 22-24 → oferty itd. — reguła mod10/mod100).
+function ofertaLabel(n: number): string {
+  const abs = Math.abs(n);
+  const m10 = abs % 10;
+  const m100 = abs % 100;
+  if (abs === 1) return 'oferta';
+  if (m10 >= 2 && m10 <= 4 && !(m100 >= 12 && m100 <= 14)) return 'oferty';
+  return 'ofert';
+}
+
 function formatPLThousands(digits: string) {
   if (!digits) return '';
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -1503,7 +1514,7 @@ export default function KupSearch({
   const summaryLoc = applied.bbox
     ? 'Zaznaczony obszar'
     : applied.locText.trim() || 'Cała Polska';
-  const countLabel = loading && items.length === 0 ? 'Ładowanie ofert…' : `${count} ofert`;
+  const countLabel = loading && items.length === 0 ? 'Ładowanie ofert…' : `${count} ${ofertaLabel(count)}`;
 
   return (
     <div className="w-full overflow-x-hidden">
