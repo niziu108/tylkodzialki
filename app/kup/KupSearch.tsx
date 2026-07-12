@@ -742,11 +742,6 @@ export default function KupSearch({
   // Tak samo na mobile i desktop (spójność).
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Po zjechaniu poniżej wyszukiwarki pokazujemy cienki przyklejony pasek z Mapa|Filtry,
-  // żeby były zawsze pod ręką przy przeglądaniu ofert (bez pływającego przycisku i bez
-  // przyklejania całego paska, który zjadałby ekran).
-  const [showStickyBar, setShowStickyBar] = useState(false);
-
   // Mapa (P11) — przycisk „Mapa" → pełnoekranowy overlay (desktop i mobile tak samo).
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
   const [mapLoading, setMapLoading] = useState(false);
@@ -769,19 +764,6 @@ export default function KupSearch({
     document.addEventListener('mousedown', onOutside);
     return () => document.removeEventListener('mousedown', onOutside);
   }, [sortOpen]);
-
-  // Przyklejony pasek Mapa|Filtry pojawia się, gdy sekcja wyszukiwarki wyjedzie poza
-  // ekran (user zjechał do ofert). IntersectionObserver zamiast nasłuchu scrolla — taniej.
-  useEffect(() => {
-    const el = searchTopRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(
-      ([entry]) => setShowStickyBar(!entry.isIntersecting),
-      { rootMargin: '-80px 0px 0px 0px' }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
 
   function updateBrowserUrl(filters: AppliedFilters, nextPage: number, replace = false) {
     // Na stronach SEO (huby /dzialki/...) trzymamy ładny, kanoniczny adres huba i NIE
@@ -1526,21 +1508,6 @@ export default function KupSearch({
 
   return (
     <div className="w-full overflow-x-hidden">
-      {/* Przy scrollu (po zjechaniu poniżej wyszukiwarki) pokazujemy sam przycisk „Mapa" —
-          pływający jak dawniej, ale u góry pod menu i neutralny (nie zielony). Bez Filtry
-          (te są u góry, każdy wie gdzie) i bez lokalizacji — prostota. Chowa się gdy karta
-          rozwinięta lub mapa otwarta. */}
-      {showStickyBar && !searchOpen && !mapOpen && (
-        <button
-          type="button"
-          onClick={openMap}
-          className="fixed left-1/2 top-[84px] z-[90] flex -translate-x-1/2 items-center gap-2 rounded-full border border-fg/15 bg-surface-2/95 px-6 py-3 text-[13px] font-medium uppercase tracking-[0.14em] text-fg/85 shadow-[0_8px_28px_rgba(0,0,0,0.12)] backdrop-blur-md transition hover:border-fg/35"
-        >
-          <MapGlyph className="h-4 w-4" />
-          Mapa
-        </button>
-      )}
-
       {/* bez overflow-hidden: rozwijana lista „Zasięg" wysuwa się poniżej karty i
           była nią ucinana. HeroGradientBg jest absolute inset-0, więc nie wycieka;
           poziomy scroll trzyma zewnętrzny wrapper (overflow-x-hidden). */}
