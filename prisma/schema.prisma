@@ -240,6 +240,24 @@ model BiuroDailyStat {
   @@index([date])
 }
 
+// Trend cen: dzienny snapshot mediany zł/m² TYPOWYCH działek budowlanych (metraż pod dom)
+// per miasto SEO. Jeden wiersz = jedno miasto × jeden dzień. Z serii kolejnych dni rysujemy
+// trend na stronie /ceny/[miasto]. Addytywne, nie rusza istniejących danych (źródło ofert
+// zostaje na Dzialka); citySlug pochodzi ze statycznej konfiguracji, więc bez klucza obcego.
+model CityPriceDailyStat {
+  id               String   @id @default(cuid())
+  citySlug         String
+  date             DateTime @db.Date
+  medianPricePerM2 Int // mediana zł/m² typowych działek budowlanych
+  sampleCount      Int // liczba ofert, na których policzono medianę
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([citySlug, date])
+  @@index([citySlug])
+  @@index([date])
+}
+
 model PasswordResetToken {
   id        String   @id @default(cuid())
   email     String

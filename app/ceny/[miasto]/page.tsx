@@ -18,6 +18,7 @@ import {
   type RangeStat,
 } from '@/lib/seoHub';
 import { buildSpecRows, buildLocalParagraphs, buildFaq } from '@/lib/seoCategoryContent';
+import { getCityPriceTrend } from '@/lib/cityPriceStats';
 import { formatIntPL, formatPLN } from '@/lib/format';
 
 type PageProps = {
@@ -36,6 +37,30 @@ function zlM2(v: number): string {
 function range(stat: RangeStat, fmt: (n: number) => string): string {
   if (stat.low === stat.high) return fmt(stat.low);
   return `od ${fmt(stat.low)} do ${fmt(stat.high)}`;
+}
+
+function plDate(iso: string): string {
+  return new Intl.DateTimeFormat('pl-PL', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(iso));
+}
+
+// Punkty polyline sparkline (viewBox 0..W × 0..H) z serii median.
+function sparkPoints(values: number[], w: number, h: number): string {
+  if (values.length < 2) return '';
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const pad = 3; // margines pionowy, żeby linia nie kleiła się do krawędzi
+  return values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * w;
+      const y = pad + (1 - (v - min) / span) * (h - 2 * pad);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
 }
 
 // Detail typu wiodącego (budowlane) z tablicy, albo null gdy brak ofert budowlanych.
@@ -72,7 +97,10 @@ export default async function CenyMiastoPage({ params }: PageProps) {
   if (!city) notFound();
 
   const region = getRegionForCity(city.slug) ?? undefined;
-  const board = await getCityPriceBoard(city.slug);
+  const [board, trend] = await Promise.all([
+    getCityPriceBoard(city.slug),
+    getCityPriceTrend(city.slug),
+  ]);
 
   // Liczba wiodąca = typowe działki budowlane (metraż pod dom); gdy próbki za mało,
   // spadamy do pełnej puli budowlanych, a na końcu do wszystkich typów.
@@ -201,6 +229,48 @@ export default async function CenyMiastoPage({ params }: PageProps) {
           </Link>
         </div>
       </section>
+
+      {/* Trend mediany ceny — pojawia się dopiero, gdy uzbieramy min. 2 dni snapshotów.
+          Do tego czasu sekcji nie ma (bez pustego stanu na publicznej stronie). */}
+      {trend.points.length >= 2 && trend.firstDate ? (
+        <section className="mx-auto mt-10 max-w-6xl px-3 md:px-4">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-2xl border border-fg/10 bg-fg/[0.02] px-5 py-4">
+            <div>
+              <div className="text-[13px] text-fg/55">Trend mediany zł/m²</div>
+              <div
+                className={`mt-0.5 text-sm font-medium ${
+                  trend.changePct !== null && trend.changePct >= 0
+                    ? 'text-brand-text'
+                    : 'text-fg/70'
+                }`}
+              >
+                {trend.changePct !== null
+                  ? `${trend.changePct >= 0 ? '+' : ''}${Math.round(trend.changePct * 100)}% od ${plDate(trend.firstDate)}`
+                  : `od ${plDate(trend.firstDate)}`}
+              </div>
+            </div>
+            <svg
+              viewBox="0 0 220 44"
+              className="h-11 w-[220px] max-w-full text-brand"
+              preserveAspectRatio="none"
+              aria-hidden
+            >
+              <polyline
+                points={sparkPoints(
+                  trend.points.map((p) => p.median),
+                  220,
+                  44
+                )}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </section>
+      ) : null}
 
       {/* Ceny wg typu działki — rozbicie, każdy typ linkuje do swojej listy. */}
       {board.byType.length > 0 ? (

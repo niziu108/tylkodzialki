@@ -524,3 +524,65 @@ export const getHubSitemapEntries = cache(async (): Promise<HubCityEntry[]> => {
 
   return entries;
 });
+
+// ── Trend cen: batch do dziennego snapshotu mediany zł/m² per miasto ─────────────
+// JEDEN odczyt całej puli z cenami/metrażem, dopasowanie per miasto w pamięci (jak
+// getHubSitemapEntries), mediana TYPOWYCH działek budowlanych (metraż pod dom) per miasto.
+// Miasta bez wiarygodnej próbki pomijamy — nie zapisujemy zmyślonych liczb.
+export type CityPriceSnapshotRow = {
+  citySlug: string;
+  medianPricePerM2: number;
+  sampleCount: number;
+};
+
+export async function computeCityPriceSnapshots(): Promise<CityPriceSnapshotRow[]> {
+  const now = new Date();
+  const rows = await prisma.dzialka.findMany({
+    where: {
+      ownerId: { not: null },
+      status: DzialkaStatus.AKTYWNE,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      lat: { not: null },
+      lng: { not: null },
+    },
+    select: {
+      lat: true,
+      lng: true,
+      przeznaczenia: true,
+      cenaPln: true,
+      powierzchniaM2: true,
+      sprzedajacyTyp: true,
+      prad: true,
+      woda: true,
+      mpzp: true,
+      wzWydane: true,
+    },
+  });
+
+  const detailRows = rows.filter(
+    (r): r is typeof r & { lat: number; lng: number } => r.lat !== null && r.lng !== null
+  );
+
+  const out: CityPriceSnapshotRow[] = [];
+  for (const region of SEO_REGIONS) {
+    for (const c of region.cities) {
+      const ctx = cityContext(c);
+      const matched = detailRows.filter((r) => getSearchMatchInfo(r, ctx).anyMatch);
+      const typical = matched.filter(
+        (r) =>
+          r.przeznaczenia.includes('BUDOWLANA') &&
+          r.powierzchniaM2 >= TYPICAL_BUILD_MIN_M2 &&
+          r.powierzchniaM2 <= TYPICAL_BUILD_MAX_M2
+      );
+      const detail = computeDetail(typical);
+      if (detail.pricePerM2) {
+        out.push({
+          citySlug: c.slug,
+          medianPricePerM2: detail.pricePerM2.median,
+          sampleCount: typical.length,
+        });
+      }
+    }
+  }
+  return out;
+}
