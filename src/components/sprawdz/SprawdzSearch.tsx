@@ -307,7 +307,7 @@ export default function SprawdzSearch() {
 
         {/* Przełącznik podkładu: zwykła mapa / satelita. Na satelicie łatwiej trafić w działkę
             po zabudowie i drogach, a granice z WMS nadal się rysują na wierzchu. */}
-        <div className="absolute left-4 top-20 flex overflow-hidden rounded-xl bg-surface/95 text-[12px] font-medium uppercase tracking-[0.14em] shadow-lg backdrop-blur">
+        <div className="absolute left-4 top-32 flex w-44 overflow-hidden rounded-xl bg-surface/95 text-[12px] font-medium uppercase tracking-[0.14em] shadow-lg backdrop-blur md:top-20">
           {([false, true] as const).map((sat) => {
             const active = satellite === sat;
             return (
@@ -316,7 +316,7 @@ export default function SprawdzSearch() {
                 type="button"
                 onClick={() => setSatellite(sat)}
                 aria-pressed={active}
-                className={`px-4 py-2.5 transition ${active ? 'bg-brand text-ink' : 'text-fg/75 hover:text-fg'}`}
+                className={`flex-1 py-2.5 text-center transition ${active ? 'bg-brand text-ink' : 'text-fg/75 hover:text-fg'}`}
               >
                 {sat ? 'Satelita' : 'Mapa'}
               </button>
