@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import dynamic from 'next/dynamic';
-import HeroGradientBg from '@/components/HeroGradientBg';
 import { useRouter } from 'next/navigation';
 import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
@@ -1512,9 +1511,9 @@ export default function KupSearch({
           była nią ucinana. HeroGradientBg jest absolute inset-0, więc nie wycieka;
           poziomy scroll trzyma zewnętrzny wrapper (overflow-x-hidden). */}
       <section ref={searchTopRef} className="relative w-full">
-        {/* Gradient spójny ze stroną główną (bez zdjęcia => szybki LCP). */}
-        <HeroGradientBg />
-
+        {/* Bez zielonej poświaty (HeroGradientBg) — to strona wyników, nie landing. Zieleń
+            zostaje tylko w akcentach (pinezka, ikona mapy, powiadomienia); tło czyste jak
+            lista ofert pod spodem. Hero z gradientem zostaje na głównej/sprawdź/blogu. */}
         <div
           className={`relative z-10 mx-auto max-w-6xl px-3 md:px-4 md:py-10 ${
             searchOpen ? 'py-8' : 'py-4'
