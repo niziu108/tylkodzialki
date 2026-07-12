@@ -51,6 +51,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const hubCityPages: MetadataRoute.Sitemap = [];
   const hubTypePages: MetadataRoute.Sitemap = [];
 
+  // Strony cenowe /ceny/[miasto] — tylko tam, gdzie realnie policzymy medianę budowlanych
+  // (próbka >= MIN_SAMPLE), spójnie z noindex strony cenowej. Adres zbiorczy /ceny zawsze.
+  const CENY_MIN = 4;
+  const cenyCityPages: MetadataRoute.Sitemap = [];
+
   for (const entry of hubCities) {
     if (entry.total <= 0) continue;
     if (!getSeoCity(entry.citySlug)) continue;
@@ -61,6 +66,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily',
       priority: 0.75,
     });
+
+    if ((entry.byType['budowlane'] ?? 0) >= CENY_MIN) {
+      cenyCityPages.push({
+        url: `${baseUrl}/ceny/${entry.citySlug}`,
+        lastModified: now,
+        changeFrequency: 'daily',
+        priority: 0.78,
+      });
+    }
 
     for (const type of SEO_TYPES) {
       if ((entry.byType[type.slug] ?? 0) <= 0) continue;
@@ -91,6 +105,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/ceny`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.85,
     },
     {
       url: `${baseUrl}/sprzedaj`,
@@ -134,6 +154,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...hubCityPages,
     ...hubTypePages,
     ...hubPowiatPages,
+    ...cenyCityPages,
 
     ...dzialki.map((dzialka) => ({
       url: `${baseUrl}/dzialka/${dzialka.id}`,

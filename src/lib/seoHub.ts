@@ -32,6 +32,7 @@ import {
   getSeoCity,
   getSeoRegion,
   type SeoCity,
+  type SeoType,
 } from '@/lib/seo-locations';
 
 // Promień listy/licznika miasta (km). Zgodny z dotychczasową stroną „budowlane" (radiusKm: 40).
@@ -339,6 +340,28 @@ export const getCategoryDetail = cache(
     return computeDetail(all.filter((r) => r.przeznaczenia.includes(typeEnum)));
   }
 );
+
+// ── Strona cenowa /ceny/[miasto] ────────────────────────────────────────────────
+// „Money page" na zapytanie „ceny/ile kosztuje działka w X": jeden komplet metryk dla
+// całego miasta + rozbicie po typach, żeby stronę PROWADZIĆ liczbą (mediana zł/m²), a nie
+// chować ją pod listą ofert. Ten sam silnik (computeDetail) i JEDEN cache'owany odczyt
+// puli miasta co strony kategorii — spójne liczby, zero dodatkowych zapytań.
+export type CityPriceBoard = {
+  overall: CategoryDetail;
+  byType: { type: SeoType; detail: CategoryDetail }[]; // tylko typy z >0 ofert, malejąco po liczbie
+};
+
+export const getCityPriceBoard = cache(async (citySlug: string): Promise<CityPriceBoard> => {
+  const all = await loadCityDetailRows(citySlug);
+  const overall = computeDetail(all);
+  const byType = SEO_TYPES.map((type) => ({
+    type,
+    detail: computeDetail(all.filter((r) => r.przeznaczenia.includes(type.enum))),
+  }))
+    .filter((x) => x.detail.count > 0)
+    .sort((a, b) => b.detail.count - a.detail.count);
+  return { overall, byType };
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // P24: wycena punktowa dla narzędzia „Sprawdź działkę".

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import KupSearch from '../../../kup/KupSearch';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
@@ -131,6 +132,15 @@ export default async function CityTypePage({ params }: PageProps) {
                 ))}
               </dl>
             </div>
+
+            <p className="mt-6 text-sm">
+              <Link
+                href={`/ceny/${city.slug}`}
+                className="font-medium text-brand-text underline-offset-4 hover:underline"
+              >
+                Zobacz pełne zestawienie cen działek {city.name} →
+              </Link>
+            </p>
           </section>
 
           <FaqSection items={faq} title={`Działki ${type.adj} ${city.name}: najczęstsze pytania`} />
