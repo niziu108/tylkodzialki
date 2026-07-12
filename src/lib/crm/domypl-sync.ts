@@ -601,6 +601,7 @@ const processedFiles = await prisma.crmProcessedFile.findMany({
     remoteFileName: true,
     fileSize: true,
     fileModifiedAt: true,
+    isFullExport: true,
   },
 });
 
@@ -613,6 +614,83 @@ const processedKeys = new Set(
     ].join("|")
   )
 );
+
+// Auto-czyszczenie drop-zone FTP. Biura wrzucają paczki (pełny eksport + kolejne różnicowe),
+// nikt ich nie kasuje, więc dysk hostingu puchnie w nieskończoność. Reguła kasowania jest tak
+// zbudowana, żeby NIGDY nie stracić bazy odniesienia:
+//
+//   ZAWSZE zostaje najświeższy PEŁNY eksport tego biura i WSZYSTKO, co przyszło po nim.
+//
+// Z tego pełnego snapshotu + różnicowych po nim da się odtworzyć całe biuro od zera. Kasujemy tylko
+// paczki z poprzednich, już zastąpionych „er" (starszy pełny eksport i jego różnicowe), i to pod
+// warunkiem, że JEDNOCZEŚNIE:
+//   1) plik jest DOKŁADNIE dopasowany (nazwa|rozmiar|data) do rekordu SUCCESS — czyli w pełni
+//      wchłonięty do bazy (nieprzetworzone i błędne zostają nietknięte),
+//   2) jest STARSZY niż najświeższy pełny eksport (istnieje nowszy pełny snapshot, który go zastąpił),
+//   3) jest starszy niż margines CRM_FEED_RETENTION_DAYS (domyślnie 14 dni) — bufor na zakładkę,
+//   4) nie należy do najświeższych CRM_FEED_KEEP_MIN plików (twardy dolny limit historii).
+//
+// Jeśli dla biura NIE znamy jeszcze żadnego pełnego eksportu (np. samo wrzuca różnicowe albo pełny
+// przyszedł przed wdrożeniem tej wersji i nie został jeszcze oznaczony) — kasujemy ZERO plików.
+// Skutek: dług dyskowy schodzi bezpiecznie, w miarę jak biura przysyłają kolejne pełne eksporty.
+const retentionDays = Number(process.env.CRM_FEED_RETENTION_DAYS ?? "14");
+const keepMinFiles = Number(process.env.CRM_FEED_KEEP_MIN ?? "10");
+
+const latestFullModifiedMs = processedFiles.reduce<number>((acc, file) => {
+  if (!file.isFullExport || !file.fileModifiedAt) return acc;
+  return Math.max(acc, file.fileModifiedAt.getTime());
+}, 0);
+
+if (
+  Number.isFinite(retentionDays) &&
+  retentionDays >= 0 &&
+  latestFullModifiedMs > 0
+) {
+  const ageCutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+
+  // remoteFeeds jest posortowane rosnąco po czasie — najświeższe na końcu. Chronimy ostatnie
+  // keepMinFiles niezależnie od reszty reguł (twardy bufor historii).
+  const protectedNewest = new Set(
+    remoteFeeds
+      .slice(Math.max(0, remoteFeeds.length - Math.max(0, keepMinFiles)))
+      .map((file) => file.remoteFileName)
+  );
+
+  const prunableFiles = remoteFeeds.filter((file) => {
+    if (!file.modifiedAt) return false; // brak daty = nie ryzykujemy
+    if (protectedNewest.has(file.remoteFileName)) return false; // twardy bufor najświeższych
+    if (file.modifiedAt.getTime() >= latestFullModifiedMs) return false; // to najświeższy pełny lub coś po nim
+    if (file.modifiedAt.getTime() >= ageCutoffMs) return false; // w oknie czasowego bufora
+
+    const key = [
+      file.remoteFileName,
+      file.size ?? "",
+      file.modifiedAt.getTime(),
+    ].join("|");
+
+    return processedKeys.has(key); // tylko potwierdzone jako w pełni przetworzone (SUCCESS)
+  });
+
+  let prunedCount = 0;
+  for (const file of prunableFiles) {
+    try {
+      await client.remove(file.remoteFileName);
+      prunedCount += 1;
+    } catch (error) {
+      console.error(
+        "[CRM CLEANUP] Nie udało się usunąć przetworzonego pliku:",
+        file.remoteFileName,
+        error
+      );
+    }
+  }
+
+  if (prunedCount > 0) {
+    console.log(
+      `[CRM CLEANUP] Usunięto ${prunedCount} zastąpionych plików (starszych niż najświeższy pełny eksport z ${new Date(latestFullModifiedMs).toISOString()}) z ${remoteDir}.`
+    );
+  }
+}
 
 let filesToDownload = remoteFeeds.filter((file) => {
   const key = [
@@ -1938,6 +2016,7 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
             fileSize: downloaded.fileSize,
             fileModifiedAt: downloaded.fileModifiedAt,
             status: fileErrorCount > 0 ? "ERROR" : "SUCCESS",
+            isFullExport,
             importedOffers: fileImportedOffers,
             createdCount: fileCreatedCount,
             updatedCount: fileUpdatedCount,
@@ -1954,6 +2033,7 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
             fileSize: downloaded.fileSize,
             fileModifiedAt: downloaded.fileModifiedAt,
             status: fileErrorCount > 0 ? "ERROR" : "SUCCESS",
+            isFullExport,
             importedOffers: fileImportedOffers,
             createdCount: fileCreatedCount,
             updatedCount: fileUpdatedCount,
