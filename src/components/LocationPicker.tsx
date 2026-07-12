@@ -67,6 +67,10 @@ export default function LocationPicker({ value, onChange }: Props) {
   // Mapa nie jest już zawsze na widoku (za duża na telefonie i desktopie). Otwiera się
   // pełnoekranowo z zielonego przycisku „Wskaż na mapie" — spójnie z „Sprawdź działkę".
   const [mapOpen, setMapOpen] = useState(false);
+  // Podkład: zwykła mapa albo satelita (hybrid = zdjęcie + etykiety). Granice działek z WMS
+  // są w overlayMapTypes, więc rysują się na wierzchu obu podkładów — po rozpoznaniu terenu
+  // z satelity łatwiej zaznaczyć właściwą działkę.
+  const [satellite, setSatellite] = useState(false);
   // parcelText już się nie zmienia w UI (usunęliśmy autouzupełnianie), ale zostaje jako
   // wartość początkowa z wartości/draftu i leci dalej w emit().
   const [parcelText] = useState(value?.parcelText ?? '');
@@ -241,6 +245,13 @@ export default function LocationPicker({ value, onChange }: Props) {
     if (pos) map.setCenter(pos);
   }, [mapOpen]);
 
+  // Przełączanie podkładu mapa/satelita.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !window.google?.maps) return;
+    map.setMapTypeId(satellite ? 'hybrid' : 'roadmap');
+  }, [satellite]);
+
   useEffect(() => {
     const marker = markerRef.current;
     const circle = circleRef.current;
@@ -356,10 +367,32 @@ export default function LocationPicker({ value, onChange }: Props) {
         <div ref={mapDivRef} className="h-full w-full bg-[#e8eaed]" />
 
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
-          <div className="pointer-events-auto max-w-[70%] rounded-xl bg-surface/95 px-4 py-2.5 text-[13px] leading-snug text-fg/80 shadow-lg backdrop-blur">
-            Przybliż mapę, pokażą się granice działek z numerami. Kliknij swoją działkę, a
-            potem „Gotowe".
+          <div className="flex max-w-[70%] flex-col items-start gap-2">
+            <div className="pointer-events-auto rounded-xl bg-surface/95 px-4 py-2.5 text-[13px] leading-snug text-fg/80 shadow-lg backdrop-blur">
+              Przybliż mapę, pokażą się granice działek z numerami. Kliknij swoją działkę, a
+              potem „Gotowe".
+            </div>
+
+            {/* Przełącznik podkładu: zwykła mapa / satelita. Granice działek z WMS rysują się
+                na wierzchu zdjęcia, więc po rozpoznaniu terenu łatwiej zaznaczyć swoją działkę. */}
+            <div className="pointer-events-auto flex w-44 overflow-hidden rounded-xl bg-surface/95 text-[12px] font-medium uppercase tracking-[0.14em] shadow-lg backdrop-blur">
+              {([false, true] as const).map((sat) => {
+                const active = satellite === sat;
+                return (
+                  <button
+                    key={String(sat)}
+                    type="button"
+                    onClick={() => setSatellite(sat)}
+                    aria-pressed={active}
+                    className={`flex-1 py-2.5 text-center transition ${active ? 'bg-brand text-ink' : 'text-fg/75 hover:text-fg'}`}
+                  >
+                    {sat ? 'Satelita' : 'Mapa'}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
           <button
             type="button"
             onClick={() => setMapOpen(false)}

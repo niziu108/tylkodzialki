@@ -290,12 +290,34 @@ export default function SprawdzSearch() {
       >
         <div ref={mapDivRef} className="h-full w-full bg-[#e8eaed]" />
 
-        {/* Pasek górny: podpowiedź + zamknij */}
+        {/* Pasek górny: po lewej podpowiedź + przełącznik podkładu (tuż pod nią), po prawej zamknij */}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
-          <div className="pointer-events-auto max-w-[70%] rounded-xl bg-surface/95 px-4 py-2.5 text-[13px] leading-snug text-fg/80 shadow-lg backdrop-blur">
-            Przybliż mapę, pokażą się granice działek z numerami. Kliknij swoją działkę, a
-            potem „Sprawdź tę działkę".
+          <div className="flex max-w-[70%] flex-col items-start gap-2">
+            <div className="pointer-events-auto rounded-xl bg-surface/95 px-4 py-2.5 text-[13px] leading-snug text-fg/80 shadow-lg backdrop-blur">
+              Przybliż mapę, pokażą się granice działek z numerami. Kliknij swoją działkę, a
+              potem „Sprawdź tę działkę".
+            </div>
+
+            {/* Przełącznik podkładu: zwykła mapa / satelita. Na satelicie łatwiej trafić w działkę
+                po zabudowie i drogach, a granice z WMS nadal się rysują na wierzchu. */}
+            <div className="pointer-events-auto flex w-44 overflow-hidden rounded-xl bg-surface/95 text-[12px] font-medium uppercase tracking-[0.14em] shadow-lg backdrop-blur">
+              {([false, true] as const).map((sat) => {
+                const active = satellite === sat;
+                return (
+                  <button
+                    key={String(sat)}
+                    type="button"
+                    onClick={() => setSatellite(sat)}
+                    aria-pressed={active}
+                    className={`flex-1 py-2.5 text-center transition ${active ? 'bg-brand text-ink' : 'text-fg/75 hover:text-fg'}`}
+                  >
+                    {sat ? 'Satelita' : 'Mapa'}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
           <button
             type="button"
             onClick={() => setMapOpen(false)}
@@ -303,25 +325,6 @@ export default function SprawdzSearch() {
           >
             Zamknij ✕
           </button>
-        </div>
-
-        {/* Przełącznik podkładu: zwykła mapa / satelita. Na satelicie łatwiej trafić w działkę
-            po zabudowie i drogach, a granice z WMS nadal się rysują na wierzchu. */}
-        <div className="absolute left-4 top-32 flex w-44 overflow-hidden rounded-xl bg-surface/95 text-[12px] font-medium uppercase tracking-[0.14em] shadow-lg backdrop-blur md:top-20">
-          {([false, true] as const).map((sat) => {
-            const active = satellite === sat;
-            return (
-              <button
-                key={String(sat)}
-                type="button"
-                onClick={() => setSatellite(sat)}
-                aria-pressed={active}
-                className={`flex-1 py-2.5 text-center transition ${active ? 'bg-brand text-ink' : 'text-fg/75 hover:text-fg'}`}
-              >
-                {sat ? 'Satelita' : 'Mapa'}
-              </button>
-            );
-          })}
         </div>
 
         {/* Błąd (np. punkt między działkami) — pokazany na mapie, nie tylko w karcie pod spodem */}
