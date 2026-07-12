@@ -23,8 +23,10 @@ import { prisma } from "../src/lib/prisma";
 //  - --dry-run: tylko raport, zero zapisów do bazy i zero ruszania FTP poza odczytem.
 
 const DRY_RUN = process.argv.includes("--dry-run");
-const MIN_FULL_BYTES = Number(process.env.CRM_BACKFILL_MIN_FULL_BYTES ?? String(1_000_000)); // 1 MB
-const MAX_BIG_DOWNLOADS = Number(process.env.CRM_BACKFILL_MAX_DOWNLOADS ?? "8"); // ile dużych plików max sprawdzamy na biuro
+// Pełne eksporty są duże (dziesiątki-setki MB). Wyższy próg pomija różnicowe (bywają do ~20 MB),
+// żeby budżet skanu trafiał od razu w kandydatów na pełny, a nie marnował się na drobnicę.
+const MIN_FULL_BYTES = Number(process.env.CRM_BACKFILL_MIN_FULL_BYTES ?? String(10_000_000)); // 10 MB
+const MAX_BIG_DOWNLOADS = Number(process.env.CRM_BACKFILL_MAX_DOWNLOADS ?? "15"); // ile dużych plików max sprawdzamy na biuro
 
 type Integ = {
   id: string;
@@ -221,8 +223,15 @@ async function main() {
       : "🚀 BACKFILL DOMY.PL — oznaczanie najnowszych pełnych eksportów\n"
   );
 
+  // Tylko integracje jadące silnikiem DOMY.PL. ASARI i EstiCRM (choć bywają z feedFormat=DOMY_PL)
+  // mają własne, samoczyszczające się silniki — ich tu nie ruszamy (i nie ściągamy ich wielkich ZIP-ów).
   const integrations = (await prisma.crmIntegration.findMany({
-    where: { isActive: true, transportType: "FTP", feedFormat: "DOMY_PL" },
+    where: {
+      isActive: true,
+      transportType: "FTP",
+      feedFormat: "DOMY_PL",
+      provider: { notIn: ["ASARI", "ESTI_CRM"] },
+    },
     select: {
       id: true,
       name: true,
