@@ -855,6 +855,60 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
     console.log("[ASARI DEBUG] Zdjęcia dostępne na FTP:", imageFiles.length);
     console.log("[ASARI DEBUG] Zdjęcia nie są pobierane hurtowo — będą pobierane tylko dla importowanych ofert.");
 
+    // Auto-czyszczenie drop-zone ASARI. Silnik używa najnowszego manifestu CFG i wskazanych przez
+    // niego plików ofert; starsze snapshoty *_NNN.xml i *_CFG.xml nie są już potrzebne. Kasujemy
+    // WYŁĄCZNIE takie pliki starsze niż najnowszy CFG, POMIJAJĄC te wskazane przez bieżący CFG oraz
+    // plik definicji. NIGDY nie ruszamy zdjęć (pobierane on-demand po nazwie) ani definitions.xml.
+    // Bez najnowszego CFG (biuro bez manifestu) — zero kasowań.
+    const newestCfgModifiedMs = cfgFiles[0]?.modifiedAt?.getTime() ?? 0;
+    if (newestCfgModifiedMs > 0) {
+      const retentionDays = Number(process.env.CRM_FEED_RETENTION_DAYS ?? "14");
+      const keepMinFiles = Number(process.env.CRM_FEED_KEEP_MIN ?? "10");
+      const ageCutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+
+      const protectedBasenames = new Set<string>();
+      if (cfg.fileName) protectedBasenames.add(safeBasename(cfg.fileName));
+      for (const f of cfg.listedOfferFiles) protectedBasenames.add(safeBasename(f));
+      if (cfg.definitionsFileName) protectedBasenames.add(safeBasename(cfg.definitionsFileName));
+      protectedBasenames.add("definictions.xml");
+      protectedBasenames.add("definitions.xml");
+
+      // Kandydaci: tylko snapshoty ofert i manifesty CFG (xmlFiles nie zawiera zdjęć). Posortowane
+      // malejąco po czasie — chronimy keepMinFiles najświeższych jako twardy bufor.
+      const snapshotFiles = xmlFiles
+        .filter((item) => /(_\d{3}\.xml|_cfg\.xml)$/i.test(item.name))
+        .sort((a, b) => (b.modifiedAt?.getTime() ?? 0) - (a.modifiedAt?.getTime() ?? 0));
+
+      const protectedNewest = new Set(
+        snapshotFiles.slice(0, Math.max(0, keepMinFiles)).map((f) => f.remotePath)
+      );
+
+      const prunable = snapshotFiles.filter((item) => {
+        if (!item.modifiedAt) return false;
+        if (protectedBasenames.has(safeBasename(item.name))) return false;
+        if (protectedNewest.has(item.remotePath)) return false;
+        if (item.modifiedAt.getTime() >= newestCfgModifiedMs) return false;
+        if (item.modifiedAt.getTime() >= ageCutoffMs) return false;
+        return true;
+      });
+
+      let prunedCount = 0;
+      for (const item of prunable) {
+        try {
+          await client.remove(item.remotePath);
+          prunedCount += 1;
+        } catch (error) {
+          console.error("[ASARI CLEANUP] Nie udało się usunąć starego snapshotu:", item.remotePath, error);
+        }
+      }
+
+      if (prunedCount > 0) {
+        console.log(
+          `[ASARI CLEANUP] Usunięto ${prunedCount} starych snapshotów XML/CFG (starszych niż najnowszy CFG ${new Date(newestCfgModifiedMs).toISOString()}) z ${remoteDir}. Zdjęcia nietknięte.`
+        );
+      }
+    }
+
     const feed: DownloadedAsariFeed = {
       remoteFileName: cfg.fileName ?? "ASARI_MULTIPLE_FILES",
       tempDir,

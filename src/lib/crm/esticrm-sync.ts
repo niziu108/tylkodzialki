@@ -651,6 +651,11 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
 
     const extractedRoot = path.join(tempDir, "extracted");
 
+    // Do auto-czyszczenia: zapamiętujemy datę najnowszego PEŁNEGO eksportu. Silnik i tak czyta
+    // tylko najnowszy pełny + przyrostowe nowsze od niego, więc ZIP-y starsze niż pełny nigdy
+    // już nie są potrzebne. 0 = nie znaleziono potwierdzonego pełnego (wtedy nic nie kasujemy).
+    let newestFullZipModifiedMs = 0;
+
     // Wybór plików (naprawa P-F): bierzemy najnowszy PEŁNY eksport (export="full")
     // oraz wszystkie przyrostowe NOWSZE od niego. Idziemy od najnowszego pliku i
     // zatrzymujemy się na pierwszym pełnym eksporcie. Wcześniej brany był tylko
@@ -704,6 +709,11 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
             : "nieznany, kończę wybór"
       );
 
+      // Pierwszy napotkany pełny (idziemy od najnowszego) = najnowszy pełny eksport.
+      if (isFullZip && zip.modifiedAt) {
+        newestFullZipModifiedMs = zip.modifiedAt.getTime();
+      }
+
       // Stop na pełnym eksporcie albo na nierozpoznanym trybie. Przyrostowe (nowsze
       // od pełnego) zbieramy po drodze i lecimy dalej, aż trafimy na pełny.
       if (isFullZip || !isKnownIncremental) break;
@@ -751,6 +761,46 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
     console.log("[ESTICRM DEBUG] Pobrane pliki XML ofert:", offerXmlFiles.map((file) => path.basename(file)));
     console.log("[ESTICRM DEBUG] Zdjęcia lokalne:", [...localFileByBasename.keys()].filter((name) => /\.(jpe?g|png|webp|avif)$/i.test(name)).length);
     console.log("[ESTICRM DEBUG] Zdjęcia na FTP do pobrania na żądanie:", imageRemotePathByBasename.size);
+
+    // Auto-czyszczenie drop-zone EstiCRM. Silnik czyta najnowszy pełny eksport + przyrostowe
+    // nowsze od niego; wszystko STARSZE od najnowszego pełnego nigdy już nie jest czytane, więc
+    // to bezpieczny balast (bywają pliki po 440 MB). Kasujemy WYŁĄCZNIE stare .zip starsze niż
+    // najnowszy pełny (z marginesem czasu i buforem najświeższych). NIGDY nie ruszamy luźnych
+    // zdjęć, definitions.xml ani plików XML. Jeśli nie potwierdzono pełnego eksportu — zero kasowań.
+    if (newestFullZipModifiedMs > 0) {
+      const retentionDays = Number(process.env.CRM_FEED_RETENTION_DAYS ?? "14");
+      const keepMinFiles = Number(process.env.CRM_FEED_KEEP_MIN ?? "10");
+      const ageCutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+
+      // zipFiles jest posortowane malejąco po czasie (najnowsze na początku).
+      const protectedNewest = new Set(
+        zipFiles.slice(0, Math.max(0, keepMinFiles)).map((z) => z.remotePath)
+      );
+
+      const prunableZips = zipFiles.filter((z) => {
+        if (!z.modifiedAt) return false;
+        if (protectedNewest.has(z.remotePath)) return false;
+        if (z.modifiedAt.getTime() >= newestFullZipModifiedMs) return false; // pełny lub coś po nim
+        if (z.modifiedAt.getTime() >= ageCutoffMs) return false; // margines czasowy
+        return true;
+      });
+
+      let prunedCount = 0;
+      for (const z of prunableZips) {
+        try {
+          await client.remove(z.remotePath);
+          prunedCount += 1;
+        } catch (error) {
+          console.error("[ESTICRM CLEANUP] Nie udało się usunąć starego ZIP:", z.remotePath, error);
+        }
+      }
+
+      if (prunedCount > 0) {
+        console.log(
+          `[ESTICRM CLEANUP] Usunięto ${prunedCount} ZIP-ów starszych niż najnowszy pełny eksport (${new Date(newestFullZipModifiedMs).toISOString()}) z ${remoteDir}.`
+        );
+      }
+    }
 
     const feed: DownloadedEstiFeed = {
       remoteFileName,
