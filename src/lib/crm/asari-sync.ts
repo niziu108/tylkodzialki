@@ -1294,13 +1294,28 @@ async function processOffer(
   // (reaktywacja) — pełny re-upload jak dotąd, by nie zgubić realnej zmiany.
   const storedUpdatedAt = existingLink.externalUpdatedAt;
   const incomingUpdatedAt = offer.externalUpdatedAt;
-  const photosUnchanged =
-    !wasEnded &&
+  const zdjecieCount = await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } });
+  const dateOk =
     storedUpdatedAt != null &&
     incomingUpdatedAt != null &&
-    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
-    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) ===
-      offer.photoFileNames.length;
+    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime();
+  const countOk = zdjecieCount === offer.photoFileNames.length;
+  const photosUnchanged = !wasEnded && dateOk && countOk;
+  // TODO(diag): tymczasowa diagnostyka guarda — usunąć po weryfikacji.
+  console.log(
+    "[ASARI GUARD]",
+    JSON.stringify({
+      ext: offer.externalId,
+      stored: storedUpdatedAt,
+      incoming: incomingUpdatedAt,
+      dateOk,
+      zdj: zdjecieCount,
+      feedLen: offer.photoFileNames.length,
+      countOk,
+      wasEnded,
+      photosUnchanged,
+    })
+  );
 
   if (!photosUnchanged) {
     await removeExistingR2Photos(existingLink.dzialkaId);
