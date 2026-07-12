@@ -10,13 +10,7 @@ import {
   inCity,
   type SeoType,
 } from '@/lib/seo-locations';
-import {
-  getCityPriceBoard,
-  TYPICAL_BUILD_MIN_M2,
-  TYPICAL_BUILD_MAX_M2,
-  type CategoryDetail,
-  type RangeStat,
-} from '@/lib/seoHub';
+import { getCityPriceBoard, type CategoryDetail, type RangeStat } from '@/lib/seoHub';
 import { buildSpecRows, buildLocalParagraphs, buildFaq } from '@/lib/seoCategoryContent';
 import { getCityPriceTrend } from '@/lib/cityPriceStats';
 import { formatIntPL, formatPLN } from '@/lib/format';
@@ -76,8 +70,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const board = await getCityPriceBoard(city.slug);
-  const median =
-    (board.budowlanaTypical ?? budowlanaDetail(board))?.pricePerM2?.median ?? null;
+  const median = budowlanaDetail(board)?.pricePerM2?.median ?? null;
   const hasPrice = median !== null;
 
   return {
@@ -102,11 +95,9 @@ export default async function CenyMiastoPage({ params }: PageProps) {
     getCityPriceTrend(city.slug),
   ]);
 
-  // Liczba wiodąca = typowe działki budowlane (metraż pod dom); gdy próbki za mało,
-  // spadamy do pełnej puli budowlanych, a na końcu do wszystkich typów.
-  const typical = board.budowlanaTypical;
-  const budBased = typical ?? budowlanaDetail(board); // null tylko gdy zero ofert budowlanych
-  const usingTypical = typical !== null;
+  // JEDNA liczba w całym serwisie: dokładnie ta sama mediana budowlanych co na stronie kategorii
+  // (ten sam byType/computeDetail), żeby serwis nie mówił dwiema różnymi liczbami o tym samym.
+  const budBased = budowlanaDetail(board); // null tylko gdy zero ofert budowlanych
   const heroDetail = budBased ?? board.overall;
   const heroPrice = heroDetail.pricePerM2;
 
@@ -202,15 +193,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
 
         <p className="mt-6 text-[13px] text-fg/45">
           {heroPrice
-            ? `Policzone z ${formatIntPL(heroDetail.count)} aktywnych ofert${
-                usingTypical
-                  ? ` typowych działek budowlanych (${formatIntPL(TYPICAL_BUILD_MIN_M2)}–${formatIntPL(TYPICAL_BUILD_MAX_M2)} m²)`
-                  : ''
-              }. Stan na ${dateStr}. Liczymy medianę i zakres percentylowy z ogłoszeń, nie z cenników.${
-                usingTypical
-                  ? ' Duże działki mają zwykle niższą stawkę za m² i tu ich nie wliczamy.'
-                  : ''
-              }`
+            ? `Policzone z ${formatIntPL(heroDetail.count)} aktywnych ofert działek budowlanych w okolicy ${city.gen} (w promieniu ok. 40 km). Stan na ${dateStr}. Liczymy medianę i zakres percentylowy z ogłoszeń, nie z cenników.`
             : `Stan na ${dateStr}.`}
         </p>
 
@@ -279,31 +262,25 @@ export default async function CenyMiastoPage({ params }: PageProps) {
             Ceny wg typu działki {inCity(city)}
           </h2>
           <div className="mt-6 border-t border-fg/10">
-            {board.byType.map(({ type, detail }) => {
-              // Wiersz „budowlane" liczymy na tej samej próbce co hero (typowy metraż),
-              // żeby ta sama fraza nie miała dwóch różnych liczb na jednej stronie.
-              const shown = type.slug === 'budowlane' && typical ? typical : detail;
-              return (
-                <Link
-                  key={type.slug}
-                  href={`/dzialki/${city.slug}/${type.slug}`}
-                  className="group flex items-baseline justify-between gap-4 border-b border-fg/10 py-3.5 transition hover:bg-fg/[0.02]"
-                >
-                  <span className="text-sm font-medium text-fg group-hover:text-brand-text md:text-[15px]">
-                    Działki {type.adj}
+            {board.byType.map(({ type, detail }) => (
+              <Link
+                key={type.slug}
+                href={`/dzialki/${city.slug}/${type.slug}`}
+                className="group flex items-baseline justify-between gap-4 border-b border-fg/10 py-3.5 transition hover:bg-fg/[0.02]"
+              >
+                <span className="text-sm font-medium text-fg group-hover:text-brand-text md:text-[15px]">
+                  Działki {type.adj}
+                </span>
+                <span className="flex items-baseline gap-4">
+                  <span className="text-sm text-fg/85 md:text-[15px]">
+                    {detail.pricePerM2 ? zlM2(detail.pricePerM2.median) : 'za mało danych'}
                   </span>
-                  <span className="flex items-baseline gap-4">
-                    <span className="text-sm text-fg/85 md:text-[15px]">
-                      {shown.pricePerM2 ? zlM2(shown.pricePerM2.median) : 'za mało danych'}
-                    </span>
-                    <span className="hidden w-24 text-right text-[13px] text-fg/45 sm:inline">
-                      {formatIntPL(shown.count)}{' '}
-                      {shown.count === 1 ? 'oferta' : 'ofert'}
-                    </span>
+                  <span className="hidden w-24 text-right text-[13px] text-fg/45 sm:inline">
+                    {formatIntPL(detail.count)} {detail.count === 1 ? 'oferta' : 'ofert'}
                   </span>
-                </Link>
-              );
-            })}
+                </span>
+              </Link>
+            ))}
           </div>
           <p className="mt-3 text-[13px] text-fg/45">
             Mediana zł/m². „Za mało danych" oznacza próbkę zbyt małą na wiarygodną liczbę.
