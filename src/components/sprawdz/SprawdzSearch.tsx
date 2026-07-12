@@ -233,20 +233,20 @@ export default function SprawdzSearch() {
               />
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setMapOpen(true)}
-                className="text-sm font-medium text-brand-text underline decoration-1 underline-offset-4 transition hover:text-brand-bright"
+                className="inline-flex h-12 items-center justify-center rounded-xl border border-brand/60 px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-brand-text transition hover:border-brand hover:text-brand-bright"
               >
-                Wskaż na mapie (polecane)
+                Wskaż na mapie
               </button>
 
               <button
                 type="button"
                 onClick={handleCheck}
                 disabled={loading}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright disabled:opacity-60"
               >
                 {loading ? 'Sprawdzam…' : 'Sprawdź działkę'}
               </button>
