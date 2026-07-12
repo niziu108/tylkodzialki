@@ -13,7 +13,8 @@
     "crm:imo": "tsx scripts/crm-imo-enqueue.ts",
     "crm:autosync:on": "tsx scripts/crm-autosync-flag.ts on",
     "crm:autosync:off": "tsx scripts/crm-autosync-flag.ts off",
-    "crm:autosync:status": "tsx scripts/crm-autosync-flag.ts status"
+    "crm:autosync:status": "tsx scripts/crm-autosync-flag.ts status",
+    "crm:backfill": "tsx scripts/crm-backfill-full-exports.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
