@@ -21,6 +21,19 @@ async function runLoop() {
   const { prisma } = await import("../src/lib/prisma");
   const { runCrmImportJob } = await import("../src/lib/crm/run-crm-job");
 
+  // Reconciler startowy. Worker jest jednoinstancyjny, więc joby w statusie RUNNING w
+  // chwili startu to sieroty po restarcie/crashu (nic realnie nie działa). Wznawiamy je
+  // jako PENDING — inaczej wiszą wiecznie i blokują harmonogram, bo enqueueAutoSyncJobs
+  // pomija integracje mające job PENDING/RUNNING w toku (i takie biuro przestaje się
+  // synchronizować). runCrmImportJob jest idempotentny, więc ponowne przetworzenie jest OK.
+  const reconciled = await prisma.crmImportJob.updateMany({
+    where: { status: "RUNNING" },
+    data: { status: "PENDING", message: "Wznowiono po restarcie workera (osierocony RUNNING)." },
+  });
+  if (reconciled.count > 0) {
+    console.log(`♻️ Reconciler: wznowiono ${reconciled.count} osieroconych jobów RUNNING → PENDING.`);
+  }
+
   console.log("🚀 CRM worker działa. Szukam zadań PENDING...");
 
   while (true) {
