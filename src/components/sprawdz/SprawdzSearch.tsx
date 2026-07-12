@@ -59,6 +59,10 @@ export default function SprawdzSearch() {
   const reportRef = useRef<HTMLDivElement | null>(null);
 
   const [mapOpen, setMapOpen] = useState(false);
+  // Podkład: zwykła mapa albo satelita (hybrid = zdjęcie + etykiety). Granice działek z WMS
+  // są w overlayMapTypes, więc rysują się na wierzchu obu podkładów — na satelicie widać
+  // zabudowę i drogi, łatwiej trafić w swoją działkę.
+  const [satellite, setSatellite] = useState(false);
   const [point, setPoint] = useState<Point | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +161,13 @@ export default function SprawdzSearch() {
     if (point) map.setCenter(point);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapOpen]);
+
+  // Przełączanie podkładu mapa/satelita.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !window.google?.maps) return;
+    map.setMapTypeId(satellite ? 'hybrid' : 'roadmap');
+  }, [satellite]);
 
   async function handleCheck() {
     if (loading) return;
@@ -292,6 +303,25 @@ export default function SprawdzSearch() {
           >
             Zamknij ✕
           </button>
+        </div>
+
+        {/* Przełącznik podkładu: zwykła mapa / satelita. Na satelicie łatwiej trafić w działkę
+            po zabudowie i drogach, a granice z WMS nadal się rysują na wierzchu. */}
+        <div className="absolute left-4 top-20 flex overflow-hidden rounded-xl bg-surface/95 text-[12px] font-medium uppercase tracking-[0.14em] shadow-lg backdrop-blur">
+          {([false, true] as const).map((sat) => {
+            const active = satellite === sat;
+            return (
+              <button
+                key={String(sat)}
+                type="button"
+                onClick={() => setSatellite(sat)}
+                aria-pressed={active}
+                className={`px-4 py-2.5 transition ${active ? 'bg-brand text-ink' : 'text-fg/75 hover:text-fg'}`}
+              >
+                {sat ? 'Satelita' : 'Mapa'}
+              </button>
+            );
+          })}
         </div>
 
         {/* Błąd (np. punkt między działkami) — pokazany na mapie, nie tylko w karcie pod spodem */}
