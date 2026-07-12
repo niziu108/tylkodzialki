@@ -1285,19 +1285,42 @@ async function processOffer(
     }
   }
 
-  await removeExistingR2Photos(existingLink.dzialkaId);
+  // Optymalizacja: pomiń kosztowny re-upload zdjęć, gdy oferta się nie zmieniła.
+  // ASARI ściąga każde zdjęcie osobnym GET-em z FTP, więc bezwarunkowy re-upload
+  // przy każdym syncu topił kolejkę workera. Sygnał zmiany = externalUpdatedAt:
+  // gdy przychodzące nie jest nowsze niż zapisane ORAZ liczba zdjęć w bazie zgadza
+  // się z feedem, zostawiamy istniejące zdjęcia w R2 nietknięte. Zachowawczo: gdy
+  // którakolwiek data jest nieznana (null) lub oferta wraca z ZAKONCZONE
+  // (reaktywacja) — pełny re-upload jak dotąd, by nie zgubić realnej zmiany.
+  const storedUpdatedAt = existingLink.externalUpdatedAt;
+  const incomingUpdatedAt = offer.externalUpdatedAt;
+  const photosUnchanged =
+    !wasEnded &&
+    storedUpdatedAt != null &&
+    incomingUpdatedAt != null &&
+    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
+    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) ===
+      offer.photoFileNames.length;
 
-  const uploadedPhotos = await uploadOfferPhotosToR2(
-      integration,
-      downloaded,
-      offer.externalId,
-      offer.photoFileNames
-    );
+  if (!photosUnchanged) {
+    await removeExistingR2Photos(existingLink.dzialkaId);
+  }
+
+  const uploadedPhotos = photosUnchanged
+    ? []
+    : await uploadOfferPhotosToR2(
+        integration,
+        downloaded,
+        offer.externalId,
+        offer.photoFileNames
+      );
 
   await prisma.$transaction(async (tx) => {
-    await tx.zdjecie.deleteMany({
-      where: { dzialkaId: existingLink.dzialkaId },
-    });
+    if (!photosUnchanged) {
+      await tx.zdjecie.deleteMany({
+        where: { dzialkaId: existingLink.dzialkaId },
+      });
+    }
 
     const dzialka = await tx.dzialka.update({
       where: { id: existingLink.dzialkaId },
@@ -1311,9 +1334,13 @@ async function processOffer(
               status: "AKTYWNE" as const,
             }
           : {}),
-        zdjecia: {
-          create: uploadedPhotos,
-        },
+        ...(photosUnchanged
+          ? {}
+          : {
+              zdjecia: {
+                create: uploadedPhotos,
+              },
+            }),
       },
     });
 
@@ -1362,7 +1389,9 @@ async function processOffer(
         status: "SUCCESS",
         message: wasEnded
           ? "Oferta reaktywowana poprawnie z importu ASARI."
-          : "Oferta zaktualizowana poprawnie z importu ASARI.",
+          : photosUnchanged
+            ? "Oferta zaktualizowana z importu ASARI (zdjęcia bez zmian — pominięto re-upload)."
+            : "Oferta zaktualizowana poprawnie z importu ASARI.",
         payload: offer.payload,
       },
     });

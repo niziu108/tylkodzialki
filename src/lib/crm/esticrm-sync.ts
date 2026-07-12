@@ -1075,18 +1075,36 @@ async function processOffer(
     }
   }
 
-  await removeExistingR2Photos(existingLink.dzialkaId);
-  const uploadedPhotos = await uploadOfferPhotosToR2(integration, downloaded, offer.externalId, offer.photoFileNames);
+  // Optymalizacja: pomiń re-upload zdjęć, gdy oferta się nie zmieniła (patrz asari-sync).
+  // Sygnał = externalUpdatedAt: przychodzące nie nowsze niż zapisane + zgodna liczba zdjęć
+  // w bazie ⇒ zostaw zdjęcia w R2. Zachowawczo: null-e i reaktywacja ⇒ pełny re-upload.
+  const storedUpdatedAt = existingLink.externalUpdatedAt;
+  const incomingUpdatedAt = offer.externalUpdatedAt;
+  const photosUnchanged =
+    !wasEnded &&
+    storedUpdatedAt != null &&
+    incomingUpdatedAt != null &&
+    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
+    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) === offer.photoFileNames.length;
+
+  if (!photosUnchanged) {
+    await removeExistingR2Photos(existingLink.dzialkaId);
+  }
+  const uploadedPhotos = photosUnchanged
+    ? []
+    : await uploadOfferPhotosToR2(integration, downloaded, offer.externalId, offer.photoFileNames);
 
   await prisma.$transaction(async (tx) => {
-    await tx.zdjecie.deleteMany({ where: { dzialkaId: existingLink.dzialkaId } });
+    if (!photosUnchanged) {
+      await tx.zdjecie.deleteMany({ where: { dzialkaId: existingLink.dzialkaId } });
+    }
 
     const dzialka = await tx.dzialka.update({
       where: { id: existingLink.dzialkaId },
       data: {
         ...buildDzialkaDataFromOffer(offer),
         ...(wasEnded ? { publishedAt: now, expiresAt, endedAt: null, status: "AKTYWNE" as const } : {}),
-        zdjecia: { create: uploadedPhotos },
+        ...(photosUnchanged ? {} : { zdjecia: { create: uploadedPhotos } }),
       },
     });
 

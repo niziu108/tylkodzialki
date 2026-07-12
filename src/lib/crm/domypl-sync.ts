@@ -1623,8 +1623,21 @@ async function processOffer(
     }
   }
 
+  // Optymalizacja: pomiń re-upload zdjęć, gdy oferta się nie zmieniła (patrz asari-sync).
+  // DOMY.PL czyta zdjęcia z lokalnego ZIP (tanio), ale i tak re-uploadował do R2 co sync.
+  // Sygnał = externalUpdatedAt: przychodzące nie nowsze niż zapisane + zgodna liczba zdjęć
+  // w bazie ⇒ zostaw zdjęcia w R2. Zachowawczo: null-e i reaktywacja ⇒ pełny re-upload.
+  const storedUpdatedAt = existingLink.externalUpdatedAt;
+  const incomingUpdatedAt = offer.externalUpdatedAt;
+  const photosUnchanged =
+    !wasEnded &&
+    storedUpdatedAt != null &&
+    incomingUpdatedAt != null &&
+    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
+    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) === offer.photoFileNames.length;
+
   const uploadedPhotos =
-    offer.photoFileNames.length > 0
+    !photosUnchanged && offer.photoFileNames.length > 0
       ? await uploadOfferPhotosToR2(
           integration.id,
           offer.externalId,
