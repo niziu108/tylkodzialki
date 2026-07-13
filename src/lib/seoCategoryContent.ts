@@ -80,7 +80,7 @@ export function buildSpecRows(detail: CategoryDetail): SpecRow[] {
   }
 
   if (detail.pricePerM2) {
-    rows.push({ label: 'Mediana ceny', value: zlM2(detail.pricePerM2.median) });
+    rows.push({ label: 'Przeciętna cena', value: zlM2(detail.pricePerM2.median) });
     rows.push({ label: 'Typowy zakres', value: range(detail.pricePerM2, zlM2) });
   }
 
@@ -136,7 +136,7 @@ export function buildLocalParagraphs(
   // Akapit 2: ceny i powierzchnie (albo uczciwie: za mało danych).
   if (detail.pricePerM2 && detail.areaM2) {
     const priceVariants = [
-      `Mediana ceny to ${zlM2(detail.pricePerM2.median)}, a typowe stawki w ofertach mieszczą się ${range(detail.pricePerM2, zlM2)}.`,
+      `Przeciętna cena to ${zlM2(detail.pricePerM2.median)}, a typowe stawki w ofertach mieszczą się ${range(detail.pricePerM2, zlM2)}.`,
       `Środek rynku wypada przy ${zlM2(detail.pricePerM2.median)}, a większość ofert ma ${range(detail.pricePerM2, zlM2)}.`,
     ];
     let p2 = priceVariants[pickVariant(seed, priceVariants.length)];
@@ -147,7 +147,7 @@ export function buildLocalParagraphs(
     out.push(p2);
   } else if (detail.areaM2) {
     out.push(
-      `Powierzchnie dostępnych działek mieszczą się zwykle ${range(detail.areaM2, m2)}, typowo około ${m2(detail.areaM2.median)}. Ofert jest na razie za mało, by podać wiarygodną medianę ceny, więc stawki najlepiej sprawdzić wprost w aktualnych ogłoszeniach powyżej.`
+      `Powierzchnie dostępnych działek mieszczą się zwykle ${range(detail.areaM2, m2)}, typowo około ${m2(detail.areaM2.median)}. Ofert jest na razie za mało, by podać wiarygodną przeciętną cenę, więc stawki najlepiej sprawdzić wprost w aktualnych ogłoszeniach powyżej.`
     );
   } else {
     out.push(
@@ -189,14 +189,14 @@ export function buildFaq(city: SeoCity, type: SeoType, detail: CategoryDetail): 
 
   // 1. Cena
   if (detail.pricePerM2) {
-    let a = `Mediana ceny działek ${gpl} w okolicy ${city.gen} to ${zlM2(detail.pricePerM2.median)}, a typowe stawki w ofertach to ${range(detail.pricePerM2, zlM2)}.`;
+    let a = `Przeciętna cena działek ${gpl} w okolicy ${city.gen} to ${zlM2(detail.pricePerM2.median)}, a typowe stawki w ofertach to ${range(detail.pricePerM2, zlM2)}.`;
     if (detail.totalPrice) a += ` Za całą działkę ceny najczęściej wynoszą ${range(detail.totalPrice, pln)}.`;
     a += ` Liczby wyliczamy na bieżąco z aktywnych ogłoszeń, nie z cenników.`;
     faq.push({ question: `Ile kosztuje działka ${fem} ${inCity(city)}?`, answer: a });
   } else if (detail.count > 0) {
     faq.push({
       question: `Ile kosztuje działka ${fem} ${inCity(city)}?`,
-      answer: `${capitalize(inCity(city))} jest na razie za mało ofert działek ${gpl}, aby podać wiarygodną medianę ceny. Aktualne stawki sprawdzisz wprost w ogłoszeniach na tej stronie.`,
+      answer: `${capitalize(inCity(city))} jest na razie za mało ofert działek ${gpl}, aby podać wiarygodną przeciętną cenę. Aktualne stawki sprawdzisz wprost w ogłoszeniach na tej stronie.`,
     });
   }
 

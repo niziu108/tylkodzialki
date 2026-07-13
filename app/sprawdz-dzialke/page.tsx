@@ -58,7 +58,7 @@ const CO_DOSTANIESZ: { title: string; sub: string }[] = [
   },
   {
     title: 'Orientacyjna cena okolicy',
-    sub: 'Mediana i zakres cen z aktualnych ogłoszeń działek w pobliżu, z rozbiciem na budowlane oraz uzbrojone i nieuzbrojone. Znasz rząd wielkości, zanim zadzwonisz.',
+    sub: 'Przeciętna cena i zakres z aktualnych ogłoszeń działek w pobliżu, z rozbiciem na budowlane oraz uzbrojone i nieuzbrojone. Znasz rząd wielkości, zanim zadzwonisz.',
   },
   {
     title: 'Obrys działki na mapie',
@@ -79,7 +79,7 @@ const FAQ: FaqItem[] = [
   {
     question: 'Czy orientacyjna cena to wycena działki?',
     answer:
-      'Nie. To mediana i zakres cen z aktualnych ogłoszeń działek w okolicy wskazanego punktu. Pokazuje rząd wielkości, ale nie zastępuje operatu rzeczoznawcy. O realnej cenie decydują media, dojazd, kształt i przeznaczenie konkretnej działki.',
+      'Nie. To przeciętna cena i zakres z aktualnych ogłoszeń działek w okolicy wskazanego punktu. Pokazuje rząd wielkości, ale nie zastępuje operatu rzeczoznawcy. O realnej cenie decydują media, dojazd, kształt i przeznaczenie konkretnej działki.',
   },
   {
     question: 'Czy pokazujecie plan miejscowy (MPZP)?',

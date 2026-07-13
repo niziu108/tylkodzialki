@@ -76,8 +76,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `Ceny działek budowlanych ${city.name}: ile kosztują (zł/m²)`,
     description: hasPrice
-      ? `Mediana cen działek budowlanych ${inCity(city)} to ${zlM2(median)}. Zakres stawek, cena za całą działkę i powierzchnie liczone na bieżąco z aktywnych ofert.`
-      : `Ceny działek ${inCity(city)} liczone na bieżąco z aktywnych ofert: mediana zł/m², zakres stawek i powierzchnie. Sprawdź aktualne oferty na sprzedaż.`,
+      ? `Przeciętna cena działek budowlanych ${inCity(city)} to ${zlM2(median)}. Zakres stawek, cena za całą działkę i powierzchnie liczone na bieżąco z aktywnych ofert.`
+      : `Ceny działek ${inCity(city)} liczone na bieżąco z aktywnych ofert: przeciętna cena zł/m², zakres stawek i powierzchnie. Sprawdź aktualne oferty na sprzedaż.`,
     alternates: { canonical: `/ceny/${city.slug}` },
     // Indeksujemy tylko strony z realną medianą — pusta/cienka leci noindex (jak huby P13/P22).
     robots: hasPrice ? undefined : { index: false, follow: true },
@@ -118,11 +118,11 @@ export default async function CenyMiastoPage({ params }: PageProps) {
         '@context': 'https://schema.org',
         '@type': 'Dataset',
         name: `Ceny działek budowlanych ${inCity(city)}`,
-        description: `Mediana i typowy zakres cen (zł/m²) działek budowlanych na sprzedaż ${inCity(city)}, liczone z aktywnych ofert serwisu tylkodzialki.pl. Stan na ${dateStr}.`,
+        description: `Przeciętna cena i typowy zakres (zł/m²) działek budowlanych na sprzedaż ${inCity(city)}, liczone z aktywnych ofert serwisu tylkodzialki.pl. Stan na ${dateStr}.`,
         creator: { '@type': 'Organization', name: 'tylkodzialki.pl' },
         variableMeasured: {
           '@type': 'PropertyValue',
-          name: 'Mediana ceny działki budowlanej',
+          name: 'Przeciętna cena działki budowlanej',
           value: heroPrice.median,
           unitText: 'PLN/m²',
           minValue: heroPrice.low,
@@ -169,7 +169,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
         {heroPrice ? (
           <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-end md:gap-12">
             <div>
-              <div className="text-[13px] text-fg/55">Mediana ceny</div>
+              <div className="text-[13px] text-fg/55">Przeciętna cena</div>
               <div className="mt-1 text-5xl font-semibold tracking-tight text-brand-text md:text-6xl">
                 {zlM2(heroPrice.median)}
               </div>
@@ -196,7 +196,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
 
         <p className="mt-6 text-[13px] text-fg/45">
           {heroPrice
-            ? `Policzone z ${formatIntPL(heroDetail.count)} aktywnych ofert działek budowlanych w okolicy ${city.gen} (w promieniu ok. 40 km). Stan na ${dateStr}. Liczymy medianę i zakres percentylowy z ogłoszeń, nie z cenników.`
+            ? `Policzone z ${formatIntPL(heroDetail.count)} aktywnych ofert działek budowlanych w okolicy ${city.gen} (w promieniu ok. 40 km). Stan na ${dateStr}. Liczymy z realnych, aktywnych ogłoszeń, nie z cenników.`
             : `Stan na ${dateStr}.`}
         </p>
 
@@ -286,7 +286,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
             ))}
           </div>
           <p className="mt-3 text-[13px] text-fg/45">
-            Mediana zł/m². „Za mało danych" oznacza próbkę zbyt małą na wiarygodną liczbę.
+            Przeciętna cena zł/m². „Za mało danych" oznacza próbkę zbyt małą na wiarygodną liczbę.
           </p>
         </section>
       ) : null}

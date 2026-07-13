@@ -59,7 +59,7 @@ export function buildPowiatParagraphs(
 
   // Akapit 2: ceny i powierzchnie (albo uczciwie: za mało danych).
   if (detail.pricePerM2 && detail.areaM2) {
-    let p2 = `Mediana ceny to ${zlM2(detail.pricePerM2.median)}, a typowe stawki mieszczą się ${range(detail.pricePerM2, zlM2)}.`;
+    let p2 = `Przeciętna cena to ${zlM2(detail.pricePerM2.median)}, a typowe stawki mieszczą się ${range(detail.pricePerM2, zlM2)}.`;
     if (detail.totalPrice) {
       p2 += ` Za całą działkę ceny najczęściej wynoszą ${range(detail.totalPrice, pln)}.`;
     }
@@ -67,7 +67,7 @@ export function buildPowiatParagraphs(
     out.push(p2);
   } else if (detail.areaM2) {
     out.push(
-      `Powierzchnie działek mieszczą się zwykle ${range(detail.areaM2, m2)}, typowo około ${m2(detail.areaM2.median)}. Ofert jest na razie za mało, by podać wiarygodną medianę ceny, więc stawki najlepiej sprawdzić wprost w aktualnych ogłoszeniach powyżej.`
+      `Powierzchnie działek mieszczą się zwykle ${range(detail.areaM2, m2)}, typowo około ${m2(detail.areaM2.median)}. Ofert jest na razie za mało, by podać wiarygodną przeciętną cenę, więc stawki najlepiej sprawdzić wprost w aktualnych ogłoszeniach powyżej.`
     );
   } else {
     out.push(
@@ -105,14 +105,14 @@ export function buildPowiatFaq(adj: string, detail: CategoryDetail): FaqItem[] {
   const faq: FaqItem[] = [];
 
   if (detail.pricePerM2) {
-    let a = `Mediana ceny działek w ${powiatLoc(adj)} to ${zlM2(detail.pricePerM2.median)}, a typowe stawki w ofertach to ${range(detail.pricePerM2, zlM2)}.`;
+    let a = `Przeciętna cena działek w ${powiatLoc(adj)} to ${zlM2(detail.pricePerM2.median)}, a typowe stawki w ofertach to ${range(detail.pricePerM2, zlM2)}.`;
     if (detail.totalPrice) a += ` Za całą działkę ceny najczęściej wynoszą ${range(detail.totalPrice, pln)}.`;
     a += ` Liczby wyliczamy na bieżąco z aktywnych ogłoszeń w tym powiecie.`;
     faq.push({ question: `Ile kosztuje działka w ${powiatLoc(adj)}?`, answer: a });
   } else if (detail.count > 0) {
     faq.push({
       question: `Ile kosztuje działka w ${powiatLoc(adj)}?`,
-      answer: `W ${powiatLoc(adj)} jest na razie za mało ofert, aby podać wiarygodną medianę ceny. Aktualne stawki sprawdzisz wprost w ogłoszeniach na tej stronie.`,
+      answer: `W ${powiatLoc(adj)} jest na razie za mało ofert, aby podać wiarygodną przeciętną cenę. Aktualne stawki sprawdzisz wprost w ogłoszeniach na tej stronie.`,
     });
   }
 

@@ -108,7 +108,7 @@ export default async function WojewodztwoPage({ params }: PageProps) {
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-fg/70 md:text-[15px]">
             Szukasz w konkretnym powiecie? Każda strona powiatu zbiera oferty z wielu
-            miejscowości w jego granicach, z medianą ceny i danymi o mediach.
+            miejscowości w jego granicach, z przeciętną ceną i danymi o mediach.
           </p>
           <div className="mt-6">
             <HubLinkGrid items={powiatItems} />
