@@ -230,6 +230,44 @@ export function buildSearchContext(
   };
 }
 
+// Prostokąt-nadzbiór wszystkich trafień GEO dla wyszukiwania z promieniem — do pre-filtra w SQL.
+//
+// Gdy `hasRadiusSearch`, oferta ZE współrzędnymi trafia wyłącznie geograficznie (patrz
+// getSearchMatchInfo: dla takiej oferty `textFallbackMatch` = false). Wszystkie takie trafienia
+// leżą w sumie prostokątów: koło promienia (± radius wokół punktu) ∪ bbox miasta ∪ bbox
+// województwa. Zwracamy jeden prostokąt obejmujący tę sumę — baza odsiewa oferty ze współrzędnymi
+// poza nim (nie mogą trafić), a JS dalej liczy dokładny `anyMatch`. To NADZBIÓR: nigdy nie gubi
+// trafienia, co najwyżej przepuści kilka rekordów za dużo (odrzuci je precyzyjny JS).
+//
+// Oferty BEZ współrzędnych trafiają tekstem (textFallbackMatch) — obsługiwane osobno przez
+// `OR lat IS NULL` po stronie zapytania. Bez promienia (czysty tekst) zwracamy null: tekst może
+// pasować gdziekolwiek, więc bezpiecznego prostokąta nie ma.
+export function computeGeoPrefilterBBox(ctx: SearchContext): BBox | null {
+  if (!ctx.hasRadiusSearch) return null;
+
+  const latPad = kmToLatDegrees(ctx.radiusParam);
+  const lngPad = kmToLngDegrees(ctx.radiusParam, ctx.latParam);
+
+  const boxes: BBox[] = [
+    {
+      minLat: ctx.latParam - latPad,
+      maxLat: ctx.latParam + latPad,
+      minLng: ctx.lngParam - lngPad,
+      maxLng: ctx.lngParam + lngPad,
+    },
+  ];
+
+  if (ctx.cityBBox) boxes.push(ctx.cityBBox);
+  if (ctx.voivodeship) boxes.push(ctx.voivodeship.bbox);
+
+  return {
+    minLat: Math.min(...boxes.map((b) => b.minLat)),
+    maxLat: Math.max(...boxes.map((b) => b.maxLat)),
+    minLng: Math.min(...boxes.map((b) => b.minLng)),
+    maxLng: Math.max(...boxes.map((b) => b.maxLng)),
+  };
+}
+
 export function getSearchMatchInfo(d: GeoOffer, ctx: SearchContext) {
   const {
     query,

@@ -674,12 +674,18 @@ function MapPinGlyph({ className = 'h-4 w-4' }: { className?: string }) {
 export default function KupSearch({
   initialFilters,
   initialPage = 1,
+  initialItems,
+  initialCount,
   initialFocusId = null,
   seoMode = false,
   navigationMode = false,
 }: {
   initialFilters?: Partial<AppliedFilters>;
   initialPage?: number;
+  // Wyniki 1. strony policzone na serwerze (SSR z /kup). Gdy pasują do stanu z URL, klient
+  // pomija startowy fetch — lista jest od razu w HTML-u, bez drugiego round-tripu do API.
+  initialItems?: ApiDzialka[];
+  initialCount?: number;
   initialFocusId?: string | null;
   seoMode?: boolean;
   navigationMode?: boolean;
@@ -709,11 +715,16 @@ export default function KupSearch({
   // który po doczytaniu rozdmuchiwał się do pełnej listy i spychał stopkę (to był
   // CLS 0,469 na /kup). Na głównej (navigationMode) listy nie ma, a przycisk nie może
   // od startu mówić „Szukam…", więc tam false.
-  const [loading, setLoading] = useState(!navigationMode);
+  // Gdy serwer podał wyniki (SSR), startujemy od nich — bez szkieletów i bez „ładowania".
+  // Pierwszy render klienta = render serwera (te same items, loading=false) → brak niezgody
+  // hydracji. Bez SSR działamy jak dotąd: na /kup start w loading (szkielety), na głównej nie.
+  const hasSsrItems = initialItems != null;
+
+  const [loading, setLoading] = useState(hasSsrItems ? false : !navigationMode);
   const [err, setErr] = useState<string | null>(null);
 
-  const [items, setItems] = useState<ApiDzialka[]>([]);
-  const [count, setCount] = useState(0);
+  const [items, setItems] = useState<ApiDzialka[]>(initialItems ?? []);
+  const [count, setCount] = useState(initialCount ?? 0);
 
   const [page, setPage] = useState(initial.page);
 
@@ -976,9 +987,29 @@ export default function KupSearch({
         startFilters.locText.trim() !== '' &&
         startFilters.center === null;
 
+      // Seed z SSR jest ważny, gdy odpowiada stanowi, którego klient użyje na starcie:
+      // stan z ADRESU (hasQuery) zawsze zgadza się z tym, co policzył serwer; „czyste" /kup
+      // bez zapisanej sesji też (serwer wyrenderował pustą listę). Gdy w sessionStorage jest
+      // inny stan (powrót na /kup bez parametrów) — seed nie pasuje, dociągamy normalnie.
+      const hasUrlQuery =
+        typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).toString() !== '';
+      const seedValid =
+        hasSsrItems &&
+        !seoMode &&
+        !needsGeocode &&
+        startPage === initialPage &&
+        (hasUrlQuery || !loadStoredState());
+
       // Cases A (coords in URL) and C (no location): search immediately, no Maps needed yet
       if (!navigationMode && !needsGeocode && !cancelled) {
-        fetchDataWith(startFilters, startPage, true);
+        if (seedValid) {
+          // Dane już są w stanie (z SSR) — pomijamy startowy fetch. Normalizujemy tylko adres
+          // i zapisujemy sesję (to samo, co robi fetchDataWith z replace=true, bez round-tripu).
+          updateBrowserUrl(startFilters, startPage, true);
+        } else {
+          fetchDataWith(startFilters, startPage, true);
+        }
       }
 
       // Google Maps NIE jest już ładowane na starcie. Autocomplete podpina się

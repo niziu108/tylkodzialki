@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { Przeznaczenie } from '@prisma/client';
 import KupSearch, { DEFAULT_RADIUS_KM } from './KupSearch';
 import type { SortOption } from './KupSearch';
+import { queryDzialkiList } from '@/lib/dzialkiListing';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,10 +107,74 @@ export default async function KupPage({ searchParams }: KupPageProps) {
   // i auto-otwarcia mapy wyśrodkowanej na jej lokalizacji.
   const focusId = one(sp.focus).trim() || null;
 
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1;
+
+  // SSR 1. strony wyników: liczymy je już na serwerze i wstrzykujemy do KupSearch, żeby lista
+  // pojawiła się RAZEM z HTML-em (koniec waterfallu: SSR skorupy → mount → osobny fetch API).
+  // Pomijamy tylko przypadek wymagający geokodowania (wpisany tekst bez współrzędnych) — tam
+  // center dolicza klient (Google Geocoder), więc wyniki i tak muszą policzyć się po jego stronie.
+  const locTextForSsr = hasBBox ? '' : one(sp.loc).trim();
+  const needsGeocode = !hasBBox && !hasCenter && locTextForSsr !== '';
+
+  let initialItems: unknown[] | undefined;
+  let initialCount: number | undefined;
+
+  if (!needsGeocode) {
+    // Te same nazwy parametrów, które buduje klientowy makeParams() → identyczne wyniki.
+    const apiParams = new URLSearchParams();
+
+    if (hasBBox) {
+      apiParams.set('n', String(bn));
+      apiParams.set('s', String(bs));
+      apiParams.set('e', String(be));
+      apiParams.set('w', String(bw));
+    } else {
+      if (locTextForSsr) {
+        apiParams.set('q', locTextForSsr);
+        apiParams.set('qRaw', locTextForSsr);
+      }
+      if (hasCenter) {
+        apiParams.set('lat', String(lat));
+        apiParams.set('lng', String(lng));
+        apiParams.set('radius', String(radiusKm));
+      }
+    }
+
+    const pMin = digitsOnly(one(sp.priceMin));
+    const pMax = digitsOnly(one(sp.priceMax));
+    const aMin = digitsOnly(one(sp.areaMin));
+    const aMax = digitsOnly(one(sp.areaMax));
+    if (pMin) apiParams.set('priceMin', pMin);
+    if (pMax) apiParams.set('priceMax', pMax);
+    if (aMin) apiParams.set('areaMin', aMin);
+    if (aMax) apiParams.set('areaMax', aMax);
+    if (przezn.length) apiParams.set('przeznaczenia', przezn.join(','));
+    if (media.length) apiParams.set('media', media.join(','));
+    if (transakcja.length) apiParams.set('transakcja', transakcja.join(','));
+    apiParams.set('skip', String((page - 1) * 20));
+    apiParams.set('take', '20');
+    apiParams.set('sort', sort);
+
+    try {
+      const body = await queryDzialkiList(apiParams);
+      if ('items' in body) {
+        // Serializacja do zwykłego JSON (Daty → ISO) — dokładnie ten kształt, który klient
+        // dostaje dziś z fetch(/api/dzialki), więc pierwszy render klienta = render serwera.
+        initialItems = JSON.parse(JSON.stringify(body.items)) as unknown[];
+        initialCount = body.count;
+      }
+    } catch {
+      // Gdyby SSR padł (np. chwilowy błąd bazy) — nie wywalamy strony; klient dociągnie dane
+      // jak dotąd (initialItems zostaje undefined → KupSearch robi startowy fetch).
+    }
+  }
+
   return (
     <main>
       <KupSearch
-        initialPage={Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1}
+        initialPage={page}
+        initialItems={initialItems as never}
+        initialCount={initialCount}
         initialFocusId={focusId}
         initialFilters={{
           locText: hasBBox ? '' : one(sp.loc),
