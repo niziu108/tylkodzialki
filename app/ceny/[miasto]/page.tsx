@@ -130,6 +130,9 @@ export default async function CenyMiastoPage({ params }: PageProps) {
         },
         dateModified: new Date().toISOString().slice(0, 10),
         isAccessibleForFree: true,
+        // Licencja reużycia z podaniem źródła — Google prosi o to pole w Dataset, a przy okazji
+        // wprost zachęca do cytowania danych z atrybucją do nas (backlinki/cytowania AI).
+        license: 'https://creativecommons.org/licenses/by/4.0/',
         url: `https://tylkodzialki.pl/ceny/${city.slug}`,
       }
     : null;
