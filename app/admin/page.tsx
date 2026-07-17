@@ -15,12 +15,47 @@ import LogoPreview from "./LogoPreview";
 type AdminPageProps = {
   searchParams?: Promise<{
     q?: string;
+    sort?: string;
     mailSent?: string;
     sent?: string;
     failed?: string;
     mailError?: string;
   }>;
 };
+
+const USER_SORTS = [
+  { key: "oferty", label: "Najwięcej ofert" },
+  { key: "nowe", label: "Najnowsze konta" },
+  { key: "aktywne", label: "Najwięcej aktywnych" },
+  { key: "leady", label: "Najwięcej leadów" },
+  { key: "email", label: "Email A–Z" },
+] as const;
+
+type UserSortKey = (typeof USER_SORTS)[number]["key"];
+
+function parseUserSort(value: string | undefined): UserSortKey {
+  const match = USER_SORTS.find((s) => s.key === value);
+  return match ? match.key : "oferty";
+}
+
+function buildAdminHref(q: string, sort: UserSortKey) {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (sort !== "oferty") params.set("sort", sort);
+
+  const query = params.toString();
+  return query ? `/admin?${query}` : "/admin";
+}
+
+function formatDatePL(value: Date | null | undefined) {
+  if (!value) return "—";
+
+  try {
+    return new Date(value).toLocaleDateString("pl-PL");
+  } catch {
+    return "—";
+  }
+}
 
 async function getAppConfig() {
   let config = await prisma.appConfig.findFirst();
@@ -121,6 +156,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const params = await searchParams;
   const q = params?.q?.trim() || "";
+  const sort = parseUserSort(params?.sort);
   const mailSent = params?.mailSent || "";
   const sentCount = Number(params?.sent || 0);
   const failedCount = Number(params?.failed || 0);
@@ -234,6 +270,31 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       };
     })
     .sort((a, b) => {
+      const byNewest =
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
+      if (sort === "nowe") return byNewest;
+
+      if (sort === "aktywne") {
+        if (b.activeListings !== a.activeListings) {
+          return b.activeListings - a.activeListings;
+        }
+        return byNewest;
+      }
+
+      if (sort === "leady") {
+        const aLeads = a.totalPhoneClicks + a.totalMessageClicks;
+        const bLeads = b.totalPhoneClicks + b.totalMessageClicks;
+        if (bLeads !== aLeads) return bLeads - aLeads;
+        return byNewest;
+      }
+
+      if (sort === "email") {
+        const aName = (a.email || a.name || "").toLowerCase();
+        const bName = (b.email || b.name || "").toLowerCase();
+        return aName.localeCompare(bName, "pl");
+      }
+
       if (b._count.dzialki !== a._count.dzialki) {
         return b._count.dzialki - a._count.dzialki;
       }
@@ -242,7 +303,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         return b.activeListings - a.activeListings;
       }
 
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return byNewest;
     });
 
   return (
@@ -475,6 +536,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
         <div className="mb-6 rounded-3xl border border-fg/10 bg-fg/5 p-4">
           <form className="flex flex-col gap-3 md:flex-row md:items-center">
+            {/* Szukanie nie moze gubic wybranego sortowania. */}
+            {sort !== "oferty" ? (
+              <input type="hidden" name="sort" value={sort} />
+            ) : null}
+
             <input
               type="text"
               name="q"
@@ -492,13 +558,37 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </button>
 
               <a
-                href="/admin"
+                href={buildAdminHref("", sort)}
                 className="inline-flex h-12 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-medium transition hover:bg-fg/10"
               >
                 Wyczyść
               </a>
             </div>
           </form>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs uppercase tracking-[0.14em] text-fg/60">
+              Sortuj
+            </span>
+
+            {USER_SORTS.map((option) => {
+              const active = option.key === sort;
+
+              return (
+                <Link
+                  key={option.key}
+                  href={buildAdminHref(q, option.key)}
+                  className={`inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition ${
+                    active
+                      ? "border-brand bg-brand/15 text-brand-bright"
+                      : "border-fg/12 bg-fg/[0.03] text-fg/70 hover:border-fg/25 hover:text-fg"
+                  }`}
+                >
+                  {option.label}
+                </Link>
+              );
+            })}
+          </div>
 
           <div className="mt-3 text-sm text-fg/70">
             {q ? (
@@ -517,10 +607,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
         <div className="mb-8 rounded-3xl border border-fg/10 bg-fg/5 backdrop-blur">
           <div className="max-h-[72vh] overflow-auto overscroll-contain rounded-3xl">
-            <table className="w-full min-w-[1980px] text-sm">
+            <table className="w-full min-w-[2090px] text-sm">
               <thead className="sticky top-0 z-20 bg-surface shadow-[0_1px_0_rgba(255,255,255,0.08)]">
                 <tr className="border-b border-fg/10 text-left text-fg/70">
                   <th className="px-4 py-4 font-medium">Email</th>
+                  <th className="px-4 py-4 font-medium">Konto od</th>
                   <th className="px-4 py-4 font-medium">Telefon</th>
                   <th className="px-4 py-4 font-medium">CRM</th>
                   <th className="px-4 py-4 font-medium">Wszystkie oferty</th>
@@ -540,7 +631,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <tbody>
                 {usersWithStats.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-fg/70">
+                    <td colSpan={15} className="px-4 py-10 text-center text-sm text-fg/70">
                       Brak użytkowników pasujących do wyszukiwania.
                     </td>
                   </tr>
@@ -551,6 +642,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         <div className="font-medium text-fg">
                           {user.email || "Brak emaila"}
                         </div>
+                      </td>
+
+                      <td className="px-4 py-4 align-middle whitespace-nowrap text-fg/80">
+                        {formatDatePL(user.createdAt)}
                       </td>
 
                       <td className="px-4 py-4 align-middle">
