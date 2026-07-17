@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // to oznacza pominięte przebiegi, więc traktujemy integrację jako nieświeżą.
 const STALE_THRESHOLD_HOURS = 48;
 
-type Health = "ERROR" | "STALE" | "OK" | "DISABLED";
+type Health = "ERROR" | "NO_DATA" | "STALE" | "OK" | "DISABLED";
 
 const PROVIDER_LABELS: Record<string, string> = {
   GALACTICA: "Galactica",
@@ -34,23 +34,29 @@ const HEALTH_META: Record<
     dot: "bg-red-400",
     order: 0,
   },
+  NO_DATA: {
+    label: "Brak danych",
+    badge: "border-amber-500/30 bg-amber-500/15 text-amber-200",
+    dot: "bg-amber-300",
+    order: 1,
+  },
   STALE: {
     label: "Nieświeże",
     badge: "border-amber-500/30 bg-amber-500/15 text-amber-300",
     dot: "bg-amber-400",
-    order: 1,
+    order: 2,
   },
   OK: {
     label: "OK",
     badge: "border-brand/30 bg-brand/20 text-brand-bright",
     dot: "bg-brand-bright",
-    order: 2,
+    order: 3,
   },
   DISABLED: {
     label: "Wyłączona",
     badge: "border-fg/15 bg-fg/10 text-fg/72",
     dot: "bg-fg/40",
-    order: 3,
+    order: 4,
   },
 };
 
@@ -121,7 +127,7 @@ type IntegrationRow = {
   user: { id: string; email: string | null; name: string | null };
 };
 
-function computeHealth(it: IntegrationRow, now: number): Health {
+function computeHealth(it: IntegrationRow, now: number, offerCount: number): Health {
   if (!it.isActive) return "DISABLED";
 
   // Cały ostatni przebieg padł: silnik ustawił lastErrorAt nowszy od sukcesu
@@ -132,6 +138,11 @@ function computeHealth(it: IntegrationRow, now: number): Health {
       new Date(it.lastErrorAt).getTime() > new Date(it.lastSuccessAt).getTime());
 
   if (it.lastErrorCount > 0 || runFailed) return "ERROR";
+
+  // EstiCRM przy pustym katalogu nie rzuca bledem, tylko konczy przebieg z zerem
+  // ofert (patrz esticrm-sync: "Brak plików XML ofert") -> bez tego swiecilby OK,
+  // choc biuro nie przyslalo jeszcze ani jednego pliku.
+  if (offerCount === 0) return "NO_DATA";
 
   const staleMs = STALE_THRESHOLD_HOURS * 60 * 60 * 1000;
   const fresh =
@@ -182,13 +193,27 @@ export default async function AdminCrmMonitoringPage({
     },
   });
 
+  // Ile ofert integracja ma w ogole podpietych (nie tylko z ostatniego przebiegu).
+  // Zero = biuro nigdy nic nie przyslalo, choc sam sync moze konczyc sie sukcesem.
+  const offerLinkCounts = await prisma.crmOfferLink.groupBy({
+    by: ["integrationId"],
+    _count: { _all: true },
+  });
+
+  const offerCountByIntegration = new Map(
+    offerLinkCounts.map((row) => [row.integrationId, row._count._all]),
+  );
+
   const params = await searchParams;
   const sort = parseSort(params?.sort);
 
   const now = new Date().getTime();
 
   const rows = (integrations as IntegrationRow[])
-    .map((it) => ({ ...it, health: computeHealth(it, now) }))
+    .map((it) => {
+      const offerCount = offerCountByIntegration.get(it.id) ?? 0;
+      return { ...it, offerCount, health: computeHealth(it, now, offerCount) };
+    })
     .sort((a, b) => {
       if (sort === "nowe") return time(b.createdAt) - time(a.createdAt);
       if (sort === "sync") return time(b.lastSyncAt) - time(a.lastSyncAt);
@@ -211,6 +236,7 @@ export default async function AdminCrmMonitoringPage({
 
   const counts: Record<Health, number> = {
     ERROR: 0,
+    NO_DATA: 0,
     STALE: 0,
     OK: 0,
     DISABLED: 0,
@@ -224,6 +250,7 @@ export default async function AdminCrmMonitoringPage({
     provider: string;
     total: number;
     ERROR: number;
+    NO_DATA: number;
     STALE: number;
     OK: number;
     DISABLED: number;
@@ -237,6 +264,7 @@ export default async function AdminCrmMonitoringPage({
         provider: row.provider,
         total: 0,
         ERROR: 0,
+        NO_DATA: 0,
         STALE: 0,
         OK: 0,
         DISABLED: 0,
@@ -254,6 +282,7 @@ export default async function AdminCrmMonitoringPage({
 
   const summaryCards: { label: string; value: number; health: Health }[] = [
     { label: "Błędy", value: counts.ERROR, health: "ERROR" },
+    { label: "Brak danych", value: counts.NO_DATA, health: "NO_DATA" },
     { label: "Nieświeże", value: counts.STALE, health: "STALE" },
     { label: "OK", value: counts.OK, health: "OK" },
     { label: "Wyłączone", value: counts.DISABLED, health: "DISABLED" },
@@ -290,7 +319,7 @@ export default async function AdminCrmMonitoringPage({
           </Link>
         </div>
 
-        <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <div className="rounded-2xl border border-fg/10 bg-fg/5 p-4">
             <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Integracje
@@ -343,6 +372,7 @@ export default async function AdminCrmMonitoringPage({
 
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                     <span className="text-red-300">Błąd {stat.ERROR}</span>
+                    <span className="text-amber-200">Brak danych {stat.NO_DATA}</span>
                     <span className="text-amber-300">Nieświeże {stat.STALE}</span>
                     <span className="text-brand-bright">OK {stat.OK}</span>
                     {stat.DISABLED > 0 ? (
@@ -434,6 +464,12 @@ export default async function AdminCrmMonitoringPage({
                             />
                             {meta.label}
                           </span>
+                          {row.health === "NO_DATA" ? (
+                            <div className="mt-1.5 max-w-[180px] text-xs text-amber-200/80">
+                              Sync działa, ale biuro nie przysłało jeszcze żadnej
+                              oferty.
+                            </div>
+                          ) : null}
                         </td>
 
                         <td className="px-4 py-4 align-top">
