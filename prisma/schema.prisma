@@ -142,6 +142,7 @@ model Dzialka {
   crmSyncLogs   CrmSyncLog[]
   zdjecia       Zdjecie[]
   favoritedBy   FavoriteDzialka[]
+  perelkaUzyta  PerelkaUzyta?
 
   @@index([lat, lng])
   @@index([ownerId])
@@ -156,6 +157,20 @@ model Dzialka {
   @@index([status, createdAt])
   @@index([status, cenaPln])
   @@index([status, powierzchniaM2])
+}
+
+// Perełka „zużyta" — poszła już na posta na FB/Insta i ma nie wracać na listę w /admin/perelki.
+// Znacznik trzyma się poza modelem Dzialka, bo to nasza notatka redakcyjna, a nie cecha oferty:
+// nie ma wpływu na wyszukiwarkę ani na to, co widzi kupujący. Rekord zostaje po zdjęciu oferty
+// z listy tylko przez czas jej życia (kaskada), a to i tak wystarczy — nieaktywna oferta nie jest
+// kandydatem.
+model PerelkaUzyta {
+  id        String   @id @default(cuid())
+  dzialkaId String   @unique
+  usedAt    DateTime @default(now())
+  dzialka   Dzialka  @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
+
+  @@index([usedAt])
 }
 
 model Zdjecie {
