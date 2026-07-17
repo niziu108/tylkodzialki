@@ -9,12 +9,12 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: 'Sprawdź działkę: granice, powierzchnia i orientacyjna cena w jednym raporcie',
   description:
-    'Wpisz adres lub numer ewidencyjny, a pokażemy granice, powierzchnię i numer działki z rejestru GUGiK, przeznaczenie z planu miejscowego (MPZP) oraz orientacyjną cenę okolicy. Za darmo.',
+    'Wpisz adres albo wskaż działkę na mapie, a pokażemy granice, powierzchnię i numer działki z rejestru GUGiK, przeznaczenie z planu miejscowego (MPZP) oraz orientacyjną cenę okolicy. Za darmo.',
   alternates: { canonical: '/sprawdz-dzialke' },
   openGraph: {
     title: 'Sprawdź działkę | tylkodzialki.pl',
     description:
-      'Granice, powierzchnia i numer działki z GUGiK, przeznaczenie z planu miejscowego i orientacyjna cena. Wskaż działkę i pobierz raport.',
+      'Granice, powierzchnia i numer działki z GUGiK, przeznaczenie z planu miejscowego i orientacyjna cena. Wpisz adres albo wskaż działkę na mapie.',
     url: '/sprawdz-dzialke',
     type: 'website',
   },
@@ -74,7 +74,7 @@ const FAQ: FaqItem[] = [
   {
     question: 'Skąd bierzecie granice i powierzchnię działki?',
     answer:
-      'Z publicznego rejestru ewidencji gruntów (usługa ULDK prowadzona przez GUGiK). Odpytujemy go dla punktu, który wskażesz na mapie lub który wynika z wpisanego adresu albo numeru ewidencyjnego, więc dane dotyczą konkretnej działki, a nie przybliżenia.',
+      'Z publicznego rejestru ewidencji gruntów (usługa ULDK prowadzona przez GUGiK). Odpytujemy go dla punktu, który wskażesz na mapie lub który wynika z wpisanego adresu, więc dane dotyczą konkretnej działki, a nie przybliżenia.',
   },
   {
     question: 'Czy orientacyjna cena to wycena działki?',
@@ -99,7 +99,7 @@ const FAQ: FaqItem[] = [
   {
     question: 'Czy mogę sprawdzić działkę po samym numerze ewidencyjnym?',
     answer:
-      'Tak. Jeśli znasz pełny numer ewidencyjny (na przykład 146502_8.1103.110/4), wpisz go w pole numeru, a odpytamy ewidencję bezpośrednio po nim. Nie musisz wtedy wskazywać punktu na mapie.',
+      'Na razie nie. Działkę wskazujesz adresem albo klikając ją na mapie, bo tak szuka większość osób. Numer ewidencyjny, obręb i identyfikator dostajesz w raporcie, więc możesz stąd wziąć je do urzędu czy księgi wieczystej.',
   },
   {
     question: 'Czy dane są aktualne i wiążące?',

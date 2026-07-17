@@ -327,7 +327,7 @@ export default async function HomePage() {
           </h2>
 
           <p className="mt-6 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
-            Wskaż działkę adresem lub numerem ewidencyjnym, a przygotujemy raport oparty na danych
+            Wpisz adres albo wskaż działkę na mapie, a przygotujemy raport oparty na danych
             ewidencji gruntów GUGiK i Krajowej Integracji MPZP: granice, powierzchnia, przeznaczenie
             w planie miejscowym oraz orientacyjna wycena z ofert w okolicy.
           </p>
