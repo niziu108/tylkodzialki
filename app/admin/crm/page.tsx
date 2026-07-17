@@ -58,6 +58,25 @@ function providerLabel(provider: string) {
   return PROVIDER_LABELS[provider] ?? provider;
 }
 
+const SORTS = [
+  { key: "status", label: "Problemy najpierw", hint: "błędy i nieświeże na górze" },
+  { key: "nowe", label: "Najnowsze biura", hint: "ostatnio podłączone integracje" },
+  { key: "sync", label: "Ostatnia synchronizacja", hint: "kto synchronizował się ostatnio" },
+  { key: "oferty", label: "Najwięcej ofert", hint: "wg ofert z ostatniego importu" },
+  { key: "biuro", label: "Biuro A–Z", hint: "alfabetycznie po adresie e-mail" },
+] as const;
+
+type SortKey = (typeof SORTS)[number]["key"];
+
+function parseSort(value: string | undefined): SortKey {
+  const match = SORTS.find((s) => s.key === value);
+  return match ? match.key : "status";
+}
+
+function time(value: Date | null | undefined) {
+  return value ? new Date(value).getTime() : 0;
+}
+
 function formatDate(value: Date | null | undefined) {
   if (!value) return "—";
 
@@ -98,6 +117,7 @@ type IntegrationRow = {
   lastCreatedCount: number;
   lastUpdatedCount: number;
   lastErrorCount: number;
+  createdAt: Date;
   user: { id: string; email: string | null; name: string | null };
 };
 
@@ -121,7 +141,13 @@ function computeHealth(it: IntegrationRow, now: number): Health {
   return "OK";
 }
 
-export default async function AdminCrmMonitoringPage() {
+type AdminCrmPageProps = {
+  searchParams?: Promise<{ sort?: string }>;
+};
+
+export default async function AdminCrmMonitoringPage({
+  searchParams,
+}: AdminCrmPageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -151,21 +177,36 @@ export default async function AdminCrmMonitoringPage() {
       lastCreatedCount: true,
       lastUpdatedCount: true,
       lastErrorCount: true,
+      createdAt: true,
       user: { select: { id: true, email: true, name: true } },
     },
   });
+
+  const params = await searchParams;
+  const sort = parseSort(params?.sort);
 
   const now = new Date().getTime();
 
   const rows = (integrations as IntegrationRow[])
     .map((it) => ({ ...it, health: computeHealth(it, now) }))
     .sort((a, b) => {
+      if (sort === "nowe") return time(b.createdAt) - time(a.createdAt);
+      if (sort === "sync") return time(b.lastSyncAt) - time(a.lastSyncAt);
+      if (sort === "oferty") {
+        const byOffers = b.lastImportedOffers - a.lastImportedOffers;
+        if (byOffers !== 0) return byOffers;
+        return time(b.lastSyncAt) - time(a.lastSyncAt);
+      }
+      if (sort === "biuro") {
+        const aName = (a.user.email || a.user.name || a.name).toLowerCase();
+        const bName = (b.user.email || b.user.name || b.name).toLowerCase();
+        return aName.localeCompare(bName, "pl");
+      }
+
       const byHealth = HEALTH_META[a.health].order - HEALTH_META[b.health].order;
       if (byHealth !== 0) return byHealth;
 
-      const aSync = a.lastSyncAt ? new Date(a.lastSyncAt).getTime() : 0;
-      const bSync = b.lastSyncAt ? new Date(b.lastSyncAt).getTime() : 0;
-      return bSync - aSync;
+      return time(b.lastSyncAt) - time(a.lastSyncAt);
     });
 
   const counts: Record<Health, number> = {
@@ -237,7 +278,7 @@ export default async function AdminCrmMonitoringPage() {
 
             <p className="mt-2 text-sm text-fg/70">
               Stan wszystkich integracji w jednym miejscu. Auto-sync uruchamia się
-              o 06:00 i 18:00 UTC. Integracje z problemem są na górze.
+              o 06:00 i 18:00 UTC. Kolejność listy ustawisz sortowaniem niżej.
             </p>
           </div>
 
@@ -314,14 +355,42 @@ export default async function AdminCrmMonitoringPage() {
           </section>
         ) : null}
 
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-xs uppercase tracking-[0.14em] text-fg/60">
+            Sortuj
+          </span>
+
+          {SORTS.map((option) => {
+            const active = option.key === sort;
+            const href =
+              option.key === "status" ? "/admin/crm" : `/admin/crm?sort=${option.key}`;
+
+            return (
+              <Link
+                key={option.key}
+                href={href}
+                title={option.hint}
+                className={`inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition ${
+                  active
+                    ? "border-brand bg-brand/15 text-brand-bright"
+                    : "border-fg/12 bg-fg/[0.03] text-fg/70 hover:border-fg/25 hover:text-fg"
+                }`}
+              >
+                {option.label}
+              </Link>
+            );
+          })}
+        </div>
+
         <div className="rounded-3xl border border-fg/10 bg-fg/5">
           <div className="max-h-[68vh] overflow-auto overscroll-contain rounded-3xl">
-            <table className="w-full min-w-[1180px] text-sm">
+            <table className="w-full min-w-[1320px] text-sm">
               <thead className="sticky top-0 z-20 bg-surface shadow-[0_1px_0_rgba(255,255,255,0.08)]">
                 <tr className="border-b border-fg/10 text-left text-fg/70">
                   <th className="px-4 py-4 font-medium">Status</th>
                   <th className="px-4 py-4 font-medium">Biuro / integracja</th>
                   <th className="px-4 py-4 font-medium">System</th>
+                  <th className="px-4 py-4 font-medium">Podłączone</th>
                   <th className="px-4 py-4 font-medium">Ostatnia synchronizacja</th>
                   <th className="px-4 py-4 font-medium text-right">Oferty</th>
                   <th className="px-4 py-4 font-medium text-right">Nowe</th>
@@ -334,7 +403,7 @@ export default async function AdminCrmMonitoringPage() {
                 {rows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-4 py-10 text-center text-sm text-fg/70"
                     >
                       Brak skonfigurowanych integracji CRM.
@@ -344,6 +413,7 @@ export default async function AdminCrmMonitoringPage() {
                   rows.map((row) => {
                     const meta = HEALTH_META[row.health];
                     const relative = formatRelative(row.lastSyncAt, now);
+                    const addedRelative = formatRelative(row.createdAt, now);
                     const showSuccessHint =
                       !!row.lastSuccessAt &&
                       (!row.lastSyncAt ||
@@ -380,6 +450,17 @@ export default async function AdminCrmMonitoringPage() {
 
                         <td className="px-4 py-4 align-top text-fg/80">
                           {providerLabel(row.provider)}
+                        </td>
+
+                        <td className="px-4 py-4 align-top">
+                          <div className="text-fg/85">
+                            {formatDate(row.createdAt)}
+                          </div>
+                          {addedRelative ? (
+                            <div className="mt-0.5 text-xs text-fg/68">
+                              {addedRelative}
+                            </div>
+                          ) : null}
                         </td>
 
                         <td className="px-4 py-4 align-top">
