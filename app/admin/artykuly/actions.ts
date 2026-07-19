@@ -7,6 +7,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { estimateReadingTime } from "@/lib/articleCategories";
 
+// Stan zwracany do formularza (useActionState). Gdy zapis się uda, akcja
+// przekierowuje i nic nie zwraca; przy problemie wracamy z komunikatem, żeby
+// formularz pokazał czytelny błąd zamiast crashować do strony "server-side
+// exception".
+export type ArticleFormState = { error?: string } | undefined;
+
 // Czas czytania: bierzemy wartość z formularza, a gdy pusta/niepoprawna —
 // liczymy automatycznie z treści.
 function resolveReadingTime(raw: string, content: string): number {
@@ -51,7 +57,10 @@ function slugify(value: string) {
     .replace(/^-|-$/g, "");
 }
 
-export async function createArticleAction(formData: FormData) {
+export async function createArticleAction(
+  _prevState: ArticleFormState,
+  formData: FormData
+): Promise<ArticleFormState> {
   await requireAdmin();
 
   const title = String(formData.get("title") || "").trim();
@@ -69,17 +78,17 @@ export async function createArticleAction(formData: FormData) {
   );
 
   if (!title) {
-    throw new Error("Tytuł artykułu jest wymagany.");
+    return { error: "Tytuł artykułu jest wymagany." };
   }
 
   if (!content) {
-    throw new Error("Treść artykułu jest wymagana.");
+    return { error: "Treść artykułu jest wymagana." };
   }
 
   const slug = slugify(slugInput || title);
 
   if (!slug) {
-    throw new Error("Nie udało się wygenerować poprawnego slugu.");
+    return { error: "Nie udało się wygenerować poprawnego slugu z tytułu." };
   }
 
   const existing = await prisma.article.findUnique({
@@ -88,7 +97,9 @@ export async function createArticleAction(formData: FormData) {
   });
 
   if (existing) {
-    throw new Error("Artykuł z takim slugiem już istnieje.");
+    return {
+      error: `Artykuł o adresie „/blog/${slug}" już istnieje. Zmień slug na inny.`,
+    };
   }
 
   await prisma.article.create({
@@ -113,7 +124,10 @@ export async function createArticleAction(formData: FormData) {
   redirect("/admin/artykuly");
 }
 
-export async function updateArticleAction(formData: FormData) {
+export async function updateArticleAction(
+  _prevState: ArticleFormState,
+  formData: FormData
+): Promise<ArticleFormState> {
   await requireAdmin();
 
   const id = String(formData.get("id") || "").trim();
@@ -132,21 +146,21 @@ export async function updateArticleAction(formData: FormData) {
   );
 
   if (!id) {
-    throw new Error("Brak ID artykułu.");
+    return { error: "Brak ID artykułu." };
   }
 
   if (!title) {
-    throw new Error("Tytuł artykułu jest wymagany.");
+    return { error: "Tytuł artykułu jest wymagany." };
   }
 
   if (!content) {
-    throw new Error("Treść artykułu jest wymagana.");
+    return { error: "Treść artykułu jest wymagana." };
   }
 
   const slug = slugify(slugInput || title);
 
   if (!slug) {
-    throw new Error("Nie udało się wygenerować poprawnego slugu.");
+    return { error: "Nie udało się wygenerować poprawnego slugu z tytułu." };
   }
 
   const existing = await prisma.article.findFirst({
@@ -158,7 +172,9 @@ export async function updateArticleAction(formData: FormData) {
   });
 
   if (existing) {
-    throw new Error("Inny artykuł ma już taki slug.");
+    return {
+      error: `Inny artykuł ma już adres „/blog/${slug}". Zmień slug na inny.`,
+    };
   }
 
   const currentArticle = await prisma.article.findUnique({

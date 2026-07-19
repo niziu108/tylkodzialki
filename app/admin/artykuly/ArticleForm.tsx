@@ -1,12 +1,16 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useActionState, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ARTICLE_CATEGORIES, estimateReadingTime } from '@/lib/articleCategories';
+import type { ArticleFormState } from './actions';
 
 type ArticleFormProps = {
   mode: 'create' | 'edit';
-  action: (formData: FormData) => void | Promise<void>;
+  action: (
+    prevState: ArticleFormState,
+    formData: FormData
+  ) => Promise<ArticleFormState>;
   initialData?: {
     id: string;
     title: string;
@@ -54,6 +58,7 @@ export default function ArticleForm({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [state, formAction, pending] = useActionState(action, undefined);
   const [readingEstimate, setReadingEstimate] = useState(() =>
     estimateReadingTime(initialData?.content || '')
   );
@@ -85,9 +90,15 @@ export default function ArticleForm({
 
   return (
     <form
-      action={action}
+      action={formAction}
       className="rounded-3xl border border-fg/10 bg-fg/5 p-5 md:p-6"
     >
+      {state?.error ? (
+        <div className="mb-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {state.error}
+        </div>
+      ) : null}
+
       {mode === 'edit' && initialData?.id ? (
         <input type="hidden" name="id" value={initialData.id} />
       ) : null}
@@ -341,11 +352,13 @@ Miejscowy plan zagospodarowania przestrzennego to...
 
           <button
             type="submit"
-            disabled={uploading}
+            disabled={uploading || pending}
             className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-6 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {uploading
               ? 'Poczekaj, trwa upload...'
+              : pending
+              ? 'Zapisywanie...'
               : mode === 'create'
               ? 'Zapisz artykuł'
               : 'Zapisz zmiany'}
