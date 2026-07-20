@@ -43,7 +43,8 @@ import { parseAdmin, powiatNom } from '@/lib/seoPowiaty';
 import { haversineKm } from '@/lib/dzialkiSearch';
 import { getParcelMedia, type MediaFlags } from '@/lib/media';
 
-// Promień lokalnego rynku. 10 km = tyle, ile `getPointValuation` bierze do wyceny punktu.
+// Promień lokalnego rynku. Stały 10 km (a nie drabinka jak w `getPointValuation`): tu liczy się
+// porównywalność ofert MIĘDZY sobą przy jednym progu, a próbka i tak musi dobić PERELKA_MIN_SAMPLE.
 export const PERELKA_RADIUS_KM = 10;
 
 // Ilu porównywalnych sąsiadów musi mieć oferta, żeby jej mediana coś znaczyła.

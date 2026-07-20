@@ -79,7 +79,7 @@ const FAQ: FaqItem[] = [
   {
     question: 'Czy orientacyjna cena to wycena działki?',
     answer:
-      'Nie. To przeciętna cena i zakres z aktualnych ogłoszeń działek w okolicy wskazanego punktu. Pokazuje rząd wielkości, ale nie zastępuje operatu rzeczoznawcy. O realnej cenie decydują media, dojazd, kształt i przeznaczenie konkretnej działki.',
+      'Nie. To przeciętna cena i zakres z aktualnych ogłoszeń działek w okolicy wskazanego punktu, liczone dla tego samego typu działki i z możliwie najbliższego otoczenia. Gdy ceny w okolicy rozjeżdżają się za mocno, pokazujemy widełki zamiast jednej liczby. To rząd wielkości, a nie operat rzeczoznawcy: o realnej cenie decydują media, dojazd, kształt i przeznaczenie konkretnej działki.',
   },
   {
     question: 'Czy pokazujecie plan miejscowy (MPZP)?',

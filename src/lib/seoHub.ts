@@ -25,6 +25,7 @@ import {
   buildSearchContext,
   getSearchMatchInfo,
   getVoivodeshipByKey,
+  haversineKm,
 } from '@/lib/dzialkiSearch';
 import {
   SEO_TYPES,
@@ -369,10 +370,15 @@ export const getCityPriceBoard = cache(async (citySlug: string): Promise<CityPri
 // P24: wycena punktowa dla narzędzia „Sprawdź działkę".
 //
 // Dla dowolnego punktu (pinezka/adres/numer wskazany przez użytkownika) liczymy orientacyjną
-// medianę + zakres zł/m² z NASZYCH aktywnych ofert w promieniu `km`. Ten sam silnik co strony
+// medianę + zakres zł/m² z NASZYCH aktywnych ofert w okolicy. Ten sam silnik co strony
 // kategorii (computeDetail), zero migracji (liczone na @@index([lat,lng])). Uczciwie: przy < MIN_SAMPLE
 // ofert z ceną zwracamy `null` (UI pokaże „za mało danych", nie zmyśloną liczbę,
 // [[feedback-filtry-twarde]]).
+//
+// Promień NIE jest sztywny: schodzimy drabinką RADIUS_LADDER i bierzemy najmniejsze koło, które
+// daje próbkę działek budowlanych (a w drugiej kolejności jakąkolwiek próbkę). Sztywne 10 km
+// zaniżało wycenę w miastach, bo koło łapało tanią podaż wiejską zza granicy miasta.
+// Zapytanie do bazy leci JEDNO, na największy promień — pierścienie tniemy w pamięci.
 
 // Udział ofert w okolicy z danym medium FIZYCZNIE NA DZIAŁCE (0..1). Uczciwa odpowiedź na pytanie
 // „czy jest tu prąd/wodociąg" — z naszych danych, bez zmyślania odległości do rury
@@ -388,6 +394,20 @@ export type MediaShares = {
 // pricePerM2 = null, gdy podpróbka nie dobija MIN_SAMPLE (nie zmyślamy przy 1-2 ofertach).
 export type PriceStat = { pricePerM2: RangeStat | null; sampleCount: number };
 
+// Drabinka promienia: bierzemy NAJMNIEJSZE koło, które daje sensowną próbkę. Sztywne 10 km
+// przeskakiwało granicę miasta (dzielnica po 300 zł/m² mieszała się ze wsią 5 km dalej po 40)
+// i mediana lądowała gdzieś pośrodku, czyli nigdzie. Bliżej = bardziej porównywalnie.
+export const RADIUS_LADDER = [3, 6, 10] as const;
+
+// Rozrzut, przy którym jedna liczba przestaje być uczciwa: p90 co najmniej 3x p10 znaczy, że w
+// próbce siedzą dwa różne rynki (miasto + wieś). Wtedy UI pokazuje zakres zamiast mediany
+// ([[feedback-filtry-twarde]]).
+export const WIDE_SPREAD_RATIO = 3;
+
+export function isWideSpread(stat: RangeStat | null): boolean {
+  return !!stat && stat.low > 0 && stat.high / stat.low >= WIDE_SPREAD_RATIO;
+}
+
 export type PointValuation = {
   // mediana + zakres p10..p90 zł/m² ze WSZYSTKICH ofert w okolicy; null przy zbyt małej próbce
   pricePerM2: RangeStat | null;
@@ -398,6 +418,9 @@ export type PointValuation = {
   budowlana: PriceStat;
   budowlanaUzbrojona: PriceStat;
   budowlanaNieuzbrojona: PriceStat;
+  // same działki rolne — raport prowadzi tą pulą, gdy MPZP wskazuje grunt rolny/leśny.
+  // Bez tego mediana „wszystkich typów" mieszała pola uprawne po 15 zł/m² z budowlanymi.
+  rolna: PriceStat;
   // liczba wszystkich aktywnych ofert w promieniu (baza dla „media w okolicy")
   offersNearby: number;
   // udział ofert z danym medium na działce; null gdy za mało ofert
@@ -405,17 +428,10 @@ export type PointValuation = {
   radiusKm: number;
 };
 
-// Odległość równopłaszczyznowa (equirectangular) w km — wystarczająco dokładna w skali kilku km.
-function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
-  const dLat = (bLat - aLat) * (Math.PI / 180) * KM_PER_DEG_LAT;
-  const meanLat = ((aLat + bLat) / 2) * (Math.PI / 180);
-  const dLng = (bLng - aLng) * (Math.PI / 180) * KM_PER_DEG_LAT * Math.cos(meanLat);
-  return Math.hypot(dLat, dLng);
-}
-
 export const getPointValuation = cache(
-  async (lat: number, lng: number, km = 10): Promise<PointValuation> => {
-    const box = boxAround(lat, lng, km);
+  async (lat: number, lng: number): Promise<PointValuation> => {
+    const maxKm = RADIUS_LADDER[RADIUS_LADDER.length - 1];
+    const box = boxAround(lat, lng, maxKm);
     const now = new Date();
 
     const rows = await prisma.dzialka.findMany({
@@ -442,14 +458,30 @@ export const getPointValuation = cache(
       },
     });
 
-    // Prostokąt -> realny promień (róg bboxa jest dalej niż km).
-    const near = rows.filter(
-      (r): r is typeof r & { lat: number; lng: number } =>
-        r.lat !== null && r.lng !== null && distanceKm(lat, lng, r.lat, r.lng) <= km
-    );
+    // Prostokąt -> realny promień (róg bboxa jest dalej niż km). Dystans liczymy raz.
+    // UWAGA: liczymy tym samym `haversineKm` co wyszukiwarka promieniowa. Wcześniej była tu
+    // lokalna kopia wzoru z błędem (stopnie mnożone przez π/180 ORAZ przez km/stopień), przez co
+    // każdy dystans wychodził ~57x za mały i koło nie docinało NICZEGO: wycena brała cały bbox,
+    // czyli kwadrat 20x20 km. Stąd działka w mieście dostawała medianę okolicznych wsi.
+    const withDist = rows
+      .filter((r): r is typeof r & { lat: number; lng: number } => r.lat !== null && r.lng !== null)
+      .map((r) => ({ row: r, dist: haversineKm(lat, lng, r.lat, r.lng) }));
+
+    const ring = (km: number) => withDist.filter((x) => x.dist <= km).map((x) => x.row);
+    const priced = (subset: typeof rows) =>
+      subset.filter((r) => r.cenaPln > 0 && r.powierzchniaM2 > 0).length;
+    const isBudowlana = (r: (typeof rows)[number]) => r.przeznaczenia.includes('BUDOWLANA');
+
+    // Najmniejszy pierścień z próbką budowlanych; potem z jakąkolwiek próbką; na końcu największy.
+    const km =
+      RADIUS_LADDER.find((k) => priced(ring(k).filter(isBudowlana)) >= MIN_SAMPLE) ??
+      RADIUS_LADDER.find((k) => priced(ring(k)) >= MIN_SAMPLE) ??
+      maxKm;
+
+    const near = ring(km);
 
     const detail = computeDetail(near);
-    const sampleCount = near.filter((r) => r.cenaPln > 0 && r.powierzchniaM2 > 0).length;
+    const sampleCount = priced(near);
 
     // Rozbicie cenowe bez dodatkowych zapytań — te same wiersze, filtrowane w pamięci.
     const priceStat = (subset: typeof near): PriceStat => {
@@ -459,9 +491,10 @@ export const getPointValuation = cache(
       }
       return { pricePerM2: rangeStat(ppm2), sampleCount: ppm2.length };
     };
-    const budowlaneRows = near.filter((r) => r.przeznaczenia.includes('BUDOWLANA'));
+    const budowlaneRows = near.filter(isBudowlana);
     const budUzbr = budowlaneRows.filter(isUzbrojona);
     const budNieuzbr = budowlaneRows.filter((r) => !isUzbrojona(r));
+    const rolneRows = near.filter((r) => r.przeznaczenia.includes('ROLNA'));
 
     // Media „twardo na działce" (spójnie z filtrami listy). null przy próbce < MIN_SAMPLE.
     const mediaShares =
@@ -481,6 +514,7 @@ export const getPointValuation = cache(
       budowlana: priceStat(budowlaneRows),
       budowlanaUzbrojona: priceStat(budUzbr),
       budowlanaNieuzbrojona: priceStat(budNieuzbr),
+      rolna: priceStat(rolneRows),
       offersNearby: near.length,
       mediaShares,
       radiusKm: km,

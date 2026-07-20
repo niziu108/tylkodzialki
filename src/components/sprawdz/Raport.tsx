@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { formatIntPL } from '@/lib/format';
 import type { ParcelReport } from '@/lib/uldk';
-import type { PointValuation, PriceStat } from '@/lib/seoHub';
+import { isWideSpread, type PointValuation, type PriceStat } from '@/lib/seoHub';
 import type { MpzpInfo } from '@/lib/mpzp';
 import RaportMap from './RaportMap';
 
@@ -74,9 +74,44 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
   );
 }
 
+// Czy plan wskazuje grunt rolny/leśny. Wtedy raport prowadzi medianą działek rolnych — porównywanie
+// pola uprawnego do budowlanych sąsiadów zawyża tak samo, jak odwrotnie zaniżało.
+// Konserwatywnie: „zabudowa zagrodowa w gospodarstwach rolnych" to wciąż teren pod budowę.
+function looksRolny(mpzp: MpzpInfo | null): boolean {
+  if (!mpzp) return false;
+  const symbol = (mpzp.functionSymbol ?? '').trim().toUpperCase();
+  if (/^(R|RP|RL|ZL|ZR)\d*$/.test(symbol)) return true;
+  const name = (mpzp.functionName ?? '').toLowerCase();
+  if (!name || /zabudow/.test(name)) return false;
+  return /roln|leśn|lesn|upraw|grunt orn/.test(name);
+}
+
+// Pula, którą prowadzimy raport. Wcześniej dużą liczbą była mediana WSZYSTKICH typów — w okolicy
+// z przewagą pól po 15 zł/m² wychodziło z tego 55 zł/m² także dla działki w mieście. Kto sprawdza
+// działkę pod dom, chce mediany budowlanych, nie średniej z gruntami rolnymi.
+function pickLead(
+  valuation: PointValuation,
+  mpzp: MpzpInfo | null
+): { label: string; stat: PriceStat } | null {
+  const bud = { label: 'działki budowlane', stat: valuation.budowlana };
+  const rol = { label: 'działki rolne', stat: valuation.rolna };
+  const order = looksRolny(mpzp) ? [rol, bud] : [bud, rol];
+
+  for (const cand of order) if (cand.stat.pricePerM2) return cand;
+  if (valuation.pricePerM2) {
+    return {
+      label: 'wszystkie typy działek',
+      stat: { pricePerM2: valuation.pricePerM2, sampleCount: valuation.sampleCount },
+    };
+  }
+  return null;
+}
+
 export default function Raport({ data }: { data: RaportData }) {
   const { parcel, valuation, mpzp } = data;
-  const v = valuation.pricePerM2;
+  const lead = pickLead(valuation, mpzp);
+  const v = lead?.stat.pricePerM2 ?? null;
+  const mixed = isWideSpread(v);
   const [mapShown, setMapShown] = useState(false);
 
   return (
@@ -115,35 +150,43 @@ export default function Raport({ data }: { data: RaportData }) {
       {/* CENA */}
       <div className="mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Orientacyjna cena okolicy</Eyebrow>
-        {v ? (
+        {v && lead ? (
           <>
+            {/* Przy dużym rozrzucie (p90 >= 3x p10) NIE prowadzimy jedną liczbą: w próbce siedzą
+                wtedy dwa rynki naraz i mediana kłamie w obie strony. Pokazujemy zakres. */}
             <div className="mt-2 flex flex-wrap items-baseline gap-x-3">
               <span className="text-[34px] font-semibold tracking-tight text-fg md:text-[46px]">
-                {formatIntPL(v.median)}
+                {mixed ? `${formatIntPL(v.low)}–${formatIntPL(v.high)}` : formatIntPL(v.median)}
               </span>
               <span className="text-lg font-medium text-fg/55">zł/m²</span>
+              <span className="text-[13px] uppercase tracking-[0.1em] text-fg/45">{lead.label}</span>
             </div>
-            <p className="mt-2 text-sm text-fg/65">
-              {v.low === v.high
-                ? `${formatIntPL(v.low)} zł/m²`
-                : `Zakres od ${formatIntPL(v.low)} do ${formatIntPL(v.high)} zł/m²`}{' '}
-              · z {valuation.sampleCount} {valuation.sampleCount === 1 ? 'oferty' : 'ofert'} w
-              promieniu {valuation.radiusKm} km. To orientacja z ogłoszeń, nie operat rzeczoznawcy.
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-fg/65">
+              {mixed
+                ? `Ceny w tej okolicy rozjeżdżają się za mocno, żeby podać jedną liczbę: w promieniu ${valuation.radiusKm} km mamy zarówno teren zabudowany, jak i tańsze działki poza nim. Traktuj to jako widełki, nie wycenę.`
+                : `${v.low === v.high ? `${formatIntPL(v.low)} zł/m²` : `Zakres od ${formatIntPL(v.low)} do ${formatIntPL(v.high)} zł/m²`} · w promieniu ${valuation.radiusKm} km.`}{' '}
+              Liczone z {lead.stat.sampleCount}{' '}
+              {lead.stat.sampleCount === 1 ? 'oferty' : 'ofert'} w naszym serwisie. To orientacja z
+              ogłoszeń, nie operat rzeczoznawcy.
             </p>
 
-            {/* Rozbicie: budowlane, a przy gęstej okolicy uzbrojone vs bez. Puste rubryki znikają. */}
-            {valuation.budowlana.pricePerM2 ? (
-              <div className="mt-6">
+            {/* Rozbicie: uzbrojone vs bez (przy gęstej okolicy) oraz druga pula dla kontekstu.
+                Puste rubryki znikają same. */}
+            <div className="empty:hidden mt-6">
+              {valuation.budowlanaUzbrojona.pricePerM2 &&
+              valuation.budowlanaNieuzbrojona.pricePerM2 ? (
+                <>
+                  <PriceRow label="Budowlane z uzbrojeniem" stat={valuation.budowlanaUzbrojona} />
+                  <PriceRow label="Budowlane bez uzbrojenia" stat={valuation.budowlanaNieuzbrojona} />
+                </>
+              ) : null}
+              {lead.label !== 'działki budowlane' ? (
                 <PriceRow label="Działki budowlane" stat={valuation.budowlana} />
-                {valuation.budowlanaUzbrojona.pricePerM2 &&
-                valuation.budowlanaNieuzbrojona.pricePerM2 ? (
-                  <>
-                    <PriceRow label="z uzbrojeniem" stat={valuation.budowlanaUzbrojona} sub />
-                    <PriceRow label="bez uzbrojenia" stat={valuation.budowlanaNieuzbrojona} sub />
-                  </>
-                ) : null}
-              </div>
-            ) : null}
+              ) : null}
+              {lead.label !== 'działki rolne' ? (
+                <PriceRow label="Działki rolne" stat={valuation.rolna} />
+              ) : null}
+            </div>
           </>
         ) : (
           <p className="mt-2 max-w-2xl text-[15px] leading-7 text-fg/65">
