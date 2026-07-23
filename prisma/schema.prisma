@@ -745,6 +745,7 @@ enum CrmProvider {
   IMOX
   GALACTICA
   PROPERTLY
+  LOCUMNET
 }
 
 enum CrmTransportType {
@@ -756,6 +757,7 @@ enum CrmFeedFormat {
   DOMY_PL
   EBIURO_V2
   ESTICRM_XML
+  LOCUMNET_XML
 }
 
 enum CrmSyncAction {

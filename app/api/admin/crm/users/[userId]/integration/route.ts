@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 type CreateIntegrationBody = {
   name?: string;
-  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY";
+  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY" | "LOCUMNET";
 };
 
 type RouteContext = {
@@ -75,6 +75,16 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const provider = body.provider ?? "GALACTICA";
 
+    // Format feedu wynika z providera (jak w PATCH /api/admin/crm/integrations/[id]).
+    const feedFormat =
+      provider === "LOCUMNET"
+        ? "LOCUMNET_XML"
+        : provider === "ESTI_CRM"
+          ? "ESTICRM_XML"
+          : provider === "ASARI"
+            ? "EBIURO_V2"
+            : "DOMY_PL";
+
     const integration = await prisma.crmIntegration.create({
       data: {
         userId: targetUser.id,
@@ -82,10 +92,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
         provider,
         isActive: true,
         transportType: "FTP",
-        feedFormat: "DOMY_PL",
+        feedFormat,
         ftpPort: 21,
         ftpPassive: true,
-        expectedFilePattern: "oferty_*.zip",
+        expectedFilePattern: provider === "LOCUMNET" ? "lno_*.zip" : "oferty_*.zip",
         fullImportMode: true,
       },
       select: {

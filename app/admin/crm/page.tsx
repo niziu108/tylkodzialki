@@ -22,6 +22,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   ESTI_CRM: "EstiCRM",
   IMOX: "IMOX",
   PROPERTLY: "Propertly",
+  LOCUMNET: "LocumNet",
 };
 
 const HEALTH_META: Record<

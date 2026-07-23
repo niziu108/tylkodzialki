@@ -4,6 +4,8 @@ import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
 import { syncCrmIntegrationNow } from "@/lib/crm/domypl-sync";
 import { syncAsariIntegrationNow } from "@/lib/crm/asari-sync";
+import { syncEstiCrmIntegrationNow } from "@/lib/crm/esticrm-sync";
+import { syncLocumnetIntegrationNow } from "@/lib/crm/locumnet-sync";
 
 type RouteContext = {
   params: Promise<{
@@ -51,6 +53,7 @@ export async function POST(_req: Request, context: RouteContext) {
       select: {
         id: true,
         provider: true,
+        feedFormat: true,
       },
     });
 
@@ -62,9 +65,13 @@ export async function POST(_req: Request, context: RouteContext) {
     }
 
     const summary =
-      integration.provider === "ASARI"
-        ? await syncAsariIntegrationNow(integration.id)
-        : await syncCrmIntegrationNow(integration.id);
+      integration.provider === "LOCUMNET" || integration.feedFormat === "LOCUMNET_XML"
+        ? await syncLocumnetIntegrationNow(integration.id)
+        : integration.provider === "ESTI_CRM" || integration.feedFormat === "ESTICRM_XML"
+          ? await syncEstiCrmIntegrationNow(integration.id)
+          : integration.provider === "ASARI"
+            ? await syncAsariIntegrationNow(integration.id)
+            : await syncCrmIntegrationNow(integration.id);
 
     return NextResponse.json({
       success: true,

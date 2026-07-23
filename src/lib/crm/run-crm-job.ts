@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { syncCrmIntegrationNow } from "@/lib/crm/domypl-sync";
 import { syncAsariIntegrationNow } from "@/lib/crm/asari-sync";
 import { syncEstiCrmIntegrationNow } from "@/lib/crm/esticrm-sync";
+import { syncLocumnetIntegrationNow } from "@/lib/crm/locumnet-sync";
 
 export async function runCrmImportJob(jobId: string) {
   const job = await prisma.crmImportJob.findUnique({
@@ -28,23 +29,30 @@ export async function runCrmImportJob(jobId: string) {
     const isEstiCrm =
       job.integration.provider === "ESTI_CRM" ||
       job.integration.feedFormat === "ESTICRM_XML";
+    const isLocumnet =
+      job.integration.provider === "LOCUMNET" ||
+      job.integration.feedFormat === "LOCUMNET_XML";
 
-    const result = isEstiCrm
-      ? await syncEstiCrmIntegrationNow(job.integrationId)
-      : isAsari
-        ? await syncAsariIntegrationNow(job.integrationId)
-        : await syncCrmIntegrationNow(job.integrationId);
+    const result = isLocumnet
+      ? await syncLocumnetIntegrationNow(job.integrationId)
+      : isEstiCrm
+        ? await syncEstiCrmIntegrationNow(job.integrationId)
+        : isAsari
+          ? await syncAsariIntegrationNow(job.integrationId)
+          : await syncCrmIntegrationNow(job.integrationId);
 
     await prisma.crmImportJob.update({
       where: { id: jobId },
       data: {
         status: "SUCCESS",
         finishedAt: new Date(),
-        message: isEstiCrm
-          ? "Import EstiCRM zakończony poprawnie."
-          : isAsari
-            ? "Import ASARI zakończony poprawnie."
-            : "Import CRM zakończony poprawnie.",
+        message: isLocumnet
+          ? "Import LocumNet zakończony poprawnie."
+          : isEstiCrm
+            ? "Import EstiCRM zakończony poprawnie."
+            : isAsari
+              ? "Import ASARI zakończony poprawnie."
+              : "Import CRM zakończony poprawnie.",
         remoteFileName: result.remoteFileName ?? null,
         importedOffers: result.importedOffers ?? 0,
         createdCount: result.createdCount ?? 0,
@@ -60,17 +68,21 @@ export async function runCrmImportJob(jobId: string) {
     const provider = job.integration.provider;
     const isEstiCrm =
       provider === "ESTI_CRM" || job.integration.feedFormat === "ESTICRM_XML";
+    const isLocumnet =
+      provider === "LOCUMNET" || job.integration.feedFormat === "LOCUMNET_XML";
 
     await prisma.crmImportJob.update({
       where: { id: jobId },
       data: {
         status: "ERROR",
         finishedAt: new Date(),
-        message: isEstiCrm
-          ? "Import EstiCRM zakończony błędem."
-          : provider === "ASARI"
-            ? "Import ASARI zakończony błędem."
-            : "Import CRM zakończony błędem.",
+        message: isLocumnet
+          ? "Import LocumNet zakończony błędem."
+          : isEstiCrm
+            ? "Import EstiCRM zakończony błędem."
+            : provider === "ASARI"
+              ? "Import ASARI zakończony błędem."
+              : "Import CRM zakończony błędem.",
         errorMessage: error instanceof Error ? error.message : String(error),
       },
     });

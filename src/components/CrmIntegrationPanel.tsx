@@ -7,10 +7,10 @@ import DlaBiurForm from "./DlaBiurForm";
 type Integration = {
   id: string;
   name: string;
-  provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY";
+  provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY" | "LOCUMNET";
   isActive: boolean;
   transportType: "API" | "FTP";
-  feedFormat: "DOMY_PL" | "EBIURO_V2" | "ESTICRM_XML";
+  feedFormat: "DOMY_PL" | "EBIURO_V2" | "ESTICRM_XML" | "LOCUMNET_XML";
   lastUsedAt: string | Date | null;
   lastSyncAt: string | Date | null;
   lastSuccessAt: string | Date | null;

@@ -12,7 +12,7 @@ type RouteContext = {
 
 type UpdateIntegrationBody = {
   name?: string;
-  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY";
+  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY" | "LOCUMNET";
   isActive?: boolean;
   ftpHost?: string | null;
   ftpPort?: number | null;
@@ -83,7 +83,19 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       data.name = name;
     }
 
-    if (body.provider) data.provider = body.provider;
+    if (body.provider) {
+      data.provider = body.provider;
+      // Format feedu wynika z providera — trzymamy je w zgodzie, żeby dispatch silnika
+      // i statystyki po feedFormat nie rozjechały się z wyborem w dropdownie.
+      data.feedFormat =
+        body.provider === "LOCUMNET"
+          ? "LOCUMNET_XML"
+          : body.provider === "ESTI_CRM"
+            ? "ESTICRM_XML"
+            : body.provider === "ASARI"
+              ? "EBIURO_V2"
+              : "DOMY_PL";
+    }
     if (typeof body.isActive === "boolean") data.isActive = body.isActive;
 
     if (typeof body.ftpHost === "string" || body.ftpHost === null) {

@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/crm/getCurrentUser";
 
 type CreateIntegrationBody = {
   name?: string;
-  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA";
+  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "LOCUMNET";
 };
 
 export async function POST(req: NextRequest) {

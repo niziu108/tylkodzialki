@@ -17,6 +17,41 @@ async function runSingleJob(jobId: string) {
   await prisma.$disconnect();
 }
 
+// Silniki rozpakowują paczki do os.tmpdir()/td-*. Sprzątanie jest w `finally`, ale crash albo
+// restart procesu zostawia katalog na dysku. Worker jest jednoinstancyjny, więc w chwili startu
+// żaden td-* nie jest w użyciu i można je skasować bezpiecznie.
+async function sweepOrphanTempDirs() {
+  const fsp = await import("node:fs/promises");
+  const os = await import("node:os");
+  const path = await import("node:path");
+
+  const tmp = os.tmpdir();
+  const prefixes = ["td-esticrm-", "td-asari-", "td-crm-", "td-backfill-", "td-locumnet-"];
+
+  try {
+    const entries = await fsp.readdir(tmp, { withFileTypes: true });
+    let removed = 0;
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (!prefixes.some((prefix) => entry.name.startsWith(prefix))) continue;
+
+      try {
+        await fsp.rm(path.join(tmp, entry.name), { recursive: true, force: true });
+        removed += 1;
+      } catch {
+        // Pojedynczy katalog nie do skasowania nie może wywalić startu workera.
+      }
+    }
+
+    if (removed > 0) {
+      console.log(`🧹 Sprzątanie: usunięto ${removed} osieroconych katalogów tymczasowych z ${tmp}.`);
+    }
+  } catch (error) {
+    console.error("🧹 Sprzątanie katalogów tymczasowych nie powiodło się:", error);
+  }
+}
+
 async function runLoop() {
   const { prisma } = await import("../src/lib/prisma");
   const { runCrmImportJob } = await import("../src/lib/crm/run-crm-job");
@@ -33,6 +68,8 @@ async function runLoop() {
   if (reconciled.count > 0) {
     console.log(`♻️ Reconciler: wznowiono ${reconciled.count} osieroconych jobów RUNNING → PENDING.`);
   }
+
+  await sweepOrphanTempDirs();
 
   console.log("🚀 CRM worker działa. Szukam zadań PENDING...");
 

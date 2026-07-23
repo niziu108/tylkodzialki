@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 type Integration = {
   id: string;
   name: string;
-  provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY";
+  provider: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "PROPERTLY" | "LOCUMNET";
   isActive: boolean;
   transportType: "API" | "FTP";
-  feedFormat: "DOMY_PL" | "EBIURO_V2" | "ESTICRM_XML";
+  feedFormat: "DOMY_PL" | "EBIURO_V2" | "ESTICRM_XML" | "LOCUMNET_XML";
   ftpHost: string | null;
   ftpPort: number | null;
   ftpUsername: string | null;
@@ -90,7 +90,8 @@ export default function AdminCrmIntegrationEditor({
       | "ESTI_CRM"
       | "IMOX"
       | "GALACTICA"
-      | "PROPERTLY",
+      | "PROPERTLY"
+      | "LOCUMNET",
     isActive: integration?.isActive ?? true,
     ftpHost: integration?.ftpHost ?? "",
     ftpPort: String(integration?.ftpPort ?? 21),
@@ -111,7 +112,8 @@ export default function AdminCrmIntegrationEditor({
         | "ESTI_CRM"
         | "IMOX"
         | "GALACTICA"
-        | "PROPERTLY",
+        | "PROPERTLY"
+        | "LOCUMNET",
       isActive: currentIntegration?.isActive ?? true,
       ftpHost: currentIntegration?.ftpHost ?? "",
       ftpPort: String(currentIntegration?.ftpPort ?? 21),
@@ -483,7 +485,8 @@ export default function AdminCrmIntegrationEditor({
                             | "ESTI_CRM"
                             | "IMOX"
                             | "GALACTICA"
-                            | "PROPERTLY",
+                            | "PROPERTLY"
+                            | "LOCUMNET",
                         }))
                       }
                       className="w-full rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-fg outline-none transition focus:border-brand/50"
@@ -494,6 +497,7 @@ export default function AdminCrmIntegrationEditor({
                       <option value="ASARI">ASARI</option>
                       <option value="ESTI_CRM">ESTI_CRM</option>
                       <option value="IMOX">IMOX</option>
+                      <option value="LOCUMNET">LOCUMNET</option>
                     </select>
                   </label>
 

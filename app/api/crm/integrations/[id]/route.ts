@@ -12,7 +12,7 @@ type RouteContext = {
 
 type UpdateIntegrationBody = {
   name?: string;
-  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA";
+  provider?: "GENERIC" | "ASARI" | "ESTI_CRM" | "IMOX" | "GALACTICA" | "LOCUMNET";
   isActive?: boolean;
   ftpHost?: string | null;
   ftpPort?: number | null;
