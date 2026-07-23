@@ -1402,7 +1402,11 @@ async function streamParseDomyPlOffers(
   });
 
   xmlStream.pipe(saxStream);
-  return finishedPromise;
+  // Jak w extractZip: błąd parsera nie może zostawić otwartego deskryptora w długo żyjącym workerze.
+  return finishedPromise.finally(() => {
+    const closable = xmlStream as { destroy?: () => void };
+    if (typeof closable.destroy === "function") closable.destroy();
+  });
 }
 
 function buildDzialkaDataFromOffer(offer: ParsedDomyOffer) {

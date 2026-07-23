@@ -606,7 +606,17 @@ async function listCurrentAndOneLevel(client: ftp.Client, remoteDir: string) {
 
 async function extractZip(localZipPath: string, outputDir: string) {
   await fsp.mkdir(outputDir, { recursive: true });
-  await fs.createReadStream(localZipPath).pipe(unzipper.Extract({ path: outputDir })).promise();
+
+  // Strumień źródłowy MUSI być zamknięty także gdy rozpakowanie rzuci. Worker jest długo
+  // żyjącym procesem: niezamknięty deskryptor do pliku, który potem kasujemy razem z tempDir,
+  // trzyma jego rozmiar na dysku aż do końca procesu (plik "deleted", ale wciąż otwarty).
+  // Przy paczce psującej się w kółko to rosło o kilka GB na przebieg i zapchało VPS (ENOSPC).
+  const source = fs.createReadStream(localZipPath);
+  try {
+    await source.pipe(unzipper.Extract({ path: outputDir })).promise();
+  } finally {
+    source.destroy();
+  }
 }
 
 async function walkFiles(dir: string): Promise<string[]> {
