@@ -551,9 +551,21 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const showMap = Boolean(mapSrc);
 
 
+  // Zdarzenie lead do GA4 (konwersja). Odpala się tylko, gdy gtag istnieje, a gtag
+  // ładuje się wyłącznie po zgodzie na analytics — więc brak zgody = brak zdarzenia.
+  const trackGaLead = (leadType: 'phone' | 'message' | 'form') => {
+    if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
+    window.gtag('event', 'generate_lead', {
+      lead_type: leadType,
+      dzialka_id: id,
+    });
+  };
+
   const trackContact = (type: 'phone' | 'message') => {
     if (preview) return;
     if (!id) return;
+
+    trackGaLead(type);
 
     const url = `/api/dzialki/${id}/track-contact`;
     const body = JSON.stringify({ type });
@@ -707,6 +719,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       }
 
       setMsgDone(true);
+      trackGaLead('form');
     } catch {
       setMsgErr('Brak połączenia. Spróbuj ponownie.');
     } finally {
