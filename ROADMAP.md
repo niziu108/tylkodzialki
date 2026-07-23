@@ -66,12 +66,31 @@ Monetyzacja świadomie ODŁOŻONA do boomu. Najpierw podaż, ruch, płynność. 
 
 ## 2. JAK PRACUJEMY (zasady)
 
+> ## 🟥🟥 ŻELAZNA ZASADA #1 — BAZA DANYCH TO ŻYWA PRODUKCJA. NIGDY JEJ NIE RESETUJEMY.
+>
+> **INCYDENT 2026-07-23:** polecenie `prisma migrate diff` z parametrem `--shadow-database-url`
+> wskazującym na ŻYWĄ bazę Neon **wyczyściło całą produkcję** (0 działek, 0 kont). Odzyskane
+> w całości przez Neon → Backup & Restore (point-in-time do 16:20). Realna strata danych: 0.
+> Ale to była godzina koszmaru i pusta strona na oczach właściciela. **Więcej to się NIE MOŻE zdarzyć.**
+>
+> Bezwzględne zakazy na bazie (`DATABASE_URL` = żywy Neon `neondb`):
+> - ❌ **NIGDY** `--shadow-database-url` z jakimkolwiek prawdziwym URL. Shadow DB jest kasowana przez Prismę.
+> - ❌ **NIGDY** `prisma migrate dev`, `migrate reset`, `db push --force-reset`, `migrate deploy`
+>   (baza nie ma tabeli `_prisma_migrations` — deploy chciałby aplikować historię od zera).
+> - ❌ **NIGDY** `DROP`, `TRUNCATE`, masowy `DELETE` bez `WHERE` przez `db execute`.
+> - ✅ **JEDYNY** dozwolony flow zmiany schematu: `prisma migrate diff --from-schema-datamodel <stary plik>
+>   --to-schema-datamodel prisma/schema.prisma --script` (czysty diff plik→plik, NIE dotyka bazy) →
+>   ręcznie przejrzeć SQL (tylko addytywne: `ADD COLUMN` nullable, `CREATE TABLE`, `ADD VALUE`) →
+>   **zapytać Daniela** → `prisma db execute --file <migracja>` → `prisma generate` (najpierw stop `next dev`).
+> - ✅ Przed jakąkolwiek operacją na schemacie: rozważyć ręczny **snapshot** w Neon (Backup & Restore → Create snapshot).
+> - Szczegóły i pełny opis flow: pamięć `project_db_migrations` + `project_incydent_neon_reset`.
+
 - Po polsku, konkretnie. **ZERO długich myślników** w tekstach na stronę (blog, UI); konkret zamiast „najlepszy/największy portal".
 - **Jeden punkt = zwykle jeden czat.** Robimy do końca, weryfikujemy, dopiero potem dalej.
 - Przed większą / nieodwracalną zmianą (migracje DB, usuwanie, deploy, rzeczy na zewnątrz) **pytamy**.
 - **Definicja ukończenia:** (1) działa i sprawdzone, (2) `[x]` w roadmapie, (3) jednolinijkowiec w ARCHIWUM (data, pliki, decyzja), (4) ustawiony następny punkt, (5) zaproponowany commit.
 - **Higiena commitów:** Daniel pracuje równolegle. Commituj tylko swoje pliki przez pathspec, sprawdź cudze zmiany. Push na main deployuje całą historię (web = Vercel auto-deploy; VPS = tylko crm-worker).
-- **Migracje:** dev = ŻYWA baza Neon, brak shadow DB. NIE `migrate dev`; użyj `migrate diff` + `migrate deploy`.
+- **Migracje:** patrz ŻELAZNA ZASADA #1 wyżej. Skrót: TYLKO `migrate diff` plik→plik (odczyt) + `db execute`. Zakaz shadow-database-url, `migrate dev/deploy/reset`.
 
 ## ✍️ BLOG / ARTYKUŁY
 
