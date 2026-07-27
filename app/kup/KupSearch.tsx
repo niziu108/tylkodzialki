@@ -773,6 +773,10 @@ export default function KupSearch({
   const searchTopRef = useRef<HTMLDivElement | null>(null);
   const sortRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollRef = useRef(false);
+  // Ustawiane przy zmianie strony w pagerze — po wczytaniu nowych ofert dociągamy scroll
+  // na samą górę (patrz efekt niżej). Smooth-scroll przy kliknięciu bywał przerywany
+  // podmianą listy (scroll anchoring wrzucał widok w środek), więc korygujemy po fetchu.
+  const pendingTopScrollRef = useRef(false);
 
   useEffect(() => {
     if (!sortOpen) return;
@@ -829,7 +833,8 @@ export default function KupSearch({
 
   function scrollToSearchTop() {
     // Zmiana strony wraca na SAMĄ GÓRĘ strony (nad wyszukiwarkę), nie w środek listy.
-    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    // Instant, nie smooth — smooth animował ~400ms i był przerywany podmianą ofert.
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
   }
 
   async function fetchDataWith(nextApplied: AppliedFilters, nextPage = 1, replaceUrl = false) {
@@ -880,16 +885,18 @@ export default function KupSearch({
 
     if (clamped === page) return;
 
+    // Zaznacz, że po wczytaniu nowej strony scroll ma dociągnąć na górę (efekt niżej).
+    pendingTopScrollRef.current = true;
+
     fetchDataWith(applied, clamped);
 
-    requestAnimationFrame(() => {
-      scrollToSearchTop();
+    // Natychmiast na górę (nowe oferty jeszcze się ładują) — snappy feedback.
+    scrollToSearchTop();
 
-      try {
-        sessionStorage.setItem('TD_KUP_SCROLL_Y', '0');
-        sessionStorage.setItem('TD_KUP_URL', buildUrlFromState(applied, clamped));
-      } catch {}
-    });
+    try {
+      sessionStorage.setItem('TD_KUP_SCROLL_Y', '0');
+      sessionStorage.setItem('TD_KUP_URL', buildUrlFromState(applied, clamped));
+    } catch {}
   }
 
   function togglePrzezn(k: Przeznaczenie) {
@@ -1054,6 +1061,16 @@ export default function KupSearch({
     return () => window.removeEventListener('popstate', onPopState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigationMode]);
+
+  // Po zmianie strony w pagerze: gdy nowe oferty się wczytają (loading→false), dociągnij
+  // scroll na samą górę. Instant, bo w trakcie ładowania przeglądarka (scroll anchoring)
+  // potrafi wrzucić widok w środek listy — ta korekta to naprawia po fakcie.
+  useEffect(() => {
+    if (loading) return;
+    if (!pendingTopScrollRef.current) return;
+    pendingTopScrollRef.current = false;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [loading, page]);
 
   useEffect(() => {
     if (loading) return;
