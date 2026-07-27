@@ -408,6 +408,18 @@ export function isWideSpread(stat: RangeStat | null): boolean {
   return !!stat && stat.low > 0 && stat.high / stat.low >= WIDE_SPREAD_RATIO;
 }
 
+// Gate pewności: na NAJWIĘKSZYM kole drabinki compary pochodzą już z sąsiednich rynków
+// (premium-osiedle bez własnych ofert łapie tańsze działki z drugiego końca miasta i wsi).
+// Kilka takich sztuk zaniża medianę tak, że użytkownik obala ją znajomością własnej ulicy —
+// a to zatruwa zaufanie do całego raportu. Gdy próbka zebrała się dopiero daleko i jest cienka,
+// MILCZYMY zamiast drukować liczbę do obalenia. Cisza > fałszywa precyzja.
+export const CONFIDENT_FAR_SAMPLE = 8;
+
+export function isFarAndThin(radiusKm: number, sampleCount: number): boolean {
+  const farRing = RADIUS_LADDER[RADIUS_LADDER.length - 1];
+  return radiusKm >= farRing && sampleCount < CONFIDENT_FAR_SAMPLE;
+}
+
 export type PointValuation = {
   // mediana + zakres p10..p90 zł/m² ze WSZYSTKICH ofert w okolicy; null przy zbyt małej próbce
   pricePerM2: RangeStat | null;

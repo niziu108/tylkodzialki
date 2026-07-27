@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { formatIntPL } from '@/lib/format';
 import type { ParcelReport } from '@/lib/uldk';
-import { isWideSpread, type PointValuation, type PriceStat } from '@/lib/seoHub';
+import { isFarAndThin, isWideSpread, type PointValuation, type PriceStat } from '@/lib/seoHub';
 import type { MpzpInfo } from '@/lib/mpzp';
 import RaportMap from './RaportMap';
 
@@ -110,7 +110,10 @@ function pickLead(
 export default function Raport({ data }: { data: RaportData }) {
   const { parcel, valuation, mpzp } = data;
   const lead = pickLead(valuation, mpzp);
-  const v = lead?.stat.pricePerM2 ?? null;
+  // Gate pewności: gdy compary zebrały się dopiero na największym kole i jest ich mało, nie
+  // prowadzimy liczbą — spada do gałęzi „za mało porównywalnych działek". [[project-sprawdz-dzialke]]
+  const farThin = lead ? isFarAndThin(valuation.radiusKm, lead.stat.sampleCount) : false;
+  const v = farThin ? null : lead?.stat.pricePerM2 ?? null;
   const mixed = isWideSpread(v);
   const [mapShown, setMapShown] = useState(false);
 
