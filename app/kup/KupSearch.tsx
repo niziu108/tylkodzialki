@@ -82,7 +82,6 @@ const TRANSAKCJA: { key: TransakcjaKey; label: string }[] = [
 const TRANSAKCJA_KEYS: TransakcjaKey[] = TRANSAKCJA.map((t) => t.key);
 
 const PAGE_SIZE = 20;
-const SCROLL_OFFSET = -450;
 const STORAGE_KEY = 'TD_KUP_STATE_V2';
 
 export type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'area_asc' | 'area_desc';
@@ -829,15 +828,8 @@ export default function KupSearch({
   }
 
   function scrollToSearchTop() {
-    const el = searchTopRef.current;
-    if (!el) return;
-
-    const top = window.scrollY + el.getBoundingClientRect().top - SCROLL_OFFSET;
-
-    window.scrollTo({
-      top: Math.max(0, top),
-      behavior: 'smooth',
-    });
+    // Zmiana strony wraca na SAMĄ GÓRĘ strony (nad wyszukiwarkę), nie w środek listy.
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }
 
   async function fetchDataWith(nextApplied: AppliedFilters, nextPage = 1, replaceUrl = false) {
@@ -894,17 +886,7 @@ export default function KupSearch({
       scrollToSearchTop();
 
       try {
-        sessionStorage.setItem(
-          'TD_KUP_SCROLL_Y',
-          String(
-            Math.max(
-              0,
-              window.scrollY +
-                (searchTopRef.current?.getBoundingClientRect().top ?? 0) -
-                SCROLL_OFFSET
-            )
-          )
-        );
+        sessionStorage.setItem('TD_KUP_SCROLL_Y', '0');
         sessionStorage.setItem('TD_KUP_URL', buildUrlFromState(applied, clamped));
       } catch {}
     });
