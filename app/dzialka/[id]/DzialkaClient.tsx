@@ -8,6 +8,7 @@ import { OfficeLogo } from '@/components/OfficeLogo';
 import { formatOpis, plainText } from '@/lib/formatOpis';
 import AlertBar from '@/components/AlertBar';
 import type { AlertCriteria } from '@/lib/alertCriteria';
+import { QRCodeSVG } from 'qrcode.react';
 
 type Photo = { id?: string; url: string; publicId?: string; kolejnosc?: number };
 
@@ -291,7 +292,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     } catch {}
   };
 
-  // Formularz „Napisz wiadomość" (desktop) — lead leci mailem do sprzedającego.
+  // Kontakt „Napisz wiadomość" (desktop). Domyślnie: kod QR z gotowym SMS-em na numer
+  // opiekuna (ten sam tor co mobile). Formularz mailowy zostaje tylko jako zapas dla
+  // ofert bez telefonu.
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgName, setMsgName] = useState('');
   const [msgEmail, setMsgEmail] = useState('');
@@ -301,6 +304,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const [msgSending, setMsgSending] = useState(false);
   const [msgDone, setMsgDone] = useState(false);
   const [msgErr, setMsgErr] = useState<string | null>(null);
+  // Leada z QR liczymy raz na wyświetlenie oferty (otwarcie panelu = intencja kontaktu,
+  // symetrycznie do tapnięcia „Napisz" na mobile).
+  const qrLeadCountedRef = useRef(false);
 
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -675,6 +681,12 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     setMsgDone(false);
     // Gotowy wstęp z numerem oferty — ten sam, co przy SMS na mobile.
     setMsgBody((b) => b || smsText);
+    // Panel QR (jest telefon) = kontakt SMS-em do opiekuna. Otwarcie liczymy jako lead
+    // „message", raz na wyświetlenie oferty — tak jak tapnięcie „Napisz" na mobile.
+    if (smsHref && !qrLeadCountedRef.current) {
+      qrLeadCountedRef.current = true;
+      trackContact('message');
+    }
     setMsgOpen(true);
   };
 
@@ -1439,7 +1451,55 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               <span className="relative top-[-1px] text-[18px] leading-none">×</span>
             </button>
 
-            {msgDone ? (
+            {smsHref ? (
+              <div>
+                <div className="pr-10 text-[20px] font-semibold tracking-tight text-fg">
+                  Napisz do opiekuna
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-fg/60">
+                  Zeskanuj kod telefonem, a otworzy się gotowy SMS do opiekuna oferty
+                  {numerOferty ? ` (nr ${numerOferty})` : ''}. Wyślesz go w sekundę.
+                </p>
+
+                <div className="mt-6 flex flex-col items-center">
+                  <div className="rounded-3xl border border-fg/10 bg-white p-5 shadow-[0_16px_50px_rgba(0,0,0,0.10)]">
+                    <QRCodeSVG
+                      value={smsHref}
+                      size={196}
+                      level="M"
+                      marginSize={1}
+                      bgColor="#ffffff"
+                      fgColor="#233a0e"
+                    />
+                  </div>
+                  <div className="mt-4 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.16em] text-fg/55">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                    Zeskanuj aparatem telefonu
+                  </div>
+                </div>
+
+                {telefon ? (
+                  <p className="mt-6 text-center text-[13px] leading-relaxed text-fg/60">
+                    Wolisz zadzwonić?{' '}
+                    <a
+                      href={`tel:${telefon.replace(/\s+/g, '')}`}
+                      onClick={() => trackContact('phone')}
+                      className="font-semibold text-brand-text underline decoration-brand/40 underline-offset-4 transition hover:decoration-brand"
+                    >
+                      {telefon}
+                    </a>
+                  </p>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => setMsgOpen(false)}
+                  className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-2xl border border-fg/12 bg-fg/[0.035] px-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/75 transition hover:bg-fg/[0.06] hover:text-fg"
+                >
+                  Gotowe
+                </button>
+              </div>
+            ) : msgDone ? (
               <div className="text-center">
                 <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/10 text-[26px] text-brand-text">
                   ✓
