@@ -421,6 +421,31 @@ function parsePictures(picturesNode: unknown): string[] {
     .map((item) => item.unique);
 }
 
+// Wykrywa typ nieruchomości po DOKŁADNEJ nazwie pola (equals, nie "includes" — inaczej
+// łapiemy pola typu "portal nieruchomosci-online.pl"). Część CRM-ów w formacie ASARI
+// (np. MediaRent) podaje czytelne pole "nieruchomość" = DZIAŁKA / DOM / MIESZKANIE...,
+// zamiast kodować grunt prefiksem sygnatury OG. Zwraca surową wartość albo "".
+function getPropertyTypeText(
+  params: Record<string, unknown>,
+  definitions: AsariDefinitions
+): string {
+  const candidateNames = new Set([
+    "rodzaj nieruchomosci",
+    "typ nieruchomosci",
+    "nieruchomosc",
+    "rodzaj oferty",
+    "typ oferty",
+  ]);
+
+  for (const [id, rawName] of definitions.byId.entries()) {
+    if (!candidateNames.has(normalizeFieldName(rawName))) continue;
+    const value = toTextValue(params[id]);
+    if (value) return value;
+  }
+
+  return "";
+}
+
 function isLikelyLandOffer(params: Record<string, unknown>, definitions: AsariDefinitions) {
   const categoryText = [
     getTextByName(params, definitions, ["typ", "nieruchomosci"], ["17", "18"]),
@@ -452,16 +477,35 @@ function parseAsariOffer(
     return null;
   }
 
+  const params = parseParams(rawOffer.parameters);
+
+  // Rozpoznanie typu nieruchomości. Różne CRM-y eksportujące w formacie ASARI/eBiuro
+  // kodują typ inaczej:
+  //  - "klasyczny" ASARI: prefiks sygnatury OG... (oferta grunt),
+  //  - MediaRent i pochodne: czytelne pole "nieruchomość" = DZIAŁKA/DOM/MIESZKANIE...
+  // Gdy feed podaje pole typu — ufamy mu wprost (odrzucamy nie-działki, przyjmujemy
+  // działki/grunty). Gdy pola typu brak — wracamy do konwencji sygnatury OG + słabego
+  // sygnału treściowego, więc klasyczne feedy ASARI działają jak dotąd.
+  // normalizeFieldName (nie normalizeText) — zamienia "ł"→"l" i zdejmuje diakrytyki,
+  // więc "DZIAŁKA" → "dzialka" i .includes("dzial") działa. normalizeText zostawiłby "ł".
+  const propertyType = normalizeFieldName(getPropertyTypeText(params, definitions));
   const asariOfferCode = externalId.split("/").pop()?.toUpperCase() || "";
 
-  if (!asariOfferCode.startsWith("OG")) {
-    console.log("[ASARI DEBUG] Odrzucono:", externalId, "kod ASARI nie jest działką/gruntem.");
+  const isLandByType = propertyType.includes("dzial") || propertyType.includes("grunt");
+  const isTypedNonLand = propertyType !== "" && !isLandByType;
+  const isLandBySignature = asariOfferCode.startsWith("OG");
+
+  if (isTypedNonLand) {
+    console.log("[ASARI DEBUG] Odrzucono:", externalId, `typ "${propertyType}" nie jest działką/gruntem.`);
     return null;
   }
 
-  const params = parseParams(rawOffer.parameters);
+  if (!isLandByType && !isLandBySignature) {
+    console.log("[ASARI DEBUG] Odrzucono:", externalId, "brak pola typu i kod ASARI nie jest gruntem (OG).");
+    return null;
+  }
 
-  if (!isLikelyLandOffer(params, definitions)) {
+  if (!isLandByType && !isLikelyLandOffer(params, definitions)) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "to nie wygląda na działkę.");
     return null;
   }
