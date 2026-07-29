@@ -206,6 +206,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
   const [sort, setSort] = useState<SortOption>('newest');
   const [page, setPage] = useState(1);
   const listTopRef = useRef<HTMLDivElement>(null);
+  const pendingTopScrollRef = useRef(false);
 
   useEffect(() => {
     setPage(1);
@@ -293,9 +294,21 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
 
   const goToPage = (p: number) => {
     const next = Math.max(1, Math.min(totalPages, p));
+    if (next === currentPage) return;
+    // Scroll na górę listy dopiero PO przerenderowaniu nowej strony (useEffect
+    // niżej). Gdyby zrobić to tu, React jeszcze nie podmienił kart — scroll
+    // liczył się wg starego, dłuższego układu i lądował na dole/w stopce.
+    pendingTopScrollRef.current = true;
     setPage(next);
-    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  useEffect(() => {
+    if (!pendingTopScrollRef.current) return;
+    pendingTopScrollRef.current = false;
+    // Instant, nie smooth — od razu widać wyszukiwarkę i pierwszą ofertę nowej
+    // strony (spójnie z listą /kup); smooth potrafił się rwać na podmianie kart.
+    listTopRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior, block: 'start' });
+  }, [currentPage]);
 
   if (!items?.length) {
     return (
