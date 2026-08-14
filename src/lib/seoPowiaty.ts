@@ -1,4 +1,4 @@
-// P22: oś POWIATU jako warstwa SEO (`/dzialki/powiat/[powiat]`).
+// P22: oś POWIATU jako warstwa SEO (`/dzialki/powiat/[woj]/[powiat]`).
 //
 // Klucz: NIE potrzebujemy ręcznego datasetu 380 powiatów. Każda oferta ma w `locationFull`
 // pełną ścieżkę administracyjną z geokodowania Google, po przecinku:
@@ -147,17 +147,21 @@ export type PowiatEntry = {
 // Lista wszystkich powiatów z podażą (do linkowania i sitemapy). Sort malejąco po liczbie ofert.
 export const getPowiatList = cache(async (): Promise<PowiatEntry[]> => {
   const rows = await loadAllPowiatRows();
+  // Klucz ZŁOŻONY województwo+powiat: sam przymiotnik powiatu nie jest unikalny w skali kraju
+  // (np. „powiat brzeski" istnieje w opolskim i małopolskim). Grupowanie po samym slugu powiatu
+  // scalałoby dwa różne rynki pod jednym URL-em — złe dane, mediana z dwóch rynków, zły bbox.
   const groups = new Map<string, PowiatRow[]>();
   for (const r of rows) {
-    const arr = groups.get(r.powiatSlug);
+    const key = `${r.wojSlug}::${r.powiatSlug}`;
+    const arr = groups.get(key);
     if (arr) arr.push(r);
-    else groups.set(r.powiatSlug, [r]);
+    else groups.set(key, [r]);
   }
 
   const entries: PowiatEntry[] = [];
-  for (const [slug, grp] of groups) {
+  for (const grp of groups.values()) {
     entries.push({
-      slug,
+      slug: grp[0].powiatSlug,
       adj: grp[0].powiatAdj,
       wojSlug: grp[0].wojSlug,
       total: grp.length,
@@ -166,6 +170,14 @@ export const getPowiatList = cache(async (): Promise<PowiatEntry[]> => {
   }
   entries.sort((a, b) => b.total - a.total);
   return entries;
+});
+
+// Legacy P22: stary URL bez województwa (`/dzialki/powiat/[slug]`). Zwraca wpisy o tym slugu
+// powiatu — przy kolizji nazw może ich być kilka (różne województwa), posortowane malejąco po
+// podaży (getPowiatList już sortuje), więc [0] = najlepszy cel przekierowania.
+export const findPowiatBySlug = cache(async (powiatSlug: string): Promise<PowiatEntry[]> => {
+  const list = await getPowiatList();
+  return list.filter((p) => p.slug === powiatSlug);
 });
 
 export type PowiatDetail = {
@@ -177,27 +189,33 @@ export type PowiatDetail = {
   bbox: BBox;
 };
 
-// Metryki + bbox dla jednej strony powiatu. Dopasowanie DOKŁADNE (własny powiat oferty).
-export const getPowiatDetail = cache(async (slug: string): Promise<PowiatDetail | null> => {
-  const rows = (await loadAllPowiatRows()).filter((r) => r.powiatSlug === slug);
-  if (rows.length === 0) {
-    // Zwróć „pusty" wpis tylko, jeśli slug w ogóle istniał kiedyś — inaczej null => 404.
-    return null;
-  }
+// Metryki + bbox dla jednej strony powiatu. Dopasowanie DOKŁADNE po kluczu złożonym
+// województwo+powiat (patrz getPowiatList) — inaczej dwa powiaty o tej samej nazwie z różnych
+// województw scaliłyby się w jedną stronę z pomieszanymi danymi.
+export const getPowiatDetail = cache(
+  async (wojSlug: string, powiatSlug: string): Promise<PowiatDetail | null> => {
+    const rows = (await loadAllPowiatRows()).filter(
+      (r) => r.wojSlug === wojSlug && r.powiatSlug === powiatSlug,
+    );
+    if (rows.length === 0) {
+      // Brak podaży w tym powiecie => null => 404.
+      return null;
+    }
 
-  const bbox: BBox = {
-    minLat: Math.min(...rows.map((r) => r.lat)),
-    maxLat: Math.max(...rows.map((r) => r.lat)),
-    minLng: Math.min(...rows.map((r) => r.lng)),
-    maxLng: Math.max(...rows.map((r) => r.lng)),
-  };
+    const bbox: BBox = {
+      minLat: Math.min(...rows.map((r) => r.lat)),
+      maxLat: Math.max(...rows.map((r) => r.lat)),
+      minLng: Math.min(...rows.map((r) => r.lng)),
+      maxLng: Math.max(...rows.map((r) => r.lng)),
+    };
 
-  return {
-    slug,
-    adj: rows[0].powiatAdj,
-    wojSlug: rows[0].wojSlug,
-    detail: computeDetail(rows),
-    byType: bucketByType(rows),
-    bbox,
-  };
-});
+    return {
+      slug: powiatSlug,
+      adj: rows[0].powiatAdj,
+      wojSlug: rows[0].wojSlug,
+      detail: computeDetail(rows),
+      byType: bucketByType(rows),
+      bbox,
+    };
+  },
+);

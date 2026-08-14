@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import KupSearch from '../../../kup/KupSearch';
+import KupSearch from '../../../../kup/KupSearch';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
 import FaqSection from '@/components/FaqSection';
@@ -15,15 +15,19 @@ import {
 } from '@/lib/seoPowiaty';
 import { buildPowiatParagraphs, buildPowiatFaq, powiatHeading } from '@/lib/seoPowiatContent';
 
+// Klucz strony jest ZŁOŻONY: województwo + powiat. Sam przymiotnik powiatu nie jest unikalny
+// (np. „brzeski" w opolskim i małopolskim), więc URL musi nieść oba segmenty, inaczej dwa rynki
+// scalają się w jedną stronę z pomieszanymi danymi. Stare URL-e `/dzialki/powiat/[powiat]`
+// przekierowuje warstwa `../page.tsx`.
 type PageProps = {
-  params: Promise<{ powiat: string }>;
+  params: Promise<{ woj: string; powiat: string }>;
 };
 
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { powiat: slug } = await params;
-  const data = await getPowiatDetail(slug);
+  const { woj, powiat } = await params;
+  const data = await getPowiatDetail(woj, powiat);
 
   if (!data) {
     return { title: 'Działki na sprzedaż', robots: { index: false, follow: true } };
@@ -35,14 +39,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `Działki na sprzedaż, ${nom}`,
     description: `Aktualne oferty działek w ${powiatLoc(data.adj)}${region ? `, województwo ${region.name}` : ''}. Sprawdź ceny, powierzchnie, media i przejdź do kontaktu na stronie oferty.`,
-    alternates: { canonical: `/dzialki/powiat/${slug}` },
+    alternates: { canonical: `/dzialki/powiat/${data.wojSlug}/${data.slug}` },
     robots: data.detail.count >= POWIAT_MIN_INDEX ? undefined : { index: false, follow: true },
   };
 }
 
 export default async function PowiatPage({ params }: PageProps) {
-  const { powiat: slug } = await params;
-  const data = await getPowiatDetail(slug);
+  const { woj, powiat } = await params;
+  // Segment województwa musi być znanym regionem — inaczej 404 (nie renderujemy śmieci pod
+  // dowolnym pierwszym segmentem).
+  if (!getSeoRegion(woj)) notFound();
+
+  const data = await getPowiatDetail(woj, powiat);
   if (!data) notFound();
 
   const region = getSeoRegion(data.wojSlug);
@@ -57,7 +65,7 @@ export default async function PowiatPage({ params }: PageProps) {
     .filter((p) => p.wojSlug === data.wojSlug && p.slug !== data.slug && p.total > 0)
     .slice(0, 12);
   const siblingItems: HubLinkItem[] = siblings.map((p) => ({
-    href: `/dzialki/powiat/${p.slug}`,
+    href: `/dzialki/powiat/${p.wojSlug}/${p.slug}`,
     label: powiatHeading(p.adj),
     count: p.total,
   }));

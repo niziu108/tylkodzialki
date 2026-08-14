@@ -40,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const hubPowiatPages: MetadataRoute.Sitemap = powiaty
     .filter((p) => p.total >= POWIAT_MIN_INDEX)
     .map((p) => ({
-      url: `${baseUrl}/dzialki/powiat/${p.slug}`,
+      url: `${baseUrl}/dzialki/powiat/${p.wojSlug}/${p.slug}`,
       lastModified: now,
       changeFrequency: 'daily' as const,
       priority: 0.72,

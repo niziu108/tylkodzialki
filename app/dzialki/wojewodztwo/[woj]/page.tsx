@@ -61,7 +61,7 @@ export default async function WojewodztwoPage({ params }: PageProps) {
     .filter((p) => p.wojSlug === region.slug && p.total > 0)
     .slice(0, 18)
     .map((p) => ({
-      href: `/dzialki/powiat/${p.slug}`,
+      href: `/dzialki/powiat/${p.wojSlug}/${p.slug}`,
       label: powiatHeading(p.adj),
       count: p.total,
     }));
