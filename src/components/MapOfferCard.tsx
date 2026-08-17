@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MapPoint } from './KupMap';
+import type { MapPin } from './KupMap';
 import { CardBody } from './CardBody';
 import { IconCamera } from './CardIcons';
 import { parcelMediaLabel } from '@/lib/media';
@@ -12,9 +12,12 @@ import { useOfferFavorites, LoginPrompt, HeartIcon } from './OfferCard';
  *  panel nad mapą (nie w dymku Google) — pełna kontrola nad wyglądem. Ciało to
  *  wspólny `CardBody` (jak lista/„podobne"), więc cena, media, sprzedawca i
  *  serduszko są w tych samych miejscach co wszędzie. Krzyżyk „Zamknij" jest NAD
- *  kartą (osobno), żeby zamykanie nie wchodziło w ofertę. Zdjęcia doładowywane
- *  dopiero po kliknięciu pinu — mapa zostaje lekka.
- * ──────────────────────────────────────────────────────────────────────────── */
+ *  kartą (osobno), żeby zamykanie nie wchodziło w ofertę.
+ *
+ *  Pin z mapy niesie tylko id, pozycję, cenę i flagi (P27) — cała reszta karty
+ *  (zdjęcia, lokalizacja, metraż, media, biuro) dociąga się stąd, po kliknięciu.
+ *  Dzięki temu payload mapy jest ~10× lżejszy, a szczegóły płaci tylko ten, kto
+ *  faktycznie otworzył ofertę. Cena jest znana od razu, więc karta nigdy nie jest pusta. */
 
 const PRZEZN_LABEL: Record<string, string> = {
   INWESTYCYJNA: 'Inwestycyjna',
@@ -27,36 +30,66 @@ const PRZEZN_LABEL: Record<string, string> = {
 
 type Photo = { url: string; kolejnosc?: number };
 
-export default function MapOfferCard({ point, onClose }: { point: MapPoint; onClose?: () => void }) {
-  const [photos, setPhotos] = useState<string[]>(point.thumb ? [point.thumb] : []);
+type Detail = {
+  photos: string[];
+  loc: string | null;
+  area: number | null;
+  przezn: string[];
+  prad: string | null;
+  woda: string | null;
+  kanalizacja: string | null;
+  gaz: string | null;
+  sprzedajacyTyp: string | null;
+  biuroNazwa: string | null;
+  biuroLogoUrl: string | null;
+  biuroLogoBg: boolean;
+};
+
+export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: () => void }) {
+  const [detail, setDetail] = useState<Detail | null>(null);
   const [i, setI] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
   // Ulubione dla pojedynczej oferty popupu (to samo źródło co lista).
-  const favItems = useMemo(() => [{ id: point.id }], [point.id]);
+  const favItems = useMemo(() => [{ id: pin.id }], [pin.id]);
   const { favoriteIds, toggleFavorite, loginPromptOpen, setLoginPromptOpen } = useOfferFavorites(favItems);
-  const isFavorite = favoriteIds.has(point.id);
+  const isFavorite = favoriteIds.has(pin.id);
 
+  // Karta jest montowana z `key={pin.id}` (patrz KupMap), więc stan startuje pusty
+  // przy każdej ofercie — nie trzeba go tu zerować.
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/dzialki/${point.id}`, { cache: 'force-cache' })
+    fetch(`/api/dzialki/${pin.id}`, { cache: 'force-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
         const list: Photo[] = Array.isArray(data.zdjecia) ? data.zdjecia : [];
-        const urls = list
-          .slice()
-          .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0))
-          .map((p) => p.url)
-          .filter(Boolean);
-        if (urls.length) setPhotos(urls);
+        setDetail({
+          photos: list
+            .slice()
+            .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0))
+            .map((p) => p.url)
+            .filter(Boolean),
+          loc: data.locationLabel ?? null,
+          area: typeof data.powierzchniaM2 === 'number' ? data.powierzchniaM2 : null,
+          przezn: Array.isArray(data.przeznaczenia) ? data.przeznaczenia : [],
+          prad: data.prad ?? null,
+          woda: data.woda ?? null,
+          kanalizacja: data.kanalizacja ?? null,
+          gaz: data.gaz ?? null,
+          sprzedajacyTyp: data.sprzedajacyTyp ?? null,
+          biuroNazwa: data.biuroNazwa ?? null,
+          biuroLogoUrl: data.biuroLogoUrl ?? null,
+          biuroLogoBg: !!data.biuroLogoBg,
+        });
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [point.id]);
+  }, [pin.id]);
 
+  const photos = detail?.photos ?? [];
   const has = photos.length > 0;
   const total = photos.length;
 
@@ -67,10 +100,11 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
     setI((v) => (v + dir + total) % total);
   };
 
-  const isRent = point.transakcja === 'WYNAJEM';
+  const isRent = pin.transakcja === 'WYNAJEM';
+  // Do czasu odpowiedzi pokazujemy myślniki zamiast pustki — cena i tak jest znana z pinu.
   const przezn =
-    (point.przezn ?? []).map((x) => PRZEZN_LABEL[x] ?? x).filter(Boolean).join(', ') || '—';
-  const loc = (point.loc ?? '').trim() || 'Lokalizacja niepodana';
+    (detail?.przezn ?? []).map((x) => PRZEZN_LABEL[x] ?? x).filter(Boolean).join(', ') || '—';
+  const loc = (detail?.loc ?? '').trim() || (detail ? 'Lokalizacja niepodana' : '…');
 
   return (
     <>
@@ -93,18 +127,18 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
 
         <div
           className={`relative w-full overflow-hidden rounded-2xl border bg-bg ${
-            point.featured
+            pin.featured
               ? 'border-brand/55 shadow-[0_18px_60px_rgba(0,0,0,0.12),0_0_0_1px_rgba(122,163,51,0.30),0_0_24px_rgba(122,163,51,0.20)]'
               : 'border-fg/12 shadow-[0_18px_60px_rgba(0,0,0,0.12)]'
           }`}
         >
           <a
-            href={`/dzialka/${point.id}`}
+            href={`/dzialka/${pin.id}`}
             onClick={() => {
               // Zapamiętaj, że w ofertę wchodzimy Z MAPY — na ofercie przycisk powrotu
               // zamieni się w „Wróć do mapy" i wróci na /kup z otwartą mapą (?focus=).
               try {
-                sessionStorage.setItem('TD_KUP_FROM_MAP', point.id);
+                sessionStorage.setItem('TD_KUP_FROM_MAP', pin.id);
               } catch {}
             }}
             className="group block text-left text-fg no-underline"
@@ -133,13 +167,16 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
                 />
               ) : (
                 <div className="flex h-full items-center justify-center bg-surface-2">
-                  <span className="text-[11px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
+                  {/* Dopóki szczegóły lecą, nie twierdzimy, że zdjęć nie ma. */}
+                  {detail && (
+                    <span className="text-[11px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
+                  )}
                 </div>
               )}
 
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
 
-              {point.featured && (
+              {pin.featured && (
                 <span className="absolute left-3 top-3 rounded-full border border-brand/40 bg-brand/90 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-black">
                   WYRÓŻNIONE
                 </span>
@@ -179,21 +216,21 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
 
             {/* Ciało — wspólne z listą i „podobnymi" (bez tytułu, kompaktowo). */}
             <CardBody
-              cena={point.cena}
+              cena={pin.cena}
               isRent={isRent}
               loc={loc}
-              area={point.area}
+              area={detail?.area ?? 0}
               przezn={przezn}
-              media={parcelMediaLabel(point)}
+              media={parcelMediaLabel(detail ?? {})}
               compact
               sellerType={
-                point.sprzedajacyTyp === 'BIURO' || point.sprzedajacyTyp === 'PRYWATNIE'
-                  ? point.sprzedajacyTyp
+                detail?.sprzedajacyTyp === 'BIURO' || detail?.sprzedajacyTyp === 'PRYWATNIE'
+                  ? detail.sprzedajacyTyp
                   : null
               }
-              biuroNazwa={point.biuroNazwa ?? null}
-              biuroLogoUrl={point.biuroLogoUrl ?? null}
-              biuroLogoBg={point.biuroLogoBg ?? false}
+              biuroNazwa={detail?.biuroNazwa ?? null}
+              biuroLogoUrl={detail?.biuroLogoUrl ?? null}
+              biuroLogoBg={detail?.biuroLogoBg ?? false}
               heartSlot={
                 <button
                   type="button"
@@ -201,7 +238,7 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    toggleFavorite(point.id);
+                    toggleFavorite(pin.id);
                   }}
                   className={`flex h-8 w-8 items-center justify-center transition active:scale-90 ${
                     isFavorite ? 'text-brand-text' : 'text-brand-text/80 hover:text-brand-text'
@@ -211,7 +248,7 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
                 </button>
               }
               extra={
-                point.approx ? (
+                pin.approx ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/12 px-2.5 py-1 text-[10px] text-brand-bright">
                     ◎ Lokalizacja przybliżona
                   </span>

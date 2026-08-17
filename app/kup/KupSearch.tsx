@@ -7,10 +7,9 @@ import { useRouter } from 'next/navigation';
 import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
 import RadiusSelect from '@/components/RadiusSelect';
-import type { MapPoint } from '@/components/KupMap';
 import { loadGoogleMaps } from '@/lib/googleMaps';
 
-// Lazy-load: KupMap ciągnie @googlemaps/markerclusterer i całą logikę mapy. Mapa
+// Lazy-load: KupMap ciągnie całą logikę mapy. Mapa
 // jest opt-in (otwiera się przyciskiem), więc nie ma jej w paczce startowej ani na
 // stronie głównej (gdzie wyszukiwarka tylko przekierowuje), ani na /kup do czasu
 // kliknięcia „Mapa". Mniej JS do pobrania => szybsza hydracja i niższe LCP/TTI.
@@ -766,8 +765,8 @@ export default function KupSearch({
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Mapa (P11) — przycisk „Mapa" → pełnoekranowy overlay (desktop i mobile tak samo).
-  const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
-  const [mapLoading, setMapLoading] = useState(false);
+  // Dane pinów pobiera sobie sama KupMap, dla bieżącego kadru (P27) — tutaj podajemy
+  // jej tylko filtry, bo tylko one decydują, CO ma pokazać.
   const [activeId, setActiveId] = useState<string | null>(initialFocusId);
   const [mapOpen, setMapOpen] = useState(false);
   const [mapMounted, setMapMounted] = useState(false);
@@ -1247,55 +1246,17 @@ export default function KupSearch({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Klucz filtrów (bez sortowania/strony) — zmienia się tylko gdy zmieniają się wyniki na mapie.
-  const filterKey = useMemo(
-    () =>
-      JSON.stringify({
-        q: applied.locText.trim(),
-        c: applied.center,
-        r: applied.center ? applied.radiusKm : null,
-        pmin: applied.priceMin,
-        pmax: applied.priceMax,
-        amin: applied.areaMin,
-        amax: applied.areaMax,
-        pz: applied.przezn,
-        md: applied.media,
-        tr: applied.transakcja,
-        bb: applied.bbox,
-      }),
-    [applied]
-  );
-
-  const mapEnabled = mapOpen;
-
-  // Pobranie pinów — lekki payload, tylko gdy mapa jest widoczna, niezależnie od stronicowania.
-  useEffect(() => {
-    if (!mapEnabled) return;
-
-    let cancelled = false;
-    setMapLoading(true);
-
+  // Querystring filtrów dla mapy — bez stronicowania i sortu, bo mapa ich nie używa.
+  // Zmiana tego stringa = nowe wyszukiwanie: mapa czyści zaznaczenie, dopasowuje kadr
+  // i dociąga dane. Stabilny (nie zmienia się przy przewijaniu listy), więc mapa nie
+  // przeładowuje się bez powodu.
+  const mapQuery = useMemo(() => {
     const params = makeParams(applied, 1);
-    params.set('mode', 'map');
     params.delete('skip');
     params.delete('take');
     params.delete('sort');
-
-    fetch(`/api/dzialki?${params.toString()}`, { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!cancelled && Array.isArray(d?.points)) setMapPoints(d.points as MapPoint[]);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setMapLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterKey, mapEnabled]);
+    return params.toString();
+  }, [applied]);
 
   const onSearchArea = useCallback(
     (b: BBox) => {
@@ -1731,11 +1692,9 @@ export default function KupSearch({
         {mapMounted && (
           <aside className={mapAsideClass}>
             <KupMap
-              points={mapPoints}
-              loading={mapLoading}
+              filterQuery={mapQuery}
               center={applied.center}
               radiusKm={applied.radiusKm}
-              focusKey={filterKey}
               activeId={activeId}
               selfId={initialFocusId}
               onActiveChange={setActiveId}

@@ -21,8 +21,100 @@ function isFeaturedActive(d: any) {
   return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
 }
 
+/* ── Mapa: piny i bąble ────────────────────────────────────────────────────────
+ * Mapa nie ściąga już całej Polski naraz. Serwer dostaje kadr (vn/vs/ve/vw) i zoom,
+ * i oddaje albo pojedyncze piny (gdy w kadrze mieści się ich sensownie mało), albo
+ * bąble — zliczenia ofert w komórkach siatki. Dzięki temu payload i liczba obiektów
+ * po stronie przeglądarki są STAŁE, niezależnie czy w bazie jest 8 tys. czy 500 tys.
+ * ofert. Bąble zastępują też klastrowanie po stronie klienta: liczy je baza + jeden
+ * przebieg po tablicy, a nie tysiące obiektów mapy. */
+
+export type MapPin = {
+  id: string;
+  lat: number;
+  lng: number;
+  cena: number;
+  transakcja: TransakcjaTyp;
+  featured: boolean;
+  approx: boolean;
+};
+
+export type MapCluster = { lat: number; lng: number; count: number };
+
+export type DzialkiMapBody = {
+  ok: true;
+  /** Ile ofert pasuje do filtrów W TYM KADRZE (nie w całej bazie). */
+  total: number;
+  /** Oferty pokazywane pojedynczo — z ceną na pinie. */
+  points: MapPin[];
+  /** Skupiska — liczba ofert w komórce siatki. Obie listy rysują się razem. */
+  clusters: MapCluster[];
+  /** Ramka wszystkich pasujących ofert — tylko przy `fit=1` (dopasowanie kadru). */
+  bounds: { n: number; s: number; e: number; w: number } | null;
+};
+
+// Powyżej tylu ofert w kadrze przechodzimy na bąble. 600 pinów to ~0,2 s budowy
+// przy pierwszym renderze i zero przy kolejnych (pula markerów), a jednocześnie
+// gęstość, przy której pojedyncze piny są jeszcze czytelne.
+const PIN_MAX = 600;
+// Górny limit bąbli — gdyby siatka wyszła zbyt drobna, powiększamy komórkę.
+const CLUSTER_MAX = 400;
+
+/* Bok komórki siatki w stopniach: ~64 px na ekranie przy danym zoomie, czyli bąble
+ * mają stałą wielkość wizualną niezależnie od przybliżenia. Na szerokości Polski
+ * stopień długości jest ok. 0,62 stopnia szerokości „w metrach", więc komórka jest
+ * skalowana, żeby wychodziła kwadratowa, a nie rozciągnięta. */
+function gridStep(zoom: number) {
+  const z = Math.min(Math.max(Number.isFinite(zoom) ? zoom : 6, 3), 20);
+  const lng = 90 / 2 ** z;
+  return { lat: lng * 0.62, lng };
+}
+
+/* Zbicie ofert w bąble: jeden przebieg po tablicy na komórkę siatki. Gdyby siatka
+ * wyszła zbyt drobna (np. bardzo gęsty region), komórka się podwaja, aż bąbli będzie
+ * mniej niż limit — klient zawsze dostaje kilkaset obiektów, nie kilkadziesiąt tysięcy.
+ *
+ * Komórki z jedną ofertą wracają OSOBNO (`singles`), żeby pokazać je jako normalny pin
+ * z ceną. Bąbel z napisem „1" to zmarnowane kliknięcie: kupujący ma od razu widzieć,
+ * ile ta działka kosztuje. Singletonów nigdy nie jest więcej niż komórek, więc łączna
+ * liczba obiektów na mapie i tak trzyma się limitu. */
+function clusterize<T extends { lat: number; lng: number }>(
+  rows: T[],
+  zoom: number
+): { clusters: MapCluster[]; singles: T[] } {
+  let step = gridStep(zoom);
+  let cells = new Map<string, { lat: number; lng: number; count: number; sample: T }>();
+
+  for (let pass = 0; pass < 6; pass++) {
+    cells = new Map();
+    for (const r of rows) {
+      const key = `${Math.floor(r.lat / step.lat)}:${Math.floor(r.lng / step.lng)}`;
+      const cell = cells.get(key);
+      if (cell) {
+        cell.lat += r.lat;
+        cell.lng += r.lng;
+        cell.count += 1;
+      } else {
+        cells.set(key, { lat: r.lat, lng: r.lng, count: 1, sample: r });
+      }
+    }
+    if (cells.size <= CLUSTER_MAX) break;
+    step = { lat: step.lat * 2, lng: step.lng * 2 };
+  }
+
+  // Bąbel siada w środku ciężkości swoich ofert, nie w środku komórki — dzięki temu
+  // po przybliżeniu piny wychodzą stamtąd, gdzie bąbel stał, a nie „przeskakują".
+  const clusters: MapCluster[] = [];
+  const singles: T[] = [];
+  for (const c of cells.values()) {
+    if (c.count === 1) singles.push(c.sample);
+    else clusters.push({ lat: c.lat / c.count, lng: c.lng / c.count, count: c.count });
+  }
+  return { clusters, singles };
+}
+
 export type DzialkiListBody =
-  | { ok: true; total: number; capped: boolean; points: any[] }
+  | DzialkiMapBody
   | { ok: true; total: number; count: number; items: any[]; meta: {
       page: number; skip: number; take: number; totalPages: number; hasPrev: boolean; hasNext: boolean;
     } };
@@ -155,103 +247,146 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
     AND: andFilters,
   };
 
-  // Tryb mapy: osobne, odchudzone zapytanie (jedno zdjęcie, tylko pola pod pin i popup).
-  // Ta sama logika filtrów (andFilters) + ten sam kontekst dopasowania geo/tekst co lista
-  // → piny na mapie pokrywają się 1:1 z wynikami listy. Bez stronicowania (wszystkie piny).
+  // TRYB MAPY: ta sama logika filtrów (andFilters) i ten sam kontekst dopasowania geo/tekst
+  // co lista → to, co widać na mapie, pokrywa się z wynikami listy. Różnica względem listy:
+  // zamiast stronicowania ograniczamy się do KADRU mapy i oddajemy albo piny, albo bąble.
+  // Payload to gołe minimum pod pin (id/lat/lng/cena/flagi) — resztę karty oferty dociąga
+  // MapOfferCard z /api/dzialki/[id], więc mapa nie płaci za zdjęcia, tytuły i loga biur.
   if (mapMode) {
     const ctx = buildSearchContext(searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
     const needsInfo = hasRadiusSearch || Boolean(searchText);
 
-    // Pre-filtr bbox (P?: skalowanie): przy szukaniu z promieniem baza odsiewa piny poza
-    // prostokątem-nadzbiorem zamiast ściągać całą Polskę do Node. Mapa i tak pokazuje tylko
-    // oferty ze współrzędnymi, więc wariant „lat IS NULL" tu nie jest potrzebny.
+    // Pre-filtr bbox: przy szukaniu z promieniem baza odsiewa oferty poza prostokątem-nadzbiorem
+    // zamiast ściągać całą Polskę do Node. Mapa pokazuje tylko oferty ze współrzędnymi, więc
+    // wariant „lat IS NULL" tu nie jest potrzebny.
     const mapPrefilter = computeGeoPrefilterBBox(ctx);
-    const mapGeoAnd: Prisma.DzialkaWhereInput[] = mapPrefilter
-      ? [
-          { lat: { gte: mapPrefilter.minLat, lte: mapPrefilter.maxLat } },
-          { lng: { gte: mapPrefilter.minLng, lte: mapPrefilter.maxLng } },
-        ]
+    const baseAnd: Prisma.DzialkaWhereInput[] = [
+      ...andFilters,
+      { lat: { not: null } },
+      { lng: { not: null } },
+      ...(mapPrefilter
+        ? [
+            { lat: { gte: mapPrefilter.minLat, lte: mapPrefilter.maxLat } },
+            { lng: { gte: mapPrefilter.minLng, lte: mapPrefilter.maxLng } },
+          ]
+        : []),
+    ];
+
+    // Kadr mapy. Osobne parametry niż n/s/e/w — tamte to „szukaj w tym obszarze", czyli
+    // trwałe zawężenie LISTY, i muszą działać niezależnie od tego, gdzie akurat patrzymy.
+    const viewN = Number(searchParams.get('vn'));
+    const viewS = Number(searchParams.get('vs'));
+    const viewE = Number(searchParams.get('ve'));
+    const viewW = Number(searchParams.get('vw'));
+    const hasView =
+      Number.isFinite(viewN) && Number.isFinite(viewS) &&
+      Number.isFinite(viewE) && Number.isFinite(viewW) &&
+      viewN > viewS && viewE > viewW;
+
+    const zoom = Number(searchParams.get('z'));
+
+    // fit=1: klient prosi o ramkę WSZYSTKICH pasujących ofert, żeby dopasować kadr po
+    // zmianie filtrów. Liczone poza kadrem (inaczej byłoby błędnym kołem) i jednym tanim
+    // zapytaniem agregującym na indeksie, bez ściągania rekordów.
+    let bounds: DzialkiMapBody['bounds'] = null;
+    if (searchParams.get('fit') === '1') {
+      const agg = await prisma.dzialka.aggregate({
+        where: { AND: baseAnd },
+        _min: { lat: true, lng: true },
+        _max: { lat: true, lng: true },
+      });
+      const { _min, _max } = agg;
+      if (_min.lat != null && _min.lng != null && _max.lat != null && _max.lng != null) {
+        bounds = { n: _max.lat, s: _min.lat, e: _max.lng, w: _min.lng };
+      }
+    }
+
+    const viewAnd: Prisma.DzialkaWhereInput[] = hasView
+      ? [{ lat: { gte: viewS, lte: viewN } }, { lng: { gte: viewW, lte: viewE } }]
+      : [];
+    const mapWhere: Prisma.DzialkaWhereInput = { AND: [...baseAnd, ...viewAnd] };
+
+    const pinSelect: Prisma.DzialkaSelect = {
+      id: true,
+      lat: true,
+      lng: true,
+      cenaPln: true,
+      transakcja: true,
+      isFeatured: true,
+      featuredUntil: true,
+      locationMode: true,
+      // Pola tekstowe tylko wtedy, gdy trzeba dopasować zapytanie w JS (ta sama funkcja
+      // co lista i alerty). Przy zwykłym przeglądaniu z filtrami nie płacimy za nie w ogóle.
+      ...(needsInfo ? { locationLabel: true, locationFull: true, parcelText: true } : {}),
+    };
+
+    type PinRow = {
+      id: string;
+      lat: number;
+      lng: number;
+      cenaPln: number;
+      transakcja: TransakcjaTyp;
+      isFeatured: boolean;
+      featuredUntil: Date | null;
+      locationMode: LocationMode;
+      locationLabel?: string | null;
+      locationFull?: string | null;
+      parcelText?: string | null;
+    };
+
+    const toPins = (rows: PinRow[]): MapPin[] =>
+      rows.map((r) => ({
+        id: r.id,
+        lat: r.lat,
+        lng: r.lng,
+        cena: r.cenaPln,
+        transakcja: r.transakcja,
+        featured: isFeaturedActive(r),
+        approx: r.locationMode === LocationMode.APPROX,
+      }));
+
+    // ŚCIEŻKA Z WYSZUKIWANIEM: dopasowanie liczy JS na polach opisowych (ta sama funkcja
+    // co lista i alerty), więc kandydatów trzeba pobrać w całości.
+    if (needsInfo) {
+      const rows = (await prisma.dzialka.findMany({ where: mapWhere, select: pinSelect })) as PinRow[];
+      const matched = rows.filter((r) => getSearchMatchInfo(r, ctx).anyMatch);
+
+      if (matched.length <= PIN_MAX) {
+        return { ok: true, total: matched.length, points: toPins(matched), clusters: [], bounds };
+      }
+      const { clusters, singles } = clusterize(matched, zoom);
+      return { ok: true, total: matched.length, points: toPins(singles), clusters, bounds };
+    }
+
+    // ŚCIEŻKA BEZ WYSZUKIWANIA (dominujący ruch): dwustopniowo. Najpierw same identyfikatory
+    // i współrzędne — do policzenia siatki nic więcej nie jest potrzebne, a to kilka razy
+    // mniej danych na łączu do bazy. Pola pinów (cena, flagi) dociągamy drugim, krótkim
+    // zapytaniem po kluczu głównym i tylko dla tych ofert, które faktycznie pokażemy.
+    const coords = (await prisma.dzialka.findMany({
+      where: mapWhere,
+      select: { id: true, lat: true, lng: true },
+    })) as Array<{ id: string; lat: number; lng: number }>;
+
+    if (!coords.length) return { ok: true, total: 0, points: [], clusters: [], bounds };
+
+    // Mało ofert w kadrze → wszystkie jako piny, bez siatki.
+    if (coords.length <= PIN_MAX) {
+      const rows = (await prisma.dzialka.findMany({
+        where: { id: { in: coords.map((c) => c.id) } },
+        select: pinSelect,
+      })) as PinRow[];
+      return { ok: true, total: coords.length, points: toPins(rows), clusters: [], bounds };
+    }
+
+    const grid = clusterize(coords, zoom);
+    const singles = grid.singles.length
+      ? ((await prisma.dzialka.findMany({
+          where: { id: { in: grid.singles.map((s) => s.id) } },
+          select: pinSelect,
+        })) as PinRow[])
       : [];
 
-    const rows = await prisma.dzialka.findMany({
-      where: {
-        AND: [...andFilters, { lat: { not: null } }, { lng: { not: null } }, ...mapGeoAnd],
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        lat: true,
-        lng: true,
-        cenaPln: true,
-        powierzchniaM2: true,
-        transakcja: true,
-        tytul: true,
-        przeznaczenia: true,
-        prad: true,
-        woda: true,
-        kanalizacja: true,
-        gaz: true,
-        sprzedajacyTyp: true,
-        biuroNazwa: true,
-        biuroLogoUrl: true,
-        owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroLogoBg: true, defaultBiuroNazwa: true } },
-        isFeatured: true,
-        featuredUntil: true,
-        createdAt: true,
-        locationLabel: true,
-        locationFull: true,
-        parcelText: true,
-        locationMode: true,
-        zdjecia: {
-          take: 1,
-          orderBy: { kolejnosc: 'asc' },
-          select: { url: true },
-        },
-      },
-    });
-
-    const matched = needsInfo
-      ? rows.filter((r) => getSearchMatchInfo(r, ctx).anyMatch)
-      : rows;
-
-    // Wyróżnione piny pierwsze (renderują się na wierzchu), reszta od najnowszych.
-    matched.sort((a, b) => {
-      const af = isFeaturedActive(a);
-      const bf = isFeaturedActive(b);
-      if (af !== bf) return af ? -1 : 1;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
-    const CAP = 4000;
-    const points = matched.slice(0, CAP).map((r) => ({
-      id: r.id,
-      lat: r.lat,
-      lng: r.lng,
-      cena: r.cenaPln,
-      area: r.powierzchniaM2,
-      transakcja: r.transakcja,
-      tytul: r.tytul,
-      przezn: r.przeznaczenia,
-      featured: isFeaturedActive(r),
-      thumb: r.zdjecia[0]?.url ?? null,
-      loc: r.locationLabel ?? null,
-      approx: r.locationMode === LocationMode.APPROX,
-      prad: r.prad,
-      woda: r.woda,
-      kanalizacja: r.kanalizacja,
-      gaz: r.gaz,
-      sprzedajacyTyp: r.sprzedajacyTyp,
-      biuroNazwa: r.biuroNazwa ?? r.owner?.defaultBiuroNazwa ?? null,
-      biuroLogoUrl: r.biuroLogoUrl ?? r.owner?.defaultBiuroLogoUrl ?? null,
-      biuroLogoBg: r.owner?.defaultBiuroLogoBg ?? false,
-    }));
-
-    return {
-      ok: true,
-      total: matched.length,
-      capped: matched.length > CAP,
-      points,
-    };
+    return { ok: true, total: coords.length, points: toPins(singles), clusters: grid.clusters, bounds };
   }
 
   const searchContext = buildSearchContext(searchText, latParam, lngParam, radiusParam, hasRadiusSearch);
