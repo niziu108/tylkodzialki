@@ -4,6 +4,7 @@ import { sendMail } from '@/lib/mailer';
 import { buildMailTemplate, mailLogoAttachment } from '@/lib/emailTemplate';
 import { buildSearchContext, getSearchMatchInfo } from '@/lib/dzialkiSearch';
 import { buildKupPathFromCriteria, type AlertCriteria } from '@/lib/alertCriteria';
+import { pluralCat } from '@/lib/plural';
 
 function baseUrl() {
   return (process.env.NEXTAUTH_URL || 'http://localhost:3000').replace(/\/$/, '');
@@ -64,15 +65,6 @@ function dzialkaWord(n: number) {
   const mod100 = n % 100;
   if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return 'działki';
   return 'działek';
-}
-
-// Kategoria liczby mnogiej PL: 1 / 2-4 / pozostałe.
-function pluralCat(n: number): 'one' | 'few' | 'many' {
-  if (n === 1) return 'one';
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return 'few';
-  return 'many';
 }
 
 // „Nowa działka" / „N nowe działki" / „N nowych działek".

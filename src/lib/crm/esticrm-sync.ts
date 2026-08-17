@@ -418,8 +418,13 @@ function parseEstiOffer(
 
   const rawLat = toNumber(rawOffer.locationLatitude);
   const rawLng = toNumber(rawOffer.locationLongitude);
-  // Bramka jakości: na mapę trafiają tylko współrzędne w granicach Polski.
-  const plCoords = sanitizePlCoords(rawLat, rawLng);
+  // Bramka jakości: współrzędne muszą leżeć w Polsce i zgadzać się z województwem
+  // z feedu. Ta druga kontrola łapie punkt miejscowości o tej samej nazwie z innego
+  // końca kraju — bez niej pin wysyła kupującego 300 km w bok.
+  const plCoords = sanitizePlCoords(rawLat, rawLng, province);
+  if ((rawLat != null || rawLng != null) && !plCoords) {
+    console.log("[ESTICRM GEO] Odrzucono współrzędne (poza PL lub niezgodne z województwem):", province, rawLat, rawLng);
+  }
   const lat = plCoords?.lat ?? null;
   const lng = plCoords?.lng ?? null;
 

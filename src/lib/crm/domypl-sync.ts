@@ -1071,9 +1071,14 @@ function parseOfferFragment(
 
     const rawLat = toNumber(params.n_geo_y) ?? toNumber(params.wsp_x);
     const rawLng = toNumber(params.n_geo_x) ?? toNumber(params.wsp_y);
-    // Bramka jakości: współrzędne spoza Polski (np. zamiana osi wsp_x/wsp_y) odrzucamy do null,
-    // dzięki czemu enrichOfferWithGeocoding dolicza je z adresu (też z kontrolą granic PL).
-    const plCoords = sanitizePlCoords(rawLat, rawLng);
+    // Bramka jakości: odrzucamy do null współrzędne spoza Polski (np. zamiana osi
+    // wsp_x/wsp_y) ORAZ takie, które kłócą się z województwem z adresu — to klasyk,
+    // gdy feed poda punkt miejscowości o tej samej nazwie z drugiego końca kraju.
+    // Dzięki temu enrichOfferWithGeocoding dolicza je z adresu (też z kontrolą granic PL).
+    const plCoords = sanitizePlCoords(rawLat, rawLng, location.locationFull);
+    if ((rawLat != null || rawLng != null) && !plCoords) {
+      console.log("[CRM GEO] Odrzucono współrzędne (poza PL lub niezgodne z województwem):", location.locationFull, rawLat, rawLng);
+    }
     const lat = plCoords?.lat ?? null;
     const lng = plCoords?.lng ?? null;
     const mapsUrl = buildMapsUrl(lat, lng);

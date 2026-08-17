@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadGoogleMaps } from '@/lib/googleMaps';
+import { plural } from '@/lib/plural';
 import MapOfferCard from './MapOfferCard';
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -627,25 +628,35 @@ export default function KupMap({
     onSearchArea({ n: ne.lat(), s: sw.lat(), e: ne.lng(), w: sw.lng() });
   };
 
+  // Przycisk zawężenia pokazujemy dopiero, gdy znamy liczbę ofert w kadrze — inaczej
+  // mrugnąłby etykietą „Brak ofert" w trakcie pierwszego pobierania.
+  const showAreaButton = ready && dirty && loaded && !!onSearchArea;
+
   return (
     <div className={`relative h-full w-full overflow-hidden ${className ?? ''}`}>
       <div ref={hostRef} className="h-full w-full bg-[#e8eaed]" />
 
-      {/* Zawęź listę do widocznego obszaru (piny dociągają się same przy przesuwaniu). */}
-      {ready && dirty && onSearchArea && (
+      {/* Zawężenie listy do widocznego obszaru. Piny dociągają się same przy przesuwaniu,
+          więc przycisk nie ładuje mapy — mówi wprost, ile ofert przejdzie na listę.
+          Liczba w etykiecie zdejmuje pytanie „co się właściwie stanie po kliknięciu". */}
+      {showAreaButton && (
         <div className="pointer-events-none absolute left-1/2 top-16 z-[5] -translate-x-1/2 sm:top-4">
           <button
             type="button"
             onClick={handleSearchArea}
-            className="pointer-events-auto rounded-full border border-brand/60 bg-bg/95 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-fg shadow-[0_10px_30px_rgba(0,0,0,0.10)] backdrop-blur transition hover:border-brand hover:bg-surface sm:px-5 sm:py-2.5 sm:text-[12px]"
+            disabled={total === 0}
+            className="pointer-events-auto rounded-full border border-brand/60 bg-bg/95 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-fg shadow-[0_10px_30px_rgba(0,0,0,0.10)] backdrop-blur transition hover:border-brand hover:bg-surface disabled:cursor-default disabled:border-fg/20 disabled:text-fg/45 disabled:hover:bg-bg/95 sm:px-5 sm:py-2.5 sm:text-[12px]"
           >
-            Szukaj w tym obszarze
+            {total === 0
+              ? 'Brak ofert w tym obszarze'
+              : `Pokaż ${formatIntPL(total)} ${plural(total, 'ofertę', 'oferty', 'ofert')} z tego obszaru`}
           </button>
         </div>
       )}
 
-      {/* Licznik ofert w kadrze (chowany, gdy otwarta karta) */}
-      {ready && !error && !selected && (
+      {/* Licznik ofert w kadrze. Chowany, gdy widać przycisk (ta sama liczba dwa razy)
+          albo gdy otwarta jest karta oferty. */}
+      {ready && !error && !selected && !showAreaButton && (
         <div className="pointer-events-none absolute bottom-3 left-3 z-[5] rounded-full bg-bg/90 px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-fg/70 backdrop-blur">
           {loaded ? `${formatIntPL(total)} w tym widoku` : 'Ładowanie…'}
         </div>

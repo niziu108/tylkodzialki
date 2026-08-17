@@ -378,9 +378,14 @@ function parseLocumnetOffer(
 
   const rawLat = toNumber(rawOffer.geoszer);
   const rawLng = toNumber(rawOffer.geodlu);
-  // Bramka jakości: na mapę trafiają tylko współrzędne w granicach Polski.
-  // LocumNet daje geo prosto w feedzie — celowo NIE geokodujemy (koszty API).
-  const plCoords = sanitizePlCoords(rawLat, rawLng);
+  // Bramka jakości: współrzędne muszą leżeć w Polsce i zgadzać się z województwem
+  // z feedu (kontrola krzyżowa łapie miejscowości-imienniczki z drugiego końca kraju).
+  // LocumNet daje geo prosto w feedzie — celowo NIE geokodujemy (koszty API), więc
+  // odrzucona oferta po prostu nie dostaje pinu i zostaje na liście.
+  const plCoords = sanitizePlCoords(rawLat, rawLng, province);
+  if ((rawLat != null || rawLng != null) && !plCoords) {
+    console.log("[LOCUMNET GEO] Odrzucono współrzędne (poza PL lub niezgodne z województwem):", province, rawLat, rawLng);
+  }
   const lat = plCoords?.lat ?? null;
   const lng = plCoords?.lng ?? null;
 

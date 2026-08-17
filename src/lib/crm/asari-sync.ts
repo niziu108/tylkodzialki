@@ -15,7 +15,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
-import { sanitizePlCoords } from "@/lib/geo";
+import { sanitizePlCoords, coordsMatchLocationText } from "@/lib/geo";
 import { geocodeAddressInPoland } from "@/lib/crm/geocode";
 
 type IntegrationForSync = {
@@ -586,10 +586,14 @@ function parseAsariOffer(
     getNumberByName(params, definitions, ["dlugosc", "geograficzna"], ["202", "206"]) ??
     getNumberByName(params, definitions, ["longitude"], ["202", "206"]);
 
-  // Bramka jakości: na mapę trafiają tylko współrzędne w granicach Polski.
-  const plCoords = sanitizePlCoords(rawLat, rawLng);
+  // Bramka jakości: współrzędne muszą leżeć w Polsce ORAZ zgadzać się z województwem
+  // z opisu (`locationFull`). Ta druga kontrola łapie klasyk: feed podaje punkt
+  // miejscowości o tej samej nazwie z drugiego końca kraju. Odrzucone współrzędne
+  // spadają niżej na geokodowanie pełnego adresu, więc oferta zwykle i tak dostaje pin,
+  // tylko właściwy.
+  const plCoords = sanitizePlCoords(rawLat, rawLng, locationFull);
   if ((rawLat != null || rawLng != null) && !plCoords) {
-    console.log("[ASARI GEO] Odrzucono współrzędne poza Polską:", locationLabel, rawLat, rawLng);
+    console.log("[ASARI GEO] Odrzucono współrzędne (poza PL lub niezgodne z województwem):", locationFull, rawLat, rawLng);
   }
   const lat = plCoords?.lat ?? null;
   const lng = plCoords?.lng ?? null;
@@ -1205,10 +1209,17 @@ async function processOffer(
     const existingLat = existingLink?.dzialka.lat ?? null;
     const existingLng = existingLink?.dzialka.lng ?? null;
 
-    if (existingLat != null && existingLng != null) {
+    // Reużycie musi przejść tę samą kontrolę co świeże dane — inaczej raz zapisany
+    // błędny pin wracałby przy każdej synchronizacji i żadna poprawka by go nie ruszyła.
+    const existingUsable =
+      existingLat != null &&
+      existingLng != null &&
+      coordsMatchLocationText(existingLat, existingLng, offer.locationFull);
+
+    if (existingUsable) {
       offer.lat = existingLat;
       offer.lng = existingLng;
-      offer.mapsUrl = buildMapsUrl(existingLat, existingLng);
+      offer.mapsUrl = buildMapsUrl(existingLat as number, existingLng as number);
     } else {
       const hit = await geocodeAddressInPoland(offer.locationFull || offer.locationLabel);
       if (hit) {

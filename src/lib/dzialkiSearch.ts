@@ -109,22 +109,34 @@ function getLocationHaystack(d: GeoOffer) {
   return normalizeText([d.locationLabel, d.locationFull, d.parcelText].filter(Boolean).join(' '));
 }
 
+/* Nazwy województw zawierają się w sobie: „wielk-OPOLSK-ie" zawiera alias opolskiego,
+ * a „zachodni-OPOMORSK-ie" oraz „kujawsko-POMORSK-ie" zawierają alias pomorskiego.
+ * Szukanie „pierwszego pasującego w kolejności listy" oddawało więc zapytanie
+ * o Wielkopolskę Opolszczyźnie, a o Pomorze Zachodnie Pomorzu (potwierdzone testem).
+ * Indeks jest posortowany od NAJDŁUŻSZEGO aliasu, więc bardziej szczegółowe dopasowanie
+ * zawsze wygrywa z ogólniejszym, niezależnie od kolejności wpisów w tablicy. */
+function buildAliasIndex(areas: SearchArea[]) {
+  return areas
+    .flatMap((area) => area.aliases.map((alias) => ({ alias: normalizeText(alias), area })))
+    .filter((entry) => entry.alias.length > 0)
+    .sort((a, b) => b.alias.length - a.alias.length);
+}
+
+const VOIVODESHIP_ALIAS_INDEX = buildAliasIndex(VOIVODESHIPS);
+const CITY_ALIAS_INDEX = buildAliasIndex(CITY_AREAS);
+
 export function detectVoivodeship(query: string) {
   const normalized = normalizeText(query);
   if (!normalized) return null;
 
-  return VOIVODESHIPS.find((area) =>
-    area.aliases.some((alias) => normalized.includes(normalizeText(alias)))
-  ) ?? null;
+  return VOIVODESHIP_ALIAS_INDEX.find((entry) => normalized.includes(entry.alias))?.area ?? null;
 }
 
 export function detectCity(query: string) {
   const normalized = normalizeText(query);
   if (!normalized) return null;
 
-  return CITY_AREAS.find((area) =>
-    area.aliases.some((alias) => normalized.includes(normalizeText(alias)))
-  ) ?? null;
+  return CITY_ALIAS_INDEX.find((entry) => normalized.includes(entry.alias))?.area ?? null;
 }
 
 // Hub SEO (P13): odczyt bboxa województwa po kluczu (slug) — ta sama prostokątna definicja,

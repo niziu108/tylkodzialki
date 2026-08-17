@@ -32,25 +32,48 @@ export const POLAND_BBOX = {
  * i mają być ciasne. Mieszanie obu celów w jednej liście prędzej czy później rozluźniłoby
  * bramkę przy okazji poprawiania wyszukiwarki.
  */
-const POLAND_PARTS: ReadonlyArray<readonly [number, number, number, number]> = [
-  // [latMin, latMax, lngMin, lngMax]
-  [50.05, 51.85, 14.75, 17.85], // dolnośląskie
-  [52.25, 53.85, 17.20, 19.75], // kujawsko-pomorskie
-  [50.15, 52.35, 21.60, 24.20], // lubelskie
-  [51.35, 53.15, 14.50, 16.45], // lubuskie
-  [50.80, 52.40, 18.05, 20.75], // łódzkie
-  [49.15, 50.55, 19.05, 21.45], // małopolskie
-  [51.00, 53.50, 19.25, 23.15], // mazowieckie
-  [49.95, 51.25, 16.85, 18.70], // opolskie
-  [49.00, 50.85, 21.15, 23.65], // podkarpackie
-  [52.25, 54.45, 21.55, 23.95], // podlaskie
-  [53.45, 54.85, 16.70, 19.85], // pomorskie
-  [49.35, 51.25, 18.00, 19.95], // śląskie
-  [50.15, 51.35, 19.70, 21.75], // świętokrzyskie
-  [53.15, 54.55, 19.10, 22.80], // warmińsko-mazurskie
-  [51.05, 53.65, 15.75, 18.75], // wielkopolskie
-  [52.55, 54.85, 14.10, 16.95], // zachodniopomorskie
+type Part = { name: string; latMin: number; latMax: number; lngMin: number; lngMax: number };
+
+const POLAND_PARTS: ReadonlyArray<Part> = [
+  { name: 'dolnoslaskie', latMin: 50.05, latMax: 51.85, lngMin: 14.75, lngMax: 17.85 },
+  { name: 'kujawsko-pomorskie', latMin: 52.25, latMax: 53.85, lngMin: 17.20, lngMax: 19.75 },
+  { name: 'lubelskie', latMin: 50.15, latMax: 52.35, lngMin: 21.60, lngMax: 24.20 },
+  { name: 'lubuskie', latMin: 51.35, latMax: 53.15, lngMin: 14.50, lngMax: 16.45 },
+  { name: 'lodzkie', latMin: 50.80, latMax: 52.40, lngMin: 18.05, lngMax: 20.75 },
+  { name: 'malopolskie', latMin: 49.15, latMax: 50.55, lngMin: 19.05, lngMax: 21.45 },
+  { name: 'mazowieckie', latMin: 51.00, latMax: 53.50, lngMin: 19.25, lngMax: 23.15 },
+  { name: 'opolskie', latMin: 49.95, latMax: 51.25, lngMin: 16.85, lngMax: 18.70 },
+  { name: 'podkarpackie', latMin: 49.00, latMax: 50.85, lngMin: 21.15, lngMax: 23.65 },
+  { name: 'podlaskie', latMin: 52.25, latMax: 54.45, lngMin: 21.55, lngMax: 23.95 },
+  { name: 'pomorskie', latMin: 53.45, latMax: 54.85, lngMin: 16.70, lngMax: 19.85 },
+  { name: 'slaskie', latMin: 49.35, latMax: 51.25, lngMin: 18.00, lngMax: 19.95 },
+  { name: 'swietokrzyskie', latMin: 50.15, latMax: 51.35, lngMin: 19.70, lngMax: 21.75 },
+  { name: 'warminsko-mazurskie', latMin: 53.15, latMax: 54.55, lngMin: 19.10, lngMax: 22.80 },
+  { name: 'wielkopolskie', latMin: 51.05, latMax: 53.65, lngMin: 15.75, lngMax: 18.75 },
+  { name: 'zachodniopomorskie', latMin: 52.55, latMax: 54.85, lngMin: 14.10, lngMax: 16.95 },
 ];
+
+/** Do porównań tekstowych: małe litery, bez polskich znaków, znormalizowane odstępy. */
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/ł/g, 'l') // ł nie rozkłada się przez NFD
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/* Nazwy województw zawierają się w sobie („wielk-OPOLSK-ie", „zachodni-OPOMORSK-ie",
+ * „kujawsko-POMORSK-ie”), więc dopasowanie MUSI iść od najdłuższej nazwy. Inaczej oferta
+ * z Wielkopolski byłaby sprawdzana prostokątem Opolszczyzny i wypadałaby jako błędna. */
+const PARTS_BY_NAME_LENGTH = [...POLAND_PARTS].sort((a, b) => b.name.length - a.name.length);
+
+/* Prostokąty województw są zgrubne i ręcznie zaokrąglone, więc przy porównaniu
+ * z deklarowanym województwem dokładamy bufor. 0,15 stopnia to ok. 17 km — dość,
+ * by nie karać działek tuż przy granicy województwa, a wciąż o rząd wielkości mniej
+ * niż odległość do miejscowości-imienniczki w innym końcu kraju. */
+const VOIVODESHIP_TOLERANCE = 0.15;
 
 /** Czy para liczb jest w ogóle poprawnymi współrzędnymi (skończone, w zakresie globalnym). */
 export function isValidLatLng(lat: unknown, lng: unknown): boolean {
@@ -78,8 +101,44 @@ export function isInPoland(lat: number, lng: number): boolean {
     return false;
   }
   return POLAND_PARTS.some(
-    ([latMin, latMax, lngMin, lngMax]) =>
-      lat >= latMin && lat <= latMax && lng >= lngMin && lng <= lngMax
+    (p) => lat >= p.latMin && lat <= p.latMax && lng >= p.lngMin && lng <= p.lngMax
+  );
+}
+
+/**
+ * Czy współrzędne zgadzają się z województwem wypisanym w opisie lokalizacji.
+ *
+ * Po co: w Polsce mnóstwo miejscowości nosi tę samą nazwę (dwa Łagowy, kilka Rędzin,
+ * kilkanaście Brzeźn). Geokoder pytany o samą nazwę wsi trafia w losową z nich, a feed
+ * biura potrafi podać współrzędne z zupełnie innego powiatu. Pin ląduje wtedy 300 km od
+ * działki i to jest gorsze niż brak pinu: kupujący jedzie w złe miejsce.
+ *
+ * Ścieżka administracyjna z feedu (`locationFull`: ulica, miasto, gmina, powiat,
+ * województwo) powstaje NIEZALEŻNIE od współrzędnych, więc nadaje się na kontrolę
+ * krzyżową. Jeśli oba źródła się kłócą, ufamy opisowi i odrzucamy współrzędne, bo opis
+ * pisał człowiek znający działkę, a punkt wybrała maszyna zgadująca z nazwy.
+ *
+ * Gdy w tekście nie ma województwa, zwracamy `true` — brak danych to nie jest dowód błędu.
+ */
+export function coordsMatchLocationText(
+  lat: number,
+  lng: number,
+  locationText: string | null | undefined,
+): boolean {
+  if (!isValidLatLng(lat, lng)) return false;
+
+  const text = normalize(locationText ?? '');
+  if (!text) return true;
+
+  const part = PARTS_BY_NAME_LENGTH.find((p) => text.includes(p.name));
+  if (!part) return true;
+
+  const t = VOIVODESHIP_TOLERANCE;
+  return (
+    lat >= part.latMin - t &&
+    lat <= part.latMax + t &&
+    lng >= part.lngMin - t &&
+    lng <= part.lngMax + t
   );
 }
 
@@ -91,8 +150,14 @@ export function isInPoland(lat: number, lng: number): boolean {
 export function sanitizePlCoords(
   lat: number | null | undefined,
   lng: number | null | undefined,
+  /** Opis lokalizacji z feedu (locationFull). Podany, włącza kontrolę krzyżową
+   *  z województwem — patrz `coordsMatchLocationText`. */
+  locationText?: string | null,
 ): { lat: number; lng: number } | null {
   if (!isValidLatLng(lat, lng)) return null;
   if (!isInPoland(lat as number, lng as number)) return null;
+  if (locationText !== undefined && !coordsMatchLocationText(lat as number, lng as number, locationText)) {
+    return null;
+  }
   return { lat: lat as number, lng: lng as number };
 }
