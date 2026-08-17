@@ -8,6 +8,7 @@ import { OfficeLogo } from '@/components/OfficeLogo';
 import { formatOpis, plainText } from '@/lib/formatOpis';
 import AlertBar from '@/components/AlertBar';
 import type { AlertCriteria } from '@/lib/alertCriteria';
+import type { OfferPriceTrend } from '@/lib/dzialkaPriceHistory';
 import { QRCodeSVG } from 'qrcode.react';
 
 type Photo = { id?: string; url: string; publicId?: string; kolejnosc?: number };
@@ -231,6 +232,7 @@ export default function DzialkaPage({
   initial,
   preview = false,
   onPreviewBack,
+  priceTrend = null,
 }: {
   initial?: Dzialka | null;
   // Tryb podglądu (z kreatora /sprzedaj): identyczny wygląd, ale BEZ skutków ubocznych —
@@ -238,6 +240,9 @@ export default function DzialkaPage({
   preview?: boolean;
   // W podglądzie „Wróć do listy" wraca do widoku listy podglądu (nie nawiguje).
   onPreviewBack?: () => void;
+  // Historia ceny tej działki (z SSR). Sekcja „Historia ceny" pod kwotą pokaże się tylko
+  // przy 2+ punktach i realnej zmianie; inaczej nic (uczciwość).
+  priceTrend?: OfferPriceTrend | null;
 }) {
   const params = useParams();
   const router = useRouter();
@@ -446,6 +451,21 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const isRent = d?.transakcja === 'WYNAJEM';
   // zł/m² liczymy tylko dla sprzedaży — przy wynajmie cena to czynsz, nie cena gruntu.
   const zlZaM2 = !isRent && area ? Math.round((d?.cenaPln ?? 0) / area) : 0;
+
+  // Sygnał „Historia ceny": pokazujemy tylko przy 2+ punktach i realnej zmianie (>= 1%),
+  // tylko dla sprzedaży. Spadek = zielony (sygnał okazji dla kupującego), wzrost = wygaszony.
+  const priceInsight = useMemo(() => {
+    if (isRent || !priceTrend || priceTrend.changePct == null) return null;
+    if (!priceTrend.points || priceTrend.points.length < 2) return null;
+    const pct = Math.round(Math.abs(priceTrend.changePct) * 100);
+    if (pct < 1) return null;
+    const since = priceTrend.firstDate
+      ? new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long' }).format(
+          new Date(`${priceTrend.firstDate}T00:00:00`)
+        )
+      : null;
+    return { pct, dropped: priceTrend.changePct < 0, since };
+  }, [priceTrend, isRent]);
 
   const przezn = Array.isArray(d?.przeznaczenia) ? d.przeznaczenia.filter(Boolean) : [];
   const przeznText = przezn.length ? przezn.map(labelPrzeznaczenie).join(', ') : null;
@@ -1092,6 +1112,19 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     </span>
                   ) : null}
                 </div>
+                {priceInsight ? (
+                  <div
+                    className={`mt-1.5 inline-flex items-center gap-1.5 text-[12px] font-medium ${
+                      priceInsight.dropped ? 'text-brand-text' : 'text-fg/55'
+                    }`}
+                  >
+                    <span className="text-[13px] leading-none">{priceInsight.dropped ? '↓' : '↑'}</span>
+                    <span>
+                      Cena {priceInsight.dropped ? 'niższa' : 'wyższa'} o {priceInsight.pct}%
+                      {priceInsight.since ? ` niż ${priceInsight.since}` : ''}
+                    </span>
+                  </div>
+                ) : null}
               </FieldBlock>
 
               <Hr />

@@ -3,6 +3,7 @@ import DzialkaClient from './DzialkaClient';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SimilarOffers from '@/components/SimilarOffers';
 import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
+import { getOfferPriceTrend } from '@/lib/dzialkaPriceHistory';
 import { getSeoRegion } from '@/lib/seo-locations';
 import { normalizeText } from '@/lib/dzialkiSearch';
 import { decodeHtmlEntities } from '@/lib/formatOpis';
@@ -202,6 +203,10 @@ export default async function Page({ params }: PageProps) {
   // Podobne oferty (P8): rail na dole strony — leady + SEO (wewnętrzne linkowanie) + czas na stronie.
   const similar = dzialka ? await getSimilarDzialki(dzialka) : [];
 
+  // Historia ceny tej działki (trend). Odczyt odporny na brak tabeli/danych — gdy pusto,
+  // klient po prostu nie pokaże sekcji. Sekcja pojawia się dopiero przy 2+ punktach i realnej zmianie.
+  const priceTrend = dzialka ? await getOfferPriceTrend(id) : null;
+
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
   const isRent = dzialka?.transakcja === 'WYNAJEM';
@@ -341,7 +346,7 @@ export default async function Page({ params }: PageProps) {
         ]}
       />
 
-      <DzialkaClient key={id} initial={dzialka} />
+      <DzialkaClient key={id} initial={dzialka} priceTrend={priceTrend} />
 
       <SimilarOffers items={similar} />
     </>
