@@ -122,14 +122,23 @@ npm run crm:prune:report -- --with-full  # symulacja WŁĄCZONEGO trybu no-full-
 npm run crm:prune:report -- --integration <id>   # jedno biuro
 ```
 
-Raport tylko czyta: łączy się z FTP po listę plików i liczy plan. Nic nie kasuje.
+Raport tylko czyta: łączy się z FTP po listę plików i liczy plan. Nic nie kasuje. Obejmuje wyłącznie
+integracje faktycznie jadące silnikiem DOMY.PL (ASARI/EstiCRM/LocumNet mają własne silniki i własne
+reguły czyszczenia, mimo że bywają zapisane z `feedFormat=DOMY_PL`).
 
 ### Kolejność wdrożenia (świadomie ostrożna)
 
-1. `npm run crm:prune:report -- --with-full` na VPS — zobacz liczby dla wszystkich biur.
-2. Dopiero gdy liczby wyglądają zdrowo: `CRM_FEED_PRUNE_WITHOUT_FULL=1` w `.env.local` na VPS
+1. `npm run crm:prune:report -- --with-full` na VPS — liczby dla wszystkich biur.
+2. **Kanarek na jednym biurze**, zanim reguła ruszy dla wszystkich:
+   ```bash
+   npm run crm:prune:report -- --with-full --integration <id> --apply
+   ```
+   `--apply` bez `--integration` jest zablokowane. Po skasowaniu poczekaj na kolejny przebieg tego
+   biura (cron co 2 h) i sprawdź w logu workera, że import przeszedł czysto i nie ma masowej
+   dezaktywacji ofert.
+3. Dopiero wtedy globalnie: `CRM_FEED_PRUNE_WITHOUT_FULL=1` w `.env.local` na VPS
    + `pm2 restart crm-worker --update-env`.
-3. Wyłączenie to usunięcie zmiennej i restart — bez deployu.
+4. Wyłączenie to usunięcie zmiennej i restart — bez deployu.
 
 Stan (kontrola 2026-08-17): tryb `full-anchor` działa dla **32 ze 100** integracji DOMY.PL. Pozostałe 68
 nie ma ani jednego pliku oznaczonego `isFullExport`. Przykład skali z jednego biura: 748 paczek / 2,3 GB

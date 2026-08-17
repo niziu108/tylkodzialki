@@ -14,19 +14,32 @@ import {
   type RemoteFeedFile,
 } from "../src/lib/crm/feed-pruning";
 
-// RAPORT. Ten skrypt NIGDY nic nie kasuje — łączy się z FTP tylko po listę plików i pokazuje,
-// co skasowałby silnik przy danej polityce. Liczy tą samą funkcją planFeedPrune, której używa
-// domypl-sync, więc podgląd zgadza się z rzeczywistością co do pliku.
+// RAPORT auto-czyszczenia drop-zone FTP. Domyślnie NIC nie kasuje — łączy się z FTP tylko po listę
+// plików i pokazuje, co skasowałby silnik przy danej polityce. Liczy tą samą funkcją planFeedPrune,
+// której używa domypl-sync, więc podgląd zgadza się z rzeczywistością co do pliku.
 //
 // Użycie:
-//   npm run crm:prune:report                 # polityka z env (domyślnie: bez pełnego = nie ruszamy)
-//   npm run crm:prune:report -- --with-full  # symuluj WŁĄCZONE sprzątanie u biur bez pełnego eksportu
-//   npm run crm:prune:report -- --integration <id>
+//   npm run crm:prune:report                        # polityka z env (domyślnie: bez pełnego nie ruszamy)
+//   npm run crm:prune:report -- --with-full         # symuluj WŁĄCZONE sprzątanie u biur bez pełnego
+//   npm run crm:prune:report -- --integration <id>  # jedno biuro
+//
+// Tryb kanarka (jedyna ścieżka, którą ten skrypt kasuje cokolwiek):
+//   npm run crm:prune:report -- --with-full --integration <id> --apply
+//
+// --apply wymaga wskazania konkretnej integracji. Świadomie: przed włączeniem sprzątania dla
+// wszystkich biur chcemy zobaczyć efekt na jednym i sprawdzić, że kolejny import przechodzi czysto.
 
 const SIMULATE_WITHOUT_FULL = process.argv.includes("--with-full");
+const APPLY = process.argv.includes("--apply");
 const INTEGRATION_ARG_INDEX = process.argv.indexOf("--integration");
 const ONLY_INTEGRATION_ID =
   INTEGRATION_ARG_INDEX >= 0 ? process.argv[INTEGRATION_ARG_INDEX + 1] : null;
+
+if (APPLY && !ONLY_INTEGRATION_ID) {
+  console.error("❌ --apply działa tylko z --integration <id>. Sprzątanie wszystkich biur włącza się");
+  console.error("   zmienną CRM_FEED_PRUNE_WITHOUT_FULL=1 w silniku, nie tym skryptem.");
+  process.exit(1);
+}
 
 function gb(bytes: number) {
   return Math.round((bytes / 1024 / 1024 / 1024) * 100) / 100;
@@ -91,6 +104,43 @@ async function listRemoteFeeds(
   }
 }
 
+type FtpCredentials = Parameters<typeof listRemoteFeeds>[0];
+
+/** Kasowanie plików z FTP — wołane WYŁĄCZNIE w trybie --apply, dla jednej wskazanej integracji. */
+async function removeRemoteFiles(integration: FtpCredentials, fileNames: string[]) {
+  const client = new ftp.Client(30000);
+  client.ftp.verbose = false;
+
+  let removed = 0;
+  const failures: string[] = [];
+
+  try {
+    await client.access({
+      host: integration.ftpHost!,
+      port: integration.ftpPort ?? 21,
+      user: integration.ftpUsername!,
+      password: integration.ftpPassword!,
+      secure: false,
+    });
+
+    await client.cd(integration.ftpRemotePath?.trim() || "/");
+
+    for (const name of fileNames) {
+      try {
+        await client.remove(name);
+        removed += 1;
+        if (removed % 50 === 0) console.log(`      ... skasowano ${removed}/${fileNames.length}`);
+      } catch (error) {
+        failures.push(`${name}: ${(error as Error).message}`);
+      }
+    }
+  } finally {
+    client.close();
+  }
+
+  return { removed, failures };
+}
+
 async function main() {
   const policy: PrunePolicy = {
     ...readPrunePolicyFromEnv(),
@@ -109,11 +159,15 @@ async function main() {
     console.log("\n⚠️  Tryb --with-full: symulacja WŁĄCZONEGO sprzątania u biur bez pełnego eksportu.\n");
   }
 
+  // Tylko integracje faktycznie jadące silnikiem DOMY.PL. ASARI, EstiCRM i LocumNet bywają
+  // z feedFormat=DOMY_PL, ale worker kieruje je do własnych silników (patrz run-crm-job) —
+  // reguła z domypl-sync nigdy ich nie dotyczy, więc nie mają czego robić w tym raporcie.
   const integrations = await prisma.crmIntegration.findMany({
     where: {
       feedFormat: "DOMY_PL",
       transportType: "FTP",
       isActive: true,
+      provider: { notIn: ["ASARI", "ESTI_CRM", "LOCUMNET"] },
       ...(ONLY_INTEGRATION_ID ? { id: ONLY_INTEGRATION_ID } : {}),
     },
     select: {
@@ -181,6 +235,19 @@ async function main() {
       console.log(`  🧹 ${label}: ${plan.prunable.length} plików / ${gb(bytesToPrune)} GB — ${plan.reason}`);
       const preview = plan.prunable.slice(0, 3).map((f) => path.basename(f.remoteFileName));
       console.log(`      np. ${preview.join(", ")}${plan.prunable.length > 3 ? ", ..." : ""}`);
+
+      if (APPLY) {
+        console.log(`      ⚠️  --apply: kasuję ${plan.prunable.length} plików z FTP...`);
+        const { removed, failures } = await removeRemoteFiles(
+          integration,
+          plan.prunable.map((f) => f.remoteFileName)
+        );
+        console.log(`      ✅ Skasowano ${removed} plików.`);
+        if (failures.length > 0) {
+          console.log(`      ⚠️  Nie udało się skasować ${failures.length}:`);
+          for (const failure of failures.slice(0, 10)) console.log(`         ${failure}`);
+        }
+      }
     }
   }
 
@@ -198,8 +265,14 @@ async function main() {
   console.log(`Integracji sprawdzonych: ${rows.length}${failed > 0 ? ` (FTP niedostępny: ${failed})` : ""}`);
   console.log(`Tryby: ${JSON.stringify(trybLicznik)}`);
   console.log(`Plików na FTP: ${rows.reduce((a, r) => a + r.plikowFTP, 0)} / ${gb(sumBytesOnFtp)} GB`);
-  console.log(`Do skasowania: ${sumFilesToPrune} plików / ${gb(sumBytesToPrune)} GB`);
-  console.log("\nTo był raport. Nic nie zostało skasowane.");
+  console.log(
+    `${APPLY ? "Skasowano" : "Do skasowania"}: ${sumFilesToPrune} plików / ${gb(sumBytesToPrune)} GB`
+  );
+  console.log(
+    APPLY
+      ? "\n⚠️  Tryb --apply: pliki zostały USUNIĘTE z FTP. Sprawdź kolejny import tego biura."
+      : "\nTo był raport. Nic nie zostało skasowane."
+  );
 }
 
 main()
