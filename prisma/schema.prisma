@@ -143,6 +143,7 @@ model Dzialka {
   zdjecia       Zdjecie[]
   favoritedBy   FavoriteDzialka[]
   perelkaUzyta  PerelkaUzyta?
+  priceSnapshots DzialkaPriceSnapshot[]
 
   @@index([lat, lng])
   @@index([ownerId])
@@ -270,6 +271,27 @@ model CityPriceDailyStat {
 
   @@unique([citySlug, date])
   @@index([citySlug])
+  @@index([date])
+}
+
+// Historia cen per działka. Zapisujemy wiersz TYLKO gdy cena (lub metraż) różni się od ostatniego
+// znanego stanu tej oferty — to change-log, nie codzienna migawka wszystkich ofert, więc rośnie
+// wolno. Pierwszy przebieg zakłada linię bazową dla każdej aktywnej oferty. Z serii wierszy rysujemy
+// trend ceny KONKRETNEJ działki (fundament land intelligence). Addytywne, nie rusza Dzialka (źródło
+// prawdy zostaje na Dzialka.cenaPln). powierzchniaM2 kopiowane, by liczyć zł/m² w czasie nawet gdy
+// metraż później skorygowano. Data w strefie PL (jak pozostałe snapshoty), unikat (dzialkaId,date).
+model DzialkaPriceSnapshot {
+  id             String   @id @default(cuid())
+  dzialkaId      String
+  date           DateTime @db.Date
+  cenaPln        Int
+  powierzchniaM2 Int
+  createdAt      DateTime @default(now())
+
+  dzialka Dzialka @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
+
+  @@unique([dzialkaId, date])
+  @@index([dzialkaId])
   @@index([date])
 }
 

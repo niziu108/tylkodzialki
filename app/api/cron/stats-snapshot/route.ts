@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { takeDailyStatsSnapshot } from "@/lib/biuroStats";
 import { takeDailyCityPriceSnapshot } from "@/lib/cityPriceStats";
+import { takeDailyPriceSnapshot } from "@/lib/dzialkaPriceHistory";
 
 // P16 (fundament raportu leadów): dzienny snapshot kumulacyjnych liczników per biuro.
 // Wzorzec jak /api/cron/alert-emails — chroniony CRON_SECRET, wołany z systemowego crona na VPS.
@@ -41,7 +42,17 @@ export async function POST(req: Request) {
       cityPrices = { ok: false };
     }
 
-    return NextResponse.json({ ...result, cityPrices });
+    // Historia cen per działka (change-log, fundament trendu ceny działki) — też niezależnie:
+    // błąd tu (np. brak tabeli przed migracją) nie może wywrócić snapshotu leadów ani cen miast.
+    let priceHistory: unknown;
+    try {
+      priceHistory = await takeDailyPriceSnapshot();
+    } catch (e) {
+      console.error("CRON_PRICE_HISTORY_SNAPSHOT_ERROR", e);
+      priceHistory = { ok: false };
+    }
+
+    return NextResponse.json({ ...result, cityPrices, priceHistory });
   } catch (e) {
     console.error("CRON_STATS_SNAPSHOT_ERROR", e);
     return NextResponse.json(
