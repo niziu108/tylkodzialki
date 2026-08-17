@@ -17,21 +17,23 @@ export function normalizeText(value: string) {
     .trim();
 }
 
+const IGNORED_QUERY_WORDS = new Set([
+  'polska',
+  'poland',
+  'wojewodztwo',
+  'województwo',
+  'woj',
+  'powiat',
+  'gmina',
+  'miasto',
+  'okolice',
+  'okolicy',
+  'dzialki',
+  'dzialka',
+]);
+
 export function cleanSearchQuery(value: string) {
-  const ignored = new Set([
-    'polska',
-    'poland',
-    'wojewodztwo',
-    'województwo',
-    'woj',
-    'powiat',
-    'gmina',
-    'miasto',
-    'okolice',
-    'okolicy',
-    'dzialki',
-    'dzialka',
-  ]);
+  const ignored = IGNORED_QUERY_WORDS;
 
   return normalizeText(value.replace(/\b\d{2}-\d{3}\b/g, ' ').replace(/\b\d{5}\b/g, ' '))
     .split(/[\s-]+/)
@@ -125,11 +127,57 @@ function buildAliasIndex(areas: SearchArea[]) {
 const VOIVODESHIP_ALIAS_INDEX = buildAliasIndex(VOIVODESHIPS);
 const CITY_ALIAS_INDEX = buildAliasIndex(CITY_AREAS);
 
+/* Słowa doklejane do nazwy obszaru, które nie zmieniają tego, JAKIEGO obszaru dotyczy
+ * zapytanie („działki mazowieckie" to wciąż zapytanie o mazowieckie). */
+const AREA_NOISE_WORDS = new Set([
+  ...IGNORED_QUERY_WORDS,
+  'dzialke', 'dzialek', 'dzialkami',
+  'grunt', 'grunty', 'gruntow', 'dzialkowe',
+  'budowlana', 'budowlane', 'budowlany', 'budowlanych',
+  'rolna', 'rolne', 'rolny', 'rolnych',
+  'lesna', 'lesne', 'rekreacyjna', 'rekreacyjne',
+  'inwestycyjna', 'inwestycyjne', 'siedliskowa', 'siedliskowe',
+  'na', 'sprzedaz', 'wynajem', 'oferty', 'oferta', 'tanie', 'tanio', 'szukam',
+]);
+
+/* Czy `core` to CAŁA nazwa obszaru, a nie jej kawałek doklejony do czegoś innego.
+ * Dopuszczamy wyłącznie doklejenie końcówki fleksyjnej („dolnoslask" + „ie"),
+ * nigdy dodatkowych słów ani liter z przodu. */
+function isWholeAreaName(core: string, alias: string): boolean {
+  if (core === alias) return true;
+  if (!core.startsWith(alias)) return false;
+  const rest = core.slice(alias.length);
+  return rest.length <= 4 && /^[a-z]+$/.test(rest);
+}
+
+/**
+ * Województwo rozpoznajemy TYLKO wtedy, gdy zapytanie jest w istocie nazwą województwa
+ * (po odsianiu słów typu „działki", „na sprzedaż", „woj.").
+ *
+ * Wcześniej wystarczyło, że alias gdziekolwiek się zawierał, i to sypało trafnością,
+ * bo polskie nazwy miast noszą przymiotniki regionalne albo przypadkiem zawierają cudzy
+ * rdzeń. Zmierzone na produkcji: „Kłodzko" wykrywało łódzkie (k-ŁODZK-o), „Biała Podlaska"
+ * podlaskie zamiast lubelskiego, „Sokołów Podlaski" podlaskie zamiast mazowieckiego,
+ * „Środa Śląska" śląskie zamiast dolnośląskiego. Skutek był dotkliwy, bo dopasowanie do
+ * województwa ląduje w grupie 1: szukający działki pod Kłodzkiem dostawał na samej górze
+ * całe województwo łódzkie.
+ *
+ * `detectCity` celowo zostaje przy dopasowaniu częściowym: prostokąt miasta jest mały,
+ * więc fałszywe trafienie kosztuje niewiele, a częściowe dopasowanie jest tam potrzebne
+ * (np. „Warszawa Wilanów"). Przy województwie fałszywe trafienie rozlewa wyniki
+ * na jedną szesnastą kraju, więc próg musi być ostrzejszy.
+ */
 export function detectVoivodeship(query: string) {
   const normalized = normalizeText(query);
   if (!normalized) return null;
 
-  return VOIVODESHIP_ALIAS_INDEX.find((entry) => normalized.includes(entry.alias))?.area ?? null;
+  const core = normalized
+    .split(' ')
+    .filter((word) => word && !AREA_NOISE_WORDS.has(word))
+    .join(' ');
+  if (!core) return null;
+
+  return VOIVODESHIP_ALIAS_INDEX.find((entry) => isWholeAreaName(core, entry.alias))?.area ?? null;
 }
 
 export function detectCity(query: string) {

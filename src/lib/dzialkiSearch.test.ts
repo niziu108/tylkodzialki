@@ -43,6 +43,46 @@ describe('detectVoivodeship', () => {
     expect(detectVoivodeship('')).toBeNull();
     expect(detectVoivodeship('działka budowlana nad jeziorem')).toBeNull();
   });
+
+  /* REGRESJA (zmierzone na produkcji): polskie miasta noszą przymiotniki regionalne
+   * albo przypadkiem zawierają cudzy rdzeń. Dopasowanie „gdziekolwiek się zawiera"
+   * wrzucało wtedy całe województwo na szczyt wyników — szukający działki pod Kłodzkiem
+   * dostawał Piotrków i Bełchatów przed tym, czego szukał. */
+  it('nie bierze nazwy miasta za województwo', () => {
+    const miasta: Array<[string, string]> = [
+      ['Kłodzko', 'zawiera rdzeń łódzkiego: k-ŁODZK-o'],
+      ['Bystrzyca Kłodzka', 'jw.'],
+      ['Biała Podlaska', 'leży w lubelskim'],
+      ['Sokołów Podlaski', 'leży w mazowieckim'],
+      ['Radzyń Podlaski', 'leży w lubelskim'],
+      ['Środa Śląska', 'leży w dolnośląskim'],
+      ['Zagórze Śląskie', 'leży w dolnośląskim'],
+      ['Oborniki Śląskie', 'leży w dolnośląskim'],
+      ['Gorzów Wielkopolski', 'leży w lubuskim'],
+      ['Głogów Małopolski', 'leży w podkarpackim'],
+      ['Jabłonowo Pomorskie', 'leży w kujawsko-pomorskim'],
+      ['Kamień Pomorski', 'leży w zachodniopomorskim'],
+      ['Tomaszów Mazowiecki', 'leży w łódzkim'],
+      ['Rawa Mazowiecka', 'leży w łódzkim'],
+    ];
+    for (const [miasto, powod] of miasta) {
+      expect(detectVoivodeship(miasto), `${miasto} — ${powod}`).toBeNull();
+    }
+  });
+
+  it('rozpoznaje województwo mimo dokleików typu „woj." czy „działki"', () => {
+    expect(detectVoivodeship('woj. mazowieckie')?.label).toBe('mazowieckie');
+    expect(detectVoivodeship('województwo śląskie')?.label).toBe('śląskie');
+    expect(detectVoivodeship('działki mazowieckie')?.label).toBe('mazowieckie');
+    expect(detectVoivodeship('działki budowlane wielkopolskie')?.label).toBe('wielkopolskie');
+    expect(detectVoivodeship('lubelskie na sprzedaż')?.label).toBe('lubelskie');
+  });
+
+  it('rozpoznaje formy odmienione i potoczne', () => {
+    expect(detectVoivodeship('mazurskie')?.label).toBe('warmińsko-mazurskie');
+    expect(detectVoivodeship('kujawsko-pomorskie')?.label).toBe('kujawsko-pomorskie');
+    expect(detectVoivodeship('warmińsko-mazurskie')?.label).toBe('warmińsko-mazurskie');
+  });
 });
 
 describe('detectCity', () => {
