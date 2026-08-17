@@ -35,3 +35,14 @@ export function limitFeedsByTotalBytes<T extends SizedFeedFile>(files: T[], maxB
 export function totalFeedBytes(files: SizedFeedFile[]): number {
   return files.reduce((acc, file) => acc + (file.size ?? 0), 0);
 }
+
+/**
+ * Wzorzec nazw plików z konfiguracji integracji (np. `oferty_*.zip`) na wyrażenie regularne.
+ *
+ * Wspólne dla silnika i raportu czyszczenia FTP — gdyby każdy dobierał pliki po swojemu, raport
+ * pokazywałby co innego, niż silnik faktycznie kasuje.
+ */
+export function wildcardToRegExp(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^${escaped.replace(/\*/g, ".*")}$`, "i");
+}

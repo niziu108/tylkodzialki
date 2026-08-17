@@ -17,6 +17,7 @@
     "crm:autosync:off": "tsx scripts/crm-autosync-flag.ts off",
     "crm:autosync:status": "tsx scripts/crm-autosync-flag.ts status",
     "crm:backfill": "tsx scripts/crm-backfill-full-exports.ts",
+    "crm:prune:report": "tsx scripts/crm-ftp-prune-report.ts",
     "crm:dedup": "tsx scripts/crm-dedup-galactica.ts"
   },
   "dependencies": {

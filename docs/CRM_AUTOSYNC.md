@@ -90,10 +90,50 @@ Zmienne środowiskowe:
 708 MB, rekord w bazie to 2,8 GB). Zawsze pobieramy przynajmniej jeden plik, reszta czeka na kolejny
 przebieg — kolejność chronologiczna zostaje zachowana.
 
-Stan auto-czyszczenia drop-zone (kontrola 2026-08-17): działa dla **32 ze 100** integracji na silniku
-DOMY.PL. Reszta nie ma ani jednego pliku oznaczonego `isFullExport`, więc bezpiecznik „zostaw najświeższy
-pełny eksport" nie ma punktu odniesienia i nie kasuje nic — to głównie biura Galactiki, patrz osobny wątek
-o braku pełnych eksportów.
+## Czyszczenie drop-zone FTP: dwie reguły
+
+Cała decyzja „co wolno skasować z FTP biura" siedzi w jednej funkcji `planFeedPrune`
+(`src/lib/crm/feed-pruning.ts`). Używa jej i silnik, i raport — dlatego podgląd pokazuje dokładnie to,
+co silnik zrobi, co do pliku.
+
+**Tryb `full-anchor`** (biuro ma rozpoznany pełny eksport) — reguła bez zmian: zostaje najświeższy pełny
+eksport i wszystko, co przyszło po nim. Kasujemy tylko starsze paczki dokładnie dopasowane do rekordu
+SUCCESS, starsze niż `CRM_FEED_RETENTION_DAYS`, spoza bufora `CRM_FEED_KEEP_MIN`.
+
+**Tryb `no-full-export`** (biuro nigdy nie przysłało pełnego eksportu — u nas głównie Galactica) — nowa
+reguła, **domyślnie wyłączona**. Bez snapshotu odniesienia odtworzenie biura z samego FTP i tak jest
+niemożliwe (od tego są backupy Neona), więc trzymanie setek paczek w nieskończoność niczego nie ratuje.
+Po włączeniu kasujemy paczki, które jednocześnie: są dopasowane do rekordu SUCCESS, są starsze niż
+`CRM_FEED_RETENTION_DAYS_NO_FULL` (30 dni), nie należą do `CRM_FEED_KEEP_MIN_NO_FULL` najświeższych (20)
+i **nie są największą paczką biura** (największa to najpoważniejszy kandydat na nieoznaczony pełny
+eksport z czasów sprzed pola `isFullExport`).
+
+| Zmienna | Domyślnie | Do czego |
+|---------|-----------|----------|
+| `CRM_FEED_PRUNE_WITHOUT_FULL` | brak (= wyłączone) | `1` włącza sprzątanie u biur bez pełnego eksportu |
+| `CRM_FEED_RETENTION_DAYS_NO_FULL` | `30` | margines wieku w tym trybie |
+| `CRM_FEED_KEEP_MIN_NO_FULL` | `20` | bufor najświeższych paczek w tym trybie |
+
+### Podgląd przed kasowaniem
+
+```bash
+npm run crm:prune:report                 # co skasuje bieżąca polityka
+npm run crm:prune:report -- --with-full  # symulacja WŁĄCZONEGO trybu no-full-export
+npm run crm:prune:report -- --integration <id>   # jedno biuro
+```
+
+Raport tylko czyta: łączy się z FTP po listę plików i liczy plan. Nic nie kasuje.
+
+### Kolejność wdrożenia (świadomie ostrożna)
+
+1. `npm run crm:prune:report -- --with-full` na VPS — zobacz liczby dla wszystkich biur.
+2. Dopiero gdy liczby wyglądają zdrowo: `CRM_FEED_PRUNE_WITHOUT_FULL=1` w `.env.local` na VPS
+   + `pm2 restart crm-worker --update-env`.
+3. Wyłączenie to usunięcie zmiennej i restart — bez deployu.
+
+Stan (kontrola 2026-08-17): tryb `full-anchor` działa dla **32 ze 100** integracji DOMY.PL. Pozostałe 68
+nie ma ani jednego pliku oznaczonego `isFullExport`. Przykład skali z jednego biura: 748 paczek / 2,3 GB
+na FTP, z czego reguła `no-full-export` skasowałaby 511 plików / 1 GB, zostawiając 237.
 
 ## Bezpieczeństwo (mapowanie na ryzyka z audytu)
 

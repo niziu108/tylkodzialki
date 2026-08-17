@@ -23,7 +23,13 @@ import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 import { sanitizePlCoords } from "@/lib/geo";
-import { DEFAULT_MAX_RUN_BYTES, limitFeedsByTotalBytes, totalFeedBytes } from "@/lib/crm/feed-batching";
+import {
+  DEFAULT_MAX_RUN_BYTES,
+  limitFeedsByTotalBytes,
+  totalFeedBytes,
+  wildcardToRegExp,
+} from "@/lib/crm/feed-batching";
+import { planFeedPrune, readPrunePolicyFromEnv } from "@/lib/crm/feed-pruning";
 
 type IntegrationForSync = {
   id: string;
@@ -137,11 +143,6 @@ function arrify<T>(value: T | T[] | null | undefined): T[] {
   if (Array.isArray(value)) return value;
   if (value == null) return [];
   return [value];
-}
-
-function wildcardToRegExp(pattern: string) {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^${escaped.replace(/\*/g, ".*")}$`, "i");
 }
 
 function toNumber(value: unknown): number | null {
@@ -621,63 +622,24 @@ const processedKeys = new Set(
 );
 
 // Auto-czyszczenie drop-zone FTP. Biura wrzucają paczki (pełny eksport + kolejne różnicowe),
-// nikt ich nie kasuje, więc dysk hostingu puchnie w nieskończoność. Reguła kasowania jest tak
-// zbudowana, żeby NIGDY nie stracić bazy odniesienia:
+// nikt ich nie kasuje, więc dysk hostingu puchnie w nieskończoność. Cała logika decyzji siedzi
+// w planFeedPrune (src/lib/crm/feed-pruning.ts) — ten sam kod liczy raport `npm run crm:prune:report`,
+// więc podgląd przed kasowaniem pokazuje dokładnie to, co silnik zrobi.
 //
-//   ZAWSZE zostaje najświeższy PEŁNY eksport tego biura i WSZYSTKO, co przyszło po nim.
-//
-// Z tego pełnego snapshotu + różnicowych po nim da się odtworzyć całe biuro od zera. Kasujemy tylko
-// paczki z poprzednich, już zastąpionych „er" (starszy pełny eksport i jego różnicowe), i to pod
-// warunkiem, że JEDNOCZEŚNIE:
-//   1) plik jest DOKŁADNIE dopasowany (nazwa|rozmiar|data) do rekordu SUCCESS — czyli w pełni
-//      wchłonięty do bazy (nieprzetworzone i błędne zostają nietknięte),
-//   2) jest STARSZY niż najświeższy pełny eksport (istnieje nowszy pełny snapshot, który go zastąpił),
-//   3) jest starszy niż margines CRM_FEED_RETENTION_DAYS (domyślnie 14 dni) — bufor na zakładkę,
-//   4) nie należy do najświeższych CRM_FEED_KEEP_MIN plików (twardy dolny limit historii).
-//
-// Jeśli dla biura NIE znamy jeszcze żadnego pełnego eksportu (np. samo wrzuca różnicowe albo pełny
-// przyszedł przed wdrożeniem tej wersji i nie został jeszcze oznaczony) — kasujemy ZERO plików.
-// Skutek: dług dyskowy schodzi bezpiecznie, w miarę jak biura przysyłają kolejne pełne eksporty.
-const retentionDays = Number(process.env.CRM_FEED_RETENTION_DAYS ?? "14");
-const keepMinFiles = Number(process.env.CRM_FEED_KEEP_MIN ?? "10");
+// Skrót reguł:
+//   - biuro z rozpoznanym pełnym eksportem: zostaje najświeższy pełny i WSZYSTKO po nim,
+//   - biuro bez pełnego eksportu: sprzątanie tylko przy włączonym CRM_FEED_PRUNE_WITHOUT_FULL,
+//     z dłuższym marginesem, większym buforem najświeższych i ochroną największej paczki,
+//   - w obu trybach kasujemy wyłącznie pliki dokładnie dopasowane do rekordu SUCCESS.
+const prunePlan = planFeedPrune(remoteFeeds, processedFiles, readPrunePolicyFromEnv(), Date.now());
 
-const latestFullModifiedMs = processedFiles.reduce<number>((acc, file) => {
-  if (!file.isFullExport || !file.fileModifiedAt) return acc;
-  return Math.max(acc, file.fileModifiedAt.getTime());
-}, 0);
-
-if (
-  Number.isFinite(retentionDays) &&
-  retentionDays >= 0 &&
-  latestFullModifiedMs > 0
-) {
-  const ageCutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
-
-  // remoteFeeds jest posortowane rosnąco po czasie — najświeższe na końcu. Chronimy ostatnie
-  // keepMinFiles niezależnie od reszty reguł (twardy bufor historii).
-  const protectedNewest = new Set(
-    remoteFeeds
-      .slice(Math.max(0, remoteFeeds.length - Math.max(0, keepMinFiles)))
-      .map((file) => file.remoteFileName)
+if (prunePlan.prunable.length > 0) {
+  console.log(
+    `[CRM CLEANUP] Tryb ${prunePlan.mode}: ${prunePlan.reason} Do usunięcia ${prunePlan.prunable.length} plików z ${remoteDir}.`
   );
 
-  const prunableFiles = remoteFeeds.filter((file) => {
-    if (!file.modifiedAt) return false; // brak daty = nie ryzykujemy
-    if (protectedNewest.has(file.remoteFileName)) return false; // twardy bufor najświeższych
-    if (file.modifiedAt.getTime() >= latestFullModifiedMs) return false; // to najświeższy pełny lub coś po nim
-    if (file.modifiedAt.getTime() >= ageCutoffMs) return false; // w oknie czasowego bufora
-
-    const key = [
-      file.remoteFileName,
-      file.size ?? "",
-      file.modifiedAt.getTime(),
-    ].join("|");
-
-    return processedKeys.has(key); // tylko potwierdzone jako w pełni przetworzone (SUCCESS)
-  });
-
   let prunedCount = 0;
-  for (const file of prunableFiles) {
+  for (const file of prunePlan.prunable) {
     try {
       await client.remove(file.remoteFileName);
       prunedCount += 1;
@@ -691,9 +653,7 @@ if (
   }
 
   if (prunedCount > 0) {
-    console.log(
-      `[CRM CLEANUP] Usunięto ${prunedCount} zastąpionych plików (starszych niż najświeższy pełny eksport z ${new Date(latestFullModifiedMs).toISOString()}) z ${remoteDir}.`
-    );
+    console.log(`[CRM CLEANUP] Usunięto ${prunedCount} plików z ${remoteDir}.`);
   }
 }
 
