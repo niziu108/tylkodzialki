@@ -63,6 +63,38 @@ Uwagi:
 - Skrypt tylko kolejkuje (lekki, szybki). Faktyczny import robi worker, który musi działać w trybie `--loop` (na VPS pod pm2 jako `crm-worker`).
 - Worker przetwarza joby sekwencyjnie, więc nawet zakolejkowanie wszystkich naraz nie uderza równolegle w FTP biur.
 
+## Dysk: katalogi tymczasowe i drop-zone FTP
+
+Silniki pobierają paczki do `os.tmpdir()/td-*` (`td-crm-`, `td-esticrm-`, `td-asari-`, `td-locumnet-`,
+`td-backfill-`). Katalog kasuje się w `finally` po każdym imporcie.
+
+Wyciek naprawiony 2026-08-17: silnik DOMY.PL tworzył katalog tymczasowy na starcie funkcji pobierającej,
+a wczesne wyjście „brak nowych plików" go nie kasowało. Przy 12 przebiegach na dobę × ~100 integracji
+w `/tmp` narosło **16 399** pustych katalogów. Teraz katalog powstaje dopiero wtedy, gdy naprawdę jest
+co pobierać.
+
+Zabezpieczenia dodatkowe (bo crash/restart procesu nadal może zostawić katalog):
+- worker sprząta osierocone `td-*` przy starcie (bez ograniczeń wiekowych — jest jednoinstancyjny),
+- oraz **co godzinę w trakcie działania**, ale tylko katalogi starsze niż 12 h (żeby nie ruszyć
+  równolegle odpalonego ręcznie `npm run crm:sync -- JOB_ID`).
+
+Zmienne środowiskowe:
+
+| Zmienna | Domyślnie | Do czego |
+|---------|-----------|----------|
+| `CRM_FEED_RETENTION_DAYS` | `14` | margines wieku przy kasowaniu paczek z FTP biura |
+| `CRM_FEED_KEEP_MIN` | `10` | ile najświeższych paczek zostaje na FTP niezależnie od reguł |
+| `CRM_MAX_RUN_BYTES` | `5368709120` (5 GB) | limit łącznego rozmiaru plików pobieranych w JEDNYM przebiegu DOMY.PL |
+
+`CRM_MAX_RUN_BYTES` chroni dysk przed przypadkiem „20 plików po kilkaset MB naraz" (zdarzają się paczki
+708 MB, rekord w bazie to 2,8 GB). Zawsze pobieramy przynajmniej jeden plik, reszta czeka na kolejny
+przebieg — kolejność chronologiczna zostaje zachowana.
+
+Stan auto-czyszczenia drop-zone (kontrola 2026-08-17): działa dla **32 ze 100** integracji na silniku
+DOMY.PL. Reszta nie ma ani jednego pliku oznaczonego `isFullExport`, więc bezpiecznik „zostaw najświeższy
+pełny eksport" nie ma punktu odniesienia i nie kasuje nic — to głównie biura Galactiki, patrz osobny wątek
+o braku pełnych eksportów.
+
 ## Bezpieczeństwo (mapowanie na ryzyka z audytu)
 
 | Ryzyko | Jak zaadresowane |

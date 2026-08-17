@@ -20,7 +20,10 @@ async function runSingleJob(jobId: string) {
 // Silniki rozpakowują paczki do os.tmpdir()/td-*. Sprzątanie jest w `finally`, ale crash albo
 // restart procesu zostawia katalog na dysku. Worker jest jednoinstancyjny, więc w chwili startu
 // żaden td-* nie jest w użyciu i można je skasować bezpiecznie.
-async function sweepOrphanTempDirs() {
+//
+// minAgeMs > 0 = tryb okresowy (pętla, między jobami). Wtedy ruszamy tylko katalogi wyraźnie stare,
+// bo obok pętli może chodzić ręcznie odpalony jednorazowy job (`npm run crm:sync -- JOB_ID`).
+async function sweepOrphanTempDirs(minAgeMs = 0) {
   const fsp = await import("node:fs/promises");
   const os = await import("node:os");
   const path = await import("node:path");
@@ -36,8 +39,19 @@ async function sweepOrphanTempDirs() {
       if (!entry.isDirectory()) continue;
       if (!prefixes.some((prefix) => entry.name.startsWith(prefix))) continue;
 
+      const fullPath = path.join(tmp, entry.name);
+
+      if (minAgeMs > 0) {
+        try {
+          const stat = await fsp.stat(fullPath);
+          if (Date.now() - stat.mtimeMs < minAgeMs) continue;
+        } catch {
+          continue; // nie da się sprawdzić wieku = nie ruszamy
+        }
+      }
+
       try {
-        await fsp.rm(path.join(tmp, entry.name), { recursive: true, force: true });
+        await fsp.rm(fullPath, { recursive: true, force: true });
         removed += 1;
       } catch {
         // Pojedynczy katalog nie do skasowania nie może wywalić startu workera.
@@ -73,8 +87,19 @@ async function runLoop() {
 
   console.log("🚀 CRM worker działa. Szukam zadań PENDING...");
 
+  // Sprzątanie tylko przy starcie było plastrem: worker potrafi chodzić tygodniami. Powtarzamy je
+  // co godzinę, w szczycie pętli (czyli nigdy w trakcie joba — pętla jest sekwencyjna).
+  const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
+  const SWEEP_MIN_AGE_MS = 12 * 60 * 60 * 1000;
+  let lastSweepAt = Date.now();
+
   while (true) {
     try {
+      if (Date.now() - lastSweepAt >= SWEEP_INTERVAL_MS) {
+        lastSweepAt = Date.now();
+        await sweepOrphanTempDirs(SWEEP_MIN_AGE_MS);
+      }
+
       const job = await prisma.crmImportJob.findFirst({
         where: { status: "PENDING" },
         orderBy: { createdAt: "asc" },

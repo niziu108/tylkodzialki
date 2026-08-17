@@ -23,6 +23,7 @@ import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 import { sanitizePlCoords } from "@/lib/geo";
+import { DEFAULT_MAX_RUN_BYTES, limitFeedsByTotalBytes, totalFeedBytes } from "@/lib/crm/feed-batching";
 
 type IntegrationForSync = {
   id: string;
@@ -535,7 +536,11 @@ async function downloadNewFeedsFromFtp(integration: IntegrationForSync): Promise
   const client = new ftp.Client(30000);
   client.ftp.verbose = false;
 
-  const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-crm-"));
+  // Katalog tymczasowy powstaje DOPIERO, gdy wiadomo, że jest co pobierać. Wcześniej tworzyliśmy go
+  // na starcie funkcji, a wczesne wyjście „brak nowych plików" go nie kasowało (sprzątanie w wołającym
+  // iteruje po pobranych plikach, więc przy pustej tablicy nie robiło nic). Cron kolejkuje co 2 h,
+  // większość przebiegów nie ma nowych plików — w /tmp narosło 16 399 pustych katalogów td-*.
+  let tempDir: string | null = null;
 
   try {
     await client.access({
@@ -710,6 +715,19 @@ if (filesToDownload.length === 0) {
 const MAX_FILES_PER_RUN = 20;
 filesToDownload = filesToDownload.slice(0, MAX_FILES_PER_RUN);
 
+    // Drugi limit, obok liczby plików: łączny rozmiar jednego przebiegu. Zdarzają się paczki po
+    // 700 MB, więc 20 plików potrafi oznaczać kilkanaście GB naraz na dysku VPS.
+    const maxRunBytes = Number(process.env.CRM_MAX_RUN_BYTES ?? String(DEFAULT_MAX_RUN_BYTES));
+    const limitedFiles = limitFeedsByTotalBytes(filesToDownload, maxRunBytes);
+
+    if (limitedFiles.length < filesToDownload.length) {
+      console.log(
+        `[CRM DEBUG] Limit rozmiaru przebiegu (${maxRunBytes} B): biorę ${limitedFiles.length} z ${filesToDownload.length} plików (${totalFeedBytes(limitedFiles)} B). Reszta w kolejnym przebiegu.`
+      );
+    }
+
+    filesToDownload = limitedFiles;
+
     console.log(
       "[CRM DEBUG] Pliki wybrane do przetworzenia od najstarszego do najnowszego:",
       filesToDownload.map((file) => ({
@@ -720,9 +738,11 @@ filesToDownload = filesToDownload.slice(0, MAX_FILES_PER_RUN);
     );
 
     const downloadedFeeds: DownloadedFeed[] = [];
+    const runTempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-crm-"));
+    tempDir = runTempDir;
 
     for (const file of filesToDownload) {
-      const localFilePath = path.join(tempDir, file.remoteFileName);
+      const localFilePath = path.join(runTempDir, file.remoteFileName);
 
       await client.downloadTo(localFilePath, file.remoteFileName);
 
@@ -732,14 +752,14 @@ filesToDownload = filesToDownload.slice(0, MAX_FILES_PER_RUN);
         fileSize: file.size,
         fileModifiedAt: file.modifiedAt,
         cleanup: async () => {
-          await fsp.rm(tempDir, { recursive: true, force: true });
+          await fsp.rm(runTempDir, { recursive: true, force: true });
         },
       });
     }
 
     return downloadedFeeds;
   } catch (error) {
-    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    if (tempDir) await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
     throw error;
   } finally {
     client.close();
