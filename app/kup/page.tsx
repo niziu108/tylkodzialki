@@ -107,6 +107,9 @@ export default async function KupPage({ searchParams }: KupPageProps) {
   // i auto-otwarcia mapy wyśrodkowanej na jej lokalizacji.
   const focusId = one(sp.focus).trim() || null;
 
+  // Wejście od razu na mapę (przycisk „Mapa" na stronie głównej → /kup?widok=mapa).
+  const openMap = one(sp.widok).trim() === 'mapa';
+
   const page = Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1;
 
   // SSR 1. strony wyników: liczymy je już na serwerze i wstrzykujemy do KupSearch, żeby lista
@@ -176,6 +179,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
         initialItems={initialItems as never}
         initialCount={initialCount}
         initialFocusId={focusId}
+        initialOpenMap={openMap}
         initialFilters={{
           locText: hasBBox ? '' : one(sp.loc),
           radiusKm,

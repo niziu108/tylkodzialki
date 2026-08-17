@@ -749,6 +749,16 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     setIdx((p) => (p + 1) % photos.length);
   };
 
+  // Czy w ofertę weszliśmy z MAPY (karta pinu ustawia TD_KUP_FROM_MAP=id)? Jeśli tak, przycisk
+  // powrotu mówi „Wróć do mapy" i wraca na /kup z otwartą mapą (?focus=), zamiast na płaską listę.
+  const [backToMap, setBackToMap] = useState(false);
+  useEffect(() => {
+    if (preview || !id) return;
+    try {
+      if (sessionStorage.getItem('TD_KUP_FROM_MAP') === id) setBackToMap(true);
+    } catch {}
+  }, [id, preview]);
+
   const onBackToListClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (preview) {
@@ -761,6 +771,16 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       const y = sessionStorage.getItem('TD_KUP_SCROLL_Y');
 
       if (y) sessionStorage.setItem('TD_KUP_RESTORE_Y', y);
+
+      if (backToMap) {
+        // Wróć na /kup z otwartą mapą, wyśrodkowaną na tej ofercie (focus= auto-otwiera mapę).
+        sessionStorage.removeItem('TD_KUP_FROM_MAP');
+        const withFocus = url.includes('focus=')
+          ? url
+          : `${url}${url.includes('?') ? '&' : '?'}focus=${id}`;
+        router.push(withFocus);
+        return;
+      }
 
       router.push(url);
     } catch {
@@ -830,7 +850,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             onClick={onBackToListClick}
             className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition"
           >
-            <span className="relative top-[-1px]">←</span> Wróć do listy
+            <span className="relative top-[-1px]">←</span> {backToMap ? 'Wróć do mapy' : 'Wróć do listy'}
           </Link>
 
           <div className="mt-6 grid gap-10 lg:grid-cols-2">
@@ -864,7 +884,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             onClick={onBackToListClick}
             className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition"
           >
-            <span className="relative top-[-1px]">←</span> Wróć do listy
+            <span className="relative top-[-1px]">←</span> {backToMap ? 'Wróć do mapy' : 'Wróć do listy'}
           </Link>
 
           <div className="mt-6 rounded-3xl bg-surface-2/20 p-6">
@@ -891,7 +911,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             onClick={onBackToListClick}
             className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition"
           >
-            <span className="relative top-[-1px]">←</span> Wróć do listy
+            <span className="relative top-[-1px]">←</span> {backToMap ? 'Wróć do mapy' : 'Wróć do listy'}
           </Link>
 
           {/* Napisz wiadomość + ulubione + udostępnij — same ikony, na wysokości „Wróć do listy", po prawej. */}

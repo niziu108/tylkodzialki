@@ -676,6 +676,7 @@ export default function KupSearch({
   initialItems,
   initialCount,
   initialFocusId = null,
+  initialOpenMap = false,
   seoMode = false,
   navigationMode = false,
 }: {
@@ -686,6 +687,8 @@ export default function KupSearch({
   initialItems?: ApiDzialka[];
   initialCount?: number;
   initialFocusId?: string | null;
+  // Wejście od razu na mapę (np. przycisk „Mapa" na stronie głównej → /kup?widok=mapa).
+  initialOpenMap?: boolean;
   seoMode?: boolean;
   navigationMode?: boolean;
 }) {
@@ -1096,7 +1099,7 @@ export default function KupSearch({
     } catch {}
   }, [loading, page, items.length]);
 
-  async function applyAndSearch() {
+  async function applyAndSearch(asMap = false) {
     // Fallback: browser autocomplete may fill the DOM input without triggering React onChange
     const effectiveLocText = locText.trim() || (inputRef.current?.value?.trim() ?? '');
 
@@ -1138,10 +1141,17 @@ export default function KupSearch({
 
     if (navigationMode) {
       saveState(next, 1);
-      router.push(buildUrlFromState(next, 1));
+      const base = buildUrlFromState(next, 1);
+      // „Mapa" ze strony głównej: te same filtry, ale /kup otwiera się od razu na mapie.
+      router.push(asMap ? `${base}${base.includes('?') ? '&' : '?'}widok=mapa` : base);
     } else {
       setApplied(next);
       fetchDataWith(next, 1);
+      // Na /kup „Mapa" po filtrowaniu: zastosuj filtry i od razu otwórz pełnoekranową mapę.
+      if (asMap) {
+        setMapMounted(true);
+        setMapOpen(true);
+      }
       // Mobile: po wyszukaniu zwiń pasek, żeby od razu było widać wyniki (desktop
       // i tak trzyma kartę otwartą przez `md:block`, więc stan tu nie szkodzi).
       setSearchOpen(false);
@@ -1228,8 +1238,9 @@ export default function KupSearch({
 
   // Wejście z oferty (?focus=…) — od razu otwieramy pełnoekranową mapę ofert,
   // wyśrodkowaną na działce; jej pin jest podświetlony (activeId = initialFocusId).
+  // Albo wejście z przycisku „Mapa" (?widok=mapa) — mapa bez konkretnej oferty.
   useEffect(() => {
-    if (initialFocusId) {
+    if (initialFocusId || initialOpenMap) {
       setMapMounted(true);
       setMapOpen(true);
     }
@@ -1521,7 +1532,16 @@ export default function KupSearch({
           </button>
           <button
             type="button"
-            onClick={applyAndSearch}
+            onClick={() => void applyAndSearch(true)}
+            className="flex items-center gap-2 rounded-xl border border-fg/25 px-5 py-3 text-[12px] font-medium uppercase tracking-[0.16em] text-fg/85 transition hover:border-fg/45 disabled:opacity-60"
+            disabled={loading}
+          >
+            <MapGlyph className="h-4 w-4 text-brand" />
+            Mapa
+          </button>
+          <button
+            type="button"
+            onClick={() => void applyAndSearch()}
             className="rounded-xl bg-brand px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-strong disabled:opacity-60"
             disabled={loading}
           >

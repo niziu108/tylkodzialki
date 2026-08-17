@@ -98,7 +98,17 @@ export default function MapOfferCard({ point, onClose }: { point: MapPoint; onCl
               : 'border-fg/12 shadow-[0_18px_60px_rgba(0,0,0,0.12)]'
           }`}
         >
-          <a href={`/dzialka/${point.id}`} className="group block text-left text-fg no-underline">
+          <a
+            href={`/dzialka/${point.id}`}
+            onClick={() => {
+              // Zapamiętaj, że w ofertę wchodzimy Z MAPY — na ofercie przycisk powrotu
+              // zamieni się w „Wróć do mapy" i wróci na /kup z otwartą mapą (?focus=).
+              try {
+                sessionStorage.setItem('TD_KUP_FROM_MAP', point.id);
+              } catch {}
+            }}
+            className="group block text-left text-fg no-underline"
+          >
             {/* Karuzela */}
             <div
               className="relative aspect-[16/10] w-full overflow-hidden bg-surface-2"
