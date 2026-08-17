@@ -41,8 +41,8 @@ Monetyzacja świadomie ODŁOŻONA do boomu. Najpierw podaż, ruch, płynność. 
 
 ## 📍 GDZIE JESTEŚMY (aktualizuj na końcu każdego czatu)
 
-- **Data:** 2026-07-10.
-- **Stan produktu:** ~3,15k działek, ~50 biur. CRM (Galactica, Asari, EstiCRM, domy.pl, IMO) z auto-syncem 2x/dobę + monitoring. Huby SEO woj→miasto→typ→powiat (~550 stron indeksowalnych, thin-content noindex). Schema.org komplet (Product, RealEstateListing, FAQPage, BreadcrumbList w SSR). Szybkość 90+ na mobile na kluczowych stronach. Mapa+lista na `/kup`. Filtry mediów (twarde). „Sprawdź działkę" (ULDK+MPZP+wycena) na produkcji. Alerty na sam e-mail (bez logowania). Kreator dodawania z autofillem GUGiK + auto-zdjęcie z lotu ptaka + auto-tytuł. Jasny motyw. Blog: renderer premium, ~16 artykułów, backlog 100. Panel biura + statystyki + faktury + KSeF + Stripe.
+- **Data:** 2026-08-17.
+- **Stan produktu:** **8 277 aktywnych działek, 113 biur z ofertami** (116 integracji CRM, wszystkie aktywne). CRM (Galactica, Asari, EstiCRM, domy.pl, IMO) z auto-syncem **co 2 h** + monitoring. Huby SEO woj→miasto→typ→powiat (~550 stron indeksowalnych, thin-content noindex). Schema.org komplet (Product, RealEstateListing, FAQPage, BreadcrumbList w SSR). Szybkość 90+ na mobile na kluczowych stronach. Mapa+lista na `/kup`. Filtry mediów (twarde). „Sprawdź działkę" (ULDK+MPZP+wycena) na produkcji. Alerty na sam e-mail (bez logowania). Kreator dodawania z autofillem GUGiK + auto-zdjęcie z lotu ptaka + auto-tytuł. Jasny motyw. Blog: renderer premium, **67 artykułów**, backlog 100. Panel biura + statystyki + faktury + KSeF + Stripe. Podgląd popytu w adminie: `/admin/powiadomienia` (alerty kupujących + rozkład po miastach).
 - **AKTUALNY PUNKT (do wyboru, wg priorytetu Gwiazdy Północnej):**
   1. **P27 — Maszyna do podaży** (strategiczny #1). Zacząć od kanału (a) biura albo (b) osoby prywatne.
   2. **P14 dalej — dokończenie lekkiego kreatora** (mniej tarcia = więcej ogłoszeń, wprost karmi P27b).
