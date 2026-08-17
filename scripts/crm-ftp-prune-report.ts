@@ -191,7 +191,8 @@ async function main() {
   let failed = 0;
 
   for (const integration of integrations) {
-    const label = `${integration.name} [${integration.id.slice(-6)}] ${integration.ftpRemotePath ?? "/"}`;
+    // Pełne id, nie skrót — z tej linii kopiuje się je wprost do `--integration <id>`.
+    const label = `${integration.ftpRemotePath ?? "/"} (${integration.name}) ${integration.id}`;
 
     if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
       console.log(`  ⏭️  ${label}: brak danych FTP.`);
