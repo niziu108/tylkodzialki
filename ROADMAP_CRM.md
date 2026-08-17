@@ -454,6 +454,14 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Uwaga operacyjna:** render-fixy (encje, listy, tytuły, meta, sup) działają na Vercel od razu, na CAŁEJ istniejącej bazie. Fix A (EstiCRM: koniec `stripHtml`) działa w ręcznym „Synchronizuj teraz" (Vercel), ale w NOCNYM auto-sync dopiero po aktualizacji **workera na VPS**; istniejące oferty EstiCRM odzyskają akapity dopiero przy kolejnym re-sync (opis nadpisywany surowym).
 - **Status:** NAPRAWIONE i wdrożone (Vercel). Zasada na przyszłość: nowy provider = zapisywać opis SUROWO, formatowanie „samo wychodzi" na renderze; nie stripować HTML w parserze; tytuł/lokalizacja przez `plainText`.
 
+### P-N: Sprzedane oferty Galactiki nie znikały — `<oferta_usun>` szło do kosza [NAPRAWIONE 2026-08-17, czeka na deploy]
+- **Objaw:** działka sprzedana zostawała na portalu bez końca. Bezpiecznik R1 (`deactivateMissingOffers`) wymaga pełnego eksportu, a Galactica przysłała 6 plików pełnych na 6828 (pełny dostało kiedykolwiek 6 integracji z 46).
+- **Przyczyna:** parser od zawsze zbierał `<oferta_usun>` dla każdego źródła, ale zastosowanie stało za bramką `provider === "IMOX"` (Sprint 7, „ścieżka Galactiki bit w bit"). Sonda po paczkach na FTP z 2026-08-17: **każda paczka Galactiki niesie usunięcia** (np. `ofert=6, oferta_usun=6`).
+- **Naprawa:** usunięcia stosujemy dla każdego źródła w formacie DOMY.PL. Dopasowanie po DOKŁADNYM `externalId` — Galactica używa `<oferta_usun>` także przy aktualizacji (kasuje `LER-GS-3541-1`, przysyła `LER-GS-3541-2`), więc dopasowanie po bazowym id wygasiłoby żywe oferty (w próbce 45 usunięć tylko 9 było dokładnych).
+- **Zaległości:** `scripts/crm-usun-backfill.ts` (`npm run crm:usun-backfill`) czyta paczki zalegające na FTP i stosuje usunięcia sprzed naprawy; usunięcie z paczki z dnia X gasi ofertę tylko gdy `lastSeenAt` jest starszy niż ta paczka. Domyślnie raport, wykonanie za `--apply`.
+- **Odrzucone:** wygaszanie po samej bezczynności `lastSeenAt`. Cisza w eksporcie różnicowym znaczy „biuro nic nie zmieniło": oferta `LNKF-GS-276` milczała 103 dni mimo 84 paczek i dalej wisiała na stronie biura. Zostaje jako diagnostyka (`npm run crm:expire`, `-- --kalibracja`).
+- **Dokumentacja:** [docs/CRM_WYGASZANIE_OFERT.md](docs/CRM_WYGASZANIE_OFERT.md).
+
 ---
 
 ## CEL KOŃCOWY

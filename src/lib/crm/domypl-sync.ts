@@ -1843,9 +1843,23 @@ async function deactivateMissingOffers(integrationId: string, seenExternalIds: S
 }
 
 // R-C: aktywne usuwanie różnicowe — gasi konkretne oferty wskazane przez <oferta_usun>.
-// Używane wyłącznie dla IMOX (eksport różnicowy). Soft delete, jak deactivateMissingOffers,
-// ale po liście externalId zamiast „wszystkie nieobecne w pełnym eksporcie".
-async function deactivateExternalIds(integrationId: string, externalIds: string[]) {
+// Soft delete, jak deactivateMissingOffers, ale po liście externalId zamiast „wszystkie nieobecne
+// w pełnym eksporcie".
+//
+// Dopasowanie jest po DOKŁADNYM externalId i to nie jest przypadek. Galactica używa <oferta_usun>
+// także w protokole aktualizacji: kasuje starą wersję id (LER-GS-3541-1) i w tej samej paczce
+// przysyła nową (LER-GS-3541-2). Dopasowanie po bazowym id (bez sufiksu wersji) wygasiłoby
+// wtedy żywą ofertę.
+//
+// `feedModifiedAt` to data paczki z usunięciem: ofertę potwierdzoną PÓŹNIEJ zostawiamy w spokoju.
+// Chroni to przy nadrabianiu zaległości ze starych paczek (scripts/crm-usun-backfill.ts) i przy
+// plikach, które przyszły na FTP nie po kolei.
+export async function deactivateExternalIds(
+  integrationId: string,
+  externalIds: string[],
+  feedModifiedAt?: Date | null,
+  reason?: string
+) {
   if (externalIds.length === 0) return 0;
 
   const now = new Date();
@@ -1857,6 +1871,9 @@ async function deactivateExternalIds(integrationId: string, externalIds: string[
       externalId: {
         in: externalIds,
       },
+      ...(feedModifiedAt
+        ? { OR: [{ lastSeenAt: null }, { lastSeenAt: { lte: feedModifiedAt } }] }
+        : {}),
     },
     include: {
       dzialka: true,
@@ -1896,7 +1913,7 @@ async function deactivateExternalIds(integrationId: string, externalIds: string[
           externalId: link.externalId,
           action: "DEACTIVATE",
           status: "SUCCESS",
-          message: "Oferta usunięta przez <oferta_usun> z eksportu różnicowego.",
+          message: reason ?? "Oferta usunięta przez <oferta_usun> z eksportu różnicowego.",
         },
       });
     });
@@ -2051,14 +2068,22 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
           fileDeactivatedCount += deactivated;
         }
 
-        // R-C: usuwanie różnicowe z <oferta_usun> — wyłącznie dla IMOX.
-        // Eksport różnicowy IMO nie jest pełny (isFullExport=false), więc bezpiecznik R1 powyżej
-        // go nie czyści; bieżące znikanie ofert opieramy właśnie na <oferta_usun>.
-        if (integration.provider === "IMOX" && parseResult.deletedExternalIds.length > 0) {
-          const removedByDiff = await deactivateExternalIds(
-            integration.id,
-            parseResult.deletedExternalIds
-          );
+        // R-C: usuwanie różnicowe z <oferta_usun> — dla KAŻDEGO źródła w formacie DOMY.PL.
+        // Kiedyś bramka stała na IMOX i to był powód, dla którego sprzedane działki Galactiki
+        // wisiały bez końca: bezpiecznik R1 wymaga pełnego eksportu (Galactica przysłała 6 takich
+        // plików na 6828), a znaczniki usunięcia — które przysyła w każdej paczce — lądowały w koszu.
+        // Sprawdzone na paczkach z 2026-08-17: każda paczka Galactiki niesie <oferta_usun>.
+        // Oferta obecna w TEJ SAMEJ paczce wygrywa z żądaniem usunięcia — inaczej wystarczyłoby,
+        // żeby CRM w jednym pliku skasował i od razu wystawił tę samą ofertę, i zgasilibyśmy żywą.
+        const deletedExternalIds = parseResult.deletedExternalIds.filter(
+          (externalId) => !seenExternalIds.has(externalId)
+        );
+
+        if (deletedExternalIds.length > 0) {
+          // Bez `feedModifiedAt`: paczki lecą chronologicznie (sort w downloadNewFeedsFromFtp),
+          // więc o losie oferty decyduje po prostu ostatnia instrukcja z ostatniego pliku.
+          // Data paczki przydaje się dopiero przy nadrabianiu zaległości sprzed miesięcy.
+          const removedByDiff = await deactivateExternalIds(integration.id, deletedExternalIds);
           deactivatedCount += removedByDiff;
           fileDeactivatedCount += removedByDiff;
         }

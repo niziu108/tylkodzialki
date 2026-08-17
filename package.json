@@ -18,7 +18,9 @@
     "crm:autosync:status": "tsx scripts/crm-autosync-flag.ts status",
     "crm:backfill": "tsx scripts/crm-backfill-full-exports.ts",
     "crm:prune:report": "tsx scripts/crm-ftp-prune-report.ts",
-    "crm:dedup": "tsx scripts/crm-dedup-galactica.ts"
+    "crm:dedup": "tsx scripts/crm-dedup-galactica.ts",
+    "crm:expire": "tsx scripts/crm-expire-stale.ts",
+    "crm:usun-backfill": "tsx scripts/crm-usun-backfill.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
