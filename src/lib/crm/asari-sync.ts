@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 import { sanitizePlCoords, coordsMatchLocationText } from "@/lib/geo";
 import { geocodeAddressInPoland } from "@/lib/crm/geocode";
+import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/crm/feed-signals";
 
 type IntegrationForSync = {
   id: string;
@@ -204,10 +205,17 @@ function getTextByName(
 }
 
 
+/** Plik ofert razem z datą modyfikacji z FTP — bez niej nie da się rozstrzygnąć DELETE vs oferta. */
+type AsariOfferXmlFile = {
+  localPath: string;
+  /** Data modyfikacji pliku na FTP w ms. 0 = serwer jej nie podał. */
+  modifiedAtMs: number;
+};
+
 type DownloadedAsariFeed = {
   remoteFileName: string;
   tempDir: string;
-  offerXmlFiles: string[];
+  offerXmlFiles: AsariOfferXmlFile[];
   localFileByBasename: Map<string, string>;
   imageRemotePathByBasename: Map<string, string>;
   downloadedPhotoByBasename: Map<string, string>;
@@ -898,20 +906,28 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       offerXmlCandidates = allOfferXmlCandidates;
     }
 
-    const offerXmlFiles: string[] = [];
+    // Rosnąco po dacie modyfikacji: przy sprzecznych sygnałach (oferta w jednej paczce,
+    // DELETE w drugiej) o wyniku decyduje nowszy plik — patrz resolveFeedSignals.
+    offerXmlCandidates = [...offerXmlCandidates].sort(
+      (a, b) =>
+        (a.modifiedAt?.getTime() ?? 0) - (b.modifiedAt?.getTime() ?? 0) ||
+        a.name.localeCompare(b.name)
+    );
+
+    const offerXmlFiles: AsariOfferXmlFile[] = [];
 
     for (const file of offerXmlCandidates) {
       const localPath = path.join(tempDir, file.remotePath);
       await downloadFile(client, file.remotePath, localPath);
       localFileByBasename.set(safeBasename(file.name), localPath);
-      offerXmlFiles.push(localPath);
+      offerXmlFiles.push({ localPath, modifiedAtMs: file.modifiedAt?.getTime() ?? 0 });
     }
 
     for (const file of imageFiles) {
       imageRemotePathByBasename.set(safeBasename(file.name), file.remotePath);
     }
 
-    console.log("[ASARI DEBUG] Pobrane pliki ofert XML:", offerXmlFiles.map((file) => path.basename(file)));
+    console.log("[ASARI DEBUG] Pobrane pliki ofert XML (od najstarszego):", offerXmlFiles.map((file) => path.basename(file.localPath)));
     console.log("[ASARI DEBUG] Zdjęcia dostępne na FTP:", imageFiles.length);
     console.log("[ASARI DEBUG] Zdjęcia nie są pobierane hurtowo — będą pobierane tylko dla importowanych ofert.");
 
@@ -1493,6 +1509,14 @@ async function deactivateExternalId(integrationId: string, externalId: string) {
     return false;
   }
 
+  // Sekcja DELETE wraca w każdym przebiegu, dopóki paczka wisi na FTP. Gdy oferta jest już
+  // wygaszona, nie ma czego zmieniać — bez tego guardu szło do bazy kilkaset pustych zapisów
+  // dziennie, a lastSeenAt (jedyny ślad, kiedy źródło ostatnio potwierdziło ofertę) był
+  // odświeżany datą przebiegu zamiast datą feedu.
+  if (!link.isActiveInSource && link.dzialka.status === "ZAKONCZONE") {
+    return false;
+  }
+
   await prisma.$transaction(async (tx) => {
     if (link.dzialka.status !== "ZAKONCZONE") {
       await tx.dzialka.update({
@@ -1644,28 +1668,42 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
     // przetwarzać ją raz na plik (co przy każdym wystąpieniu re-uploadowało zdjęcia, bo data
     // rosła), scalamy wszystkie pliki do NAJNOWSZEJ wersji per externalId i przetwarzamy raz.
     // Dzięki temu guard photosUnchanged porównuje przebieg-do-przebiegu, a nie plik-do-pliku.
-    const latestOfferByExternalId = new Map<string, AsariOffer>();
+    //
+    // Sekcję DELETE zbieramy razem z datą pliku i rozstrzygamy chronologicznie: DELETE ze
+    // starej paczki nie może ubić oferty, którą biuro wystawiło ponownie w nowszej.
+    const offerSignals: OfferSignal<AsariOffer>[] = [];
+    const deleteSignals: DeleteSignal[] = [];
 
     for (const offerXmlFile of downloaded.offerXmlFiles) {
-      const xml = await fsp.readFile(offerXmlFile, "utf8");
+      const xml = await fsp.readFile(offerXmlFile.localPath, "utf8");
       const result = parseOfferXmlFile(xml, integration.name, downloaded.definitions);
 
       for (const externalId of result.deletedExternalIds) {
-        deletedExternalIds.add(externalId);
+        deleteSignals.push({ externalId, fileAt: offerXmlFile.modifiedAtMs });
       }
 
       for (const offer of result.offers) {
-        const prev = latestOfferByExternalId.get(offer.externalId);
-        if (!prev || isSameOrNewerAsariOffer(offer, prev)) {
-          latestOfferByExternalId.set(offer.externalId, offer);
-        }
+        offerSignals.push({ externalId: offer.externalId, offer, fileAt: offerXmlFile.modifiedAtMs });
       }
     }
 
-    const dedupedOffers = [...latestOfferByExternalId.values()];
+    const resolved = resolveFeedSignals(offerSignals, deleteSignals, isSameOrNewerAsariOffer);
+    const dedupedOffers = resolved.offers;
+
+    for (const externalId of resolved.deletedExternalIds) {
+      deletedExternalIds.add(externalId);
+    }
+
     console.log(
       `[ASARI DEBUG] Oferty po deduplikacji (najnowsza wersja per externalId): ${dedupedOffers.length}`
     );
+
+    if (resolved.ignoredDeletes.length > 0) {
+      console.log(
+        `[ASARI DEBUG] Pominięto ${resolved.ignoredDeletes.length} nieaktualnych sygnałów DELETE (oferta wróciła w nowszej paczce):`,
+        resolved.ignoredDeletes.slice(0, 20)
+      );
+    }
 
     for (const offer of dedupedOffers) {
       importedOffers += 1;

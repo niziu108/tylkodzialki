@@ -18,6 +18,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 import { sanitizePlCoords } from "@/lib/geo";
+import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/crm/feed-signals";
 
 type IntegrationForSync = {
   id: string;
@@ -91,10 +92,17 @@ function isSameOrNewerEstiOffer(candidate: EstiOffer, current: EstiOffer): boole
   return true;
 }
 
+/** Plik ofert razem z datą źródłowej paczki — bez niej nie da się rozstrzygnąć DELETE vs oferta. */
+type EstiOfferXmlFile = {
+  localPath: string;
+  /** Data modyfikacji ZIP-a (albo luźnego XML-a) na FTP w ms. 0 = serwer jej nie podał. */
+  modifiedAtMs: number;
+};
+
 type DownloadedEstiFeed = {
   remoteFileName: string;
   tempDir: string;
-  offerXmlFiles: string[];
+  offerXmlFiles: EstiOfferXmlFile[];
   localFileByBasename: Map<string, string>;
   imageRemotePathByBasename: Map<string, string>;
   downloadedPhotoByBasename: Map<string, string>;
@@ -647,6 +655,8 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-esticrm-"));
   const localFileByBasename = new Map<string, string>();
+  /** Data paczki, z której pochodzi dany plik XML (ms). Ustala chronologię sygnałów DELETE vs oferta. */
+  const xmlModifiedMsByBasename = new Map<string, number>();
   const imageRemotePathByBasename = new Map<string, string>();
   const downloadedPhotoByBasename = new Map<string, string>();
   let photoFtpClient: ftp.Client | null = null;
@@ -707,7 +717,11 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
       for (const file of await walkFiles(zipExtractDir)) {
         const base = safeBasename(file);
         // Najnowszy wygrywa: starszy plik nie nadpisuje nowszego o tej samej nazwie.
-        if (!localFileByBasename.has(base)) localFileByBasename.set(base, file);
+        if (!localFileByBasename.has(base)) {
+          localFileByBasename.set(base, file);
+          // Plik dziedziczy datę swojej paczki — to ona ustawia chronologię sygnałów.
+          xmlModifiedMsByBasename.set(base, zip.modifiedAt?.getTime() ?? 0);
+        }
 
         if (
           zipExportMode === null &&
@@ -753,6 +767,7 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
       const localPath = path.join(tempDir, "direct", file.remotePath);
       await downloadFile(client, file.remotePath, localPath);
       localFileByBasename.set(safeBasename(file.name), localPath);
+      xmlModifiedMsByBasename.set(safeBasename(file.name), file.modifiedAt?.getTime() ?? 0);
     }
 
     for (const file of directImageFiles) {
@@ -776,16 +791,25 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
       console.log("[ESTICRM DEBUG] Brak definitions.xml. Parser użyje surowych wartości pól.");
     }
 
-    const offerXmlFiles = [...localFileByBasename.entries()]
+    // Rosnąco po dacie paczki: przy sprzecznych sygnałach (oferta w jednej, DELETE w drugiej)
+    // o wyniku decyduje nowszy plik — patrz resolveFeedSignals. Nazwa rozstrzyga remisy.
+    const offerXmlFiles: EstiOfferXmlFile[] = [...localFileByBasename.entries()]
       .filter(([basename]) => basename.endsWith(".xml") && basename !== "definitions.xml")
-      .map(([, localPath]) => localPath)
-      .sort((a, b) => path.basename(a).localeCompare(path.basename(b)));
+      .map(([basename, localPath]) => ({
+        localPath,
+        modifiedAtMs: xmlModifiedMsByBasename.get(basename) ?? 0,
+      }))
+      .sort(
+        (a, b) =>
+          a.modifiedAtMs - b.modifiedAtMs ||
+          path.basename(a.localPath).localeCompare(path.basename(b.localPath))
+      );
 
     if (!zipFiles[0] && offerXmlFiles[0]) {
-      remoteFileName = path.basename(offerXmlFiles[0]);
+      remoteFileName = path.basename(offerXmlFiles[0].localPath);
     }
 
-    console.log("[ESTICRM DEBUG] Pobrane pliki XML ofert:", offerXmlFiles.map((file) => path.basename(file)));
+    console.log("[ESTICRM DEBUG] Pobrane pliki XML ofert (od najstarszej paczki):", offerXmlFiles.map((file) => path.basename(file.localPath)));
     console.log("[ESTICRM DEBUG] Zdjęcia lokalne:", [...localFileByBasename.keys()].filter((name) => /\.(jpe?g|png|webp|avif)$/i.test(name)).length);
     console.log("[ESTICRM DEBUG] Zdjęcia na FTP do pobrania na żądanie:", imageRemotePathByBasename.size);
 
@@ -1194,6 +1218,13 @@ async function deactivateExternalId(integrationId: string, externalId: string, r
     return false;
   }
 
+  // Sekcja <delete> wraca w każdym przebiegu, dopóki paczka wisi na FTP. Gdy oferta jest już
+  // wygaszona, nie ma czego zmieniać — bez tego guardu szło do bazy kilkadziesiąt pustych
+  // zapisów dziennie, a lastSeenAt był odświeżany datą przebiegu zamiast datą feedu.
+  if (!link.isActiveInSource && link.dzialka.status === "ZAKONCZONE") {
+    return false;
+  }
+
   await prisma.$transaction(async (tx) => {
     if (link.dzialka.status !== "ZAKONCZONE") {
       await tx.dzialka.update({ where: { id: link.dzialkaId }, data: { status: "ZAKONCZONE", endedAt: now, crmLastSyncedAt: now } });
@@ -1309,29 +1340,43 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
     // Pełny + przyrostowe pliki XML zawierają tę samą ofertę wielokrotnie (patrz asari-sync).
     // Scalamy je do NAJNOWSZEJ wersji per externalId i przetwarzamy raz — inaczej każde
     // wystąpienie re-uploadowało zdjęcia, bo data modyfikacji rosła plik po pliku.
-    const latestOfferByExternalId = new Map<string, EstiOffer>();
+    //
+    // Sekcję <delete> zbieramy razem z datą paczki i rozstrzygamy chronologicznie: DELETE ze
+    // starej paczki nie może ubić oferty, którą biuro wystawiło ponownie w nowszej.
+    const offerSignals: OfferSignal<EstiOffer>[] = [];
+    const deleteSignals: DeleteSignal[] = [];
 
     for (const offerXmlFile of downloaded.offerXmlFiles) {
-      const xml = await fsp.readFile(offerXmlFile, "utf8");
+      const xml = await fsp.readFile(offerXmlFile.localPath, "utf8");
       const result = parseOfferXmlFile(xml, integration.name, downloaded.definitions);
 
       if (result.exportMode) exportMode = result.exportMode;
       rawOffersCount += result.rawCount;
 
-      for (const externalId of result.deletedExternalIds) deletedExternalIds.add(externalId);
+      for (const externalId of result.deletedExternalIds) {
+        deleteSignals.push({ externalId, fileAt: offerXmlFile.modifiedAtMs });
+      }
 
       for (const offer of result.offers) {
-        const prev = latestOfferByExternalId.get(offer.externalId);
-        if (!prev || isSameOrNewerEstiOffer(offer, prev)) {
-          latestOfferByExternalId.set(offer.externalId, offer);
-        }
+        offerSignals.push({ externalId: offer.externalId, offer, fileAt: offerXmlFile.modifiedAtMs });
       }
     }
 
-    const dedupedOffers = [...latestOfferByExternalId.values()];
+    const resolved = resolveFeedSignals(offerSignals, deleteSignals, isSameOrNewerEstiOffer);
+    const dedupedOffers = resolved.offers;
+
+    for (const externalId of resolved.deletedExternalIds) deletedExternalIds.add(externalId);
+
     console.log(
       `[ESTICRM DEBUG] Oferty po deduplikacji (najnowsza wersja per externalId): ${dedupedOffers.length}`
     );
+
+    if (resolved.ignoredDeletes.length > 0) {
+      console.log(
+        `[ESTICRM DEBUG] Pominięto ${resolved.ignoredDeletes.length} nieaktualnych sygnałów DELETE (oferta wróciła w nowszej paczce):`,
+        resolved.ignoredDeletes.slice(0, 20)
+      );
+    }
 
     for (const offer of dedupedOffers) {
       importedOffers += 1;

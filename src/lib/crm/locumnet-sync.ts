@@ -1168,6 +1168,12 @@ async function deactivateExternalId(integrationId: string, externalId: string, r
     return false;
   }
 
+  // Sygnał usunięcia wraca w każdym przebiegu, dopóki wisi w feedzie. Oferta już wygaszona =
+  // nie ma czego zmieniać (na produkcji 100% tych DELETE-ów było pustymi zapisami).
+  if (!link.isActiveInSource && link.dzialka.status === "ZAKONCZONE") {
+    return false;
+  }
+
   await prisma.$transaction(async (tx) => {
     if (link.dzialka.status !== "ZAKONCZONE") {
       await tx.dzialka.update({ where: { id: link.dzialkaId }, data: { status: "ZAKONCZONE", endedAt: now, crmLastSyncedAt: now } });
