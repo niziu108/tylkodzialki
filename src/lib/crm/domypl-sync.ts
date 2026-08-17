@@ -1471,6 +1471,54 @@ async function logSync(
   });
 }
 
+// Galactica przy kolejnych zrzutach podbija licznik wersji w atrybucie `id` oferty:
+// AKM-GS-55571-18 → -19 → -20. Dla unikatu (integrationId, externalId) to był nowy byt,
+// więc zamiast aktualizacji powstawała kolejna kopia tej samej działki. Do 2026-08 uzbierało
+// się tak 1406 duplikatów w 17 biurach (patrz scripts/crm-dedup-galactica.ts).
+//
+// Ucinamy wyłącznie sufiks wersji, nigdy numeru oferty — dlatego wzorzec wymaga, żeby po
+// obcięciu został pełny numer typu „…GS-<cyfry>”:
+//   GS-28954      → brak dopasowania (to już jest numer bazowy, nie wersja)
+//   GS-28954-1    → GS-28954
+//   AKM-GS-55571-18 → AKM-GS-55571
+const VERSIONED_EXTERNAL_ID = /^(.*G[SW]-\d+)-\d+$/i;
+
+function baseExternalId(externalId: string): string | null {
+  return externalId.match(VERSIONED_EXTERNAL_ID)?.[1] ?? null;
+}
+
+// Szuka wcześniejszej wersji tej samej oferty. Kandydatów zawęża myślnik na końcu prefiksu
+// (`GS-28954-`), więc sąsiedni numer GS-289541 nie wpadnie w wynik. Pierwszeństwo ma oferta
+// aktywna: po deduplikacji wygaszone kopie zostają w bazie i nie chcemy wskrzeszać akurat ich.
+async function findLinkByVersionedId(integrationId: string, externalId: string) {
+  const base = baseExternalId(externalId);
+  if (!base) return null;
+
+  const candidates = await prisma.crmOfferLink.findMany({
+    where: {
+      integrationId,
+      OR: [{ externalId: base }, { externalId: { startsWith: `${base}-` } }],
+    },
+    include: { dzialka: true },
+  });
+
+  const sameOffer = candidates.filter(
+    (candidate) =>
+      candidate.externalId === base || /^-\d+$/.test(candidate.externalId.slice(base.length))
+  );
+
+  if (sameOffer.length === 0) return null;
+
+  sameOffer.sort((a, b) => {
+    const aActive = a.dzialka.status === "AKTYWNE" ? 1 : 0;
+    const bActive = b.dzialka.status === "AKTYWNE" ? 1 : 0;
+    if (aActive !== bActive) return bActive - aActive;
+    return b.dzialka.createdAt.getTime() - a.dzialka.createdAt.getTime();
+  });
+
+  return sameOffer[0];
+}
+
 async function processOffer(
   integration: IntegrationForSync,
   offer: ParsedDomyOffer,
@@ -1480,7 +1528,7 @@ async function processOffer(
   const now = new Date();
   const expiresAt = null;
 
-  const existingLink = await prisma.crmOfferLink.findUnique({
+  const exactLink = await prisma.crmOfferLink.findUnique({
     where: {
       integrationId_externalId: {
         integrationId: integration.id,
@@ -1491,6 +1539,11 @@ async function processOffer(
       dzialka: true,
     },
   });
+
+  // Brak trafienia po dokładnym id nie znaczy jeszcze „nowa oferta” — to może być ta sama
+  // działka z podbitą wersją. Dopiero gdy i to nie trafi, tworzymy nową.
+  const existingLink = exactLink ?? (await findLinkByVersionedId(integration.id, offer.externalId));
+  const matchedByVersionBump = !exactLink && existingLink !== null;
 
   const offerForDb = await enrichOfferWithGeocoding(offer, existingLink?.dzialka);
 
@@ -1693,6 +1746,9 @@ async function processOffer(
     await tx.crmOfferLink.update({
       where: { id: existingLink.id },
       data: {
+        // Przy podbitej wersji przepinamy link na nowe id. Dzięki temu następny zrzut trafia
+        // już dokładnym dopasowaniem, a wygaszanie po `seenExternalIds` dalej się zgadza z feedem.
+        ...(matchedByVersionBump ? { externalId: offer.externalId } : {}),
         externalUpdatedAt: offer.externalUpdatedAt,
         lastImportedAt: now,
         lastSeenAt: now,
@@ -1733,9 +1789,11 @@ async function processOffer(
         externalId: offer.externalId,
         action: wasEnded ? "REACTIVATE" : "UPDATE",
         status: "SUCCESS",
-        message: wasEnded
-          ? "Oferta reaktywowana poprawnie z importu FTP/XML."
-          : "Oferta zaktualizowana poprawnie z importu FTP/XML.",
+        message: matchedByVersionBump
+          ? `Rozpoznano podbitą wersję oferty (${existingLink.externalId} → ${offer.externalId}), zaktualizowano zamiast tworzyć duplikat.`
+          : wasEnded
+            ? "Oferta reaktywowana poprawnie z importu FTP/XML."
+            : "Oferta zaktualizowana poprawnie z importu FTP/XML.",
         payload: offer.payload,
       },
     });
