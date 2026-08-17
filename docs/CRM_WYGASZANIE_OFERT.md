@@ -79,6 +79,23 @@ Skrypt `scripts/crm-expire-stale.ts` zostaje jako **diagnostyka** (raport + kali
 komu podaż zastyga i gdzie eksport wygląda na zepsuty. `--apply` istnieje, ale nie jest to
 mechanizm do puszczania rutynowo — właściwym sygnałem jest `<oferta_usun>`.
 
+## Wynik wdrożenia (2026-08-17)
+
+Naprawa silnika na produkcji, backfill przepuszczony w trzech etapach (okno 2 dni → 2,5 tygodnia →
+pełny backlog z FTP):
+
+| | |
+|---|---|
+| ofert wygaszonych z `<oferta_usun>` | **604** |
+| z tego wróciło (REACTIVATE) | 0 |
+| linków w stanie pośrednim | 0 |
+| aktywne oferty Galactiki | 3250 → 2646 |
+| paczek przejrzanych w pełnym przebiegu | kilka tysięcy, dziesiątki GB |
+
+Najmocniej oberwały biura, które od dawna nic nie wycofywały: 40% podaży (149 ofert), 30%, 29%,
+27%. To nie jest utrata podaży — to działki, których biura nie mają już w sprzedaży, a które
+u nas dalej wisiały jako aktualne.
+
 ## Co obserwować po wdrożeniu
 
 - `deactivatedCount` w `CrmProcessedFile` i `/admin/crm` — po naprawie powinien przestać być zerem
