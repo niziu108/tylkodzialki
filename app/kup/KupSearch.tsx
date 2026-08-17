@@ -1521,33 +1521,36 @@ export default function KupSearch({
       {/* Action buttons — always at the bottom. Mapa jest w zwiniętym pasku (mobile i
           desktop), więc w rozwiniętej karcie jej nie ma — wtedy filtrujesz, a po „Szukaj"
           pasek z Mapą wraca. Liczba ofert żyje w wierszu sortowania. */}
-      <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
-        <div className="flex gap-3">
+      {/* Akcje. Mobile: „Wyczyść”+„Mapa” po połowie w jednym rzędzie, „Szukaj” pełną szerokością
+          pod spodem (główne CTA, największy cel dotyku). Desktop (sm+): inner div = display:contents,
+          więc trzy przyciski trafiają wprost do rzędu po prawej, auto-szerokość — jak wcześniej. */}
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <div className="flex gap-3 sm:contents">
           <button
             type="button"
             onClick={reset}
-            className="rounded-xl border border-fg/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-fg/75 transition hover:border-fg/40"
+            className="flex flex-1 items-center justify-center rounded-xl border border-fg/20 px-4 py-3 text-[12px] uppercase tracking-[0.22em] text-fg/75 transition hover:border-fg/40 sm:flex-none"
           >
             Wyczyść
           </button>
           <button
             type="button"
             onClick={() => void applyAndSearch(true)}
-            className="flex items-center gap-2 rounded-xl border border-fg/25 px-5 py-3 text-[12px] font-medium uppercase tracking-[0.16em] text-fg/85 transition hover:border-fg/45 disabled:opacity-60"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 px-5 py-3 text-[12px] font-medium uppercase tracking-[0.16em] text-fg/85 transition hover:border-fg/45 disabled:opacity-60 sm:flex-none"
             disabled={loading}
           >
             <MapGlyph className="h-4 w-4 text-brand" />
             Mapa
           </button>
-          <button
-            type="button"
-            onClick={() => void applyAndSearch()}
-            className="rounded-xl bg-brand px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-strong disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? 'Szukam…' : 'Szukaj'}
-          </button>
         </div>
+        <button
+          type="button"
+          onClick={() => void applyAndSearch()}
+          className="w-full rounded-xl bg-brand px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-strong disabled:opacity-60 sm:w-auto"
+          disabled={loading}
+        >
+          {loading ? 'Szukam…' : 'Szukaj'}
+        </button>
       </div>
     </div>
   );
