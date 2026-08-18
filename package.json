@@ -18,6 +18,7 @@
     "crm:autosync:status": "tsx scripts/crm-autosync-flag.ts status",
     "crm:backfill": "tsx scripts/crm-backfill-full-exports.ts",
     "crm:prune:report": "tsx scripts/crm-ftp-prune-report.ts",
+    "crm:ubytki": "tsx scripts/crm-ubytki-raport.ts",
     "crm:dedup": "tsx scripts/crm-dedup-galactica.ts",
     "crm:expire": "tsx scripts/crm-expire-stale.ts",
     "crm:usun-backfill": "tsx scripts/crm-usun-backfill.ts"
