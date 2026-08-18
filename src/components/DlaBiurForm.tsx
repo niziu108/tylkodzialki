@@ -6,9 +6,23 @@ type Status = 'idle' | 'sending' | 'ok' | 'error';
 
 const GOALS = [
   { value: 'crm', label: 'Integracja z CRM' },
-  { value: 'import', label: 'Masowy import ofert' },
   { value: 'wspolpraca', label: 'Współpraca / partnerstwo' },
   { value: 'inne', label: 'Pytanie ogólne' },
+];
+
+// Systemy, z których biura eksportują do nas oferty. Pytamy o to od razu w formularzu,
+// bo konto FTP zakładamy ręcznie — znając system, odsyłamy dane bez rundy dopytywania.
+const CRMS = [
+  { value: 'galactica', label: 'Galactica Virgo' },
+  { value: 'imo', label: 'IMO' },
+  { value: 'asari', label: 'ASARI CRM' },
+  { value: 'esti', label: 'EstiCRM' },
+  { value: 'mediarent', label: 'mediaRent' },
+  { value: 'domypl', label: 'DOMY.PL' },
+  { value: 'ofertynet', label: 'oferty.net' },
+  { value: 'propertly', label: 'Propertly' },
+  { value: 'locumnet', label: 'Locumnet' },
+  { value: 'inny', label: 'Inny / nie wiem' },
 ];
 
 // Luksusowa „linia": pole bez ramki, samo podkreślenie, które na fokusie zielenieje.
@@ -26,6 +40,7 @@ const EMPTY = {
   email: '',
   phone: '',
   goal: 'crm',
+  crm: '',
   message: '',
   website: '', // honeypot
 };
@@ -179,6 +194,45 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
           </span>
         </div>
       </div>
+
+      {form.goal === 'crm' ? (
+        <div>
+          <label className={labelClass} htmlFor="crm">
+            Z jakiego systemu korzystacie?
+          </label>
+          <div className="relative">
+            <select
+              id="crm"
+              className={`${inputClass} appearance-none pr-7`}
+              value={form.crm}
+              onChange={set('crm')}
+            >
+              <option value="" className="bg-bg">
+                Wybierz system
+              </option>
+              {CRMS.map((c) => (
+                <option key={c.value} value={c.value} className="bg-bg">
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-fg/64">
+              ▾
+            </span>
+          </div>
+          {form.crm && form.crm !== 'inny' ? (
+            <p className="mt-2 text-[12px] leading-relaxed text-brand-bright">
+              Ten system już obsługujemy. Odeślemy dane do konfiguracji eksportu.
+            </p>
+          ) : null}
+          {form.crm === 'inny' ? (
+            <p className="mt-2 text-[12px] leading-relaxed text-fg/64">
+              Napisz w wiadomości, jak nazywa się Wasz system. Dostosujemy się do formatu, w jakim
+              generuje pliki.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div>
         <label className={labelClass} htmlFor="message">

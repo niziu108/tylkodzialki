@@ -20,9 +20,26 @@ function esc(value: string) {
 
 const GOAL_LABELS: Record<string, string> = {
   crm: 'Integracja z CRM',
+  // Opcja zdjęta z formularza (dublowała „Integracja z CRM"); mapowanie zostaje dla zgłoszeń
+  // wysłanych ze starej, otwartej karty.
   import: 'Masowy import ofert',
   wspolpraca: 'Współpraca / partnerstwo',
   inne: 'Pytanie ogólne',
+};
+
+// Etykiety muszą się zgadzać z listą CRMS w DlaBiurForm — znając system od razu ze zgłoszenia,
+// zakładamy konto FTP i odsyłamy dane bez rundy dopytywania.
+const CRM_LABELS: Record<string, string> = {
+  galactica: 'Galactica Virgo',
+  imo: 'IMO',
+  asari: 'ASARI CRM',
+  esti: 'EstiCRM',
+  mediarent: 'mediaRent',
+  domypl: 'DOMY.PL',
+  ofertynet: 'oferty.net',
+  propertly: 'Propertly',
+  locumnet: 'Locumnet',
+  inny: 'Inny / nie wiem',
 };
 
 export async function POST(req: Request) {
@@ -39,6 +56,7 @@ export async function POST(req: Request) {
     const agency = clean(body?.agency, 160);
     const phone = clean(body?.phone, 40);
     const goalKey = clean(body?.goal, 40);
+    const crmKey = clean(body?.crm, 40);
     const message = clean(body?.message, 4000);
 
     if (!email || !EMAIL_RE.test(email)) {
@@ -49,6 +67,7 @@ export async function POST(req: Request) {
     }
 
     const goalLabel = GOAL_LABELS[goalKey] || '';
+    const crmLabel = CRM_LABELS[crmKey] || '';
 
     if (!goalLabel && !message) {
       return NextResponse.json(
@@ -63,6 +82,7 @@ export async function POST(req: Request) {
       ['E-mail', email],
       ['Telefon', phone],
       ['Cel', goalLabel],
+      ['System', crmLabel],
     ].filter(([, v]) => v) as [string, string][];
 
     const rowsHtml = rows
@@ -96,7 +116,9 @@ export async function POST(req: Request) {
 
     await sendMail({
       to: TO,
-      subject: `Dla biur: zapytanie${agency ? ` od ${agency}` : ''} (${email})`,
+      subject: `Dla biur: zapytanie${agency ? ` od ${agency}` : ''}${
+        crmLabel ? ` [${crmLabel}]` : ''
+      } (${email})`,
       html,
       text: textLines.join('\n'),
       replyTo: email,
