@@ -220,11 +220,6 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
               ▾
             </span>
           </div>
-          {form.crm && form.crm !== 'inny' ? (
-            <p className="mt-2 text-[12px] leading-relaxed text-brand-bright">
-              Ten system już obsługujemy. Odeślemy dane do konfiguracji eksportu.
-            </p>
-          ) : null}
           {form.crm === 'inny' ? (
             <p className="mt-2 text-[12px] leading-relaxed text-fg/64">
               Napisz w wiadomości, jak nazywa się Wasz system. Dostosujemy się do formatu, w jakim
