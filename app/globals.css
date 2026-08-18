@@ -148,6 +148,56 @@ select option:hover {
   color: var(--fg);
 }
 
+/* Chrome rysuje rozwiniętą listę <select> przez system operacyjny, więc ani
+   accent-color, ani option:checked jej nie dotyczą — zaznaczenie zostawało
+   systemowo niebieskie. `appearance: base-select` przenosi listę do silnika
+   CSS i dopiero wtedy da się ją pomalować. Progresywnie: przeglądarki bez
+   wsparcia zostają przy natywnym dropdownie, <select> pozostaje <select>,
+   więc mobilny picker i obsługa klawiaturą działają jak dotąd. */
+@supports (appearance: base-select) {
+  /* [class] podbija specyficzność ponad Tailwindowe `appearance-none`,
+     którym pola stylujemy w komponentach */
+  select[class],
+  select[class]::picker(select) {
+    appearance: base-select;
+  }
+
+  /* własna strzałka ▾ jest w komponentach obok pola — natywnej nie dublujemy */
+  select::picker-icon {
+    display: none;
+  }
+
+  select::picker(select) {
+    border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
+    border-radius: 14px;
+    background: var(--bg);
+    padding: 6px;
+    box-shadow: 0 18px 40px color-mix(in srgb, #000 14%, transparent);
+  }
+
+  select option {
+    padding: 9px 12px;
+    border-radius: 10px;
+    color: var(--fg);
+  }
+
+  select option:hover,
+  select option:focus {
+    background: color-mix(in srgb, var(--brand) 16%, transparent);
+  }
+
+  select option:checked {
+    background: var(--brand);
+    /* ciemny tekst na zieleni jak na przyciskach marki — biały dałby ~3:1 */
+    color: var(--ink);
+  }
+
+  /* natywny znacznik zaznaczenia dubluje podświetlenie tła */
+  select option::checkmark {
+    display: none;
+  }
+}
+
 /* helper klasy (opcjonalnie używamy w page) */
 .td-line {
   border-bottom: 1px solid var(--line);
