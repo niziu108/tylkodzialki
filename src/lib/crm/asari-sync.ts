@@ -1483,7 +1483,7 @@ async function processOffer(
   return wasEnded ? "REACTIVATE" : "UPDATE";
 }
 
-async function deactivateExternalId(integrationId: string, externalId: string) {
+async function deactivateExternalId(integrationId: string, externalId: string): Promise<"WYGASZONA" | "JUZ_WYGASZONA" | "NIEZNANA"> {
   const now = new Date();
 
   const link = await prisma.crmOfferLink.findUnique({
@@ -1499,14 +1499,11 @@ async function deactivateExternalId(integrationId: string, externalId: string) {
   });
 
   if (!link) {
-    await logSync(integrationId, {
-      externalId,
-      action: "DELETE",
-      status: "SUCCESS",
-      message: "ASARI zgłosiło usunięcie oferty, ale nie znaleziono jej w bazie.",
-    });
-
-    return false;
+    // Biura wysyłają w sekcji DELETE całą swoją ofertę: mieszkania, domy, lokale. My importujemy
+    // same działki, więc to sygnał o cudzej nieruchomości, nie zdarzenie w naszym systemie.
+    // Wpis do bazy przy każdym przebiegu robił z tego 1660 logów na dobę i przykrywał realne
+    // wygaszenia (5 na dobę). Zamiast tego licznik zbiorczy na stdout w pętli wywołującej.
+    return "NIEZNANA";
   }
 
   // Sekcja DELETE wraca w każdym przebiegu, dopóki paczka wisi na FTP. Gdy oferta jest już
@@ -1514,7 +1511,7 @@ async function deactivateExternalId(integrationId: string, externalId: string) {
   // dziennie, a lastSeenAt (jedyny ślad, kiedy źródło ostatnio potwierdziło ofertę) był
   // odświeżany datą przebiegu zamiast datą feedu.
   if (!link.isActiveInSource && link.dzialka.status === "ZAKONCZONE") {
-    return false;
+    return "JUZ_WYGASZONA";
   }
 
   await prisma.$transaction(async (tx) => {
@@ -1552,7 +1549,7 @@ async function deactivateExternalId(integrationId: string, externalId: string) {
     });
   });
 
-  return true;
+  return "WYGASZONA";
 }
 
 async function deactivateMissingOffers(integrationId: string, seenExternalIds: Set<string>) {
@@ -1658,6 +1655,8 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
 
     const seenExternalIds = new Set<string>();
     const deletedExternalIds = new Set<string>();
+    /** Sygnały DELETE dotyczące nieruchomości, których nie importujemy (mieszkania, domy, lokale). */
+    let nieznaneDeleteCount = 0;
 
     if (downloaded.offerXmlFiles.length === 0) {
       console.log("[ASARI DEBUG] Brak plików ofert XML. To jest OK, jeśli ASARI jeszcze nie wysłało eksportu.");
@@ -1739,8 +1738,9 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
 
     for (const externalId of deletedExternalIds) {
       try {
-        const deactivated = await deactivateExternalId(integration.id, externalId);
-        if (deactivated) deactivatedCount += 1;
+        const wynik = await deactivateExternalId(integration.id, externalId);
+        if (wynik === "WYGASZONA") deactivatedCount += 1;
+        else if (wynik === "NIEZNANA") nieznaneDeleteCount += 1;
       } catch (error) {
         errorCount += 1;
         await logSync(integration.id, {
@@ -1750,6 +1750,12 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
           message: error instanceof Error ? error.message : "Błąd podczas usuwania oferty ASARI.",
         });
       }
+    }
+
+    if (nieznaneDeleteCount > 0) {
+      console.log(
+        `[ASARI DEBUG] Sygnałów DELETE spoza naszej podaży (mieszkania/domy/lokale, nie mamy ich w bazie): ${nieznaneDeleteCount}`
+      );
     }
 
     if (integration.fullImportMode && downloaded.cfg.emptyOffers && seenExternalIds.size > 0) {

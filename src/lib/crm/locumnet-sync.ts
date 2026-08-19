@@ -1155,7 +1155,7 @@ async function processOffer(
   return wasEnded ? "REACTIVATE" : "UPDATE";
 }
 
-async function deactivateExternalId(integrationId: string, externalId: string, reason = "Oferta zakończona na podstawie sekcji removed / statusu mlssta z LocumNet.") {
+async function deactivateExternalId(integrationId: string, externalId: string, reason = "Oferta zakończona na podstawie sekcji removed / statusu mlssta z LocumNet."): Promise<"WYGASZONA" | "JUZ_WYGASZONA" | "NIEZNANA"> {
   const now = new Date();
 
   const link = await prisma.crmOfferLink.findUnique({
@@ -1164,14 +1164,14 @@ async function deactivateExternalId(integrationId: string, externalId: string, r
   });
 
   if (!link) {
-    await logSync(integrationId, { externalId, action: "DELETE", status: "SUCCESS", message: "LocumNet zgłosił usunięcie oferty, ale nie znaleziono jej w bazie." });
-    return false;
+    // Sygnał o nieruchomości, której nie importujemy (mieszkania/domy) — patrz asari-sync.
+    return "NIEZNANA";
   }
 
   // Sygnał usunięcia wraca w każdym przebiegu, dopóki wisi w feedzie. Oferta już wygaszona =
   // nie ma czego zmieniać (na produkcji 100% tych DELETE-ów było pustymi zapisami).
   if (!link.isActiveInSource && link.dzialka.status === "ZAKONCZONE") {
-    return false;
+    return "JUZ_WYGASZONA";
   }
 
   await prisma.$transaction(async (tx) => {
@@ -1189,7 +1189,7 @@ async function deactivateExternalId(integrationId: string, externalId: string, r
     });
   });
 
-  return true;
+  return "WYGASZONA";
 }
 
 async function deactivateMissingOffers(integrationId: string, seenExternalIds: Set<string>) {
@@ -1280,6 +1280,8 @@ export async function syncLocumnetIntegrationNow(integrationId: string): Promise
 
     const seenExternalIds = new Set<string>();
     const deletedExternalIds = new Set<string>();
+    /** Sygnały DELETE dotyczące nieruchomości, których nie importujemy (mieszkania, domy, lokale). */
+    let nieznaneDeleteCount = 0;
     let sawFullExport = false;
 
     if (downloaded.offerXmlFiles.length === 0) {
@@ -1339,8 +1341,9 @@ export async function syncLocumnetIntegrationNow(integrationId: string): Promise
 
     for (const externalId of deletedExternalIds) {
       try {
-        const deactivated = await deactivateExternalId(integration.id, externalId);
-        if (deactivated) deactivatedCount += 1;
+        const wynik = await deactivateExternalId(integration.id, externalId);
+        if (wynik === "WYGASZONA") deactivatedCount += 1;
+        else if (wynik === "NIEZNANA") nieznaneDeleteCount += 1;
       } catch (error) {
         errorCount += 1;
         await logSync(integration.id, {
@@ -1350,6 +1353,12 @@ export async function syncLocumnetIntegrationNow(integrationId: string): Promise
           message: error instanceof Error ? error.message : "Błąd podczas usuwania oferty LocumNet.",
         });
       }
+    }
+
+    if (nieznaneDeleteCount > 0) {
+      console.log(
+        `[LOCUMNET DEBUG] Sygnałów DELETE spoza naszej podaży (mieszkania/domy/lokale, nie mamy ich w bazie): ${nieznaneDeleteCount}`
+      );
     }
 
     // Deaktywacja brakujących tylko, gdy w zestawie był PEŁNY eksport — wtedy seenExternalIds

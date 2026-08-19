@@ -1205,7 +1205,7 @@ async function processOffer(
   return wasEnded ? "REACTIVATE" : "UPDATE";
 }
 
-async function deactivateExternalId(integrationId: string, externalId: string, reason = "Oferta zakończona na podstawie akcji DELETE z EstiCRM.") {
+async function deactivateExternalId(integrationId: string, externalId: string, reason = "Oferta zakończona na podstawie akcji DELETE z EstiCRM."): Promise<"WYGASZONA" | "JUZ_WYGASZONA" | "NIEZNANA"> {
   const now = new Date();
 
   const link = await prisma.crmOfferLink.findUnique({
@@ -1214,15 +1214,15 @@ async function deactivateExternalId(integrationId: string, externalId: string, r
   });
 
   if (!link) {
-    await logSync(integrationId, { externalId, action: "DELETE", status: "SUCCESS", message: "EstiCRM zgłosiło usunięcie oferty, ale nie znaleziono jej w bazie." });
-    return false;
+    // Sygnał o nieruchomości, której nie importujemy (mieszkania/domy) — patrz asari-sync.
+    return "NIEZNANA";
   }
 
   // Sekcja <delete> wraca w każdym przebiegu, dopóki paczka wisi na FTP. Gdy oferta jest już
   // wygaszona, nie ma czego zmieniać — bez tego guardu szło do bazy kilkadziesiąt pustych
   // zapisów dziennie, a lastSeenAt był odświeżany datą przebiegu zamiast datą feedu.
   if (!link.isActiveInSource && link.dzialka.status === "ZAKONCZONE") {
-    return false;
+    return "JUZ_WYGASZONA";
   }
 
   await prisma.$transaction(async (tx) => {
@@ -1240,7 +1240,7 @@ async function deactivateExternalId(integrationId: string, externalId: string, r
     });
   });
 
-  return true;
+  return "WYGASZONA";
 }
 
 async function deactivateMissingOffers(integrationId: string, seenExternalIds: Set<string>) {
@@ -1331,6 +1331,8 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
 
     const seenExternalIds = new Set<string>();
     const deletedExternalIds = new Set<string>();
+    /** Sygnały DELETE dotyczące nieruchomości, których nie importujemy (mieszkania, domy, lokale). */
+    let nieznaneDeleteCount = 0;
     let exportMode: string | null = null;
 
     if (downloaded.offerXmlFiles.length === 0) {
@@ -1401,8 +1403,9 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
 
     for (const externalId of deletedExternalIds) {
       try {
-        const deactivated = await deactivateExternalId(integration.id, externalId);
-        if (deactivated) deactivatedCount += 1;
+        const wynik = await deactivateExternalId(integration.id, externalId);
+        if (wynik === "WYGASZONA") deactivatedCount += 1;
+        else if (wynik === "NIEZNANA") nieznaneDeleteCount += 1;
       } catch (error) {
         errorCount += 1;
         await logSync(integration.id, {
@@ -1412,6 +1415,12 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
           message: error instanceof Error ? error.message : "Błąd podczas usuwania oferty EstiCRM.",
         });
       }
+    }
+
+    if (nieznaneDeleteCount > 0) {
+      console.log(
+        `[ESTICRM DEBUG] Sygnałów DELETE spoza naszej podaży (mieszkania/domy/lokale, nie mamy ich w bazie): ${nieznaneDeleteCount}`
+      );
     }
 
     const isFullExport = normalizeText(exportMode).includes("full") || normalizeText(exportMode).includes("complete") || normalizeText(exportMode).includes("calosc");
