@@ -75,6 +75,28 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
     biuro.liczbaOddzialow
   );
 
+  // Zakres portfela jedną linią: od jakiej ceny zaczynają się działki i jakie
+  // powierzchnie ma biuro. Portale ogólne tego nie pokażą, bo grunt tonie im
+  // w mieszkaniach — a kupującemu od razu mówi, czy to oferta dla niego.
+  const { zakres } = biuro;
+  const zakresCzesci: string[] = [];
+
+  if (zakres.cenaMin) {
+    zakresCzesci.push(`działki od ${formatIntPL(zakres.cenaMin)} zł`);
+  }
+
+  if (zakres.powierzchniaMin && zakres.powierzchniaMax) {
+    zakresCzesci.push(
+      zakres.powierzchniaMin === zakres.powierzchniaMax
+        ? `powierzchnia ${formatIntPL(zakres.powierzchniaMin)} m²`
+        : `powierzchnie od ${formatIntPL(zakres.powierzchniaMin)} do ${formatIntPL(zakres.powierzchniaMax)} m²`
+    );
+  }
+
+  const zakresLabel = zakresCzesci.length
+    ? `${zakresCzesci.join(', ').replace(/^./, (c) => c.toUpperCase())}.`
+    : null;
+
   const tabs: BiuroTab[] = [];
 
   if (maKontakt) {
@@ -175,20 +197,20 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
           a niżej zakładki z resztą danych (jak przełączanie w panelu klienta). */}
       <section className="border-b border-fg/10">
         <div className="mx-auto w-full max-w-4xl px-6 py-14 md:px-10 md:py-16">
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 text-center">
+          <div className="flex flex-col items-center gap-6 text-center">
+            <h1 className="text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[36px]">
+              {biuro.nazwa}
+            </h1>
+
             {biuro.logoUrl ? (
               <OfficeLogo
                 src={biuro.logoUrl}
                 alt={biuro.nazwa}
-                variant="detail"
+                variant="hero"
                 eager
                 bg={biuro.logoBg}
               />
             ) : null}
-
-            <h1 className="text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[36px]">
-              {biuro.nazwa}
-            </h1>
           </div>
 
           <p className="mt-5 text-center text-[15px] leading-7 text-fg/68">
@@ -215,6 +237,10 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
               'Aktualnie brak aktywnych ofert.'
             )}
           </p>
+
+          {zakresLabel ? (
+            <p className="mt-2 text-center text-[14px] leading-6 text-fg/55">{zakresLabel}</p>
+          ) : null}
 
           {tabs.length ? (
             <div className="mt-10">

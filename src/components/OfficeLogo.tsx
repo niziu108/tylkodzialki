@@ -7,6 +7,9 @@ const VARIANTS = {
   card: 'h-7 w-auto max-w-[112px]',
   // Strona oferty — większy logotyp.
   detail: 'h-16 w-auto max-w-[140px]',
+  // Nagłówek wizytówki biura — logo stoi obok nazwy i ma jej dorównywać wagą,
+  // więc jest wyraźnie większe niż wszędzie indziej.
+  hero: 'h-20 w-auto max-w-[200px] md:h-28 md:max-w-[260px]',
   // Podgląd w panelu / adminie.
   preview: 'h-9 w-auto max-w-[160px]',
 } as const;
