@@ -233,6 +233,7 @@ export default function DzialkaPage({
   preview = false,
   onPreviewBack,
   priceTrend = null,
+  wizytowkaSlug = null,
 }: {
   initial?: Dzialka | null;
   // Tryb podglądu (z kreatora /sprzedaj): identyczny wygląd, ale BEZ skutków ubocznych —
@@ -243,6 +244,9 @@ export default function DzialkaPage({
   // Historia ceny tej działki (z SSR). Sekcja „Historia ceny" pod kwotą pokaże się tylko
   // przy 2+ punktach i realnej zmianie; inaczej nic (uczciwość).
   priceTrend?: OfferPriceTrend | null;
+  // Slug wizytówki biura — ustawiany tylko dla partnerów, którym ją włączyliśmy w adminie.
+  // null = logo zostaje zwykłą grafiką, bez linku (zdecydowana większość kont).
+  wizytowkaSlug?: string | null;
 }) {
   const params = useParams();
   const router = useRouter();
@@ -1189,7 +1193,22 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       ) : null}
 
                       {biuroLogoUrl ? (
-                        <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
+                        wizytowkaSlug && !preview ? (
+                          <Link href={`/biuro/${wizytowkaSlug}`} className="inline-block w-fit">
+                            <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
+                          </Link>
+                        ) : (
+                          <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
+                        )
+                      ) : null}
+
+                      {wizytowkaSlug && !preview ? (
+                        <Link
+                          href={`/biuro/${wizytowkaSlug}`}
+                          className="inline-block w-fit text-[14px] font-medium text-fg/85 underline decoration-fg/25 underline-offset-8 transition hover:decoration-fg/60"
+                        >
+                          Zobacz wszystkie działki tego biura
+                        </Link>
                       ) : null}
                     </div>
                   </FieldBlock>

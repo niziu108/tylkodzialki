@@ -100,6 +100,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
         ? (rawUser as any).featuredCredits
         : 0,
     createdAt: rawUser.createdAt,
+    biuroWizytowkaOn: rawUser.biuroWizytowkaOn ?? false,
+    biuroSlug: rawUser.biuroSlug ?? null,
   };
 
   const [rawItems, invoices, crmIntegration, alertsRaw, favoritesRaw, statsSeries] = await Promise.all([
@@ -327,6 +329,17 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             </div>
 
             <div className="flex shrink-0 flex-wrap gap-3">
+              {/* Tylko partnerzy z włączoną wizytówką. Reszta kont nawet nie wie, że coś takiego
+                  istnieje — wizytówka jest przyznawana, nie dostępna z automatu. */}
+              {user.biuroWizytowkaOn && user.biuroSlug ? (
+                <Link
+                  href={`/biuro/${user.biuroSlug}`}
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-fg/14 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-fg/28 hover:bg-fg/[0.05]"
+                >
+                  Twoja wizytówka
+                </Link>
+              ) : null}
+
               <Link
                 href="/sprzedaj"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-brand/35 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-brand/60 hover:bg-fg/[0.05]"

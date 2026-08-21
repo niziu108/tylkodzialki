@@ -349,6 +349,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </Link>
 
             <Link
+              href="/admin/wizytowki"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-semibold text-fg transition hover:bg-fg/10"
+            >
+              Wizytówki biur
+            </Link>
+
+            <Link
               href="/admin/faktury"
               className="inline-flex h-11 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-semibold text-fg transition hover:bg-fg/10"
             >

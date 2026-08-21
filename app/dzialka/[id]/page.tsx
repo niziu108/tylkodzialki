@@ -3,6 +3,7 @@ import DzialkaClient from './DzialkaClient';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SimilarOffers from '@/components/SimilarOffers';
 import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
+import { getWizytowkaSlugForOwner } from '@/lib/biuroWizytowka';
 import { getOfferPriceTrend } from '@/lib/dzialkaPriceHistory';
 import { getSeoRegion } from '@/lib/seo-locations';
 import { normalizeText } from '@/lib/dzialkiSearch';
@@ -207,6 +208,9 @@ export default async function Page({ params }: PageProps) {
   // klient po prostu nie pokaże sekcji. Sekcja pojawia się dopiero przy 2+ punktach i realnej zmianie.
   const priceTrend = dzialka ? await getOfferPriceTrend(id) : null;
 
+  // Wizytówka biura: link przy ofercie pojawia się TYLKO dla partnerów, którym ją włączyliśmy.
+  const wizytowkaSlug = dzialka ? await getWizytowkaSlugForOwner(dzialka.ownerId) : null;
+
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
   const isRent = dzialka?.transakcja === 'WYNAJEM';
@@ -346,7 +350,7 @@ export default async function Page({ params }: PageProps) {
         ]}
       />
 
-      <DzialkaClient key={id} initial={dzialka} priceTrend={priceTrend} />
+      <DzialkaClient key={id} initial={dzialka} priceTrend={priceTrend} wizytowkaSlug={wizytowkaSlug} />
 
       <SimilarOffers items={similar} />
     </>

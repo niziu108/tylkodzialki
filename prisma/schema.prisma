@@ -31,6 +31,18 @@ model User {
   // Zielone tło pod logo biura — dla białych/jasnych logotypów, które na jasnym tle znikają.
   defaultBiuroLogoBg     Boolean  @default(false)
 
+  // Wizytówka biura (karta partnerska). NIE jest to katalog biur ani funkcja dla każdego:
+  // włączamy ją ręcznie z admina wybranym partnerom z realną liczbą ofert. Strona nie jest
+  // linkowana z nawigacji ani z sitemapy — jedyne wejście to logo/link przy ofercie biura.
+  biuroWizytowkaOn     Boolean @default(false)
+  biuroSlug            String? @unique
+  biuroOpis            String?
+  biuroTelefon         String?
+  biuroEmail           String?
+  biuroWww             String?
+  biuroRokZalozenia    Int?
+  biuroLiczbaOddzialow Int?
+
   accounts           Account[]
   crmIntegrations    CrmIntegration[]
   creditTransactions ListingCreditTransaction[]
@@ -616,6 +628,48 @@ model CrmProcessedFile {
   @@index([status])
   @@index([processedAt])
   @@index([remoteFileName])
+}
+
+// Deweloper z listy kontaktowej (P: silnik popytu po stronie kupujących hurtowo).
+// To NIE jest konto w serwisie ani wizytówka: to nasza prywatna call/mail lista firm,
+// które kupują grunt. Import z katalogu panoramafirm.pl, obsługa w /admin/deweloperzy.
+// Rekord trzyma tylko dane kontaktowe firmy (publiczne w katalogu) i historię naszego kontaktu.
+model Deweloper {
+  id          String  @id @default(cuid())
+  // klucz importu: nazwa + miejscowość po normalizacji, żeby ponowny import nie dublował firm
+  sourceKey   String  @unique
+  nazwa       String
+  miejscowosc String?
+  // slug województwa zgodny z SEO_REGIONS (dolnoslaskie, mazowieckie, ...)
+  wojewodztwo String
+  telefon     String?
+  email       String?
+  www         String?
+  adres       String?
+  // A = telefon i mail, B = sam telefon, C = sam mail, D = brak kontaktu
+  priorytet   String  @default("D")
+  uwagi       String?
+
+  status        DeweloperStatus @default(NOWY)
+  lastContactAt DateTime?
+  followUpAt    DateTime?
+  notatki       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, priorytet])
+  @@index([wojewodztwo, status])
+  @@index([followUpAt])
+}
+
+enum DeweloperStatus {
+  NOWY
+  WYSLANY
+  ODPOWIEDZ
+  ROZMOWA
+  KLIENT
+  ODPADA
 }
 
 enum Role {
