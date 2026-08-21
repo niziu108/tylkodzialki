@@ -82,14 +82,14 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
   const zakresCzesci: string[] = [];
 
   if (zakres.cenaMin) {
-    zakresCzesci.push(`działki od ${formatIntPL(zakres.cenaMin)} zł`);
+    zakresCzesci.push(`działki od ${formatIntPL(zakres.cenaMin)} zł`);
   }
 
   if (zakres.powierzchniaMin && zakres.powierzchniaMax) {
     zakresCzesci.push(
       zakres.powierzchniaMin === zakres.powierzchniaMax
-        ? `powierzchnia ${formatIntPL(zakres.powierzchniaMin)} m²`
-        : `powierzchnie od ${formatIntPL(zakres.powierzchniaMin)} do ${formatIntPL(zakres.powierzchniaMax)} m²`
+        ? `powierzchnia ${formatIntPL(zakres.powierzchniaMin)} m²`
+        : `powierzchnie od ${formatIntPL(zakres.powierzchniaMin)} do ${formatIntPL(zakres.powierzchniaMax)} m²`
     );
   }
 
@@ -193,60 +193,70 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
 
   return (
     <main className="relative w-full" style={{ background: 'var(--bg)' }}>
-      {/* NAGŁÓWEK — logo obok nazwy, wyśrodkowane; pod spodem skala portfela,
-          a niżej zakładki z resztą danych (jak przełączanie w panelu klienta). */}
+      {/* NAGŁÓWEK — na komputerze dwie kolumny: po lewej kim jest biuro, po prawej
+          zakładki z danymi. Dzięki temu góra jest niska i lista ofert, czyli to,
+          po co kupujący tu wchodzi, łapie się wysoko na ekranie. */}
       <section className="border-b border-fg/10">
-        <div className="mx-auto w-full max-w-4xl px-6 py-14 md:px-10 md:py-16">
-          <div className="flex flex-col items-center gap-6 text-center">
-            <h1 className="text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[36px]">
-              {biuro.nazwa}
-            </h1>
+        <div className="mx-auto w-full max-w-6xl px-6 py-10 md:px-10 md:py-12">
+          <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-start lg:gap-16">
+            <div className="min-w-0">
+              <div className="flex flex-col items-center gap-5 text-center md:flex-row md:items-center md:gap-7 md:text-left">
+                {biuro.logoUrl ? (
+                  <OfficeLogo
+                    src={biuro.logoUrl}
+                    alt={biuro.nazwa}
+                    variant="hero"
+                    eager
+                    bg={biuro.logoBg}
+                  />
+                ) : null}
 
-            {biuro.logoUrl ? (
-              <OfficeLogo
-                src={biuro.logoUrl}
-                alt={biuro.nazwa}
-                variant="hero"
-                eager
-                bg={biuro.logoBg}
-              />
-            ) : null}
-          </div>
+                <h1 className="text-balance text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[34px]">
+                  {biuro.nazwa}
+                </h1>
+              </div>
 
-          <p className="mt-5 text-center text-[15px] leading-7 text-fg/68">
-            {biuro.liczbaOfert > 0 ? (
-              <>
-                {formatIntPL(biuro.liczbaOfert)}{' '}
-                {plural(biuro.liczbaOfert, 'działka', 'działki', 'działek')} w ofercie
-                {wojCount > 0 ? (
+              <p className="mt-6 text-balance text-center text-[15px] leading-7 text-fg/68 md:text-left">
+                {biuro.liczbaOfert > 0 ? (
                   <>
-                    , w {formatIntPL(wojCount)}{' '}
-                    {plural(wojCount, 'województwie', 'województwach', 'województwach')}
-                    {powCount > 0 ? (
+                    {formatIntPL(biuro.liczbaOfert)}
+                    {' '}
+                    {plural(biuro.liczbaOfert, 'działka', 'działki', 'działek')} w ofercie
+                    {wojCount > 0 ? (
                       <>
-                        {' '}
-                        i {formatIntPL(powCount)}{' '}
-                        {plural(powCount, 'powiecie', 'powiatach', 'powiatach')}
+                        , w {formatIntPL(wojCount)}
+                        {' '}
+                        {plural(wojCount, 'województwie', 'województwach', 'województwach')}
+                        {powCount > 0 ? (
+                          <>
+                            {' '}
+                            i {formatIntPL(powCount)}
+                            {' '}
+                            {plural(powCount, 'powiecie', 'powiatach', 'powiatach')}
+                          </>
+                        ) : null}
                       </>
                     ) : null}
+                    .
                   </>
-                ) : null}
-                .
-              </>
-            ) : (
-              'Aktualnie brak aktywnych ofert.'
-            )}
-          </p>
+                ) : (
+                  'Aktualnie brak aktywnych ofert.'
+                )}
+              </p>
 
-          {zakresLabel ? (
-            <p className="mt-2 text-center text-[14px] leading-6 text-fg/55">{zakresLabel}</p>
-          ) : null}
-
-          {tabs.length ? (
-            <div className="mt-10">
-              <BiuroTabs tabs={tabs} />
+              {zakresLabel ? (
+                <p className="mt-2 text-balance text-center text-[14px] leading-6 text-fg/55 md:text-left">
+                  {zakresLabel}
+                </p>
+              ) : null}
             </div>
-          ) : null}
+
+            {tabs.length ? (
+              <div className="min-w-0">
+                <BiuroTabs tabs={tabs} />
+              </div>
+            ) : null}
+          </div>
         </div>
       </section>
 
