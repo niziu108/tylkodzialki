@@ -60,11 +60,16 @@ export async function saveWizytowkaAction(formData: FormData) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, biuroSlug: true, defaultBiuroNazwa: true },
+    select: { id: true, biuroSlug: true, defaultBiuroNazwa: true, name: true },
   });
   if (!user) return;
 
   const on = String(formData.get("wizytowkaOn") || "") === "1";
+
+  // Nazwa biura bierze się normalnie z feedu przy pierwszym imporcie, ale świeże konto
+  // partnera jeszcze jej nie ma (a `name` to zwykle imię osoby, która je zakładała).
+  // Puste pole zostawia to, co już jest — nie kasujemy nazwy przez przypadek.
+  const nazwa = optionalText(formData, "nazwa", 160);
 
   // Slug ustalamy raz, przy pierwszym włączeniu, i już go nie ruszamy — link mógł
   // pójść do partnera mailem, więc zmiana nazwy biura nie może go zepsuć. Ręczna
@@ -76,12 +81,13 @@ export async function saveWizytowkaAction(formData: FormData) {
     const chciany = slugifyBiuro(slugRaw);
     if (chciany && chciany !== user.biuroSlug) slug = await wolnySlug(chciany, userId);
   } else if (on && !slug) {
-    slug = await wolnySlug(user.defaultBiuroNazwa || "biuro", userId);
+    slug = await wolnySlug(nazwa || user.defaultBiuroNazwa || "biuro", userId);
   }
 
   await prisma.user.update({
     where: { id: userId },
     data: {
+      ...(nazwa ? { defaultBiuroNazwa: nazwa } : {}),
       biuroWizytowkaOn: on,
       biuroSlug: slug,
       biuroOpis: optionalText(formData, "opis", 4000),
