@@ -104,7 +104,7 @@ export async function saveWizytowkaAction(formData: FormData) {
       biuroOpis: optionalText(formData, "opis", 4000),
       biuroTelefon: optionalText(formData, "telefon", 40),
       biuroEmail: optionalText(formData, "email", 160),
-      biuroWww: optionalText(formData, "www", 200),
+      biuroAdres: optionalText(formData, "adres", 200),
       biuroRokZalozenia: optionalInt(formData, "rokZalozenia", 1900, 2100),
       biuroLiczbaOddzialow: optionalInt(formData, "liczbaOddzialow", 1, 10000),
     },

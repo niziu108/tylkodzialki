@@ -39,6 +39,9 @@ model User {
   biuroOpis            String?
   biuroTelefon         String?
   biuroEmail           String?
+  biuroAdres           String?
+  // Adresu www biura świadomie NIE pokazujemy na wizytówce (nie wypuszczamy kupującego
+  // z portalu). Kolumna zostaje na dane historyczne.
   biuroWww             String?
   biuroRokZalozenia    Int?
   biuroLiczbaOddzialow Int?

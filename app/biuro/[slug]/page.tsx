@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import BiuroOfertyList from '@/components/BiuroOfertyList';
-import HeroGradientBg from '@/components/HeroGradientBg';
+import BiuroTabs, { type BiuroTab } from '@/components/BiuroTabs';
 import { OfficeLogo } from '@/components/OfficeLogo';
 import type { OfferData } from '@/components/OfferCard';
 import { getWizytowkaBySlug } from '@/lib/biuroWizytowka';
@@ -37,8 +37,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-/** Wiersz kontaktu — kreska pod spodem, jak wiersze specyfikacji na /dla-biur. */
-function KontaktRow({ label, children }: { label: string; children: React.ReactNode }) {
+/** Wiersz danych — kreska pod spodem, jak wiersze specyfikacji na /dla-biur. */
+function DataRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-fg/10 py-3">
       <span className="text-[13px] text-fg/60">{label}</span>
@@ -67,159 +67,162 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
     .map((p) => p.trim())
     .filter(Boolean);
 
-  const maKontakt = !!(biuro.telefon || biuro.email || biuro.www || biuro.rokZalozenia || biuro.liczbaOddzialow);
+  const maKontakt = !!(
+    biuro.telefon ||
+    biuro.email ||
+    biuro.adres ||
+    biuro.rokZalozenia ||
+    biuro.liczbaOddzialow
+  );
+
+  const tabs: BiuroTab[] = [];
+
+  if (maKontakt) {
+    tabs.push({
+      key: 'kontakt',
+      label: 'Kontakt',
+      content: (
+        <div className="mx-auto max-w-2xl">
+          {biuro.telefon ? (
+            <DataRow label="Telefon">
+              <a
+                href={`tel:${biuro.telefon.replace(/\s+/g, '')}`}
+                className="underline decoration-fg/20 underline-offset-8 transition hover:decoration-fg/50"
+              >
+                {biuro.telefon}
+              </a>
+            </DataRow>
+          ) : null}
+
+          {biuro.email ? (
+            <DataRow label="E-mail">
+              <a
+                href={`mailto:${biuro.email}`}
+                className="break-all underline decoration-fg/20 underline-offset-8 transition hover:decoration-fg/50"
+              >
+                {biuro.email}
+              </a>
+            </DataRow>
+          ) : null}
+
+          {biuro.adres ? <DataRow label="Adres">{biuro.adres}</DataRow> : null}
+
+          {biuro.rokZalozenia ? (
+            <DataRow label="Na rynku od">{biuro.rokZalozenia}</DataRow>
+          ) : null}
+
+          {biuro.liczbaOddzialow ? (
+            <DataRow label="Oddziały">{formatIntPL(biuro.liczbaOddzialow)}</DataRow>
+          ) : null}
+        </div>
+      ),
+    });
+  }
+
+  if (akapity.length) {
+    tabs.push({
+      key: 'o-biurze',
+      label: 'O biurze',
+      content: (
+        <div className="mx-auto max-w-2xl space-y-4 text-[15px] leading-7 text-fg/72">
+          {akapity.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  if (zasieg.wojewodztwa.length) {
+    tabs.push({
+      key: 'zasieg',
+      label: 'Gdzie ma działki',
+      content: (
+        <div className="mx-auto max-w-2xl">
+          {zasieg.wojewodztwa.map((w) => (
+            <div
+              key={w.slug}
+              className="flex items-baseline justify-between gap-6 border-b border-fg/10 py-3"
+            >
+              <Link
+                href={`/dzialki/wojewodztwo/${w.slug}`}
+                className="text-[15px] text-fg/85 underline decoration-fg/15 underline-offset-8 transition hover:decoration-fg/45"
+              >
+                {w.name}
+              </Link>
+              <span className="text-[14px] font-medium text-fg/60">{formatIntPL(w.count)}</span>
+            </div>
+          ))}
+
+          {zasieg.powiaty.length > 1 ? (
+            <p className="mt-6 text-[13px] leading-6 text-fg/55">
+              Najwięcej ofert w:{' '}
+              {zasieg.powiaty
+                .slice(0, 6)
+                .map((p) => p.label)
+                .join(', ')}
+              .
+            </p>
+          ) : null}
+        </div>
+      ),
+    });
+  }
 
   return (
     <main className="relative w-full" style={{ background: 'var(--bg)' }}>
-      {/* NAGŁÓWEK — wspólne tło hero całego serwisu. Po lewej logo, nazwa i opis,
-          po prawej, na tej samej wysokości, komplet danych kontaktowych. */}
-      <section className="relative overflow-hidden border-b border-fg/10">
-        <HeroGradientBg />
+      {/* NAGŁÓWEK — logo obok nazwy, wyśrodkowane; pod spodem skala portfela,
+          a niżej zakładki z resztą danych (jak przełączanie w panelu klienta). */}
+      <section className="border-b border-fg/10">
+        <div className="mx-auto w-full max-w-4xl px-6 py-14 md:px-10 md:py-16">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 text-center">
+            {biuro.logoUrl ? (
+              <OfficeLogo
+                src={biuro.logoUrl}
+                alt={biuro.nazwa}
+                variant="detail"
+                eager
+                bg={biuro.logoBg}
+              />
+            ) : null}
 
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-14 md:px-10 md:py-16">
-          <div className="grid gap-10 lg:grid-cols-[1.5fr_1fr] lg:gap-16">
-            <div className="min-w-0">
-              {biuro.logoUrl ? (
-                <div className="mb-6">
-                  <OfficeLogo
-                    src={biuro.logoUrl}
-                    alt={biuro.nazwa}
-                    variant="detail"
-                    eager
-                    bg={biuro.logoBg}
-                  />
-                </div>
-              ) : null}
+            <h1 className="text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[36px]">
+              {biuro.nazwa}
+            </h1>
+          </div>
 
-              <h1 className="text-[28px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[38px]">
-                {biuro.nazwa}
-              </h1>
-
-              <p className="mt-4 text-[15px] leading-7 text-fg/68">
-                {biuro.liczbaOfert > 0 ? (
+          <p className="mt-5 text-center text-[15px] leading-7 text-fg/68">
+            {biuro.liczbaOfert > 0 ? (
+              <>
+                {formatIntPL(biuro.liczbaOfert)}{' '}
+                {plural(biuro.liczbaOfert, 'działka', 'działki', 'działek')} w ofercie
+                {wojCount > 0 ? (
                   <>
-                    {formatIntPL(biuro.liczbaOfert)}{' '}
-                    {plural(biuro.liczbaOfert, 'działka', 'działki', 'działek')} w ofercie
-                    {wojCount > 0 ? (
+                    , w {formatIntPL(wojCount)}{' '}
+                    {plural(wojCount, 'województwie', 'województwach', 'województwach')}
+                    {powCount > 0 ? (
                       <>
-                        , w {formatIntPL(wojCount)}{' '}
-                        {plural(wojCount, 'województwie', 'województwach', 'województwach')}
-                        {powCount > 0 ? (
-                          <>
-                            {' '}
-                            i {formatIntPL(powCount)}{' '}
-                            {plural(powCount, 'powiecie', 'powiatach', 'powiatach')}
-                          </>
-                        ) : null}
+                        {' '}
+                        i {formatIntPL(powCount)}{' '}
+                        {plural(powCount, 'powiecie', 'powiatach', 'powiatach')}
                       </>
                     ) : null}
-                    .
                   </>
-                ) : (
-                  'Aktualnie brak aktywnych ofert.'
-                )}
-              </p>
+                ) : null}
+                .
+              </>
+            ) : (
+              'Aktualnie brak aktywnych ofert.'
+            )}
+          </p>
 
-              {akapity.length ? (
-                <div className="mt-7 max-w-2xl space-y-4 text-[15px] leading-7 text-fg/72">
-                  {akapity.map((p, i) => (
-                    <p key={i}>{p}</p>
-                  ))}
-                </div>
-              ) : null}
+          {tabs.length ? (
+            <div className="mt-10">
+              <BiuroTabs tabs={tabs} />
             </div>
-
-            {maKontakt ? (
-              <div className="min-w-0">
-                <h2 className="text-[13px] font-semibold uppercase tracking-[0.16em] text-fg/55">
-                  Kontakt
-                </h2>
-
-                <div className="mt-4">
-                  {biuro.telefon ? (
-                    <KontaktRow label="Telefon">
-                      <a
-                        href={`tel:${biuro.telefon.replace(/\s+/g, '')}`}
-                        className="underline decoration-fg/20 underline-offset-8 transition hover:decoration-fg/50"
-                      >
-                        {biuro.telefon}
-                      </a>
-                    </KontaktRow>
-                  ) : null}
-
-                  {biuro.email ? (
-                    <KontaktRow label="E-mail">
-                      <a
-                        href={`mailto:${biuro.email}`}
-                        className="break-all underline decoration-fg/20 underline-offset-8 transition hover:decoration-fg/50"
-                      >
-                        {biuro.email}
-                      </a>
-                    </KontaktRow>
-                  ) : null}
-
-                  {/* Adres strony pokazujemy, ale NIE linkujemy: nie ma powodu wypuszczać
-                      kupującego z portalu do biura (tak samo robi nieruchomosci-online). */}
-                  {biuro.www ? (
-                    <KontaktRow label="Strona">
-                      <span className="break-all">{biuro.www.replace(/^https?:\/\//i, '')}</span>
-                    </KontaktRow>
-                  ) : null}
-
-                  {biuro.rokZalozenia ? (
-                    <KontaktRow label="Na rynku od">{biuro.rokZalozenia}</KontaktRow>
-                  ) : null}
-
-                  {biuro.liczbaOddzialow ? (
-                    <KontaktRow label="Oddziały">
-                      {formatIntPL(biuro.liczbaOddzialow)}
-                    </KontaktRow>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </section>
-
-      {/* ZASIĘG — liczony z eksportu biura, nie z tego, co o sobie napisali */}
-      {zasieg.wojewodztwa.length ? (
-        <section className="border-b border-fg/10">
-          <div className="mx-auto w-full max-w-6xl px-6 py-12 md:px-10 md:py-14">
-            <h2 className="text-[19px] font-semibold tracking-tight text-fg md:text-[22px]">
-              Gdzie ma działki
-            </h2>
-
-            <div className="mt-6 grid gap-x-16 gap-y-0 sm:grid-cols-2">
-              {zasieg.wojewodztwa.map((w) => (
-                <div
-                  key={w.slug}
-                  className="flex items-baseline justify-between gap-6 border-b border-fg/10 py-3"
-                >
-                  <Link
-                    href={`/dzialki/wojewodztwo/${w.slug}`}
-                    className="text-[15px] text-fg/85 underline decoration-fg/15 underline-offset-8 transition hover:decoration-fg/45"
-                  >
-                    {w.name}
-                  </Link>
-                  <span className="text-[14px] font-medium text-fg/60">{formatIntPL(w.count)}</span>
-                </div>
-              ))}
-            </div>
-
-            {zasieg.powiaty.length > 1 ? (
-              <p className="mt-6 text-[13px] leading-6 text-fg/55">
-                Najwięcej ofert w:{' '}
-                {zasieg.powiaty
-                  .slice(0, 6)
-                  .map((p) => p.label)
-                  .join(', ')}
-                .
-              </p>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
 
       {/* OFERTY — te same karty i ten sam pager, co na /kup */}
       <section>

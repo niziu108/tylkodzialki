@@ -46,7 +46,7 @@ export default async function AdminWizytowkaEdytorPage({ params }: PageProps) {
       biuroOpis: true,
       biuroTelefon: true,
       biuroEmail: true,
-      biuroWww: true,
+      biuroAdres: true,
       biuroRokZalozenia: true,
       biuroLiczbaOddzialow: true,
       _count: { select: { dzialki: true } },
@@ -171,12 +171,12 @@ export default async function AdminWizytowkaEdytorPage({ params }: PageProps) {
           </label>
 
           <label className="block">
-            <span className={LABEL}>Strona www</span>
+            <span className={LABEL}>Adres</span>
             <input
               type="text"
-              name="www"
-              defaultValue={u.biuroWww || ""}
-              placeholder="remax-polska.pl"
+              name="adres"
+              defaultValue={u.biuroAdres || ""}
+              placeholder="ul. Przykładowa 1, Warszawa"
               className={INPUT}
             />
           </label>

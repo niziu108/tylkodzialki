@@ -1208,9 +1208,9 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         {wizytowkaSlug && !preview ? (
                           <Link
                             href={`/biuro/${wizytowkaSlug}`}
-                            className="inline-block w-fit text-[14px] font-medium text-fg/85 underline decoration-fg/25 underline-offset-8 transition hover:decoration-fg/60"
+                            className="inline-block w-fit text-[14px] text-fg/85 underline decoration-fg/25 underline-offset-8 transition hover:decoration-fg/60"
                           >
-                            Zobacz wszystkie działki tego biura
+                            Zobacz wszystkie ogłoszenia tego biura
                           </Link>
                         ) : null}
                       </div>

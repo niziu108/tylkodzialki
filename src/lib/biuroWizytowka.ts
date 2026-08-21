@@ -72,7 +72,7 @@ export type Wizytowka = {
   opis: string | null;
   telefon: string | null;
   email: string | null;
-  www: string | null;
+  adres: string | null;
   rokZalozenia: number | null;
   liczbaOddzialow: number | null;
   liczbaOfert: number;
@@ -141,7 +141,7 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
       biuroOpis: true,
       biuroTelefon: true,
       biuroEmail: true,
-      biuroWww: true,
+      biuroAdres: true,
       biuroRokZalozenia: true,
       biuroLiczbaOddzialow: true,
       defaultBiuroNazwa: true,
@@ -201,7 +201,7 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
     opis: user.biuroOpis,
     telefon: user.biuroTelefon,
     email: user.biuroEmail,
-    www: user.biuroWww,
+    adres: user.biuroAdres,
     rokZalozenia: user.biuroRokZalozenia,
     liczbaOddzialow: user.biuroLiczbaOddzialow,
     liczbaOfert,
