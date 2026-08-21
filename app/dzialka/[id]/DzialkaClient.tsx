@@ -1192,24 +1192,28 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         </div>
                       ) : null}
 
-                      {biuroLogoUrl ? (
-                        wizytowkaSlug && !preview ? (
-                          <Link href={`/biuro/${wizytowkaSlug}`} className="inline-block w-fit">
+                      {/* Logo i link do wizytówki jeden pod drugim — link obok logotypu
+                          rozjeżdżał się w bok i wyglądał jak przypadkowo doklejony. */}
+                      <div className="flex flex-col items-start gap-3">
+                        {biuroLogoUrl ? (
+                          wizytowkaSlug && !preview ? (
+                            <Link href={`/biuro/${wizytowkaSlug}`} className="inline-block w-fit">
+                              <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
+                            </Link>
+                          ) : (
                             <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
-                          </Link>
-                        ) : (
-                          <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
-                        )
-                      ) : null}
+                          )
+                        ) : null}
 
-                      {wizytowkaSlug && !preview ? (
-                        <Link
-                          href={`/biuro/${wizytowkaSlug}`}
-                          className="inline-block w-fit text-[14px] font-medium text-fg/85 underline decoration-fg/25 underline-offset-8 transition hover:decoration-fg/60"
-                        >
-                          Zobacz wszystkie działki tego biura
-                        </Link>
-                      ) : null}
+                        {wizytowkaSlug && !preview ? (
+                          <Link
+                            href={`/biuro/${wizytowkaSlug}`}
+                            className="inline-block w-fit text-[14px] font-medium text-fg/85 underline decoration-fg/25 underline-offset-8 transition hover:decoration-fg/60"
+                          >
+                            Zobacz wszystkie działki tego biura
+                          </Link>
+                        ) : null}
+                      </div>
                     </div>
                   </FieldBlock>
                   <Hr />

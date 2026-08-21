@@ -6,6 +6,7 @@ import type {
   KanalizacjaStatus,
   GazStatus,
   TransakcjaTyp,
+  SprzedajacyTyp,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { parseAdmin, powiatNom } from '@/lib/seoPowiaty';
@@ -28,6 +29,9 @@ import { stripPowiatPrefix, powiatKey } from '@/lib/powiatLabel';
  *  że partner jest droższy od rynku, wizytówka staje się dowodem przeciwko niemu.
  * ──────────────────────────────────────────────────────────────────────────── */
 
+/* Oferta w kształcie, którego oczekuje wspólna karta `OfferCard` — ten sam, co na /kup.
+ * Lista na wizytówce ma wyglądać i zachowywać się identycznie jak wyszukiwarka:
+ * karuzela zdjęć, wyróżnienia, ulubione, ten sam układ na desktopie i na telefonie. */
 export type WizytowkaOferta = {
   id: string;
   tytul: string;
@@ -40,7 +44,17 @@ export type WizytowkaOferta = {
   woda: WodaStatus;
   kanalizacja: KanalizacjaStatus;
   gaz: GazStatus;
-  zdjecia: { url: string }[];
+  isFeatured: boolean;
+  featuredUntil: string | null;
+  sprzedajacyTyp: SprzedajacyTyp;
+  biuroNazwa: string | null;
+  biuroLogoUrl: string | null;
+  owner: {
+    defaultBiuroLogoUrl: string | null;
+    defaultBiuroLogoBg: boolean;
+    defaultBiuroNazwa: string | null;
+  } | null;
+  zdjecia: { url: string; kolejnosc: number | null }[];
 };
 
 export type WizytowkaZasieg = {
@@ -162,7 +176,19 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
         woda: true,
         kanalizacja: true,
         gaz: true,
-        zdjecia: { orderBy: { kolejnosc: 'asc' }, take: 1, select: { url: true } },
+        isFeatured: true,
+        featuredUntil: true,
+        sprzedajacyTyp: true,
+        biuroNazwa: true,
+        biuroLogoUrl: true,
+        owner: {
+          select: {
+            defaultBiuroLogoUrl: true,
+            defaultBiuroLogoBg: true,
+            defaultBiuroNazwa: true,
+          },
+        },
+        zdjecia: { orderBy: { kolejnosc: 'asc' }, select: { url: true, kolejnosc: true } },
       },
     }),
   ]);
@@ -192,6 +218,12 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
       woda: o.woda,
       kanalizacja: o.kanalizacja,
       gaz: o.gaz,
+      isFeatured: o.isFeatured,
+      featuredUntil: o.featuredUntil ? o.featuredUntil.toISOString() : null,
+      sprzedajacyTyp: o.sprzedajacyTyp,
+      biuroNazwa: o.biuroNazwa,
+      biuroLogoUrl: o.biuroLogoUrl,
+      owner: o.owner,
       zdjecia: o.zdjecia,
     })),
     strona: page,

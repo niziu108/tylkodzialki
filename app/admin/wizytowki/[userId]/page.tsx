@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { redirect, notFound } from "next/navigation";
 import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
-import { OfficeLogo } from "@/components/OfficeLogo";
+import LogoPreview from "../../LogoPreview";
+import { saveUserAgencyLogoAction } from "../../actions";
 import { saveWizytowkaAction } from "../actions";
 
 /* Edytor jednej wizytówki. Cała edycja siedzi tutaj, a nie na liście: lista ma się dać
@@ -72,22 +73,56 @@ export default async function AdminWizytowkaEdytorPage({ params }: PageProps) {
         {u.name ? ` · konto założył(a): ${u.name}` : ""}
       </p>
 
-      {u.defaultBiuroLogoUrl ? (
-        <div className="mt-6">
-          <div className={LABEL}>Logo (z ustawień konta w panelu admina)</div>
-          <OfficeLogo
-            src={u.defaultBiuroLogoUrl}
-            alt="Logo biura"
-            variant="preview"
-            bg={u.defaultBiuroLogoBg}
-          />
+      {/* Logo ma własny formularz, bo wgranie pliku to osobny zapis (ta sama akcja,
+          co w panelu admina — jedno źródło prawdy dla logotypu konta). */}
+      <form
+        action={saveUserAgencyLogoAction}
+        className="mt-8 rounded-3xl border border-fg/12 bg-surface p-6"
+      >
+        <input type="hidden" name="userId" value={u.id} />
+
+        <div className={LABEL}>Logo biura</div>
+
+        <input
+          type="url"
+          name="logoUrl"
+          defaultValue={u.defaultBiuroLogoUrl || ""}
+          placeholder="Adres URL logo albo wgraj plik poniżej"
+          className={INPUT}
+        />
+
+        <input
+          type="file"
+          name="logoFile"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          className="mt-3 block w-full text-[13px] text-fg/70 file:mr-3 file:h-10 file:rounded-xl file:border-0 file:bg-fg/10 file:px-4 file:text-[13px] file:font-semibold file:text-fg hover:file:bg-fg/15"
+        />
+
+        {u.defaultBiuroLogoUrl ? (
+          <div className="mt-4">
+            <LogoPreview src={u.defaultBiuroLogoUrl} defaultGreen={u.defaultBiuroLogoBg} />
+          </div>
+        ) : (
+          <p className="mt-4 text-[13px] leading-6 text-fg/55">
+            To konto nie ma jeszcze logo. Wgraj plik (PNG, JPG, WEBP lub SVG, do 2 MB) albo
+            wklej adres URL.
+          </p>
+        )}
+
+        <div className="mt-5 flex items-center justify-between gap-4">
+          <label className="flex items-center gap-2 text-[13px] text-red-300">
+            <input type="checkbox" name="removeLogo" value="1" className="h-4 w-4 accent-brand" />
+            Usuń logo
+          </label>
+
+          <button
+            type="submit"
+            className="h-10 shrink-0 rounded-xl border border-fg/15 bg-surface-2 px-5 text-[13px] font-medium text-fg transition hover:border-fg/35"
+          >
+            Zapisz logo
+          </button>
         </div>
-      ) : (
-        <p className="mt-6 rounded-2xl border border-fg/12 bg-surface px-4 py-3 text-[13px] leading-6 text-fg/60">
-          To konto nie ma jeszcze logo. Wgraj je w panelu admina przy tym koncie, a wizytówka
-          podciągnie je automatycznie.
-        </p>
-      )}
+      </form>
 
       <form action={saveWizytowkaAction} className="mt-10">
         <input type="hidden" name="userId" value={u.id} />

@@ -180,6 +180,18 @@ export async function savePricingAction(formData: FormData) {
   revalidatePath("/panel/wyroznienia");
 }
 
+// Logo trafia też na wizytówkę partnera, więc po zmianie odświeżamy i tę stronę.
+async function revalidateWizytowka(userId: string) {
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { biuroSlug: true },
+  });
+
+  revalidatePath("/admin/wizytowki");
+  revalidatePath(`/admin/wizytowki/${userId}`);
+  if (u?.biuroSlug) revalidatePath(`/biuro/${u.biuroSlug}`);
+}
+
 export async function saveUserAgencyLogoAction(formData: FormData) {
   await requireAdmin();
 
@@ -208,6 +220,7 @@ export async function saveUserAgencyLogoAction(formData: FormData) {
 
     revalidatePath("/admin");
     revalidatePath("/kup");
+    await revalidateWizytowka(userId);
     return;
   }
 
@@ -240,6 +253,7 @@ export async function saveUserAgencyLogoAction(formData: FormData) {
 
     revalidatePath("/admin");
     revalidatePath("/kup");
+    await revalidateWizytowka(userId);
     return;
   }
 
@@ -254,6 +268,7 @@ export async function saveUserAgencyLogoAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/kup");
+  await revalidateWizytowka(userId);
 }
 
 export async function deleteUserAction(formData: FormData) {

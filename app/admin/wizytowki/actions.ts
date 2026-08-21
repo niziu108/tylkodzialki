@@ -74,13 +74,24 @@ export async function saveWizytowkaAction(formData: FormData) {
   // Slug ustalamy raz, przy pierwszym włączeniu, i już go nie ruszamy — link mógł
   // pójść do partnera mailem, więc zmiana nazwy biura nie może go zepsuć. Ręczna
   // korekta jest możliwa polem „Adres wizytówki", ale to świadoma decyzja admina.
-  const slugRaw = String(formData.get("slug") || "").trim();
-  let slug = user.biuroSlug;
+  // Adres wklejony przez pomyłkę (np. URL logo) dałby slug w rodzaju
+  // „https-www-m2-nieruchomosci-pl-logo-webp". Takie wejście odrzucamy i wracamy
+  // do wyliczenia adresu z nazwy biura.
+  const wygladaJakAdres = (v: string) => /^https?:\/\//i.test(v) || /^https?-/.test(v) || v.includes("/");
 
-  if (slugRaw) {
-    const chciany = slugifyBiuro(slugRaw);
-    if (chciany && chciany !== user.biuroSlug) slug = await wolnySlug(chciany, userId);
-  } else if (on && !slug) {
+  const slugPole = String(formData.get("slug") || "").trim();
+  const slugChciany = wygladaJakAdres(slugPole) ? "" : slugifyBiuro(slugPole);
+  const slugObecny = user.biuroSlug && !wygladaJakAdres(user.biuroSlug) ? user.biuroSlug : null;
+
+  let slug = slugObecny;
+
+  if (slugChciany && slugChciany !== slugObecny) {
+    slug = await wolnySlug(slugChciany, userId);
+  }
+
+  // Brak adresu przy włączaniu wizytówki (albo naprawa po powyższej pomyłce): liczymy
+  // go z nazwy biura. Adres raz ustalony zostaje, bo link mógł już pójść do partnera.
+  if (on && !slug) {
     slug = await wolnySlug(nazwa || user.defaultBiuroNazwa || "biuro", userId);
   }
 
