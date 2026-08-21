@@ -40,9 +40,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /** Wiersz danych — kreska pod spodem, jak wiersze specyfikacji na /dla-biur. */
 function DataRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-fg/10 py-3">
-      <span className="text-[13px] text-fg/60">{label}</span>
-      <span className="text-[15px] font-medium text-fg/90">{children}</span>
+    <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1 border-b border-fg/10 py-3 text-left">
+      <span className="shrink-0 text-[13px] text-fg/60">{label}</span>
+      <span className="min-w-0 text-right text-[15px] font-medium text-fg/90">{children}</span>
     </div>
   );
 }
@@ -82,7 +82,7 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
       key: 'kontakt',
       label: 'Kontakt',
       content: (
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-md">
           {biuro.telefon ? (
             <DataRow label="Telefon">
               <a
@@ -138,7 +138,7 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
       key: 'zasieg',
       label: 'Gdzie ma działki',
       content: (
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-md">
           {zasieg.wojewodztwa.map((w) => (
             <div
               key={w.slug}
