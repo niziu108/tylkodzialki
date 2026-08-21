@@ -100,5 +100,10 @@ export async function saveWizytowkaAction(formData: FormData) {
   });
 
   revalidatePath("/admin/wizytowki");
+  revalidatePath(`/admin/wizytowki/${userId}`);
   if (slug) revalidatePath(`/biuro/${slug}`);
+
+  // Wracamy na listę: zapis zwykle kończy pracę nad jednym kontem, a na liście od razu
+  // widać nowy status i link „Podejrzyj".
+  redirect("/admin/wizytowki");
 }
