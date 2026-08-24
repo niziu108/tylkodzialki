@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { DzialkaStatus } from '@prisma/client';
 import { SEO_REGIONS, SEO_TYPES, getSeoCity } from '@/lib/seo-locations';
 import { getHubSitemapEntries } from '@/lib/seoHub';
 import { getPowiatList, POWIAT_MIN_INDEX } from '@/lib/seoPowiaty';
@@ -11,7 +12,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const [dzialki, articles, hubCities, powiaty] = await Promise.all([
+    // Do sitemapy trafiaja WYLACZNIE oferty, ktore realnie chcemy w indeksie: te same, ktore
+    // widac na /kup. Strona zakonczonej oferty ma noindex, wiec trzymanie jej w sitemapie
+    // wysylalo Google sprzeczny sygnal ("wejdz tu" + "nie indeksuj") i zjadalo budzet
+    // indeksowania kosztem swiezych ofert.
     prisma.dzialka.findMany({
+      where: {
+        ownerId: { not: null },
+        status: DzialkaStatus.AKTYWNE,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
       select: {
         id: true,
         updatedAt: true,
