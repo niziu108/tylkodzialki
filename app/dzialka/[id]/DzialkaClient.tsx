@@ -180,23 +180,13 @@ function SmartImg({
 function FieldBlock({
   label,
   children,
-  /* Zielona etykieta: dziś tylko blok biura partnerskiego. Status wchodzi W etykietę,
-     zamiast siadać osobnym wierszem pod spodem — jedna linia zamiast dwóch. */
-  brandLabel = false,
 }: {
   label: string;
   children: React.ReactNode;
-  brandLabel?: boolean;
 }) {
   return (
     <div className="py-5">
-      <div
-        className={`text-[11px] uppercase tracking-[0.18em] ${
-          brandLabel ? 'text-brand-text' : 'text-fg/70'
-        }`}
-      >
-        {label}
-      </div>
+      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">{label}</div>
       <div className="mt-2">{children}</div>
     </div>
   );
@@ -1196,14 +1186,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
               {sprzedajacyTyp === 'BIURO' ? (
                 <>
-                  <FieldBlock
-                    label={
-                      biuroPartner
-                        ? 'Partner strategiczny'
-                        : 'Ogłoszenie biura nieruchomości'
-                    }
-                    brandLabel={biuroPartner}
-                  >
+                  <FieldBlock label="Ogłoszenie biura nieruchomości">
                     <div className="space-y-3 text-[14px] text-fg/85">
                       {biuroOpiekun ? (
                         <div className="break-words">
@@ -1222,6 +1205,15 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                           ) : (
                             <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
                           )
+                        ) : null}
+
+                        {/* Podpis pod logotypem, a nie w etykiecie bloku: „nasz partner"
+                            to zdanie o relacji z biurem, więc stoi przy jego znaku firmowym,
+                            a nagłówek bloku zostaje neutralny jak przy każdej innej ofercie. */}
+                        {biuroPartner ? (
+                          <span className="text-[14px] text-brand-text">
+                            Nasz partner strategiczny
+                          </span>
                         ) : null}
 
                         {wizytowkaSlug && !preview ? (
