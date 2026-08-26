@@ -139,6 +139,7 @@ export default async function HomePage() {
           defaultBiuroLogoUrl: d.owner.defaultBiuroLogoUrl,
           defaultBiuroLogoBg: d.owner.defaultBiuroLogoBg,
           defaultBiuroNazwa: d.owner.defaultBiuroNazwa,
+          biuroPartnerStrategiczny: d.owner.biuroPartnerStrategiczny,
         }
       : null,
   }));

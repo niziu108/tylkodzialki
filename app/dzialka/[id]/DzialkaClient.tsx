@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HeartIcon } from '@/components/OfferCard';
 import { OfficeLogo } from '@/components/OfficeLogo';
-import { PartnerBadge } from '@/components/PartnerBadge';
 import { formatOpis, plainText } from '@/lib/formatOpis';
 import AlertBar from '@/components/AlertBar';
 import type { AlertCriteria } from '@/lib/alertCriteria';
@@ -181,13 +180,23 @@ function SmartImg({
 function FieldBlock({
   label,
   children,
+  /* Zielona etykieta: dziś tylko blok biura partnerskiego. Status wchodzi W etykietę,
+     zamiast siadać osobnym wierszem pod spodem — jedna linia zamiast dwóch. */
+  brandLabel = false,
 }: {
   label: string;
   children: React.ReactNode;
+  brandLabel?: boolean;
 }) {
   return (
     <div className="py-5">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">{label}</div>
+      <div
+        className={`text-[11px] uppercase tracking-[0.18em] ${
+          brandLabel ? 'text-brand-text' : 'text-fg/70'
+        }`}
+      >
+        {label}
+      </div>
       <div className="mt-2">{children}</div>
     </div>
   );
@@ -1187,16 +1196,15 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
               {sprzedajacyTyp === 'BIURO' ? (
                 <>
-                  <FieldBlock label="Ogłoszenie biura nieruchomości">
+                  <FieldBlock
+                    label={
+                      biuroPartner
+                        ? 'Partner strategiczny'
+                        : 'Ogłoszenie biura nieruchomości'
+                    }
+                    brandLabel={biuroPartner}
+                  >
                     <div className="space-y-3 text-[14px] text-fg/85">
-                      {/* Znak partnera nad opiekunem: to informacja o biurze, więc stoi
-                          przed danymi konkretnej osoby, a nie doklejona pod logotypem. */}
-                      {biuroPartner ? (
-                        <div>
-                          <PartnerBadge />
-                        </div>
-                      ) : null}
-
                       {biuroOpiekun ? (
                         <div className="break-words">
                           Opiekun: <span className="text-fg/95">{biuroOpiekun}</span>

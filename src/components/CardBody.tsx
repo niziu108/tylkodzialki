@@ -13,7 +13,6 @@ import { offerPriceLabel, pricePerM2, formatIntPL } from '@/lib/format';
 import { plainText } from '@/lib/formatOpis';
 import { IconPin, IconArea, IconLayers, IconPlug, IconUser, IconBuilding } from './CardIcons';
 import { OfficeLogo } from './OfficeLogo';
-import { PartnerBadge } from './PartnerBadge';
 
 export function CardBody({
   cena,
@@ -151,8 +150,20 @@ export function CardBody({
           ) : (
             <IconUser className="h-4 w-4 shrink-0 text-fg/70" />
           )}
+          {/* Partner: zielona nazwa statusu zamiast szarego „Oferta biura nieruchomości".
+              Dopisek zostaje TYLKO na szerokiej karcie poziomej (lista /kup na dużym ekranie),
+              gdzie jest na niego miejsce. W railach, na mapie i na telefonie zostaje sam status,
+              bo tam obie części nie mieszczą się w jednej linii i łamałyby stopkę karty. */}
           {sellerType === 'BIURO' && partner ? (
-            <PartnerBadge />
+            <span className="min-w-0 truncate text-[13px] text-brand-text">
+              Partner strategiczny
+              {horizontal ? (
+                <span className="hidden text-fg/60 lg:inline">
+                  {' | '}
+                  Oferta biura nieruchomości
+                </span>
+              ) : null}
+            </span>
           ) : (
             <span className="text-[13px] text-fg/70">
               {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
