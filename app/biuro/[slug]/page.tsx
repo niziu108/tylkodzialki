@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 import BiuroOfertyList from '@/components/BiuroOfertyList';
 import BiuroTabs, { type BiuroTab } from '@/components/BiuroTabs';
 import { OfficeLogo } from '@/components/OfficeLogo';
-import { PartnerBadge } from '@/components/PartnerBadge';
 import type { OfferData } from '@/components/OfferCard';
 import { getWizytowkaBySlug, WIZYTOWKA_MIN_INDEX } from '@/lib/biuroWizytowka';
 import { formatIntPL } from '@/lib/format';
@@ -262,13 +261,11 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
                     {biuro.nazwa}
                   </h1>
 
-                  {/* Znak partnera tuż pod nazwą, czyli pierwsza rzecz czytana po logo
-                      i nazwie. Wyżej byłby ważniejszy od samego biura, niżej zginąłby
-                      pod liczbą ofert. */}
+                  {/* Status tuż pod nazwą, czyli pierwsza rzecz czytana po logo i nazwie.
+                      Zwykłym krojem i kolorem: na wizytówce nie ma z czym konkurować,
+                      bo cała strona należy do tego biura. */}
                   {biuro.partner ? (
-                    <div className="mt-3">
-                      <PartnerBadge variant="hero" />
-                    </div>
+                    <p className="mt-2 text-[15px] text-fg/70">Nasz partner strategiczny</p>
                   ) : null}
                 </div>
               </div>
