@@ -268,3 +268,41 @@ export const getWizytowkaSlugForOwner = cache(
     return user?.biuroWizytowkaOn ? user.biuroSlug : null;
   }
 );
+
+/**
+ * Próg indeksacji wizytówki. Poniżej tej liczby aktywnych ofert strona zostaje na `noindex`:
+ * karta partnera z kilkoma działkami to dla Google cienka kopia naszych stron kategorii,
+ * a tych kanibalizować nie chcemy. Powyżej progu wizytówka niesie realny portfel i jedzie
+ * po frazy brandowe biura („nazwa biura działki"), tak jak strony agencji na dużych portalach.
+ */
+export const WIZYTOWKA_MIN_INDEX = 20;
+
+/**
+ * Wizytówki, które zgłaszamy do sitemapy: włączone i powyżej progu indeksacji.
+ * Ten sam warunek, co `robots` na stronie — inaczej wysyłalibyśmy Google sprzeczny
+ * sygnał („wejdź tu" + „nie indeksuj"), jak kiedyś przy zakończonych ofertach.
+ */
+export const getWizytowkiSitemapEntries = cache(
+  async (): Promise<{ slug: string; count: number }[]> => {
+    const users = await prisma.user.findMany({
+      where: { biuroWizytowkaOn: true, biuroSlug: { not: null } },
+      select: { id: true, biuroSlug: true },
+    });
+
+    if (!users.length) return [];
+
+    // Liczymy tym samym warunkiem, co sama wizytówka (aktywne oferty właściciela),
+    // żeby próg w sitemapie i próg w `robots` nigdy się nie rozjechały.
+    const counts = await prisma.dzialka.groupBy({
+      by: ['ownerId'],
+      where: { ownerId: { in: users.map((u) => u.id) }, status: 'AKTYWNE' },
+      _count: { _all: true },
+    });
+
+    const byOwner = new Map(counts.map((c) => [c.ownerId, c._count._all]));
+
+    return users
+      .map((u) => ({ slug: u.biuroSlug as string, count: byOwner.get(u.id) ?? 0 }))
+      .filter((e) => e.count >= WIZYTOWKA_MIN_INDEX);
+  }
+);

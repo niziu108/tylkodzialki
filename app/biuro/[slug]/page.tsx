@@ -5,7 +5,7 @@ import BiuroOfertyList from '@/components/BiuroOfertyList';
 import BiuroTabs, { type BiuroTab } from '@/components/BiuroTabs';
 import { OfficeLogo } from '@/components/OfficeLogo';
 import type { OfferData } from '@/components/OfferCard';
-import { getWizytowkaBySlug } from '@/lib/biuroWizytowka';
+import { getWizytowkaBySlug, WIZYTOWKA_MIN_INDEX } from '@/lib/biuroWizytowka';
 import { formatIntPL } from '@/lib/format';
 import { plural } from '@/lib/plural';
 
@@ -23,18 +23,44 @@ function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value ?? '';
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+/** Numer strony z adresu. Wspólny dla metadanych i renderu, żeby `robots` liczył się z tego
+ *  samego numeru, który potem widać na stronie. */
+function parseStrona(raw: string) {
+  const n = Number(raw || '1');
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
+}
+
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const biuro = await getWizytowkaBySlug(slug);
+  const strona = parseStrona(one((await searchParams)?.strona));
+  const biuro = await getWizytowkaBySlug(slug, strona);
   if (!biuro) return { title: 'Nie znaleziono biura', robots: { index: false, follow: false } };
 
+  const opisBiura = (biuro.opis ?? '').replace(/\s+/g, ' ').trim();
+
   return {
-    title: `${biuro.nazwa} — działki i grunty`,
-    description: `Oferty działek biura ${biuro.nazwa} na tylkodzialki.pl.`,
-    // Wizytówka nie konkuruje w wyszukiwarce o frazy „biuro nieruchomości".
-    // Linki do ofert zostają dofollow, żeby przekazywały wartość dalej.
-    robots: { index: false, follow: true },
+    title: `${biuro.nazwa}, działki na sprzedaż`,
+    description: opisBiura
+      ? skrocOpis(opisBiura, 155)
+      : `Działki i grunty w ofercie biura ${biuro.nazwa}. Aktualne ceny, powierzchnie i kontakt.`,
+    // Canonical zawsze na stronę 1: kolejne strony to ten sam portfel w innym wycinku.
+    alternates: { canonical: `/biuro/${biuro.slug}` },
+    // Indeksujemy dopiero portfel z realną podażą i tylko stronę 1. Małe wizytówki i paginacja
+    // byłyby dla Google cienką kopią naszych stron kategorii. Linki do ofert zawsze dofollow.
+    robots:
+      biuro.liczbaOfert >= WIZYTOWKA_MIN_INDEX && biuro.strona === 1
+        ? undefined
+        : { index: false, follow: true },
   };
+}
+
+/** Opis biura na `description`: tniemy na granicy słowa, żeby snippet w Google nie urywał
+ *  się w połowie wyrazu. */
+function skrocOpis(text: string, limit: number) {
+  if (text.length <= limit) return text;
+  const ciecie = text.slice(0, limit);
+  const spacja = ciecie.lastIndexOf(' ');
+  return `${(spacja > limit * 0.6 ? ciecie.slice(0, spacja) : ciecie).replace(/[\s,.;:-]+$/, '')}...`;
 }
 
 /** Wiersz danych — kreska pod spodem, jak wiersze specyfikacji na /dla-biur. */
@@ -50,8 +76,7 @@ function DataRow({ label, children }: { label: string; children: React.ReactNode
 export default async function BiuroPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const sp = (await searchParams) ?? {};
-  const stronaRaw = Number(one(sp.strona) || '1');
-  const strona = Number.isFinite(stronaRaw) && stronaRaw > 0 ? Math.floor(stronaRaw) : 1;
+  const strona = parseStrona(one(sp.strona));
 
   const biuro = await getWizytowkaBySlug(slug, strona);
   if (!biuro) notFound();

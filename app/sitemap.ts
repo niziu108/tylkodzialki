@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { DzialkaStatus } from '@prisma/client';
 import { SEO_REGIONS, SEO_TYPES, getSeoCity } from '@/lib/seo-locations';
 import { getHubSitemapEntries } from '@/lib/seoHub';
+import { getWizytowkiSitemapEntries } from '@/lib/biuroWizytowka';
 import { getPowiatList, POWIAT_MIN_INDEX } from '@/lib/seoPowiaty';
 import { prisma } from '@/lib/prisma';
 
@@ -11,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://tylkodzialki.pl';
   const now = new Date();
 
-  const [dzialki, articles, hubCities, powiaty] = await Promise.all([
+  const [dzialki, articles, hubCities, powiaty, wizytowki] = await Promise.all([
     // Do sitemapy trafiaja WYLACZNIE oferty, ktore realnie chcemy w indeksie: te same, ktore
     // widac na /kup. Strona zakonczonej oferty ma noindex, wiec trzymanie jej w sitemapie
     // wysylalo Google sprzeczny sygnal ("wejdz tu" + "nie indeksuj") i zjadalo budzet
@@ -44,7 +45,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
     getHubSitemapEntries(),
     getPowiatList(),
+    getWizytowkiSitemapEntries(),
   ]);
+
+  // Wizytowki partnerow z realnym portfelem (>= prog indeksacji), spojnie z ich `robots`.
+  // Tylko strona 1: paginacja wizytowki zostaje poza indeksem.
+  const wizytowkaPages: MetadataRoute.Sitemap = wizytowki.map((w) => ({
+    url: `${baseUrl}/biuro/${w.slug}`,
+    lastModified: now,
+    changeFrequency: 'daily' as const,
+    priority: 0.6,
+  }));
 
   // Hub SEO (P22): powiaty z realną podażą (>= próg indeksacji), spójnie z noindex.
   const hubPowiatPages: MetadataRoute.Sitemap = powiaty
@@ -165,6 +176,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...hubTypePages,
     ...hubPowiatPages,
     ...cenyCityPages,
+    ...wizytowkaPages,
 
     ...dzialki.map((dzialka) => ({
       url: `${baseUrl}/dzialka/${dzialka.id}`,
