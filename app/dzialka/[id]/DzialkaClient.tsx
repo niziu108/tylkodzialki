@@ -1211,9 +1211,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                             to zdanie o relacji z biurem, więc stoi przy jego znaku firmowym,
                             a nagłówek bloku zostaje neutralny jak przy każdej innej ofercie. */}
                         {biuroPartner ? (
-                          <span className="text-[14px] text-brand-text">
-                            Nasz partner strategiczny
-                          </span>
+                          <span className="text-[14px] text-fg/85">Nasz partner strategiczny</span>
                         ) : null}
 
                         {wizytowkaSlug && !preview ? (
