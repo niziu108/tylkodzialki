@@ -53,6 +53,7 @@ export type WizytowkaOferta = {
     defaultBiuroLogoUrl: string | null;
     defaultBiuroLogoBg: boolean;
     defaultBiuroNazwa: string | null;
+    biuroPartnerStrategiczny: boolean;
   } | null;
   zdjecia: { url: string; kolejnosc: number | null }[];
 };
@@ -79,10 +80,12 @@ export type Wizytowka = {
   nazwa: string;
   logoUrl: string | null;
   logoBg: boolean;
+  partner: boolean;
   opis: string | null;
   telefon: string | null;
   email: string | null;
   adres: string | null;
+  www: string | null;
   rokZalozenia: number | null;
   liczbaOddzialow: number | null;
   liczbaOfert: number;
@@ -148,11 +151,13 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
     select: {
       id: true,
       biuroWizytowkaOn: true,
+      biuroPartnerStrategiczny: true,
       biuroSlug: true,
       biuroOpis: true,
       biuroTelefon: true,
       biuroEmail: true,
       biuroAdres: true,
+      biuroWww: true,
       biuroRokZalozenia: true,
       biuroLiczbaOddzialow: true,
       defaultBiuroNazwa: true,
@@ -204,6 +209,7 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
             defaultBiuroLogoUrl: true,
             defaultBiuroLogoBg: true,
             defaultBiuroNazwa: true,
+            biuroPartnerStrategiczny: true,
           },
         },
         zdjecia: { orderBy: { kolejnosc: 'asc' }, select: { url: true, kolejnosc: true } },
@@ -216,10 +222,12 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
     nazwa: user.defaultBiuroNazwa?.trim() || user.biuroSlug,
     logoUrl: user.defaultBiuroLogoUrl,
     logoBg: user.defaultBiuroLogoBg,
+    partner: user.biuroPartnerStrategiczny,
     opis: user.biuroOpis,
     telefon: user.biuroTelefon,
     email: user.biuroEmail,
     adres: user.biuroAdres,
+    www: user.biuroWww,
     rokZalozenia: user.biuroRokZalozenia,
     liczbaOddzialow: user.biuroLiczbaOddzialow,
     liczbaOfert,

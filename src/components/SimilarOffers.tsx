@@ -80,6 +80,7 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
         biuroNazwa={d.biuroNazwa}
         biuroLogoUrl={d.biuroLogoUrl}
         biuroLogoBg={d.biuroLogoBg}
+        partner={d.biuroPartner}
       />
     </Link>
   );

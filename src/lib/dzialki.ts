@@ -9,9 +9,28 @@ import type {
 } from '@prisma/client';
 
 const SELLER_OWNER_SELECT = {
-  owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroLogoBg: true, defaultBiuroNazwa: true } },
+  owner: {
+    select: {
+      defaultBiuroLogoUrl: true,
+      defaultBiuroLogoBg: true,
+      defaultBiuroNazwa: true,
+      biuroPartnerStrategiczny: true,
+    },
+  },
 } as const;
 import { prisma } from '@/lib/prisma';
+
+// Wyjątek per-konto: w miejscu „Opiekun" (domyślnie imię i nazwisko agenta z feedu)
+// pokazujemy nazwę biura. Prośba biura Grupa Vero — nie chcą personaliów w ofertach.
+// Klucz = e-mail logowania konta (User.email), wartość = etykieta na ofercie.
+const OPIEKUN_JAKO_NAZWA_BIURA: Record<string, string> = {
+  'biuro@grupavero.pl': 'Grupa Vero',
+};
+
+function opiekunDlaKonta(ownerEmail?: string | null): string | null {
+  if (!ownerEmail) return null;
+  return OPIEKUN_JAKO_NAZWA_BIURA[ownerEmail.trim().toLowerCase()] ?? null;
+}
 
 /**
  * Pobiera pełną ofertę działki bezpośrednio z bazy (Prisma) wraz ze zdjęciami
@@ -30,10 +49,12 @@ export const getDzialkaById = cache(async (id: string) => {
       zdjecia: { orderBy: { kolejnosc: 'asc' } },
       owner: {
         select: {
+          email: true,
           defaultBiuroLogoUrl: true,
           defaultBiuroLogoBg: true,
           defaultBiuroNazwa: true,
           defaultBiuroOpiekun: true,
+          biuroPartnerStrategiczny: true,
         },
       },
     },
@@ -41,12 +62,15 @@ export const getDzialkaById = cache(async (id: string) => {
 
   if (!item) return null;
 
+  const opiekunOverride = opiekunDlaKonta(item.owner?.email);
+
   return {
     ...item,
     biuroLogoUrl: item.biuroLogoUrl || item.owner?.defaultBiuroLogoUrl || null,
     biuroLogoBg: item.owner?.defaultBiuroLogoBg ?? false,
     biuroNazwa: item.biuroNazwa || item.owner?.defaultBiuroNazwa || null,
-    biuroOpiekun: item.biuroOpiekun || item.owner?.defaultBiuroOpiekun || null,
+    biuroOpiekun: opiekunOverride || item.biuroOpiekun || item.owner?.defaultBiuroOpiekun || null,
+    biuroPartner: item.owner?.biuroPartnerStrategiczny ?? false,
   };
 });
 
@@ -77,6 +101,7 @@ export type SimilarDzialka = {
   biuroNazwa: string | null;
   biuroLogoUrl: string | null;
   biuroLogoBg: boolean;
+  biuroPartner: boolean;
   /** Odległość od bieżącej oferty w km (null, gdy dobrane spoza geo). */
   distanceKm: number | null;
 };
@@ -124,7 +149,12 @@ type SimilarRow = {
   sprzedajacyTyp: SprzedajacyTyp | null;
   biuroNazwa: string | null;
   biuroLogoUrl: string | null;
-  owner?: { defaultBiuroLogoUrl: string | null; defaultBiuroLogoBg: boolean; defaultBiuroNazwa: string | null } | null;
+  owner?: {
+    defaultBiuroLogoUrl: string | null;
+    defaultBiuroLogoBg: boolean;
+    defaultBiuroNazwa: string | null;
+    biuroPartnerStrategiczny?: boolean | null;
+  } | null;
   zdjecia: { url: string }[];
 };
 
@@ -145,6 +175,7 @@ function toSimilar(row: SimilarRow, distanceKm: number | null): SimilarDzialka {
     biuroNazwa: row.biuroNazwa ?? row.owner?.defaultBiuroNazwa ?? null,
     biuroLogoUrl: row.biuroLogoUrl ?? row.owner?.defaultBiuroLogoUrl ?? null,
     biuroLogoBg: row.owner?.defaultBiuroLogoBg ?? false,
+    biuroPartner: row.owner?.biuroPartnerStrategiczny ?? false,
     distanceKm,
   };
 }

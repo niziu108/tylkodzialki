@@ -13,6 +13,7 @@ import { offerPriceLabel, pricePerM2, formatIntPL } from '@/lib/format';
 import { plainText } from '@/lib/formatOpis';
 import { IconPin, IconArea, IconLayers, IconPlug, IconUser, IconBuilding } from './CardIcons';
 import { OfficeLogo } from './OfficeLogo';
+import { PartnerBadge } from './PartnerBadge';
 
 export function CardBody({
   cena,
@@ -30,6 +31,7 @@ export function CardBody({
   biuroNazwa,
   biuroLogoUrl,
   biuroLogoBg = false,
+  partner = false,
   heartSlot,
 }: {
   cena: number;
@@ -54,6 +56,9 @@ export function CardBody({
   biuroLogoUrl?: string | null;
   /** Zielone tło pod logo biura (białe/jasne logotypy). Ustawiane na koncie biura. */
   biuroLogoBg?: boolean;
+  /** Partner strategiczny: znak ZASTĘPUJE w stopce zwykłe „Oferta biura nieruchomości",
+   *  zamiast dokładać drugi wiersz. Nadawany ręcznie na koncie biura. */
+  partner?: boolean;
   /** Serduszko ulubionych (klienckie) — renderowane w prawym dolnym rogu, nad kreską sprzedawcy. */
   heartSlot?: ReactNode;
 }) {
@@ -146,9 +151,13 @@ export function CardBody({
           ) : (
             <IconUser className="h-4 w-4 shrink-0 text-fg/70" />
           )}
-          <span className="text-[13px] text-fg/70">
-            {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
-          </span>
+          {sellerType === 'BIURO' && partner ? (
+            <PartnerBadge />
+          ) : (
+            <span className="text-[13px] text-fg/70">
+              {sellerType === 'BIURO' ? 'Oferta biura nieruchomości' : 'Oferta prywatna'}
+            </span>
+          )}
         </div>
       ) : null}
     </div>

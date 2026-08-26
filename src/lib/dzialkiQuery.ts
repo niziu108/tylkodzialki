@@ -33,7 +33,14 @@ export type ListSort =
 // (importy CRM nie ustawiają `biuroLogoUrl`, a logo żyje w `User.defaultBiuroLogoUrl`).
 export const PAGE_INCLUDE = {
   zdjecia: { orderBy: { kolejnosc: 'asc' } },
-  owner: { select: { defaultBiuroLogoUrl: true, defaultBiuroLogoBg: true, defaultBiuroNazwa: true } },
+  owner: {
+    select: {
+      defaultBiuroLogoUrl: true,
+      defaultBiuroLogoBg: true,
+      defaultBiuroNazwa: true,
+      biuroPartnerStrategiczny: true,
+    },
+  },
 } satisfies Prisma.DzialkaInclude;
 
 // Ile wyróżnionych maks. ląduje w „paśmie polecanych" na samej górze listy (per ZESTAW wyników,

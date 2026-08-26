@@ -234,6 +234,7 @@ export async function wyroznijOgloszenieAction(dzialkaId: string) {
     select: {
       id: true,
       featuredCredits: true,
+      featuredCreditsExpiresAt: true,
     },
   });
 
@@ -257,7 +258,15 @@ export async function wyroznijOgloszenieAction(dzialkaId: string) {
     throw new Error('To ogłoszenie jest już aktualnie wyróżnione.');
   }
 
-  if ((user.featuredCredits ?? 0) <= 0) {
+  // Data ważności pakietu jest wiążąca, nie ozdobna. Panel od zawsze pokazywał
+  // „ważne do ...", ale nic tego nie pilnowało — punkty z wygasłego pakietu dawały się
+  // wydać bez końca. Przy pakietach przyznawanych partnerom z ręki (na kwartał)
+  // to różnica między obietnicą a jej dotrzymaniem.
+  const pakietWygasl =
+    !!user.featuredCreditsExpiresAt &&
+    new Date(user.featuredCreditsExpiresAt).getTime() <= now.getTime();
+
+  if ((user.featuredCredits ?? 0) <= 0 || pakietWygasl) {
     redirect(`/panel/wyroznienia?dzialkaId=${dzialkaId}`);
   }
 

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import BiuroOfertyList from '@/components/BiuroOfertyList';
 import BiuroTabs, { type BiuroTab } from '@/components/BiuroTabs';
 import { OfficeLogo } from '@/components/OfficeLogo';
+import { PartnerBadge } from '@/components/PartnerBadge';
 import type { OfferData } from '@/components/OfferCard';
 import { getWizytowkaBySlug, WIZYTOWKA_MIN_INDEX } from '@/lib/biuroWizytowka';
 import { formatIntPL } from '@/lib/format';
@@ -96,9 +97,16 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
     biuro.telefon ||
     biuro.email ||
     biuro.adres ||
+    biuro.www ||
     biuro.rokZalozenia ||
     biuro.liczbaOddzialow
   );
+
+  /* Etykieta linku bez „https://" i bez końcowego ukośnika: na wizytówce ma stać nazwa
+   * domeny, nie surowy adres. Sam href zostaje pełny, bo to on musi działać. */
+  const wwwLabel = biuro.www
+    ? biuro.www.replace(/^https?:\/\//i, '').replace(/\/+$/, '')
+    : null;
 
   // Zakres portfela jedną linią: od jakiej ceny zaczynają się działki i jakie
   // powierzchnie ma biuro. Portale ogólne tego nie pokażą, bo grunt tonie im
@@ -153,6 +161,19 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
           ) : null}
 
           {biuro.adres ? <DataRow label="Adres">{biuro.adres}</DataRow> : null}
+
+          {biuro.www && wwwLabel ? (
+            <DataRow label="Strona">
+              <a
+                href={biuro.www}
+                target="_blank"
+                rel="noopener"
+                className="break-all underline decoration-fg/20 underline-offset-8 transition hover:decoration-fg/50"
+              >
+                {wwwLabel}
+              </a>
+            </DataRow>
+          ) : null}
 
           {biuro.rokZalozenia ? (
             <DataRow label="Na rynku od">{biuro.rokZalozenia}</DataRow>
@@ -236,9 +257,20 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
                   />
                 ) : null}
 
-                <h1 className="text-balance text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[34px]">
-                  {biuro.nazwa}
-                </h1>
+                <div className="min-w-0">
+                  <h1 className="text-balance text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[34px]">
+                    {biuro.nazwa}
+                  </h1>
+
+                  {/* Znak partnera tuż pod nazwą, czyli pierwsza rzecz czytana po logo
+                      i nazwie. Wyżej byłby ważniejszy od samego biura, niżej zginąłby
+                      pod liczbą ofert. */}
+                  {biuro.partner ? (
+                    <div className="mt-3">
+                      <PartnerBadge variant="hero" />
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               <p className="mt-6 text-balance text-center text-[15px] leading-7 text-fg/68 md:text-left">

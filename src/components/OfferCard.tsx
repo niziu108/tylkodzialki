@@ -69,7 +69,12 @@ export type OfferData = {
   biuroNazwa?: string | null;
   biuroLogoUrl?: string | null;
   /** Fallback logo/nazwy biura z konta właściciela (oferty CRM nie mają własnego logo). */
-  owner?: { defaultBiuroLogoUrl?: string | null; defaultBiuroLogoBg?: boolean | null; defaultBiuroNazwa?: string | null } | null;
+  owner?: {
+    defaultBiuroLogoUrl?: string | null;
+    defaultBiuroLogoBg?: boolean | null;
+    defaultBiuroNazwa?: string | null;
+    biuroPartnerStrategiczny?: boolean | null;
+  } | null;
 };
 
 function labelPrzeznaczenie(p: Przeznaczenie) {
@@ -521,6 +526,7 @@ export function OfferCard({
           biuroNazwa={d.biuroNazwa ?? d.owner?.defaultBiuroNazwa ?? null}
           biuroLogoUrl={d.biuroLogoUrl ?? d.owner?.defaultBiuroLogoUrl ?? null}
           biuroLogoBg={d.owner?.defaultBiuroLogoBg ?? false}
+          partner={d.owner?.biuroPartnerStrategiczny ?? false}
           heartSlot={
             <button
               type="button"

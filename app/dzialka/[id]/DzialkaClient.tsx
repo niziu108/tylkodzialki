@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HeartIcon } from '@/components/OfferCard';
 import { OfficeLogo } from '@/components/OfficeLogo';
+import { PartnerBadge } from '@/components/PartnerBadge';
 import { formatOpis, plainText } from '@/lib/formatOpis';
 import AlertBar from '@/components/AlertBar';
 import type { AlertCriteria } from '@/lib/alertCriteria';
@@ -53,6 +54,7 @@ type Dzialka = {
   biuroOpiekun?: string | null;
   biuroLogoUrl?: string | null;
   biuroLogoBg?: boolean | null;
+  biuroPartner?: boolean | null;
   numerOferty?: string | null;
 
   zdjecia?: Photo[];
@@ -576,6 +578,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const biuroOpiekun = plainText(d?.biuroOpiekun) || null;
   const biuroLogoUrl = (d?.biuroLogoUrl ?? '').trim() || null;
   const biuroLogoBg = Boolean(d?.biuroLogoBg);
+  const biuroPartner = Boolean(d?.biuroPartner);
 
   const hasDocs = Boolean(d?.mpzp || d?.wzWydane || d?.projektDomu);
   const showMap = Boolean(mapSrc);
@@ -1186,6 +1189,14 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <>
                   <FieldBlock label="Ogłoszenie biura nieruchomości">
                     <div className="space-y-3 text-[14px] text-fg/85">
+                      {/* Znak partnera nad opiekunem: to informacja o biurze, więc stoi
+                          przed danymi konkretnej osoby, a nie doklejona pod logotypem. */}
+                      {biuroPartner ? (
+                        <div>
+                          <PartnerBadge />
+                        </div>
+                      ) : null}
+
                       {biuroOpiekun ? (
                         <div className="break-words">
                           Opiekun: <span className="text-fg/95">{biuroOpiekun}</span>

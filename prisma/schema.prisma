@@ -29,28 +29,34 @@ model User {
   defaultBiuroOpiekun    String?
   defaultBiuroLogoUrl    String?
   // Zielone tło pod logo biura — dla białych/jasnych logotypów, które na jasnym tle znikają.
-  defaultBiuroLogoBg     Boolean  @default(false)
+  defaultBiuroLogoBg     Boolean         @default(false)
 
   // Wizytówka biura (karta partnerska). NIE jest to katalog biur ani funkcja dla każdego:
   // włączamy ją ręcznie z admina wybranym partnerom z realną liczbą ofert. Strona nie jest
   // linkowana z nawigacji ani z sitemapy — jedyne wejście to logo/link przy ofercie biura.
-  biuroWizytowkaOn     Boolean @default(false)
-  biuroSlug            String? @unique
-  biuroOpis            String?
-  biuroTelefon         String?
-  biuroEmail           String?
-  biuroAdres           String?
-  // Adresu www biura świadomie NIE pokazujemy na wizytówce (nie wypuszczamy kupującego
-  // z portalu). Kolumna zostaje na dane historyczne.
-  biuroWww             String?
-  biuroRokZalozenia    Int?
-  biuroLiczbaOddzialow Int?
+  biuroWizytowkaOn         Boolean @default(false)
+  // Status partnera strategicznego. Nadawany RĘCZNIE i wyłącznie sieciom, które wnoszą realną
+  // podaż: znaczek pojawia się przy każdej ofercie biura, więc rozdany szeroko przestaje
+  // cokolwiek znaczyć i zamienia listę wyników w choinkę. Świadomie NIE jest to stopień
+  // najwyższy („główny dostawca"), żeby nie trzeba go było odbierać, gdy dojdzie ktoś większy.
+  biuroPartnerStrategiczny Boolean @default(false)
+  biuroSlug                String? @unique
+  biuroOpis                String?
+  biuroTelefon             String?
+  biuroEmail               String?
+  biuroAdres               String?
+  // Adres www biura. Pole opcjonalne i domyślnie puste: wypuszczanie kupującego z portalu
+  // to koszt, więc link zapala się WYŁĄCZNIE tam, gdzie sami go wpiszemy — element
+  // negocjacji z partnerem strategicznym, nie standard wizytówki.
+  biuroWww                 String?
+  biuroRokZalozenia        Int?
+  biuroLiczbaOddzialow     Int?
 
   accounts           Account[]
   crmIntegrations    CrmIntegration[]
   creditTransactions ListingCreditTransaction[]
   dzialki            Dzialka[]
-  favoriteDzialki   FavoriteDzialka[]
+  favoriteDzialki    FavoriteDzialka[]
   emailSendLogs      EmailSendLog[]
   invoices           Invoice[]
   listingOrders      ListingOrder[]
@@ -123,26 +129,26 @@ model Dzialka {
   biuroOpiekun    String?
   biuroLogoUrl    String?
 
-  klasaZiemi       String?
-  ksiegaWieczysta  String?
-  mpzp             Boolean           @default(false)
-  projektDomu      Boolean           @default(false)
-  wymiary          String?
-  wzWydane         Boolean           @default(false)
-  numerOferty      String?
-  sprzedajacyTyp   SprzedajacyTyp    @default(PRYWATNIE)
-  kanalizacja      KanalizacjaStatus @default(BRAK)
-  gaz              GazStatus         @default(BRAK)
-  swiatlowod       SwiatlowodStatus  @default(BRAK)
-  prad             PradStatus        @default(BRAK_PRZYLACZA)
-  woda             WodaStatus        @default(BRAK_PRZYLACZA)
-  opis             String?
-  ownerId          String?
-  endedAt          DateTime?
-  publishedAt      DateTime          @default(now())
-  status           DzialkaStatus     @default(AKTYWNE)
-  featuredUntil    DateTime?
-  isFeatured       Boolean           @default(false)
+  klasaZiemi         String?
+  ksiegaWieczysta    String?
+  mpzp               Boolean           @default(false)
+  projektDomu        Boolean           @default(false)
+  wymiary            String?
+  wzWydane           Boolean           @default(false)
+  numerOferty        String?
+  sprzedajacyTyp     SprzedajacyTyp    @default(PRYWATNIE)
+  kanalizacja        KanalizacjaStatus @default(BRAK)
+  gaz                GazStatus         @default(BRAK)
+  swiatlowod         SwiatlowodStatus  @default(BRAK)
+  prad               PradStatus        @default(BRAK_PRZYLACZA)
+  woda               WodaStatus        @default(BRAK_PRZYLACZA)
+  opis               String?
+  ownerId            String?
+  endedAt            DateTime?
+  publishedAt        DateTime          @default(now())
+  status             DzialkaStatus     @default(AKTYWNE)
+  featuredUntil      DateTime?
+  isFeatured         Boolean           @default(false)
   detailViewsCount   Int               @default(0)
   viewsCount         Int               @default(0)
   phoneClicksCount   Int               @default(0)
@@ -152,12 +158,12 @@ model Dzialka {
   crmImportedAt   DateTime?
   crmLastSyncedAt DateTime?
 
-  owner         User?          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  crmOfferLinks CrmOfferLink[]
-  crmSyncLogs   CrmSyncLog[]
-  zdjecia       Zdjecie[]
-  favoritedBy   FavoriteDzialka[]
-  perelkaUzyta  PerelkaUzyta?
+  owner          User?                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  crmOfferLinks  CrmOfferLink[]
+  crmSyncLogs    CrmSyncLog[]
+  zdjecia        Zdjecie[]
+  favoritedBy    FavoriteDzialka[]
+  perelkaUzyta   PerelkaUzyta?
   priceSnapshots DzialkaPriceSnapshot[]
 
   @@index([lat, lng])
@@ -201,14 +207,13 @@ model Zdjecie {
   @@index([dzialkaId])
 }
 
-
 model FavoriteDzialka {
   id        String   @id @default(cuid())
   userId    String
   dzialkaId String
   createdAt DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   dzialka Dzialka @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
 
   @@unique([userId, dzialkaId])
@@ -243,7 +248,7 @@ model OfferAlert {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  user             User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isActive])
@@ -577,11 +582,11 @@ model CrmSyncLog {
 }
 
 model CrmImportJob {
-  id            String             @id @default(cuid())
+  id            String         @id @default(cuid())
   integrationId String
-  integration   CrmIntegration     @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  integration   CrmIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
 
-  status        CrmImportJobStatus @default(PENDING)
+  status CrmImportJobStatus @default(PENDING)
 
   startedAt    DateTime?
   finishedAt   DateTime?
@@ -606,23 +611,23 @@ model CrmImportJob {
 }
 
 model CrmProcessedFile {
-  id             String   @id @default(cuid())
-  integrationId  String
-  remoteFileName String
-  fileSize       BigInt?
-  fileModifiedAt DateTime?
-  status         String   @default("SUCCESS")
-  isFullExport   Boolean  @default(false)
-  importedOffers Int      @default(0)
-  createdCount   Int      @default(0)
-  updatedCount   Int      @default(0)
-  deactivatedCount Int    @default(0)
-  skippedCount   Int      @default(0)
-  errorCount     Int      @default(0)
-  message        String?
-  processedAt    DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id               String    @id @default(cuid())
+  integrationId    String
+  remoteFileName   String
+  fileSize         BigInt?
+  fileModifiedAt   DateTime?
+  status           String    @default("SUCCESS")
+  isFullExport     Boolean   @default(false)
+  importedOffers   Int       @default(0)
+  createdCount     Int       @default(0)
+  updatedCount     Int       @default(0)
+  deactivatedCount Int       @default(0)
+  skippedCount     Int       @default(0)
+  errorCount       Int       @default(0)
+  message          String?
+  processedAt      DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   integration CrmIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
 

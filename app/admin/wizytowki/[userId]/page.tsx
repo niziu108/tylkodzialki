@@ -5,7 +5,7 @@ import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
 import LogoPreview from "../../LogoPreview";
 import { saveUserAgencyLogoAction } from "../../actions";
-import { saveWizytowkaAction } from "../actions";
+import { saveWizytowkaAction, przyznajWyroznieniaAction } from "../actions";
 
 /* Edytor jednej wizytówki. Cała edycja siedzi tutaj, a nie na liście: lista ma się dać
  * przejrzeć wzrokiem, a to jest ekran, na którym się siedzi i uzupełnia dane od partnera. */
@@ -13,14 +13,19 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ userId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function formatDatePL(d: Date) {
+  return d.toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
 
 const INPUT =
   "h-11 w-full rounded-xl border border-fg/12 bg-surface-2 px-3 text-[14px] text-fg outline-none transition placeholder:text-fg/40 focus:border-brand/60";
 
 const LABEL = "mb-2 block text-[13px] text-fg/60";
 
-export default async function AdminWizytowkaEdytorPage({ params }: PageProps) {
+export default async function AdminWizytowkaEdytorPage({ params, searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/");
 
@@ -31,6 +36,8 @@ export default async function AdminWizytowkaEdytorPage({ params }: PageProps) {
   if (!currentUser || currentUser.role !== "ADMIN") redirect("/");
 
   const { userId } = await params;
+  const sp = (await searchParams) ?? {};
+  const statusWyroznien = Array.isArray(sp.wyroznienia) ? sp.wyroznienia[0] : sp.wyroznienia;
 
   const u = await prisma.user.findUnique({
     where: { id: userId },
@@ -42,12 +49,16 @@ export default async function AdminWizytowkaEdytorPage({ params }: PageProps) {
       defaultBiuroLogoUrl: true,
       defaultBiuroLogoBg: true,
       biuroWizytowkaOn: true,
+      biuroPartnerStrategiczny: true,
       biuroSlug: true,
       biuroOpis: true,
       biuroTelefon: true,
       biuroEmail: true,
       biuroAdres: true,
+      biuroWww: true,
       biuroRokZalozenia: true,
+      featuredCredits: true,
+      featuredCreditsExpiresAt: true,
       biuroLiczbaOddzialow: true,
       _count: { select: { dzialki: true } },
     },
@@ -181,6 +192,20 @@ export default async function AdminWizytowkaEdytorPage({ params }: PageProps) {
             />
           </label>
 
+          {/* Link wychodzący wypuszcza kupującego z portalu, więc nie jest standardem
+              wizytówki: zostawiamy pole puste wszędzie poza partnerami, z którymi tak
+              się umówiliśmy. Puste = na wizytówce nie ma wiersza „Strona". */}
+          <label className="block">
+            <span className={LABEL}>Strona www (opcjonalnie, link wychodzący)</span>
+            <input
+              type="text"
+              name="www"
+              defaultValue={u.biuroWww || ""}
+              placeholder="polnoc.pl"
+              className={INPUT}
+            />
+          </label>
+
           <div className="grid grid-cols-2 gap-5">
             <label className="block">
               <span className={LABEL}>Na rynku od</span>
@@ -215,6 +240,29 @@ export default async function AdminWizytowkaEdytorPage({ params }: PageProps) {
             className="w-full rounded-xl border border-fg/12 bg-surface-2 px-3 py-3 text-[14px] leading-6 text-fg outline-none transition placeholder:text-fg/40 focus:border-brand/60"
           />
         </label>
+
+        {/* Status partnera to osobna decyzja od wizytówki: znak wychodzi poza wizytówkę,
+            na wszystkie oferty biura, więc dostaje własną ramkę i własne ostrzeżenie. */}
+        <div className="mt-8 rounded-2xl border border-brand/25 bg-brand/[0.06] p-5">
+          <label className="flex items-start gap-3 text-[14px] text-fg/90">
+            <input
+              type="checkbox"
+              name="partnerStrategiczny"
+              value="1"
+              defaultChecked={u.biuroPartnerStrategiczny}
+              className="mt-0.5 h-4 w-4 accent-brand"
+            />
+            <span>
+              Partner strategiczny
+              <span className="mt-1.5 block text-[12px] leading-6 text-fg/55">
+                Znak pojawi się na wizytówce, przy każdej z {u._count.dzialki}{" "}
+                {u._count.dzialki === 1 ? "oferty" : "ofert"} tego konta na liście wyników
+                oraz na stronie każdego ogłoszenia. Nadawaj wyłącznie sieciom z realną
+                podażą: rozdany szeroko przestaje cokolwiek znaczyć.
+              </span>
+            </span>
+          </label>
+        </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-fg/10 pt-6">
           <label className="flex items-center gap-2 text-[14px] text-fg/85">
@@ -252,6 +300,84 @@ export default async function AdminWizytowkaEdytorPage({ params }: PageProps) {
           Dopóki pole „Wizytówka włączona” jest odznaczone, strona nie istnieje: dane możesz
           spokojnie uzupełniać wcześniej i włączyć ją dopiero po akceptacji biura.
         </p>
+      </form>
+
+      {/* Wyróżnienia przyznane z ręki. Osobny formularz, bo to nie są dane wizytówki,
+          tylko saldo konta: zapis ma działać niezależnie od tego, czy wizytówka w ogóle
+          jest włączona. */}
+      <form
+        action={przyznajWyroznieniaAction}
+        className="mt-10 rounded-3xl border border-fg/12 bg-surface p-6"
+      >
+        <input type="hidden" name="userId" value={u.id} />
+
+        <h2 className="text-[16px] font-semibold tracking-tight text-fg">
+          Wyróżnienia na koncie
+        </h2>
+
+        <p className="mt-2 text-[13px] leading-6 text-fg/60">
+          Saldo:{" "}
+          <span className="font-semibold text-fg">{u.featuredCredits}</span>
+          {u.featuredCreditsExpiresAt ? (
+            <>
+              {" · ważne do "}
+              <span className="font-semibold text-fg">
+                {formatDatePL(u.featuredCreditsExpiresAt)}
+              </span>
+              {u.featuredCreditsExpiresAt.getTime() <= Date.now() ? (
+                <span className="text-red-300"> (pakiet wygasł)</span>
+              ) : null}
+            </>
+          ) : (
+            " · bez daty ważności"
+          )}
+          . Jedno wyróżnienie to jedno ogłoszenie na 7 dni, biuro wydaje je samo w panelu.
+        </p>
+
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <label className="block">
+            <span className={LABEL}>Dodaj wyróżnień (ujemna liczba odbiera)</span>
+            <input
+              type="number"
+              name="liczba"
+              step="1"
+              min="-500"
+              max="500"
+              placeholder="15"
+              className={INPUT}
+            />
+          </label>
+
+          <label className="block">
+            <span className={LABEL}>Ważność w dniach (puste = bez zmiany)</span>
+            <input
+              type="number"
+              name="waznoscDni"
+              step="1"
+              min="1"
+              max="3650"
+              placeholder="90"
+              className={INPUT}
+            />
+          </label>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+          <p className="text-[12px] leading-6 text-fg/50">
+            {statusWyroznien === "ok"
+              ? "Zapisano saldo wyróżnień."
+              : statusWyroznien === "blad"
+                ? "Nie zapisano: podaj liczbę różną od zera, najwyżej 500 na raz."
+                : "Po dacie ważności punkty przestają się dać wydać."}
+          </p>
+
+          <button
+            type="submit"
+            className="h-11 shrink-0 rounded-xl border border-brand/30 bg-brand/10 px-6 text-[14px] font-medium text-fg transition hover:border-brand hover:bg-brand/15"
+          >
+            Zapisz wyróżnienia
+          </button>
+        </div>
       </form>
     </main>
   );
