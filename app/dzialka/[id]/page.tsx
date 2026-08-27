@@ -13,6 +13,15 @@ import { decodeHtmlEntities } from '@/lib/formatOpis';
 // użytkownik gotową treść, a baza jest odpytywana najwyżej raz na 60 s per oferta.
 export const revalidate = 60;
 
+// Bez generateStaticParams Next renderuje trasę dynamicznie przy każdym wejściu,
+// więc powyższy revalidate nie działał (produkcja zwracała x-vercel-cache: MISS
+// na każdym żądaniu, także dla Googlebota). Pusta tablica = zero prerenderu
+// w buildzie, ale strona generuje się przy pierwszym wejściu i potem leci
+// z cache przez czas z revalidate.
+export function generateStaticParams() {
+  return [];
+}
+
 const SITE_URL = 'https://tylkodzialki.pl';
 const SITE_NAME = 'tylkodzialki.pl';
 

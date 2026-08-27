@@ -13,6 +13,15 @@ const SITE_URL = "https://tylkodzialki.pl";
 // Odświeżanie treści: po edycji w bazie/adminie artykuł przebuduje się w tle.
 export const revalidate = 600;
 
+// Bez generateStaticParams Next renderuje trasę dynamicznie przy każdym wejściu,
+// więc powyższy revalidate nie działał (produkcja zwracała x-vercel-cache: MISS
+// na każdym żądaniu, także dla Googlebota). Pusta tablica = zero prerenderu
+// w buildzie, ale strona generuje się przy pierwszym wejściu i potem leci
+// z cache przez czas z revalidate.
+export function generateStaticParams() {
+  return [];
+}
+
 type BlogArticlePageProps = {
   params: Promise<{
     slug: string;

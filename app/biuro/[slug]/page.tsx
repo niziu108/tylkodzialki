@@ -14,6 +14,15 @@ import { plural } from '@/lib/plural';
  * Odświeżamy co 5 minut, bo liczby biorą się z eksportu, a ten i tak chodzi cyklicznie. */
 export const revalidate = 300;
 
+// Bez generateStaticParams Next renderuje trasę dynamicznie przy każdym wejściu,
+// więc powyższy revalidate nie działał (produkcja zwracała x-vercel-cache: MISS
+// na każdym żądaniu, także dla Googlebota). Pusta tablica = zero prerenderu
+// w buildzie, ale strona generuje się przy pierwszym wejściu i potem leci
+// z cache przez czas z revalidate.
+export function generateStaticParams() {
+  return [];
+}
+
 type PageProps = {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

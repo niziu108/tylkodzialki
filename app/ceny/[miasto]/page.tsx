@@ -21,6 +21,15 @@ type PageProps = {
 
 export const revalidate = 3600;
 
+// Bez generateStaticParams Next renderuje trasę dynamicznie przy każdym wejściu,
+// więc powyższy revalidate nie działał (produkcja zwracała x-vercel-cache: MISS
+// na każdym żądaniu, także dla Googlebota). Pusta tablica = zero prerenderu
+// w buildzie, ale strona generuje się przy pierwszym wejściu i potem leci
+// z cache przez czas z revalidate.
+export function generateStaticParams() {
+  return [];
+}
+
 // Typ wiodący strony cenowej: „budowlane" pokrywa najczęstsze zapytanie o cenę.
 const BUDOWLANA = getSeoType('budowlane') as SeoType;
 
