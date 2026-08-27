@@ -9,19 +9,16 @@ import { getWizytowkaBySlug, WIZYTOWKA_MIN_INDEX } from '@/lib/biuroWizytowka';
 import { formatIntPL } from '@/lib/format';
 import { plural } from '@/lib/plural';
 
-/* Wizytówka partnera. Wejście wyłącznie z jego oferty — strona nie jest w nawigacji,
- * nie ma jej w sitemapie i celowo stoi na `noindex`: to karta partnerska, nie hub SEO.
- * Odświeżamy co 5 minut, bo liczby biorą się z eksportu, a ten i tak chodzi cyklicznie. */
-export const revalidate = 300;
-
-// Bez generateStaticParams Next renderuje trasę dynamicznie przy każdym wejściu,
-// więc powyższy revalidate nie działał (produkcja zwracała x-vercel-cache: MISS
-// na każdym żądaniu, także dla Googlebota). Pusta tablica = zero prerenderu
-// w buildzie, ale strona generuje się przy pierwszym wejściu i potem leci
-// z cache przez czas z revalidate.
-export function generateStaticParams() {
-  return [];
-}
+/* Wizytówka partnera. Wejście wyłącznie z jego oferty: strona nie jest w nawigacji,
+ * nie ma jej w sitemapie i celowo stoi na `noindex`, to karta partnerska, nie hub SEO.
+ *
+ * Trasa MUSI zostać dynamiczna, dlatego nie ma tu ani `revalidate`, ani
+ * `generateStaticParams`. Paginacja portfela chodzi po `?strona=`, a odczyt
+ * searchParams zbiega render do dynamicznego. Na trasie oznaczonej jako SSG Next
+ * wywala wtedy w runtime „Page changed from static to dynamic at runtime" i cała
+ * trasa oddaje 500, także dla nieistniejącego sluga (tak padła 27.08.2026).
+ * ISR nic by tu nie kupił: przy noindex i braku sitemapy Googlebot tu nie zagląda,
+ * a ruch przychodzi z pojedynczych ofert partnera. */
 
 type PageProps = {
   params: Promise<{ slug: string }>;
