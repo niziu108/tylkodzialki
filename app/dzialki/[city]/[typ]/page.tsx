@@ -16,6 +16,7 @@ import {
   buildSpecRows,
   buildLocalParagraphs,
   buildFaq,
+  buildCategoryMetaDescription,
 } from '@/lib/seoCategoryContent';
 
 type PageProps = {
@@ -23,6 +24,15 @@ type PageProps = {
 };
 
 export const revalidate = 3600;
+
+// Bez generateStaticParams Next renderuje trasę dynamicznie przy każdym wejściu,
+// więc powyższy revalidate nie działał (produkcja zwracała x-vercel-cache: MISS
+// na każdym żądaniu, także dla Googlebota). Pusta tablica = zero prerenderu
+// w buildzie, ale strona generuje się przy pierwszym wejściu i potem leci
+// z cache przez czas z revalidate.
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { city: citySlug, typ: typSlug } = await params;
@@ -33,14 +43,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Działki na sprzedaż', robots: { index: false, follow: true } };
   }
 
-  const stats = await getCityStats(city.slug);
-  const count = stats.byType[type.slug] ?? 0;
+  // Ten sam cache'owany odczyt co body strony (getCategoryDetail) — daje i licznik, i medianę
+  // do opisu, bez dodatkowego zapytania do bazy.
+  const detail = await getCategoryDetail(city.slug, type.enum);
 
   return {
     title: `Działki ${type.adj} ${city.name}, oferty na sprzedaż`,
-    description: `Działki ${type.adj} na sprzedaż w okolicy ${city.name}: ${type.desc} Sprawdź ceny, powierzchnie i lokalizacje, kontakt do sprzedającego na stronie oferty.`,
+    description: buildCategoryMetaDescription(city, type, detail),
     alternates: { canonical: `/dzialki/${city.slug}/${type.slug}` },
-    robots: count > 0 ? undefined : { index: false, follow: true },
+    robots: detail.count > 0 ? undefined : { index: false, follow: true },
   };
 }
 

@@ -5,12 +5,22 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
 import { getSeoCity, getRegionForCity, SEO_TYPES } from '@/lib/seo-locations';
 import { getCityStats, CITY_RADIUS_KM } from '@/lib/seoHub';
+import { buildCityMetaDescription } from '@/lib/seoCategoryContent';
 
 type PageProps = {
   params: Promise<{ city: string }>;
 };
 
 export const revalidate = 3600;
+
+// Bez generateStaticParams Next renderuje trasę dynamicznie przy każdym wejściu,
+// więc powyższy revalidate nie działał (produkcja zwracała x-vercel-cache: MISS
+// na każdym żądaniu, także dla Googlebota). Pusta tablica = zero prerenderu
+// w buildzie, ale strona generuje się przy pierwszym wejściu i potem leci
+// z cache przez czas z revalidate.
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { city: citySlug } = await params;
@@ -24,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Działki na sprzedaż ${city.name}`,
-    description: `Aktualne oferty działek na sprzedaż w okolicy ${city.name}. Filtruj po typie działki, cenie, powierzchni i mediach. Kontakt do sprzedającego na stronie oferty.`,
+    description: buildCityMetaDescription(city, stats.total),
     alternates: { canonical: `/dzialki/${city.slug}` },
     robots: stats.total > 0 ? undefined : { index: false, follow: true },
   };

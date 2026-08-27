@@ -180,6 +180,54 @@ export function buildLocalParagraphs(
   return out;
 }
 
+// ── Meta description (snippet Google) ──────────────────────────────────────────
+// Sterujemy tym, co użytkownik czyta w wynikach wyszukiwania. Liczba ofert prowadzi
+// opis TYLKO gdy jest z czego być dumnym (>= META_COUNT_LEAD); przy cienkiej podaży
+// nie eksponujemy małej liczby i prowadzimy medianą (różnicownik), a poniżej neutralnie.
+// Bez superlatywów („najwięcej") — sama liczba jako fakt ([[feedback-copy-style]]).
+// To NIE jest czynnik rankingowy: poprawia klikalność (CTR) z tej samej pozycji.
+export const META_COUNT_LEAD = 15;
+
+// Zwięzła fraza „mediana + typowy zakres" na potrzeby snippetu (bez powtarzania jednostki).
+function metaPricePhrase(stat: RangeStat): string {
+  if (stat.low === stat.high) return zlM2(stat.median);
+  return `${zlM2(stat.median)}, typowo od ${formatIntPL(stat.low)} do ${zlM2(stat.high)}`;
+}
+
+export function buildCategoryMetaDescription(
+  city: SeoCity,
+  type: SeoType,
+  detail: CategoryDetail
+): string {
+  const gpl = adjGen(type);
+  const parts: string[] = [];
+
+  // 1. Otwarcie: liczbą tylko gdy wysoka; inaczej neutralnie (jak dotychczasowy opis).
+  parts.push(
+    detail.count >= META_COUNT_LEAD
+      ? `${formatIntPL(detail.count)} ${ofertaWord(detail.count)} działek ${gpl} na sprzedaż w okolicy ${city.gen}.`
+      : `Działki ${gpl} na sprzedaż w okolicy ${city.gen}.`
+  );
+
+  // 2. Mediana ceny — różnicownik, którego konkurencja nie podaje. Tylko przy wiarygodnej próbce.
+  if (detail.pricePerM2) parts.push(`Mediana ceny ${metaPricePhrase(detail.pricePerM2)}.`);
+
+  // 3. Wyróżnik na końcu (Google ucina ogon, więc wartość jest z przodu).
+  parts.push('Kontakt do sprzedającego na stronie oferty.');
+
+  return parts.join(' ');
+}
+
+export function buildCityMetaDescription(city: SeoCity, total: number): string {
+  // Strona miasta MIESZA typy (budowlane + rolne + rekreacyjne), więc NIE podajemy tu
+  // mediany — byłaby mętna (dwa różne rynki). Prowadzimy samą liczbą, gdy jest wysoka.
+  const lead =
+    total >= META_COUNT_LEAD
+      ? `${formatIntPL(total)} ${ofertaWord(total)} działek na sprzedaż w okolicy ${city.gen}.`
+      : `Aktualne oferty działek na sprzedaż w okolicy ${city.name}.`;
+  return `${lead} Filtruj po typie, cenie, powierzchni i mediach. Kontakt do sprzedającego na stronie oferty.`;
+}
+
 // ── FAQ (zasila FAQPage JSON-LD + widoczna sekcja) ─────────────────────────────
 export function buildFaq(city: SeoCity, type: SeoType, detail: CategoryDetail): FaqItem[] {
   const faq: FaqItem[] = [];
