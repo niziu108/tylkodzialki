@@ -17,6 +17,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
 import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/crm/feed-signals";
 
@@ -497,7 +498,8 @@ function parseEstiOffer(
     title,
     description,
     pricePln: Math.round(price),
-    areaM2: Math.round(area),
+    // Bramka na hektary w polu metrów: patrz area-sanity.ts
+    areaM2: repairAreaFromHectares(Math.round(area), `${title} ${description}`),
     email: normalizeEmail(toTextValue(rawOffer.contactEmail)) || "kontakt@tylkodzialki.pl",
     phone: normalizePhone(toTextValue(rawOffer.contactPhone)),
     locationLabel,

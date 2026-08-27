@@ -17,6 +17,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
 
 // Silnik importu LocumNet Online (format XML "LOCUMNET-ONLINE").
@@ -447,7 +448,8 @@ function parseLocumnetOffer(
     title,
     description,
     pricePln: Math.round(price),
-    areaM2: Math.round(area),
+    // Bramka na hektary w polu metrów: patrz area-sanity.ts
+    areaM2: repairAreaFromHectares(Math.round(area), `${title} ${description}`),
     email,
     phone,
     locationLabel,
