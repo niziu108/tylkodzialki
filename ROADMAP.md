@@ -25,7 +25,7 @@ Po polsku. Przed większą lub nieodwracalną zmianą najpierw zapytaj.
 
 **Wartość portalu = płynność. Płynność = gęsta PODAŻ tam, gdzie mamy ruch.**
 
-Twarda diagnoza (2026-07): mamy ~3,15k działek, Otodom ~48k, NieruchomosciOnline ~63k. Jesteśmy 15-20x mniejsi.
+Twarda diagnoza (2026-08): mamy ~7,2k działek, Otodom ~48k, NieruchomosciOnline ~63k. Byliśmy 15-20x mniejsi, jesteśmy ~7-9x. Podaż podwoiła się w 6 tygodni (sieci franczyzowe: jedno RE/MAX = 807 działek).
 Produkt i SEO są już na poziomie dużego portalu (huby, mapa, Schema, „Sprawdź działkę", szybkość 90+).
 Ale **cały ten świetny ruch ląduje na zbyt cienkiej podaży** i tam się rozbija. Kupujący wchodzi, widzi 8 ofert
 zamiast 80, i wychodzi. Dlatego kolejny etap NIE jest o nowych funkcjach, tylko o jednym: **napełnić portal działkami**.
@@ -41,13 +41,14 @@ Monetyzacja świadomie ODŁOŻONA do boomu. Najpierw podaż, ruch, płynność. 
 
 ## 📍 GDZIE JESTEŚMY (aktualizuj na końcu każdego czatu)
 
-- **Data:** 2026-08-17.
-- **Stan produktu:** **8 277 aktywnych działek, 113 biur z ofertami** (116 integracji CRM, wszystkie aktywne). CRM (Galactica, Asari, EstiCRM, domy.pl, IMO) z auto-syncem **co 2 h** + monitoring. Huby SEO woj→miasto→typ→powiat (~550 stron indeksowalnych, thin-content noindex). Schema.org komplet (Product, RealEstateListing, FAQPage, BreadcrumbList w SSR). Szybkość 90+ na mobile na kluczowych stronach. Mapa+lista na `/kup`. Filtry mediów (twarde). „Sprawdź działkę" (ULDK+MPZP+wycena) na produkcji. Alerty na sam e-mail (bez logowania). Kreator dodawania z autofillem GUGiK + auto-zdjęcie z lotu ptaka + auto-tytuł. Jasny motyw. Blog: renderer premium, **67 artykułów**, backlog 100. Panel biura + statystyki + faktury + KSeF + Stripe. Podgląd popytu w adminie: `/admin/powiadomienia` (alerty kupujących + rozkład po miastach).
+- **Data:** 2026-08-27.
+- **Stan produktu:** **7 166 aktywnych działek** (licznik produkcyjny 2026-08-27; spadek z 8 277 to skutek backfillu usunięć Galactiki i wygaszania sprzedanych, czyli podaż jest teraz UCZCIWA), **113+ biur z ofertami**, największe źródło: RE/MAX Polska (~807 działek jednym podłączeniem, od 2026-08-21). CRM (Galactica, Asari, EstiCRM, domy.pl, IMO) z auto-syncem **co 2 h** + monitoring. Huby SEO woj→miasto→typ→powiat (~550 stron indeksowalnych, thin-content noindex). Schema.org komplet (Product, RealEstateListing, FAQPage, BreadcrumbList w SSR). Szybkość 90+ na mobile na kluczowych stronach. Mapa+lista na `/kup`. Filtry mediów (twarde). „Sprawdź działkę" (ULDK+MPZP+wycena) na produkcji. Alerty na sam e-mail (bez logowania). Kreator dodawania z autofillem GUGiK + auto-zdjęcie z lotu ptaka + auto-tytuł. Jasny motyw. Blog: renderer premium, **67 artykułów**, backlog 100. Panel biura + statystyki + faktury + KSeF + Stripe. Podgląd popytu w adminie: `/admin/powiadomienia` (alerty kupujących + rozkład po miastach).
 - **AKTUALNY PUNKT (do wyboru, wg priorytetu Gwiazdy Północnej):**
   1. **P27 — Maszyna do podaży** (strategiczny #1). Zacząć od kanału (a) biura albo (b) osoby prywatne.
-  2. **P14 dalej — dokończenie lekkiego kreatora** (mniej tarcia = więcej ogłoszeń, wprost karmi P27b).
-  3. **P25 — blog intencyjny + linkowanie** (lekkie, domyka P4b, karmi popyt).
-  4. **P24 Faza 3 — „Sprawdź tę działkę" na ofercie** (spina narzędzie z ofertami, off-page linki).
+  2. **P37 — Twarz i wideo** (w toku od 2026-08-27): wysłane/do wysłania maile do twórców (Midel, Luka), równolegle szukanie wykonawcy kanału faceless. Przekaz = marketplace „kup i sprzedaj działkę", NIE „Sprawdź działkę".
+  3. **P14 dalej — dokończenie lekkiego kreatora** (mniej tarcia = więcej ogłoszeń, wprost karmi P27b).
+  4. **P25 — blog intencyjny + linkowanie** (lekkie, domyka P4b, karmi popyt).
+  5. **P24 Faza 3 — „Sprawdź tę działkę" na ofercie** (spina narzędzie z ofertami, off-page linki).
 - **CRM:** następny Sprint 8 (finalna akceptacja IMO), potem 9-14 (Properly, MediaRent). Szczegóły: [ROADMAP_CRM.md](ROADMAP_CRM.md).
 
 ---
@@ -110,7 +111,7 @@ System bloga gotowy (renderer react-markdown, spis treści, zielone calloty, gen
   - **P27a. Kanał BIUR (więcej integracji CRM).** Każde nowe biuro to setki działek naraz. Ścieżki: (1) dokończyć IMO (CRM Sprint 8) i kolejne systemy (Properly, MediaRent, Sprint 9-14); (2) `/dla-biur` jako lejek pozyskania (żyje, dopracować konwersję i dowód wartości z P16a). Miara sukcesu: liczba aktywnych integracji i suma ofert z CRM.
   - **P27b. Kanał OSÓB PRYWATNYCH.** „Dodaj za darmo" jako realny magnes + lejek z grup FB (Paula). Warunek konieczny: kreator bez tarcia (**P14**), bo łatwość = więcej ogłoszeń. Landing „dodaj działkę za 2 minuty", mierzenie start→publikacja (gdzie odpadają).
   - **P27c. Regionalna SATURACJA (patrz P31).** Zamiast cienko wszędzie, wybrać 2-3 regiony i napełnić je gęsto, żeby ruch SEO lądował na płynnej podaży i budował dowód „tu się znajdzie".
-  - Miara nadrzędna całego P27: **liczba aktywnych działek w czasie** (dziś ~3,15k → cel etapowy 10k, potem 25k+). To jedyny wykres, który naprawdę się liczy w tym etapie.
+  - Miara nadrzędna całego P27: **liczba aktywnych działek w czasie** (dziś ~7,2k → cel etapowy 15k, potem 25k+). To jedyny wykres, który naprawdę się liczy w tym etapie.
 - [ ] **P31. Regionalna saturacja podaży (strategia, nie nowa funkcja).** Wybrać 2-3 województwa/powiaty z najlepszym stosunkiem popyt (GSC: frazy już rankujące) do podaży, i tam skoncentrować pozyskanie biur + prywatnych. Cel: w regionach-flagach mieć gęstość porównywalną z dużymi portalami, żeby „efekt płynności" (kupujący znajduje, więc wraca i poleca) ruszył lokalnie, zanim rozlejemy na całą PL. Wykorzystuje dane, które już mamy (huby powiatów pokazują, gdzie jest podaż, a gdzie dziura).
 - [~] **P14. Lekki kreator dodawania (killer dla P27b). CZĘŚCIOWO ZROBIONE.** Zrobione: kolejność kroków (lokalizacja pierwsza), autofill z ULDK/GUGiK (powierzchnia, numer działki, obręb, ścieżka administracyjna), auto-zdjęcie ortofoto GUGiK z obrysem działki na canvasie, auto-tytuł, zł/m² na żywo, krok „Szczegóły" opcjonalny, drag&drop plików, pierwsza warstwa rozbicia monolitu (czyste UI do `src/components/dzialka-form/ui.tsx`). **Zostało:** wydzielenie kroków (location/basics/photos/details/seller) do osobnych komponentów stanowych (refaktor krytycznego formularza, przyrostowo), oraz twarda mierzalność lejka (start→publikacja). [[project-strategia-nisza]]
 - [ ] **P32. Samoobsługowe podłączenie CRM dla biura (skaluje P27a).** Dziś onboarding integracji jest ręczny (Daniel zakłada, przekazuje FTP mailem). Docelowo biuro samo z `/dla-biur` wybiera swój system, dostaje instrukcję i dane FTP/endpoint, a integracja startuje bez ręcznej roboty. Zdejmuje Daniela z pętli i pozwala podłączać biura szybciej niż jedno na czat. **Uwaga:** duży punkt, robić dopiero gdy 2-3 kolejne CRM są już domknięte (wzorzec ustabilizowany), inaczej automatyzujemy ruchomy cel.
@@ -123,6 +124,12 @@ System bloga gotowy (renderer react-markdown, spis treści, zielone calloty, gen
 - [ ] **P24 Faza 3. Przycisk „Sprawdź tę działkę" na stronie oferty.** Spina narzędzie z ofertami (user potwierdza dokładną lokalizację, nie udajemy precyzji z przybliżonego pinu). Wartość dla kupującego + wewnętrzny ruch do magnesu na backlinki. [[project-sprawdz-dzialke]]
 - [ ] **P16b. Sekcja „Statystyki" w panelu biura (styl premium „wow").** Fundament stoi (`BiuroDailyStat` + cron `stats-snapshot` zbierają dzienne dane). Zostaje warstwa „wow": wykresy dzień po dniu (wejścia, telefony, wiadomości) w zieleni marki + duże liczby zbiorcze, liczone tylko dla zalogowanego właściciela. Podbija utrzymanie i wartość postrzeganą (wspiera późniejszą monetyzację za głębię, most z P16a).
 - [ ] **P35. Dystrybucja i linki (tor OFF-PAGE, brakująca dźwignia autorytetu).** Cała dotychczasowa roadmapa to on-page (huby, schema, blog, szybkość) i jest zrobiona mocno. Ale żeby przeskoczyć autorytet Otodomu/OLX na frazy z konkurencją, potrzeba LINKÓW z zewnątrz, a ich nie ma jak generować z samego on-page. Mamy idealny magnes („Sprawdź działkę"), brakuje planu jego rozprowadzenia. Tory: (a) posty w grupach FB o działkach i budowie (Paula) oraz na forach z linkiem do narzędzia; (b) mikro-PR „darmowe narzędzie do sprawdzania działek przed zakupem" do lokalnych portali i grup; (c) partnerstwa linkowe z komplementarnymi biznesami (geodeci, projektanci domów, doradcy kredytowi) za wzajemny link lub wpis; (d) katalogi narzędzi i map. Miara: liczba domen linkujących (referring domains) w czasie. Uczciwie: to robota ciągła, nie jednorazowy punkt, i to ona (obok podaży) realnie rusza pozycje na frazy z konkurencją. Domyka wątek „coś nie do skopiowania" z rozmów z Danielem.
+
+- [ ] **P37. Twarz i wideo (kupiona dystrybucja, tor równoległy do P35).** Decyzja 2026-08-27: **nikt z zespołu nie występuje przed kamerą** (ani Daniel, ani Paula), twarz kupujemy na zewnątrz, a produkcję zlecamy. Cel: wypchnąć kategorię „działka" do mainstreamu i zbudować rozpoznawalność portalu jako miejsca, gdzie się działkę **kupuje i sprzedaje**. ŻELAZNA ZASADA PRZEKAZU: bohaterem komunikacji jest **marketplace** (7 tys. działek, kup/sprzedaj), a NIE „Sprawdź działkę" (to dodatek, nie produkt). Tory:
+  - **P37a. Twarz kontraktowa.** Długi kontrakt (24 mies., 2 materiały/mies.), tematy i research po naszej stronie, wynagrodzenie stała + bonus od wyników, wyłączność na kategorię (nie promuje konkurencyjnego portalu). Target #1: **Kuba Midel** (publiczność inwestycyjna, kapitał, naturalna kontra „działka to nie kawalerka"). Target #2: **Luka Trochonowicz** (zasięg mainstream ~630 tys., potencjał zmiany mody, nie sprzedaży bezpośredniej).
+  - **P37b. Kanał faceless do zlecenia.** 8-12 rolek/mies. montowanych z naszych danych (oferta, cena, zł/m², okolica, co można zbudować), lektor + montaż u freelancera. Zero udziału zespołu przed kamerą, zero czekania na influencera. Tańsze i uruchamialne od zaraz, karmi też P35.
+  - **P37c. Mierzalność.** Osobny link/UTM per twórca i per format. Liczymy **wejścia i zapytania**, nie wyświetlenia. Bez tego nie przedłużamy żadnej umowy.
+  - Uczciwie: to jedyny punkt roadmapy, gdzie **płacimy za ruch zamiast go zarabiać**. Dlatego warunkiem wejścia jest umowa z klauzulą wyników i wyłącznością, a nie „opłata za sławę".
 
 ## 🟨 TIER 2 — WKRÓTCE (1-3 miesiące)
 
@@ -204,6 +211,17 @@ System bloga gotowy (renderer react-markdown, spis treści, zielone calloty, gen
 - [x] **Sprint 6-7.** IMO CRM: analiza (format = domy.pl/Oferty.net) + implementacja silnika (R-A/R-B/R-C w `domypl-sync.ts` tylko dla IMOX, ścieżka Galactiki bit w bit).
 - [~] **Sprint 8.** IMO testy: silnik potwierdzony na produkcji (47/47 dodawanie + sprzedaż/wynajem, 47 deactivate różnicowe). Zostaje finalna akceptacja IMO.
 - [x] **Poprawki CRM:** miasta na prawach powiatu (P-H), struktura kontenera `<dzial>` (P-I), EstiCRM pełny vs przyrostowy ZIP (P-F), incydent kosztowy Geocoding (reużyj lat/lng z bazy). [[project-geocoding-cost-incident]]
+
+## Lipiec-sierpień 2026 (podaż, dane, higiena)
+- [x] **RE/MAX Polska** podłączony 2026-08-21: ~807 działek jednym podłączeniem, największe pojedyncze źródło podaży w historii portalu. Paczki zawsze różnicowe, bez `<oferta_usun>`. [[project_remax_feed]]
+- [x] **Galactica: backfill usunięć** (2026-08-17): bramka na IMOX kasowała sygnał `<oferta_usun>`, więc sprzedane działki nie znikały. 604 oferty wygaszone, zero powrotów. [[project_galactica_brak_pelnych_eksportow]]
+- [x] **Czyszczenie drop-zone FTP** dla wszystkich 3 silników + tryb no-full-export (2026-08-18); raport `npm run crm:prune:report`. [[project_crm_ftp_cleanup]]
+- [x] **P36 etap 1: historia ceny działki** (`DzialkaPriceSnapshot` + sekcja „Historia ceny" na ofercie). Zbieranie od 2026-08-17, danych nie da się odtworzyć wstecz. [[project_price_history]]
+- [x] **Strony `/ceny`** (mediana zł/m², money page pod zapytania cenowe, reużywa silnika kategorii). 2026-07-12. [[project_ceny_pages]]
+- [x] **Perełki** `/admin/perelki`: kolejka 10 okazji na posty FB, oś = promień 10 km. 2026-07-17. [[project_perelki]]
+- [x] **Testy (vitest)** `npm test`: reguły językowe + bramki geo, bez bazy i sieci, ~0,3 s. 2026-08-17. [[project_testy]]
+- [x] **Statystyki kontra boty** (2026-08-24): liczniki liczyły Googlebota (22 tys. „wejść" vs ~2 tys. ludzi). Realny wzrost widać w GSC: organika ~19x na kwartał. [[project_statystyki_boty]]
+- [x] **Wizytówka partnerska biura** włączana ręcznie (RE/MAX). Katalog dla wszystkich pozostaje odrzucony: to narzędzie do podaży, nie sekcja portalu. 2026-08-21. [[project_biuro_profiles]]
 
 ---
 
