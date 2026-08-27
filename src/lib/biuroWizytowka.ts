@@ -154,6 +154,7 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
       biuroWizytowkaOn: true,
       biuroPartnerStrategiczny: true,
       biuroNazwaWLogo: true,
+      biuroZakresUkryty: true,
       biuroSlug: true,
       biuroOpis: true,
       biuroTelefon: true,
@@ -241,11 +242,17 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
     rokZalozenia: user.biuroRokZalozenia,
     liczbaOddzialow: user.biuroLiczbaOddzialow,
     liczbaOfert,
-    zakres: {
-      cenaMin: zakresRaw._min.cenaPln ?? null,
-      powierzchniaMin: zakresRaw._min.powierzchniaM2 ?? null,
-      powierzchniaMax: zakresRaw._max.powierzchniaM2 ?? null,
-    },
+    // Wyłącznik z admina dla portfeli, w których feed miesza wynajem ze sprzedażą.
+    // Rodzaju transakcji nie da się pewnie odgadnąć z tekstu oferty („pod domki na
+    // wynajem" to sprzedaż), więc zamiast poprawiać dane biura zgadywanką, zdejmujemy
+    // całe zdanie: lepiej nie powiedzieć nic, niż podać kupującemu czynsz jako cenę.
+    zakres: user.biuroZakresUkryty
+      ? { cenaMin: null, powierzchniaMin: null, powierzchniaMax: null }
+      : {
+          cenaMin: zakresRaw._min.cenaPln ?? null,
+          powierzchniaMin: zakresRaw._min.powierzchniaM2 ?? null,
+          powierzchniaMax: zakresRaw._max.powierzchniaM2 ?? null,
+        },
     zasieg: zbudujZasieg(adminRows),
     oferty: oferty.map((o) => ({
       id: o.id,

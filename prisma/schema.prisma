@@ -47,6 +47,14 @@ model User {
   // wizytówka zostałaby bez żadnego tytułu na wierzchu.
   biuroNazwaWLogo          Boolean @default(false)
 
+  // Zakres portfela („działki od X zł, powierzchnie od Y do Z m²") liczy się z feedu, więc
+  // dziedziczy jego bałagan: wynajem oznaczony jako sprzedaż robi z czynszu cenę działki,
+  // a powierzchnia w hektarach zaniża dolną granicę. Bramki łapią to, co da się rozpoznać
+  // pewnie (patrz crm/area-sanity.ts), ale rodzaju transakcji nie da się zgadnąć z tekstu:
+  // „pod domki na wynajem" to sprzedaż. Zamiast poprawiać dane biura zgadywanką, dajemy
+  // sobie wyłącznik: portfel z bałaganem po prostu nie dostaje tego zdania.
+  biuroZakresUkryty        Boolean @default(false)
+
   biuroSlug                String? @unique
   biuroOpis                String?
   biuroTelefon             String?

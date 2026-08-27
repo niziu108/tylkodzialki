@@ -51,6 +51,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
       biuroWizytowkaOn: true,
       biuroPartnerStrategiczny: true,
       biuroNazwaWLogo: true,
+      biuroZakresUkryty: true,
       biuroSlug: true,
       biuroOpis: true,
       biuroTelefon: true,
@@ -262,6 +263,26 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
             placeholder="Trzy do pięciu zdań, w formie przekazanej przez biuro."
             className="w-full rounded-xl border border-fg/12 bg-surface-2 px-3 py-3 text-[14px] leading-6 text-fg outline-none transition placeholder:text-fg/40 focus:border-brand/60"
           />
+        </label>
+
+        {/* Zdanie o zakresie portfela liczy się z feedu, więc dziedziczy jego bałagan.
+            Wyłącznik jest tu, a nie w kodzie, bo to decyzja o konkretnym biurze. */}
+        <label className="mt-6 flex items-start gap-3 text-[14px] text-fg/90">
+          <input
+            type="checkbox"
+            name="zakresUkryty"
+            value="1"
+            defaultChecked={u.biuroZakresUkryty}
+            className="mt-0.5 h-4 w-4 accent-brand"
+          />
+          <span>
+            Nie pokazuj zakresu cen i powierzchni
+            <span className="mt-1.5 block text-[12px] leading-6 text-fg/55">
+              Zdejmuje z wizytówki zdanie „Działki od ... zł, powierzchnie od ... do ... m²".
+              Włącz, gdy biuro ma bałagan w feedzie i zakres wychodzi bez sensu, na przykład
+              gdy wynajem jest oznaczony jako sprzedaż i czynsz udaje cenę działki.
+            </span>
+          </span>
         </label>
 
         {/* Status partnera to osobna decyzja od wizytówki: znak wychodzi poza wizytówkę,

@@ -126,6 +126,8 @@ export async function saveWizytowkaAction(formData: FormData) {
       // w tytuł strony, w opis dla Google i w opis logotypu, więc kasowanie jej byłoby
       // czymś zupełnie innym niż schowanie go z ekranu.
       biuroNazwaWLogo: String(formData.get("nazwaWLogo") || "") === "1",
+      // Zaznaczone = wizytówka nie pokazuje zdania o zakresie cen i powierzchni.
+      biuroZakresUkryty: String(formData.get("zakresUkryty") || "") === "1",
       biuroSlug: slug,
       biuroOpis: optionalText(formData, "opis", 4000),
       biuroTelefon: optionalText(formData, "telefon", 40),
