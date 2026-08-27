@@ -213,6 +213,8 @@ System bloga gotowy (renderer react-markdown, spis treści, zielone calloty, gen
 - [x] **Poprawki CRM:** miasta na prawach powiatu (P-H), struktura kontenera `<dzial>` (P-I), EstiCRM pełny vs przyrostowy ZIP (P-F), incydent kosztowy Geocoding (reużyj lat/lng z bazy). [[project-geocoding-cost-incident]]
 
 ## Lipiec-sierpień 2026 (podaż, dane, higiena)
+- [x] **SPRINT WYDAJNOŚCI PRZED FALĄ RUCHU** (2026-08-27, przygotowanie pod P37). Audyt „co się stanie, gdy wejdzie kilka tysięcy osób w godzinę" wykrył dwie ciche awarie: (1) funkcje Vercela działały w **iad1 (Waszyngton)**, a baza Neon stoi w **eu-central-1 (Frankfurt)**, więc każde zapytanie robiło podróż przez Atlantyk (`/kup` robi ich do 7, sekwencyjnie); (2) **`revalidate` był martwy na wszystkich trasach z dynamicznym segmentem**, bo nigdzie w projekcie nie było `generateStaticParams` — produkcja zwracała `x-vercel-cache: MISS` na każdym żądaniu, także dla Googlebota. Naprawione: region funkcji przestawiony na sam `fra1` (odznaczony iad1, który był zaznaczony równolegle) + `generateStaticParams` (pusta tablica = ISR on-demand, zero prerenderu w buildzie) na 9 trasach. **Zmierzony efekt:** `/kup` 2,64 s → 0,58 s solo i 3,2-5,3 s → 1,28-2,26 s przy 15 równoczesnych; strona oferty 0,16-0,50 s przy 30 równoczesnych, z cache `HIT`.
+
 - [x] **RE/MAX Polska** podłączony 2026-08-21: ~807 działek jednym podłączeniem, największe pojedyncze źródło podaży w historii portalu. Paczki zawsze różnicowe, bez `<oferta_usun>`. [[project_remax_feed]]
 - [x] **Galactica: backfill usunięć** (2026-08-17): bramka na IMOX kasowała sygnał `<oferta_usun>`, więc sprzedane działki nie znikały. 604 oferty wygaszone, zero powrotów. [[project_galactica_brak_pelnych_eksportow]]
 - [x] **Czyszczenie drop-zone FTP** dla wszystkich 3 silników + tryb no-full-export (2026-08-18); raport `npm run crm:prune:report`. [[project_crm_ftp_cleanup]]
@@ -227,6 +229,9 @@ System bloga gotowy (renderer react-markdown, spis treści, zielone calloty, gen
 
 ## 5. KLUCZOWE LEKCJE (żeby nie powtarzać błędów)
 
+- **`revalidate` bez `generateStaticParams` NIE DZIAŁA.** Trasa z dynamicznym segmentem (`[city]`, `[id]`) bez tej funkcji jest renderowana na żądanie, a zadeklarowany `revalidate` jest ignorowany. Objaw: `x-vercel-cache: MISS` i `Cache-Control: no-store` na produkcji mimo poprawnego kodu. Lekarstwo: `generateStaticParams()` zwracające `[]` (ISR on-demand, bez kosztu builda). Sprawdzian: w `next build` trasa musi mieć `●` (SSG), nie `ƒ` (Dynamic).
+- **Region funkcji musi siedzieć przy bazie.** Domyślny region Vercela to `iad1` (Waszyngton), a nasz Neon stoi we Frankfurcie. Każde zapytanie szło przez Atlantyk (~95 ms zamiast ~5 ms). Sprawdzian: nagłówek `x-vercel-id` pokazuje region wykonania (`arn1::fra1::` = OK, `arn1::iad1::` = źle). Na Pro można zaznaczyć kilka regionów naraz, więc sprawdź, czy stary nie został włączony obok nowego.
+- **Nagłówki mierz GET-em, nie HEAD-em.** `curl -I` potrafi pokazać `MISS` na stronie, która GET-em wraca z `HIT`.
 - **Mierz, zanim naprawisz.** Przy szybkości: bez zdjęcia LCP dalej 7,8 s → winowajcą była kliencka karta, nie obraz. Test obnaża prawdziwą przyczynę.
 - **Test na realnym feedzie, nie syntetycznym.** IMO: syntetyk dawał fałszywe 9/9; realny plik obnażył kontener `<dzial>` jako rodzica oferty (P-I).
 - **Zmiana parsera CRM = `git pull` + `pm2 restart crm-worker` na VPS**, inaczej autosync nadpisuje poprawki starym kodem.
