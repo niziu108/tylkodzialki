@@ -209,25 +209,47 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
   }
 
   if (zasieg.wojewodztwa.length) {
+    // Dzielimy listę na pół z góry, zamiast bawić się układem kolumnowym w CSS:
+    // dwie zwykłe kolumny są odporne i czytają się w dół, a przy nieparzystej
+    // liczbie województw nadmiarowy wiersz ląduje po lewej.
+    const polowa = Math.ceil(zasieg.wojewodztwa.length / 2);
+    const kolumnyWojewodztw = [
+      zasieg.wojewodztwa.slice(0, polowa),
+      zasieg.wojewodztwa.slice(polowa),
+    ].filter((k) => k.length);
+
     tabs.push({
       key: 'zasieg',
       label: 'Gdzie ma działki',
       content: (
-        <div className="mx-auto max-w-md">
-          {zasieg.wojewodztwa.map((w) => (
-            <div
-              key={w.slug}
-              className="flex items-baseline justify-between gap-6 border-b border-fg/10 py-3"
-            >
-              <Link
-                href={`/dzialki/wojewodztwo/${w.slug}`}
-                className="text-[15px] text-fg/85 underline decoration-fg/15 underline-offset-8 transition hover:decoration-fg/45"
-              >
-                {w.name}
-              </Link>
-              <span className="text-[14px] font-medium text-fg/60">{formatIntPL(w.count)}</span>
-            </div>
-          ))}
+        <div className="mx-auto max-w-md sm:max-w-none">
+          {/* Przy sieci z oddziałami w całym kraju lista dobija do szesnastu wierszy
+              i zjeżdża pod ekran. Na szerokim ekranie łamiemy ją na dwie kolumny,
+              ale w PIONIE: lewa to czołówka, prawa dalsza część rankingu. Podział
+              wierszami rozbijałby kolejność na zygzak. Na telefonie zostaje jedna
+              lista, bo obie połówki lecą wtedy jedna pod drugą. */}
+          <div className="grid gap-x-10 sm:grid-cols-2">
+            {kolumnyWojewodztw.map((kolumna, i) => (
+              <div key={i}>
+                {kolumna.map((w) => (
+                  <div
+                    key={w.slug}
+                    className="flex items-baseline justify-between gap-6 border-b border-fg/10 py-3"
+                  >
+                    <Link
+                      href={`/dzialki/wojewodztwo/${w.slug}`}
+                      className="text-[15px] text-fg/85 underline decoration-fg/15 underline-offset-8 transition hover:decoration-fg/45"
+                    >
+                      {w.name}
+                    </Link>
+                    <span className="text-[14px] font-medium text-fg/60">
+                      {formatIntPL(w.count)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
 
           {zasieg.powiaty.length > 1 ? (
             <p className="mt-6 text-[13px] leading-6 text-fg/55">

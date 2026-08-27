@@ -177,9 +177,14 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
   const [liczbaOfert, zakresRaw, adminRows, oferty] = await Promise.all([
     prisma.dzialka.count({ where: aktywne }),
     prisma.dzialka.aggregate({
-      // Bezpiecznik: dziś żadna aktywna oferta nie ma ceny 0, ale gdyby taka przyszła
+      // Tylko sprzedaż. Wynajem chodzi w czynszu miesięcznym, więc w jednym przedziale
+      // z cenami sprzedaży nic nie znaczy: 2500 zł za plac na miesiąc stanęłoby obok
+      // 39 mln za grunt inwestycyjny. Portfel złożony z samego wynajmu nie dostanie
+      // zakresu w ogóle i to jest w porządku: lepiej nic niż zdanie bez sensu.
+      //
+      // Bezpiecznik na cenę: dziś żadna aktywna oferta nie ma ceny 0, ale gdyby taka przyszła
       // z feedu, zrobiłaby z portfela „działki od 0 zł".
-      where: { ...aktywne, cenaPln: { gt: 0 } },
+      where: { ...aktywne, transakcja: 'SPRZEDAZ', cenaPln: { gt: 0 } },
       _min: { cenaPln: true, powierzchniaM2: true },
       _max: { powierzchniaM2: true },
     }),
