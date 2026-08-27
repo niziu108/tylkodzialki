@@ -15,6 +15,14 @@ admina (`/admin/artykuly/nowy`).
 - **ZERO długich myślników (—).** Używamy przecinków, kropek, dwukropków. To twarda zasada.
 - **Bez pustych superlatyw** ("najlepszy/największy portal"). Konkret zamiast chwalenia się.
 - **Jeden temat = jeden artykuł.** Wąsko, ale wyczerpująco.
+- **Format premium (wzorzec).** Każdy artykuł ma wyglądać jak wzorcowe teksty o PCC i wodociągu:
+  płynna proza (nie same listy), **tabele** wszędzie tam, gdzie są liczby, koszty, klasy czy
+  porównania, **pogrubienia** kluczowych pojęć oraz mocne, „mówiące" nagłówki `##` (z nich sam
+  składa się spis treści). Na końcu jedno zdanie zastrzeżenia w stylu „To nie porada prawna,
+  tylko punkt wyjścia, szczegóły potwierdź w...".
+- **Podawaj TREŚĆ w bloku kodu.** W czacie treść markdown oddawaj jako fenced code block
+  (```markdown ... ```), NIE jako wyrenderowany tekst, żeby przy kopiowaniu nie ginęły znaki
+  `##`, `>`, `**`. Pola meta (tytuł/slug/zajawka/SEO) podaj osobno jako inline code.
 
 ---
 
@@ -141,7 +149,11 @@ TREŚĆ: (czysty markdown, według schematu)
   > 💡 **Praktyczna wskazówka:** jedno, dwa zdania.
 - Wpleć 2–3 naturalne linki wewnętrzne w markdown, w tym zawsze [działki na sprzedaż](/kup).
   Jeśli temat dotyczy regionu/typu, dodaj link do huba, np. [działki budowlane we Wrocławiu](/dzialki/wroclaw/budowlane).
-- Zakończ sekcją "## Podsumowanie" (1 akapit). Nie dopisuj własnego CTA na końcu.
+- Gdzie tylko pasują liczby, koszty, klasy, terminy lub porównania, użyj TABELI markdown (GFM),
+  nie samej listy. Pogrubiaj kluczowe pojęcia w akapitach.
+- Nagłówki `##` pisz jako mocne, konkretne frazy (z nich generuje się spis treści).
+- Zakończ sekcją "## Podsumowanie" (1 akapit) zamkniętą jednym zdaniem zastrzeżenia
+  („To nie porada prawna, tylko punkt wyjścia, szczegóły potwierdź w..."). Nie dopisuj CTA.
 ```
 
 ---

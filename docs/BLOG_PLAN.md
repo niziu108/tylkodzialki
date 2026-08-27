@@ -10,93 +10,93 @@ droga dojazdowa, uzbrojenie (sprawdzanie + koszt), podział działki (koszt), in
 ---
 
 ## Formalności i prawo
-- [ ] Odrolnienie działki: kiedy jest potrzebne i jak je przeprowadzić
-- [ ] Wyłączenie gruntu z produkcji rolnej: koszt i procedura
-- [ ] Studium uwarunkowań a MPZP: czym się różnią
-- [ ] Pozwolenie na budowę a zgłoszenie budowy w 2026
-- [ ] Mapa do celów projektowych: po co i ile kosztuje
-- [ ] Służebność drogi koniecznej: jak ustanowić dojazd
-- [ ] Rozgraniczenie działki: kiedy i jak ustalić granice
-- [ ] Zasiedzenie części działki: jak się bronić
-- [ ] Wypis i wyrys z MPZP: jak je uzyskać
-- [ ] Decyzja o warunkach zabudowy krok po kroku
-- [ ] Użytkowanie wieczyste a własność: różnice
-- [ ] Służebność przesyłu (słupy, rury): co oznacza dla kupującego
-- [ ] Plan ogólny gminy: co zmienia reforma planowania
-- [ ] Działka w obszarze Natura 2000: co wolno
-- [ ] Działka na terenie zalewowym: ryzyka i ograniczenia
-- [ ] Strefa ochronna linii energetycznej i gazociągu: co to znaczy
-- [ ] Działka z lasem: odlesienie i ograniczenia
-- [ ] Scalanie i podział nieruchomości: na czym polega
+- [x] Odrolnienie działki: kiedy jest potrzebne i jak je przeprowadzić (slug: odrolnienie-dzialki-kiedy-i-jak)
+- [x] Wyłączenie gruntu z produkcji rolnej: koszt i procedura (slug: wylaczenie-gruntu-z-produkcji-rolnej)
+- [x] Studium uwarunkowań a MPZP: czym się różnią (slug: studium-uwarunkowan-a-mpzp-roznice)
+- [x] Pozwolenie na budowę a zgłoszenie budowy w 2026 (slug: pozwolenie-na-budowe-a-zgloszenie-2026)
+- [x] Mapa do celów projektowych: po co i ile kosztuje (slug: mapa-do-celow-projektowych)
+- [x] Służebność drogi koniecznej: jak ustanowić dojazd (slug: sluzebnosc-drogi-koniecznej-dojazd)
+- [x] Rozgraniczenie działki: kiedy i jak ustalić granice (slug: rozgraniczenie-dzialki-ustalenie-granic)
+- [x] Zasiedzenie części działki: jak się bronić (slug: zasiedzenie-czesci-dzialki-obrona)
+- [x] Wypis i wyrys z MPZP: jak je uzyskać (slug: wypis-i-wyrys-z-mpzp-jak-uzyskac)
+- [x] Decyzja o warunkach zabudowy krok po kroku (slug: decyzja-o-warunkach-zabudowy-krok-po-kroku)
+- [x] Użytkowanie wieczyste a własność: różnice (slug: uzytkowanie-wieczyste-a-wlasnosc-roznice)
+- [x] Służebność przesyłu (słupy, rury): co oznacza dla kupującego (slug: sluzebnosc-przesylu-co-oznacza-dla-kupujacego)
+- [x] Plan ogólny gminy: co zmienia reforma planowania (slug: plan-ogolny-gminy-co-zmienia-reforma)
+- [x] Działka w obszarze Natura 2000: co wolno (slug: dzialka-natura-2000-co-wolno)
+- [x] Działka na terenie zalewowym: ryzyka i ograniczenia (slug: dzialka-na-terenie-zalewowym-ryzyka)
+- [x] Strefa ochronna linii energetycznej i gazociągu: co to znaczy (slug: strefa-ochronna-linii-energetycznej-i-gazociagu)
+- [x] Działka z lasem: odlesienie i ograniczenia (slug: odlesienie-dzialki-lesnej)
+- [x] Scalanie i podział nieruchomości: na czym polega (slug: scalanie-i-podzial-nieruchomosci)
 - [ ] Renta planistyczna i opłata adiacencka: kto płaci
 - [ ] Akt notarialny zakupu działki: co musi zawierać
 
 ## Kupno działki
 - [ ] Jak kupić działkę krok po kroku (pełny przewodnik)
-- [ ] Podatek PCC przy zakupie działki: ile i kiedy
-- [ ] Koszty notarialne przy zakupie działki
-- [ ] Umowa przedwstępna na zakup działki: co zawrzeć
-- [ ] Zadatek a zaliczka przy zakupie działki: różnica
-- [ ] Jak sprawdzić właściciela działki przed zakupem
-- [ ] Działka od dewelopera a z rynku wtórnego
-- [ ] Jak negocjować cenę działki
-- [ ] Kredyt na działkę: jak go dostać
+- [x] Podatek PCC przy zakupie działki: ile i kiedy (slug: podatek-pcc-przy-zakupie-dzialki)
+- [x] Koszty notarialne przy zakupie działki (slug: koszty-notarialne-przy-zakupie-dzialki)
+- [x] Umowa przedwstępna na zakup działki: co zawrzeć (slug: umowa-przedwstepna-na-zakup-dzialki)
+- [x] Zadatek a zaliczka przy zakupie działki: różnica (slug: zadatek-a-zaliczka-przy-zakupie-dzialki)
+- [x] Jak sprawdzić właściciela działki przed zakupem (slug: jak-sprawdzic-wlasciciela-dzialki)
+- [x] Działka od dewelopera a z rynku wtórnego (slug: dzialka-od-dewelopera-a-z-rynku-wtornego)
+- [x] Jak negocjować cenę działki (slug: jak-negocjowac-cene-dzialki)
+- [x] Kredyt na działkę: jak go dostać (slug: kredyt-na-dzialke-jak-dostac)
 - [ ] Działka z rozpoczętą budową: na co uważać
-- [ ] Jak sprawdzić dostęp do drogi publicznej
-- [ ] Geodeta przy zakupie działki: kiedy go zatrudnić
-- [ ] Czerwone flagi przy zakupie działki
-- [ ] Jak czytać ogłoszenie działki i wyłapać haczyki
-- [ ] Działka rekreacyjna ROD: co można, czy można mieszkać
-- [ ] Działka siedliskowa: dla kogo i jakie warunki
+- [x] Jak sprawdzić dostęp do drogi publicznej (slug: jak-sprawdzic-dostep-do-drogi-publicznej)
+- [x] Geodeta przy zakupie działki: kiedy go zatrudnić (slug: geodeta-przy-zakupie-dzialki)
+- [x] Czerwone flagi przy zakupie działki (slug: czerwone-flagi-przy-zakupie-dzialki)
+- [x] Jak czytać ogłoszenie działki i wyłapać haczyki (slug: jak-czytac-ogloszenie-dzialki-haczyki)
+- [x] Działka rekreacyjna ROD: co można, czy można mieszkać (slug: dzialka-rod-co-mozna-czy-mozna-mieszkac)
+- [x] Działka siedliskowa: dla kogo i jakie warunki (slug: dzialka-siedliskowa-dla-kogo-warunki)
 - [ ] Jak rozpoznać działkę inwestycyjną
-- [ ] Jak sprawdzić planowane inwestycje w okolicy działki
+- [x] Jak sprawdzić planowane inwestycje w okolicy działki (slug: jak-sprawdzic-planowane-inwestycje-w-okolicy-dzialki)
 - [ ] Jak sprawdzić dostępność przyłączy na działce
 - [ ] Nasłonecznienie i ukształtowanie działki: jak ocenić
 
 ## Budowa
-- [ ] Jak podłączyć prąd do działki krok po kroku
-- [ ] Jak podłączyć wodę i kanalizację do działki
-- [ ] Przyłącze gazowe: procedura i koszt
-- [ ] Szambo, oczyszczalnia czy kanalizacja: co wybrać
-- [ ] Studnia na działce: pozwolenie i koszt
+- [x] Jak podłączyć prąd do działki krok po kroku (slug: jak-podlaczyc-prad-do-dzialki)
+- [x] ~~Jak podłączyć wodę i kanalizację do działki~~ DUPLIKAT: pokrywa się z opublikowanym „Wodociąg na działce" (slug: wodociag-na-dzialce-przylacze-wody); kanalizacja osobno w „Szambo, oczyszczalnia czy kanalizacja".
+- [x] Przyłącze gazowe: procedura i koszt (slug: przylacze-gazowe-do-dzialki-procedura-koszt)
+- [x] Szambo, oczyszczalnia czy kanalizacja: co wybrać (slug: szambo-oczyszczalnia-czy-kanalizacja)
+- [x] Studnia na działce: pozwolenie i koszt (slug: studnia-na-dzialce-pozwolenie-i-koszt)
 - [ ] Jak utwardzić drogę dojazdową do działki
 - [ ] Warunki techniczne przyłączy: jak je uzyskać
-- [ ] Od czego zacząć budowę domu na działce
+- [x] Od czego zacząć budowę domu na działce (slug: od-czego-zaczac-budowe-domu-na-dzialce)
 - [ ] Dziennik budowy i kierownik budowy: co musisz wiedzieć
-- [ ] Ogrodzenie działki: kiedy potrzebne zgłoszenie
-- [ ] Wycinka drzew na działce: kiedy potrzebne zezwolenie
+- [x] Ogrodzenie działki: kiedy potrzebne zgłoszenie (slug: ogrodzenie-dzialki-kiedy-zgloszenie)
+- [x] Wycinka drzew na działce: kiedy potrzebne zezwolenie (slug: wycinka-drzew-na-dzialce-zezwolenie)
 - [ ] Niwelacja terenu pod budowę
-- [ ] Badania geotechniczne gruntu: po co i ile kosztują
-- [ ] Dom do 70 m2 bez pozwolenia: zasady w 2026
-- [ ] Jak ustawić dom względem stron świata
-- [ ] Odległości budynku od granicy działki
+- [x] Badania geotechniczne gruntu: po co i ile kosztują (slug: badania-geotechniczne-gruntu-po-co-koszt)
+- [x] Dom do 70 m2 bez pozwolenia: zasady w 2026 (slug: dom-bez-pozwolenia-jaka-dzialka)
+- [x] Jak ustawić dom względem stron świata (slug: jak-ustawic-dom-wzgledem-stron-swiata)
+- [x] Odległości budynku od granicy działki (slug: odleglosci-budynku-od-granicy-dzialki)
 - [ ] Przyłącze a instalacja: czym się różnią
 - [ ] Tymczasowy prąd budowlany: jak załatwić
 
 ## Działka rolna
-- [ ] Kto może kupić działkę rolną w 2026
-- [ ] Ustawa o obrocie ziemią rolną: co musisz wiedzieć
-- [ ] Jak przekształcić działkę rolną w budowlaną
-- [ ] Dzierżawa gruntów rolnych: jak działa
+- [x] Kto może kupić działkę rolną w 2026 (slug: kto-moze-kupic-dzialke-rolna)
+- [x] ~~Ustawa o obrocie ziemią rolną: co musisz wiedzieć~~ POKRYTE w „Kto może kupić działkę rolną" (slug: kto-moze-kupic-dzialke-rolna) — progi 0,3/1 ha, rolnik indywidualny, KOWR, wyjątki.
+- [x] ~~Jak przekształcić działkę rolną w budowlaną~~ DUPLIKAT: ta sama intencja co „Odrolnienie działki" (slug: odrolnienie-dzialki-kiedy-i-jak) + „Wyłączenie gruntu z produkcji rolnej".
+- [x] Dzierżawa gruntów rolnych: jak działa (slug: dzierzawa-gruntow-rolnych-jak-dziala)
 - [ ] Dopłaty do gruntów rolnych: kto może dostać
-- [ ] Działka rolna do 0,3 ha: zasady zabudowy
+- [x] Działka rolna do 0,3 ha: zasady zabudowy (slug: dzialka-rolna-do-0-3-ha-zasady-zabudowy)
 - [ ] Klasa bonitacyjna a odrolnienie
-- [ ] Co można wybudować na działce rolnej bez odrolnienia
+- [x] Co można wybudować na działce rolnej bez odrolnienia (slug: co-wybudowac-na-dzialce-rolnej-bez-odrolnienia)
 - [ ] Sprzedaż działki rolnej: prawo pierwokupu KOWR
-- [ ] Podatek rolny i ulga rolna: ile zapłacisz
+- [x] Podatek rolny i ulga rolna: ile zapłacisz (slug: podatek-rolny-i-ulga-rolna)
 - [ ] Działka rolna pod fotowoltaikę: czy się opłaca
-- [ ] Łąka, pastwisko, grunt orny: co oznaczają oznaczenia
+- [x] Łąka, pastwisko, grunt orny: co oznaczają oznaczenia (slug: oznaczenia-uzytkow-laka-pastwisko-grunt-orny)
 
 ## Sprzedaż działki
 - [ ] Jak sprzedać działkę szybko i drożej
-- [ ] Jak wycenić działkę przed sprzedażą
-- [ ] Jak przygotować działkę do sprzedaży
-- [ ] Dokumenty potrzebne do sprzedaży działki
-- [ ] Podatek od sprzedaży działki: kiedy zapłacisz
-- [ ] Sprzedaż działki przed upływem 5 lat: podatek dochodowy
-- [ ] Jak zrobić dobre zdjęcia działki do ogłoszenia
-- [ ] Jak napisać skuteczne ogłoszenie działki
-- [ ] Sprzedaż przez biuro a samodzielnie
+- [x] Jak wycenić działkę przed sprzedażą (slug: jak-wycenic-dzialke-przed-sprzedaza)
+- [x] Jak przygotować działkę do sprzedaży (slug: jak-przygotowac-dzialke-do-sprzedazy)
+- [x] Dokumenty potrzebne do sprzedaży działki (slug: dokumenty-do-sprzedazy-dzialki)
+- [x] Podatek od sprzedaży działki: kiedy zapłacisz (slug: podatek-od-sprzedazy-dzialki)
+- [x] ~~Sprzedaż działki przed upływem 5 lat: podatek dochodowy~~ POKRYTE w „Podatek od sprzedaży działki" (slug: podatek-od-sprzedazy-dzialki) — zasada 5 lat + ulga mieszkaniowa.
+- [x] Jak zrobić dobre zdjęcia działki do ogłoszenia (slug: jak-zrobic-dobre-zdjecia-dzialki)
+- [x] Jak napisać skuteczne ogłoszenie działki (slug: jak-napisac-skuteczne-ogloszenie-dzialki)
+- [x] Sprzedaż przez biuro a samodzielnie (slug: sprzedaz-dzialki-przez-biuro-a-samodzielnie)
 - [ ] Sprzedaż udziału w działce
 - [ ] Sprzedaż działki z domem w budowie
 - [ ] Jak podzielić działkę przed sprzedażą, żeby zarobić więcej
@@ -105,18 +105,18 @@ droga dojazdowa, uzbrojenie (sprawdzanie + koszt), podział działki (koszt), in
 
 ## Inwestowanie
 - [ ] Czy warto inwestować w działki w 2026
-- [ ] Działka jako lokata kapitału: plusy i minusy
+- [x] Działka jako lokata kapitału: plusy i minusy (slug: dzialka-jako-lokata-kapitalu-plusy-minusy)
 - [ ] Jak zarabiać na podziale działki
-- [ ] Flipping działek: na czym polega
+- [x] Flipping działek: na czym polega (slug: flipping-dzialek-na-czym-polega)
 - [ ] Działka pod wynajem (parking, magazyn, reklama)
-- [ ] Gdzie kupować działki pod inwestycję
-- [ ] Jak wyłapać działkę z potencjałem
+- [x] Gdzie kupować działki pod inwestycję (slug: gdzie-kupowac-dzialki-pod-inwestycje)
+- [x] Jak wyłapać działkę z potencjałem (slug: jak-wylapac-dzialke-z-potencjalem)
 - [ ] Ziemia rolna jako inwestycja długoterminowa
 - [ ] Działka pod fotowoltaikę: dzierżawa dla inwestora
-- [ ] ROI z działki: jak policzyć opłacalność
-- [ ] Jak znaleźć działki w okolicy planowanych inwestycji
-- [ ] Działka uzbrojona a nieuzbrojona: co się bardziej opłaca
+- [x] ROI z działki: jak policzyć opłacalność (slug: roi-z-dzialki-jak-policzyc-oplacalnosc)
+- [ ] Jak znaleźć działki w okolicy planowanych inwestycji (UWAGA: możliwy duplikat „Jak sprawdzić planowane inwestycje w okolicy działki" — sprawdzić przed pisaniem)
+- [x] Działka uzbrojona a nieuzbrojona: co się bardziej opłaca (slug: dzialka-uzbrojona-a-nieuzbrojona)
 - [ ] Jak dywersyfikować portfel działkami
-- [ ] Ryzyka inwestowania w działki i jak je ograniczyć
+- [x] Ryzyka inwestowania w działki i jak je ograniczyć (slug: ryzyka-inwestowania-w-dzialki)
 - [ ] Działka pod glamping i domki na wynajem
 - [ ] Jak finansować zakup działki inwestycyjnej
