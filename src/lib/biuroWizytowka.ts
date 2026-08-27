@@ -80,6 +80,7 @@ export type Wizytowka = {
   nazwa: string;
   logoUrl: string | null;
   logoBg: boolean;
+  nazwaWLogo: boolean;
   partner: boolean;
   opis: string | null;
   telefon: string | null;
@@ -152,6 +153,7 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
       id: true,
       biuroWizytowkaOn: true,
       biuroPartnerStrategiczny: true,
+      biuroNazwaWLogo: true,
       biuroSlug: true,
       biuroOpis: true,
       biuroTelefon: true,
@@ -223,6 +225,9 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
     logoUrl: user.defaultBiuroLogoUrl,
     logoBg: user.defaultBiuroLogoBg,
     partner: user.biuroPartnerStrategiczny,
+    // Chowamy nazwę tylko wtedy, gdy jest czym ją zastąpić: bez logo wizytówka zostałaby
+    // bez tytułu na wierzchu, więc przy pustym logotypie przełącznik z admina nie ma głosu.
+    nazwaWLogo: user.biuroNazwaWLogo && !!user.defaultBiuroLogoUrl,
     opis: user.biuroOpis,
     telefon: user.biuroTelefon,
     email: user.biuroEmail,

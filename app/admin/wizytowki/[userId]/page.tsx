@@ -50,6 +50,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
       defaultBiuroLogoBg: true,
       biuroWizytowkaOn: true,
       biuroPartnerStrategiczny: true,
+      biuroNazwaWLogo: true,
       biuroSlug: true,
       biuroOpis: true,
       biuroTelefon: true,
@@ -139,16 +140,38 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
         <input type="hidden" name="userId" value={u.id} />
 
         <div className="grid gap-5 md:grid-cols-2">
-          <label className="block">
-            <span className={LABEL}>Nazwa biura (widoczna na wizytówce)</span>
-            <input
-              type="text"
-              name="nazwa"
-              defaultValue={u.defaultBiuroNazwa || ""}
-              placeholder="np. RE/MAX Polska"
-              className={INPUT}
-            />
-          </label>
+          <div>
+            <label className="block">
+              <span className={LABEL}>Nazwa biura</span>
+              <input
+                type="text"
+                name="nazwa"
+                defaultValue={u.defaultBiuroNazwa || ""}
+                placeholder="np. RE/MAX Polska"
+                className={INPUT}
+              />
+            </label>
+
+            {/* Sieci mają nazwę wpisaną w sam logotyp, więc napis pod znakiem dublował ją
+                na wizytówce. Nazwa jest dalej potrzebna w tytule strony, w opisie dla Google
+                i w opisie logotypu, dlatego chowamy ją z ekranu, a nie kasujemy. */}
+            <label className="mt-3 flex items-start gap-2.5 text-[13px] text-fg/80">
+              <input
+                type="checkbox"
+                name="nazwaWLogo"
+                value="1"
+                defaultChecked={u.biuroNazwaWLogo}
+                className="mt-0.5 h-4 w-4 accent-brand"
+              />
+              <span>
+                Logo zawiera już nazwę, nie powtarzaj jej pod spodem
+                <span className="mt-1 block text-[12px] leading-6 text-fg/50">
+                  Na wizytówce zostaje sam logotyp. Działa tylko przy wgranym logo. Nazwa
+                  dalej pracuje w tytule strony i w wynikach Google.
+                </span>
+              </span>
+            </label>
+          </div>
 
           <label className="block">
             <span className={LABEL}>Adres wizytówki (puste = z nazwy biura)</span>

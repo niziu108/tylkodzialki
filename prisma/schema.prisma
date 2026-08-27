@@ -40,6 +40,13 @@ model User {
   // cokolwiek znaczyć i zamienia listę wyników w choinkę. Świadomie NIE jest to stopień
   // najwyższy („główny dostawca"), żeby nie trzeba go było odbierać, gdy dojdzie ktoś większy.
   biuroPartnerStrategiczny Boolean @default(false)
+  // Logotypy sieci (RE/MAX, Freedom) mają nazwę wpisaną w znak, więc nagłówek z tą samą
+  // nazwą tuż pod logo dublował ją na wizytówce. Ten przełącznik chowa nazwę WIZUALNIE:
+  // h1 zostaje w kodzie strony jako `sr-only`, bo to jedyny nagłówek tej strony i musi
+  // widzieć go Google oraz czytnik ekranu. Działa tylko przy wgranym logo, inaczej
+  // wizytówka zostałaby bez żadnego tytułu na wierzchu.
+  biuroNazwaWLogo          Boolean @default(false)
+
   biuroSlug                String? @unique
   biuroOpis                String?
   biuroTelefon             String?

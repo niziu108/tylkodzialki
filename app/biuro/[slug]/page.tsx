@@ -9,16 +9,18 @@ import { getWizytowkaBySlug, WIZYTOWKA_MIN_INDEX } from '@/lib/biuroWizytowka';
 import { formatIntPL } from '@/lib/format';
 import { plural } from '@/lib/plural';
 
-/* Wizytówka partnera. Wejście wyłącznie z jego oferty: strona nie jest w nawigacji,
- * nie ma jej w sitemapie i celowo stoi na `noindex`, to karta partnerska, nie hub SEO.
+/* Wizytówka partnera. Nie ma jej w nawigacji, wejście idzie z oferty biura i z Google:
+ * od WIZYTOWKA_MIN_INDEX ofert strona 1 jest indeksowana i wchodzi do sitemapy.
  *
  * Trasa MUSI zostać dynamiczna, dlatego nie ma tu ani `revalidate`, ani
  * `generateStaticParams`. Paginacja portfela chodzi po `?strona=`, a odczyt
  * searchParams zbiega render do dynamicznego. Na trasie oznaczonej jako SSG Next
  * wywala wtedy w runtime „Page changed from static to dynamic at runtime" i cała
  * trasa oddaje 500, także dla nieistniejącego sluga (tak padła 27.08.2026).
- * ISR nic by tu nie kupił: przy noindex i braku sitemapy Googlebot tu nie zagląda,
- * a ruch przychodzi z pojedynczych ofert partnera. */
+ *
+ * Cena za to jest realna: Googlebot chodzi tu po sitemapie, a każde jego wejście
+ * przelicza portfel od nowa. Żeby odzyskać ISR na stronie 1, paginacja musiałaby
+ * zejść z `?strona=` na segment adresu (`/biuro/[slug]/strona/[n]`). */
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -242,6 +244,28 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
     });
   }
 
+  /* Logotypy sieci (RE/MAX, Freedom) mają nazwę wpisaną w sam znak, więc nagłówek
+   * z tą samą nazwą tuż pod logo czytał się jak pomyłka. Przy włączonym przełączniku
+   * nazwa znika Z EKRANU, ale zostaje w kodzie strony jako `sr-only`: to jedyny h1
+   * wizytówki, więc musi go widzieć Google i czytnik ekranu. Ten sam zabieg co na
+   * hubach powiatów i województw. */
+  const tytul = (
+    <h1
+      className={
+        biuro.nazwaWLogo
+          ? 'sr-only'
+          : 'text-balance text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[34px]'
+      }
+    >
+      {biuro.nazwa}
+    </h1>
+  );
+
+  // Z ukrytą nazwą i bez znaku partnera obok logo nie zostaje nic widocznego. Sam h1
+  // jest wtedy pozycjonowany absolutnie (`sr-only`), więc wypada z układu i nie ciągnie
+  // za sobą pustej kolumny ani odstępu po logotypie.
+  const maTekstObokLogo = !biuro.nazwaWLogo || biuro.partner;
+
   return (
     <main className="relative w-full" style={{ background: 'var(--bg)' }}>
       {/* NAGŁÓWEK — na komputerze dwie kolumny: po lewej kim jest biuro, po prawej
@@ -262,18 +286,26 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
                   />
                 ) : null}
 
-                <div className="min-w-0">
-                  <h1 className="text-balance text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[34px]">
-                    {biuro.nazwa}
-                  </h1>
+                {maTekstObokLogo ? (
+                  <div className="min-w-0">
+                    {tytul}
 
-                  {/* Status tuż pod nazwą, czyli pierwsza rzecz czytana po logo i nazwie.
-                      Zwykłym krojem i kolorem: na wizytówce nie ma z czym konkurować,
-                      bo cała strona należy do tego biura. */}
-                  {biuro.partner ? (
-                    <p className="mt-2 text-[15px] text-fg/70">Nasz partner strategiczny</p>
-                  ) : null}
-                </div>
+                    {/* Status tuż pod nazwą, czyli pierwsza rzecz czytana po logo i nazwie.
+                        Zwykłym krojem i kolorem: na wizytówce nie ma z czym konkurować,
+                        bo cała strona należy do tego biura. */}
+                    {biuro.partner ? (
+                      <p
+                        className={`text-[15px] text-fg/70 ${
+                          biuro.nazwaWLogo ? '' : 'mt-2'
+                        }`}
+                      >
+                        Nasz partner strategiczny
+                      </p>
+                    ) : null}
+                  </div>
+                ) : (
+                  tytul
+                )}
               </div>
 
               <p className="mt-6 text-balance text-center text-[15px] leading-7 text-fg/68 md:text-left">

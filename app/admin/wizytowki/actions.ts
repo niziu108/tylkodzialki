@@ -122,6 +122,10 @@ export async function saveWizytowkaAction(formData: FormData) {
       ...(nazwa ? { defaultBiuroNazwa: nazwa } : {}),
       biuroWizytowkaOn: on,
       biuroPartnerStrategiczny: String(formData.get("partnerStrategiczny") || "") === "1",
+      // Zaznaczone = na wizytówce zostaje sam logotyp. Nazwę nadal zapisujemy: idzie
+      // w tytuł strony, w opis dla Google i w opis logotypu, więc kasowanie jej byłoby
+      // czymś zupełnie innym niż schowanie go z ekranu.
+      biuroNazwaWLogo: String(formData.get("nazwaWLogo") || "") === "1",
       biuroSlug: slug,
       biuroOpis: optionalText(formData, "opis", 4000),
       biuroTelefon: optionalText(formData, "telefon", 40),
