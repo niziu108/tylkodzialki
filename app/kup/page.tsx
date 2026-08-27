@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { Przeznaczenie } from '@prisma/client';
 import KupSearch, { DEFAULT_RADIUS_KM } from './KupSearch';
 import type { SortOption } from './KupSearch';
+import { unstable_cache } from 'next/cache';
 import { queryDzialkiList } from '@/lib/dzialkiListing';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,32 @@ const ALLOWED_PRZEZN: Przeznaczenie[] = [
 const ALLOWED_MEDIA = ['prad', 'woda', 'kanalizacja', 'gaz'] as const;
 
 const ALLOWED_TRANSAKCJA = ['SPRZEDAZ', 'WYNAJEM'] as const;
+
+// Gołe wejście na /kup (zero filtrów, pierwsza strona, domyślny sort) daje dla wszystkich
+// dokładnie ten sam wynik, a przy fali ruchu z zewnątrz to właśnie tam trafia większość odwiedzin.
+// Trzymamy ten jeden wariant we wspólnym cache przez minutę, żeby setki równoczesnych wejść
+// nie oznaczały setek zapytań do bazy. Import z CRM chodzi co 2 h, więc minuta opóźnienia nie
+// zmienia świeżości podaży w niczym, co użytkownik jest w stanie zauważyć.
+// Cache trzyma gotowy JSON (nie obiekty Prismy), więc kształt jest identyczny z tym, co klient
+// dostaje z /api/dzialki, i nie ma pułapki na serializacji dat.
+const getDefaultListing = unstable_cache(
+  async () => {
+    const params = new URLSearchParams();
+    params.set('skip', '0');
+    params.set('take', '20');
+    params.set('sort', 'newest');
+
+    const body = await queryDzialkiList(params);
+    if (!('items' in body)) return null;
+
+    return {
+      items: JSON.parse(JSON.stringify(body.items)) as unknown[],
+      count: body.count,
+    };
+  },
+  ['kup-listing-default-v1'],
+  { revalidate: 60 }
+);
 
 function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value ?? '';
@@ -158,13 +185,37 @@ export default async function KupPage({ searchParams }: KupPageProps) {
     apiParams.set('take', '20');
     apiParams.set('sort', sort);
 
+    // Czy to jest właśnie ten goły wariant, który wolno wziąć ze wspólnego cache.
+    // Każde odstępstwo (filtr, tekst, promień, bbox, inny sort, dalsza strona) liczy się na świeżo.
+    const isDefaultView =
+      !hasBBox &&
+      !hasCenter &&
+      !locTextForSsr &&
+      page === 1 &&
+      sort === 'newest' &&
+      !przezn.length &&
+      !media.length &&
+      !transakcja.length &&
+      !pMin &&
+      !pMax &&
+      !aMin &&
+      !aMax;
+
     try {
-      const body = await queryDzialkiList(apiParams);
-      if ('items' in body) {
-        // Serializacja do zwykłego JSON (Daty → ISO) — dokładnie ten kształt, który klient
-        // dostaje dziś z fetch(/api/dzialki), więc pierwszy render klienta = render serwera.
-        initialItems = JSON.parse(JSON.stringify(body.items)) as unknown[];
-        initialCount = body.count;
+      if (isDefaultView) {
+        const cached = await getDefaultListing();
+        if (cached) {
+          initialItems = cached.items;
+          initialCount = cached.count;
+        }
+      } else {
+        const body = await queryDzialkiList(apiParams);
+        if ('items' in body) {
+          // Serializacja do zwykłego JSON (Daty → ISO) — dokładnie ten kształt, który klient
+          // dostaje dziś z fetch(/api/dzialki), więc pierwszy render klienta = render serwera.
+          initialItems = JSON.parse(JSON.stringify(body.items)) as unknown[];
+          initialCount = body.count;
+        }
       }
     } catch {
       // Gdyby SSR padł (np. chwilowy błąd bazy) — nie wywalamy strony; klient dociągnie dane
