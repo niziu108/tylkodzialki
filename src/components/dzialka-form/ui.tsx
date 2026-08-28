@@ -112,6 +112,15 @@ export function UnderlineField({
   );
 }
 
+// Pigułka zaznaczenia — 1:1 klasa z filtrów na /kup (przeznaczenie, media, typ oferty).
+// Wcześniej formularz zaznaczał wybór cienkim podkreśleniem: przy pięciu podobnych
+// słowach w rzędzie („Brak przyłącza / Na działce / W drodze / …") trzeba było szukać,
+// które jest podkreślone. Zielone tło widać od razu i jest to ten sam język, którym
+// mówi wyszukiwarka.
+const CHIP_BASE = 'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition';
+const CHIP_ON = 'border-brand bg-brand/20 text-brand-bright';
+const CHIP_OFF = 'border-fg/25 text-fg/70 hover:border-fg/45';
+
 export function Tabs({
   value,
   onChange,
@@ -122,7 +131,7 @@ export function Tabs({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="flex flex-wrap gap-8">
+    <div className="flex flex-wrap gap-2">
       {options.map((o) => {
         const active = value === o.value;
         return (
@@ -131,13 +140,7 @@ export function Tabs({
             type="button"
             onClick={() => onChange(o.value)}
             aria-pressed={active}
-            className={cx('text-[15px] font-semibold tracking-tight transition', active ? 'text-fg' : 'text-fg/70 hover:text-fg')}
-            style={{
-              textDecoration: active ? 'underline' : 'none',
-              textUnderlineOffset: '10px',
-              textDecorationThickness: '1px',
-              textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
-            }}
+            className={cx(CHIP_BASE, active ? CHIP_ON : CHIP_OFF)}
           >
             {o.label}
           </button>
@@ -147,18 +150,10 @@ export function Tabs({
   );
 }
 
-// Siatka zamiast flex-wrap: przy sześciu przeznaczeniach etykiety mają 594 px przy
-// kontenerze 688, więc „Siedliskowa" zawijała się samotnie do drugiego rzędu.
-// Odrzucone warianty (zmierzone w przeglądarce):
-//   - odstęp 18 px zamiast 32 mieści wszystkie w jednej linii, ale rozjeżdża się przy
-//     pierwszej dłuższej etykiecie,
-//   - flex-wrap na telefonie, siatka od sm: przy 414 px daje 2 rzędy zamiast 3, ale
-//     przy 375 px wraca ta sama sierota i wychodzi 123 px zamiast 107.
-// Trzy kolumny nie mieszczą się poniżej ~480 px (same słowa to 348 px przy 366 px
-// kontenera), więc na telefonie zostają dwie. Kosztuje to jeden rząd na szerszych
-// telefonach i tyle: układ jest przewidywalny na każdej szerokości.
-// justify-items-start, bo tekst w <button> domyślnie centruje się i lewe krawędzie
-// kolumn by się postrzępiły.
+// Siatka o stałych kolumnach (3 od sm, 2 niżej): sześć przeznaczeń nie mieści się
+// w jednym rzędzie, a przy flex-wrap „Siedliskowa" zawijała się samotnie do drugiego.
+// Trzy kolumny nie wchodzą poniżej ~480 px, bo same słowa to 348 px przy 366 px
+// kontenera. justify-items-start, żeby pigułki trzymały lewą krawędź kolumny.
 export function MultiTabs({
   values,
   toggle,
@@ -169,7 +164,7 @@ export function MultiTabs({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="grid grid-cols-2 justify-items-start gap-x-8 gap-y-6 sm:grid-cols-3">
+    <div className="grid grid-cols-2 justify-items-start gap-2 sm:grid-cols-3">
       {options.map((o) => {
         const active = values.includes(o.value);
         return (
@@ -178,16 +173,7 @@ export function MultiTabs({
             type="button"
             onClick={() => toggle(o.value)}
             aria-pressed={active}
-            className={cx(
-              'text-[13px] md:text-[14px] font-semibold uppercase tracking-[0.08em] transition',
-              active ? 'text-fg' : 'text-fg/70 hover:text-fg'
-            )}
-            style={{
-              textDecoration: active ? 'underline' : 'none',
-              textUnderlineOffset: '10px',
-              textDecorationThickness: '1px',
-              textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
-            }}
+            className={cx(CHIP_BASE, active ? CHIP_ON : CHIP_OFF)}
           >
             {o.label}
           </button>
@@ -197,6 +183,9 @@ export function MultiTabs({
   );
 }
 
+// Ta sama siatka co w MultiTabs: pięć opcji uzbrojenia przy flex-wrap zawijało się
+// jako 4+1, z „Możliwość przyłączenia" samotnie w drugim wierszu. Stałe kolumny dają
+// 3+2 i jeden układ dla wszystkich pól wyboru w formularzu.
 export function ChoiceRow({
   value,
   onChange,
@@ -207,7 +196,7 @@ export function ChoiceRow({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="flex flex-wrap gap-8">
+    <div className="grid grid-cols-2 justify-items-start gap-2 sm:grid-cols-3">
       {options.map((o) => {
         const active = value === o.value;
         return (
@@ -216,13 +205,7 @@ export function ChoiceRow({
             type="button"
             onClick={() => onChange(o.value)}
             aria-pressed={active}
-            className={cx('text-[14px] md:text-[15px] font-semibold tracking-tight transition', active ? 'text-fg' : 'text-fg/70 hover:text-fg')}
-            style={{
-              textDecoration: active ? 'underline' : 'none',
-              textUnderlineOffset: '10px',
-              textDecorationThickness: '1px',
-              textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
-            }}
+            className={cx(CHIP_BASE, active ? CHIP_ON : CHIP_OFF)}
           >
             {o.label}
           </button>
