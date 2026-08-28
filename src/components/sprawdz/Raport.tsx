@@ -8,6 +8,7 @@ import { type PointValuation, type PriceStat } from '@/lib/seoHub';
 import { decydujCene } from '@/lib/raportCena';
 import type { MpzpInfo } from '@/lib/mpzp';
 import type { PogInfo } from '@/lib/pog';
+import type { AreaPriceTrend } from '@/lib/dzialkaPriceHistory';
 import FeaturedRail from '@/components/FeaturedRail';
 import type { OfferData } from '@/components/OfferCard';
 import RaportMap from './RaportMap';
@@ -21,6 +22,7 @@ export type RaportData = {
   valuation: PointValuation;
   mpzp: MpzpInfo | null;
   pog?: PogInfo | null;
+  trend?: AreaPriceTrend | null;
   nearby?: OfferData[];
 };
 
@@ -81,7 +83,7 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
 }
 
 export default function Raport({ data }: { data: RaportData }) {
-  const { parcel, valuation, mpzp, pog, nearby } = data;
+  const { parcel, valuation, mpzp, pog, trend, nearby } = data;
   // Wybór puli i decyzja „mediana czy widełki" siedzą w lib/raportCena.ts, żeby dało się je
   // testować bez renderowania komponentu.
   const { lead, value: v, mixed } = decydujCene(valuation, mpzp);
@@ -189,6 +191,38 @@ export default function Raport({ data }: { data: RaportData }) {
               oddalona o kilometr bywa dwa razy droższa, bo leży bliżej zabudowy.
             </p>
 
+            {/* TREND — liczony na tych samych ofertach, które wisiały wtedy i wiszą dziś.
+                Sekcja pojawia się sama, gdy historia cen urośnie; do tego czasu `trend` jest null.
+                Tego nie ma żaden portal ogłoszeniowy, bo nikt nie trzyma historii cen ofert. */}
+            {trend ? (
+              <p className="mt-5 max-w-2xl text-[15px] leading-7 text-fg/75">
+                {Math.abs(trend.changePct) < 0.005 ? (
+                  <>
+                    <span className="font-medium text-fg">Ceny w tej okolicy stoją w miejscu</span>{' '}
+                    od {plDate(trend.fromDate)}.
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium text-fg">
+                      Ceny w tej okolicy {trend.changePct > 0 ? 'wzrosły' : 'spadły'} o{' '}
+                      {Math.abs(trend.changePct * 100).toLocaleString('pl-PL', {
+                        maximumFractionDigits: 1,
+                      })}
+                      %
+                    </span>{' '}
+                    od {plDate(trend.fromDate)} ({formatIntPL(trend.medianThen)} →{' '}
+                    {formatIntPL(trend.medianNow)} zł/m²).
+                  </>
+                )}{' '}
+                <span className="text-fg/55">
+                  Liczone na {trend.sampleCount}{' '}
+                  {trend.sampleCount === 1 ? 'ofercie, która wisiała' : 'ofertach, które wisiały'}{' '}
+                  wtedy i wiszą dziś, więc nie myli zmiany cen ze zmianą tego, co akurat jest na
+                  sprzedaż.
+                </span>
+              </p>
+            ) : null}
+
             {/* Druga pula dla kontekstu (budowlane/rolne). Puste rubryki znikają same. */}
             <div className="empty:hidden mt-6">
               {lead.label !== 'działki budowlane' ? (
@@ -214,7 +248,12 @@ export default function Raport({ data }: { data: RaportData }) {
           (() => {
             const hasPurpose = !!(mpzp.functionName || mpzp.functionSymbol);
             const hasDetails =
-              hasPurpose || !!mpzp.maxHeight || !!mpzp.intensity || !!mpzp.effectiveFrom || !!mpzp.resolution;
+              hasPurpose ||
+              !!mpzp.maxHeight ||
+              !!mpzp.intensity ||
+              !!mpzp.effectiveFrom ||
+              !!mpzp.resolution ||
+              !!mpzp.status;
             return (
               <>
                 <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/80">
@@ -243,6 +282,7 @@ export default function Raport({ data }: { data: RaportData }) {
                     <Row label="Intensywność zabudowy" value={mpzp.intensity} />
                     <Row label="Obowiązuje od" value={plDate(mpzp.effectiveFrom)} />
                     <Row label="Uchwała" value={mpzp.resolution} />
+                    <Row label="Status planu" value={mpzp.status} />
                   </div>
                 ) : null}
                 {!hasPurpose ? (

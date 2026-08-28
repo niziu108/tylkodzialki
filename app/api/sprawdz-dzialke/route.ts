@@ -9,6 +9,7 @@ import { getParcelById, getParcelByXY, UldkError, type ParcelReport } from '@/li
 import { getNearbyOffers, getPointValuation, type PointValuation } from '@/lib/seoHub';
 import { getMpzpAtPoint, type MpzpInfo } from '@/lib/mpzp';
 import { getPogAtPoint, type PogInfo } from '@/lib/pog';
+import { getAreaPriceTrend, type AreaPriceTrend } from '@/lib/dzialkaPriceHistory';
 
 type NearbyOffer = Awaited<ReturnType<typeof getNearbyOffers>>[number];
 
@@ -21,6 +22,7 @@ export type SprawdzResponse = {
   valuation: PointValuation;
   mpzp: MpzpInfo | null; // przeznaczenie z KIMPZP w środku działki; null gdy brak planu
   pog: PogInfo | null; // plan ogólny gminy: strefa planistyczna + obszar uzupełnienia zabudowy
+  trend: AreaPriceTrend | null;
   nearby: NearbyOffer[]; // działki na sprzedaż najbliżej sprawdzanego punktu
 };
 
@@ -66,9 +68,12 @@ export async function POST(req: NextRequest) {
     ]);
 
     // Oferty z tego samego koła, na którym liczyliśmy cenę — spójnie z tym, co raport pokazuje.
-    const nearby = await getNearbyOffers(parcel.center.lat, parcel.center.lng, valuation.radiusKm);
+    const [nearby, trend] = await Promise.all([
+      getNearbyOffers(parcel.center.lat, parcel.center.lng, valuation.radiusKm),
+      getAreaPriceTrend(parcel.center.lat, parcel.center.lng, valuation.radiusKm),
+    ]);
 
-    const payload: SprawdzResponse = { parcel, valuation, mpzp, pog, nearby };
+    const payload: SprawdzResponse = { parcel, valuation, mpzp, pog, trend, nearby };
     return NextResponse.json(payload);
   } catch (err) {
     if (err instanceof UldkError) {

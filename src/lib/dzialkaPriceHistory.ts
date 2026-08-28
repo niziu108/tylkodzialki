@@ -91,3 +91,117 @@ export async function getOfferPriceTrend(dzialkaId: string): Promise<OfferPriceT
     return { points: [], changePct: null, firstDate: null };
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TREND CEN OKOLICY (raport „Sprawdz dzialke")
+//
+// Liczymy na PARACH: bierzemy wylacznie oferty, ktore wisialy i wtedy, i dzis, i porownujemy
+// mediany zl/m2 tego samego zbioru. Gdybysmy zestawili „mediane wszystkich ofert wtedy" z
+// „mediana wszystkich dzis", wynik mowilby glownie o tym, jakie oferty doszly i zniknely, a nie
+// o tym, czy ceny poszly w gore. Przy zmiennej podazy to bylaby loteria podana jako fakt.
+//
+// Sekcja wlacza sie SAMA, gdy dane dojrzeja: dopoki historia jest krotsza niz TREND_MIN_DNI albo
+// par jest za malo, zwracamy null i raport o trendzie nie wspomina ([[feedback-filtry-twarde]]).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Minimalny odstep, ponizej ktorego roznica median to szum, nie trend. */
+export const TREND_MIN_DNI = 60;
+/** Minimalna liczba ofert obecnych w obu momentach. */
+export const TREND_MIN_PAR = 8;
+/** Jak daleko wstecz siegamy, gdy historia jest juz dluga. */
+export const TREND_OKNO_DNI = 180;
+
+export type AreaPriceTrend = {
+  /** 0.032 = ceny wyzsze o 3,2% niz w dniu odniesienia */
+  changePct: number;
+  fromDate: string; // YYYY-MM-DD
+  days: number;
+  sampleCount: number;
+  medianThen: number;
+  medianNow: number;
+};
+
+function mediana(values: number[]): number {
+  const s = [...values].sort((a, b) => a - b);
+  const i = Math.floor(s.length / 2);
+  return s.length % 2 ? s[i] : Math.round((s[i - 1] + s[i]) / 2);
+}
+
+/**
+ * Zmiana median zl/m2 wsrod ofert w promieniu `km` od punktu. `null`, gdy historia jest za krotka,
+ * par za malo albo tabeli snapshotow jeszcze nie ma (funkcja nie moze wywrocic raportu).
+ */
+export async function getAreaPriceTrend(
+  lat: number,
+  lng: number,
+  km: number,
+  now: Date = new Date()
+): Promise<AreaPriceTrend | null> {
+  try {
+    const dLat = km / 111.32;
+    const dLng = km / (111.32 * Math.max(Math.abs(Math.cos((lat * Math.PI) / 180)), 0.01));
+
+    const aktualne = await prisma.dzialka.findMany({
+      where: {
+        ownerId: { not: null },
+        status: 'AKTYWNE',
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        cenaPln: { gt: 0 },
+        powierzchniaM2: { gt: 0 },
+        lat: { gte: lat - dLat, lte: lat + dLat },
+        lng: { gte: lng - dLng, lte: lng + dLng },
+      },
+      select: { id: true, cenaPln: true, powierzchniaM2: true },
+    });
+    if (aktualne.length < TREND_MIN_PAR) return null;
+
+    // Data odniesienia: pol roku wstecz, a gdy historia jest mlodsza — jej najstarszy dzien.
+    const najstarszy = await prisma.dzialkaPriceSnapshot.aggregate({ _min: { date: true } });
+    const pierwszaData = najstarszy._min.date;
+    if (!pierwszaData) return null;
+
+    const chciana = new Date(now);
+    chciana.setDate(chciana.getDate() - TREND_OKNO_DNI);
+    const ref = chciana > pierwszaData ? chciana : pierwszaData;
+    const days = Math.round((now.getTime() - ref.getTime()) / 86_400_000);
+    if (days < TREND_MIN_DNI) return null;
+
+    // Cena obowiazujaca w dniu odniesienia = ostatni wpis change-logu nie pozniejszy niz ta data.
+    const wtedy = await prisma.$queryRaw<{ dzialkaId: string; cenaPln: number; powierzchniaM2: number }[]>`
+      SELECT DISTINCT ON (s."dzialkaId") s."dzialkaId", s."cenaPln", s."powierzchniaM2"
+      FROM "DzialkaPriceSnapshot" s
+      JOIN "Dzialka" d ON d.id = s."dzialkaId"
+      WHERE s."date" <= ${ref}
+        AND d.lat BETWEEN ${lat - dLat} AND ${lat + dLat}
+        AND d.lng BETWEEN ${lng - dLng} AND ${lng + dLng}
+      ORDER BY s."dzialkaId", s."date" DESC
+    `;
+    if (wtedy.length < TREND_MIN_PAR) return null;
+
+    const teraz = new Map(aktualne.map((o) => [o.id, o]));
+    const parWtedy: number[] = [];
+    const parTeraz: number[] = [];
+    for (const w of wtedy) {
+      const t = teraz.get(w.dzialkaId);
+      if (!t || w.powierzchniaM2 <= 0 || w.cenaPln <= 0) continue;
+      parWtedy.push(Math.round(w.cenaPln / w.powierzchniaM2));
+      parTeraz.push(Math.round(t.cenaPln / t.powierzchniaM2));
+    }
+    if (parWtedy.length < TREND_MIN_PAR) return null;
+
+    const medianThen = mediana(parWtedy);
+    const medianNow = mediana(parTeraz);
+    if (medianThen <= 0) return null;
+
+    return {
+      changePct: (medianNow - medianThen) / medianThen,
+      fromDate: ref.toISOString().slice(0, 10),
+      days,
+      sampleCount: parWtedy.length,
+      medianThen,
+      medianNow,
+    };
+  } catch {
+    return null;
+  }
+}

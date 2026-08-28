@@ -20,8 +20,9 @@ export type MpzpInfo = {
   functionSymbol: string | null; // symbol (FUN_SYMB / oznaczenie)
   maxHeight: string | null; // MAX_WYS (maks. wysokość zabudowy, m)
   intensity: string | null; // INTEN_ZAB (intensywność zabudowy)
-  effectiveFrom: string | null; // data wejścia w życie (obowiazujeod / data)
-  resolution: string | null; // uchwała (dokumentuchwalajacy / numer_uchwaly)
+  effectiveFrom: string | null; // data wejścia w życie (obowiazujeod / data / wazne_od)
+  resolution: string | null; // uchwała (dokumentuchwalajacy / numer_uchwaly / nr_uchwala)
+  status: string | null; // np. „obowiązujący" — część gmin podaje wprost, czy plan wciąż działa
 };
 
 // KIMPZP to federacja usług gminnych — ta sama warstwa „plany" zwraca RÓŻNE formaty zależnie
@@ -54,6 +55,17 @@ function shortenResolution(v: string | null): string | null {
   const m = v.match(/(?:Nr|nr)\s*([\w./-]+)[\s\S]*?z dnia\s*([0-9]{1,2}[^,;0-9]*?[0-9]{4})/);
   if (m) return `Nr ${m[1]} z ${m[2].trim()}`;
   return v.length > 90 ? `${v.slice(0, 90)}…` : v;
+}
+
+// „obowiazujacy" w różnych wariantach zapisu -> jedna, czytelna etykieta. Wartości spoza
+// słownika pokazujemy tak, jak przyszły z gminy, o ile nie są technicznym śmieciem.
+function statusLabel(v: string | null): string | null {
+  if (!v) return null;
+  const t = v.trim().toLowerCase();
+  if (/^obowi/.test(t)) return 'obowiązujący';
+  if (/^nieobowi|uchylon|wygas/.test(t)) return 'nieobowiązujący';
+  if (/^projekt|przystapien|przystąpien/.test(t)) return 'w opracowaniu';
+  return t.length <= 40 ? v.trim() : null;
 }
 
 function isoDate(v: string | null): string | null {
@@ -127,14 +139,25 @@ export async function getMpzpAtPoint(lat: number, lng: number): Promise<MpzpInfo
     // MAX_WYS / INTEN_ZAB bywają "0" dla terenów bez zabudowy (drogi) — traktuj "0" jak brak.
     const nonZero = (v: string | null) => (v && v !== '0' && v !== '0,0' ? v : null);
 
+    // Aliasy pól: KIMPZP to federacja usług gminnych i te same informacje jeżdżą pod różnymi
+    // nazwami. Pomiar na 60 punktach z naszej podaży pokazał, co realnie wystawiają gminy:
+    // nazwa / nazwa_pelna_plan / nr_plan, numer_uchwaly / nr_uchwala / uchwala,
+    // data / wazne_od / data_uchwalenie. Im więcej aliasów, tym mniej pustych rubryk w raporcie.
     const info: MpzpInfo = {
-      planName: tag(row, 'NAZWA_PLAN') ?? pick('tytul', 'name', 'nazwa'),
-      functionName: tag(row, 'FUN_NAZWA') ?? pick('opis', 'fun_nazwa', 'przeznaczenie'),
-      functionSymbol: tag(row, 'FUN_SYMB') ?? pick('oznaczenie', 'fun_symb'),
-      maxHeight: nonZero(tag(row, 'MAX_WYS') ?? pick('max_wys')),
-      intensity: nonZero(tag(row, 'INTEN_ZAB') ?? pick('inten_zab')),
-      effectiveFrom: isoDate(tag(row, 'DATA') ?? pick('obowiazujeod', 'data')),
-      resolution: shortenResolution(pick('dokumentuchwalajacy', 'numer_uchwaly')),
+      planName:
+        tag(row, 'NAZWA_PLAN') ?? pick('tytul', 'name', 'nazwa', 'nazwa_pelna_plan', 'nr_plan'),
+      functionName: tag(row, 'FUN_NAZWA') ?? pick('opis', 'fun_nazwa', 'przeznaczenie', 'funkcja'),
+      functionSymbol: tag(row, 'FUN_SYMB') ?? pick('oznaczenie', 'fun_symb', 'symbol'),
+      maxHeight: nonZero(tag(row, 'MAX_WYS') ?? pick('max_wys', 'maks_wys', 'wysokosc')),
+      intensity: nonZero(tag(row, 'INTEN_ZAB') ?? pick('inten_zab', 'intensywnosc')),
+      effectiveFrom: isoDate(
+        tag(row, 'DATA') ??
+          pick('obowiazujeod', 'data', 'wazne_od', 'data_uchwalenie', 'data_ogloszenie')
+      ),
+      resolution: shortenResolution(
+        pick('dokumentuchwalajacy', 'numer_uchwaly', 'nr_uchwala', 'uchwala_nr')
+      ),
+      status: statusLabel(pick('status')),
     };
 
     // Gdyby usługa zwróciła treść bez planu/przeznaczenia — traktuj jak brak.

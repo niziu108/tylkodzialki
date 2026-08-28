@@ -27,7 +27,7 @@ function wycena(over: Partial<PointValuation> = {}): PointValuation {
   };
 }
 
-function dane(v: PointValuation): RaportData {
+function dane(v: PointValuation, extra: Partial<RaportData> = {}): RaportData {
   return {
     parcel: {
       id: '100102_2.0001.234/5',
@@ -42,10 +42,18 @@ function dane(v: PointValuation): RaportData {
     } as unknown as RaportData['parcel'],
     valuation: v,
     mpzp: null,
+    ...extra,
   };
 }
 
-const render = (v: PointValuation) => renderToStaticMarkup(createElement(Raport, { data: dane(v) }));
+const render = (v: PointValuation, extra: Partial<RaportData> = {}) =>
+  renderToStaticMarkup(createElement(Raport, { data: dane(v, extra) }));
+
+const wycenaZeSrednia = () =>
+  wycena({
+    similarSize: { pricePerM2: { low: 91, median: 107, high: 123 }, sampleCount: 7 },
+    similarSizeBand: { minM2: 587, maxM2: 1664 },
+  });
 
 describe('sekcja ceny', () => {
   it('przy próbce zawężonej do podobnych działek prowadzi MEDIANĄ, nie widełkami', () => {
@@ -82,5 +90,34 @@ describe('sekcja ceny', () => {
   it('nie pokazuje rubryki „bez uzbrojenia" wziętej z ofert bez danych', () => {
     const html = render(wycena());
     expect(html).not.toContain('Budowlane bez uzbrojenia');
+  });
+
+  it('pokazuje trend cen, gdy historia jest wystarczająco długa', () => {
+    const html = render(wycenaZeSrednia(), {
+      trend: {
+        changePct: 0.032,
+        fromDate: '2026-03-01',
+        days: 180,
+        sampleCount: 24,
+        medianThen: 100,
+        medianNow: 103,
+      },
+    });
+    expect(html).toContain('wzrosły o 3,2%');
+    expect(html).toContain('01.03.2026');
+    expect(html).toContain('24');
+  });
+
+  it('zmiana ponizej pol procenta to „stoja w miejscu”, nie falszywa precyzja', () => {
+    const html = render(wycenaZeSrednia(), {
+      trend: { changePct: 0.001, fromDate: '2026-03-01', days: 180, sampleCount: 12, medianThen: 100, medianNow: 100 },
+    });
+    expect(html).toContain('stoją w miejscu');
+  });
+
+  it('bez historii cen raport nie wspomina o trendzie', () => {
+    const html = render(wycenaZeSrednia());
+    expect(html).not.toContain('w tej okolicy wzrosły');
+    expect(html).not.toContain('stoją w miejscu');
   });
 });
