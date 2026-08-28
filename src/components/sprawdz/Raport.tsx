@@ -80,39 +80,10 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
 
 export default function Raport({ data }: { data: RaportData }) {
   const { parcel, valuation, mpzp, nearby } = data;
-  // Wybór puli i decyzja „mediana czy widełki" siedzą w lib/raportCena.ts, wspólnie z generatorem
-  // PDF — inaczej plik pokazywałby inną cenę niż ekran.
+  // Wybór puli i decyzja „mediana czy widełki" siedzą w lib/raportCena.ts, żeby dało się je
+  // testować bez renderowania komponentu.
   const { lead, value: v, mixed } = decydujCene(valuation, mpzp);
   const [mapShown, setMapShown] = useState(false);
-  const [pdfState, setPdfState] = useState<'idle' | 'busy' | 'error'>('idle');
-
-  // Plik zamiast okna drukowania: użytkownik dostaje PDF, który może wysłać mailem albo zabrać
-  // do gminy. Otwieramy go też w nowej karcie, ale gdy przeglądarka zablokuje wyskakujące okna,
-  // pobrany plik i tak został zapisany.
-  async function pobierzPdf() {
-    setPdfState('busy');
-    try {
-      const res = await fetch('/api/sprawdz-dzialke/pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parcelId: parcel.id }),
-      });
-      if (!res.ok) throw new Error('pdf');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `raport-dzialka-${parcel.parcelNumber.replace(/[^\w]+/g, '-')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.open(url, '_blank', 'noopener');
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      setPdfState('idle');
-    } catch {
-      setPdfState('error');
-    }
-  }
 
   return (
     <div className="print-report w-full text-left">
@@ -137,19 +108,6 @@ export default function Raport({ data }: { data: RaportData }) {
         </div>
 
         <div className="no-print flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={pobierzPdf}
-            disabled={pdfState === 'busy'}
-            className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg disabled:opacity-60"
-          >
-            {pdfState === 'busy'
-              ? 'Przygotowuję PDF…'
-              : pdfState === 'error'
-                ? 'Nie wyszło, spróbuj ponownie'
-                : 'Pobierz PDF'}
-          </button>
-
           <button
             type="button"
             onClick={() => setMapShown((s) => !s)}

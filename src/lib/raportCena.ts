@@ -1,8 +1,8 @@
 // Wybór liczby, którą prowadzimy w raporcie „Sprawdź działkę".
 //
-// Jedno źródło prawdy dla ekranu (components/sprawdz/Raport.tsx) i pliku PDF
-// (lib/raportPdf.ts). Gdy te dwa rozjadą się choć raz, użytkownik dostanie na papierze inną
-// cenę niż widział na ekranie i przestanie ufać obu ([[project-sprawdz-dzialke]]).
+// Trzymane osobno od komponentu, bo to reguła produktowa (którą pulę porównawczą prowadzimy i
+// kiedy milczymy), a nie warstwa widoku — i da się ją testować bez renderowania raportu
+// ([[project-sprawdz-dzialke]]).
 
 import type { MpzpInfo } from './mpzp';
 import { isFarAndThin, isWideSpread, type PointValuation, type PriceStat, type RangeStat } from './seoHub';
