@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import LocationPicker from '@/components/LocationPicker';
 import MarkdownOpis from '@/components/MarkdownOpis';
 import { OfficeLogo } from '@/components/OfficeLogo';
@@ -402,8 +402,18 @@ export default function DzialkaForm({
   initialData?: DzialkaFormInitialData;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const shouldAutoPublish = mode === 'create' && searchParams.get('autopublish') === '1';
+  // Parametr ?autopublish=1 czytamy z window, NIE przez useSearchParams(). Ten hook
+  // wywala całą stronę w tryb CSR przy prerenderze, więc do przeglądarki i do
+  // Googlebota szedł sam fallback „Ładowanie…": bez formularza, bez H1, bez słowa
+  // o tym, że wystawienie jest darmowe. Autopublikacja to i tak ruch po powrocie
+  // z logowania, czyli zawsze po stronie klienta, więc na efekcie nic nie traci.
+  const [autoPublishParam, setAutoPublishParam] = useState(false);
+
+  useEffect(() => {
+    setAutoPublishParam(new URLSearchParams(window.location.search).get('autopublish') === '1');
+  }, []);
+
+  const shouldAutoPublish = mode === 'create' && autoPublishParam;
   const autoPublishAttemptedRef = useRef(false);
   const opisWrapRef = useRef<HTMLDivElement | null>(null);
   const errSummaryRef = useRef<HTMLDivElement | null>(null);
