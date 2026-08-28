@@ -2,9 +2,6 @@
 // progi, bo to one decydują, czy pokazujemy liczbę, czy milczymy ([[project-testy]]).
 import { describe, expect, it } from 'vitest';
 import {
-  FACTOR_MIN_DELTA,
-  FACTOR_MIN_SAMPLE,
-  MIN_SAMPLE,
   SIMILAR_SIZE_HIGH,
   SIMILAR_SIZE_LOW,
   isFarAndThin,
@@ -32,16 +29,6 @@ describe('similarSizeRange', () => {
   it('stałe trzymają sensowny kierunek', () => {
     expect(SIMILAR_SIZE_LOW).toBeLessThan(1);
     expect(SIMILAR_SIZE_HIGH).toBeGreaterThan(1);
-  });
-});
-
-describe('progi czynników cenowych', () => {
-  it('wymagają większej próbki niż zwykła mediana', () => {
-    expect(FACTOR_MIN_SAMPLE).toBeGreaterThan(MIN_SAMPLE);
-  });
-
-  it('odcinają różnice, które są szumem', () => {
-    expect(FACTOR_MIN_DELTA).toBeGreaterThan(0);
   });
 });
 

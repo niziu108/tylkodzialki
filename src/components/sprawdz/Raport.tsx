@@ -153,39 +153,15 @@ export default function Raport({ data }: { data: RaportData }) {
               ogłoszeń, nie operat rzeczoznawcy.
             </p>
 
-            {/* CO PODNOSI CENĘ — odpowiedź na „gdzie w tych widełkach wyląduje moja działka".
-                Liczone z tej samej okolicy: mediana ofert z cechą kontra mediana ofert bez niej,
-                więc lokalizacja skraca się po obu stronach. Puste, gdy sygnał jest za słaby. */}
-            {valuation.factors.length ? (
-              <div className="mt-7">
-                <div className="text-[13px] uppercase tracking-[0.1em] text-fg/45">
-                  Co podnosi cenę działki
-                </div>
-                <div className="mt-3 border-t border-fg/10">
-                  {valuation.factors.map((f) => (
-                    <div
-                      key={f.key}
-                      className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 border-b border-fg/10 py-3"
-                    >
-                      <span className="text-[15px] text-fg/85">{f.label}</span>
-                      <span className="whitespace-nowrap text-[15px] font-medium text-fg">
-                        +{Math.round(f.delta * 100)}%
-                        <span className="ml-2 text-[13px] font-normal text-fg/45">
-                          {formatIntPL(f.withMedian)} zamiast {formatIntPL(f.withoutMedian)} zł/m²
-                        </span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-3 max-w-2xl text-xs leading-6 text-fg/45">
-                  Porównanie median ofert z daną cechą i pozostałych, liczone na wszystkich{' '}
-                  {formatIntPL(valuation.factors[0].withCount + valuation.factors[0].withoutCount)}{' '}
-                  działkach budowlanych z ceną w naszym serwisie. To reguła całego rynku, nie pomiar
-                  dla tej jednej ulicy: w promieniu kilku kilometrów jest za mało ofert, żeby liczyć
-                  ją lokalnie i nie zmyślać.
-                </p>
-              </div>
-            ) : null}
+            {/* Zamiast tabeli premii za cechy (liczonej krajowo, więc na jednym ekranie stały
+                obok siebie liczby z dwóch różnych rynków): jedno zdanie o tym, czego ta średnia
+                NIE uwzględnia. Uczciwiej powiedzieć „może być zupełnie inaczej" niż wyliczać
+                procenty, które i tak nie trafią w konkretną działkę ([[feedback-prostota-nad-modulami]]). */}
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-fg/55">
+              Konkretna działka potrafi kosztować zupełnie inaczej niż ta średnia. Decyduje
+              odległość od miasta, prąd i woda na działce, dojazd i kształt. Nawet działka
+              oddalona o kilometr bywa dwa razy droższa, bo leży bliżej zabudowy.
+            </p>
 
             {/* Druga pula dla kontekstu (budowlane/rolne). Puste rubryki znikają same. */}
             <div className="empty:hidden mt-6">

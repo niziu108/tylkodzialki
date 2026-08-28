@@ -20,7 +20,6 @@ function wycena(over: Partial<PointValuation> = {}): PointValuation {
     rolna: pusty,
     similarSize: pusty,
     similarSizeBand: null,
-    factors: [],
     offersNearby: 26,
     mediaShares: null,
     radiusKm: 6,
@@ -69,32 +68,14 @@ describe('sekcja ceny', () => {
     expect(html).toContain('rozjeżdżają się za mocno');
   });
 
-  it('czynniki cenowe pokazują premię i podstawę, na której ją policzono', () => {
+  it('zamiast tabeli premii pokazuje zastrzeżenie o zmienności ceny', () => {
     const html = render(
       wycena({
         similarSize: { pricePerM2: { low: 91, median: 107, high: 123 }, sampleCount: 7 },
         similarSizeBand: { minM2: 587, maxM2: 1664 },
-        factors: [
-          {
-            key: 'uzbrojenie',
-            label: 'prąd i woda na działce',
-            withMedian: 150,
-            withoutMedian: 113,
-            withCount: 1026,
-            withoutCount: 4491,
-            delta: 0.327,
-          },
-        ],
       })
     );
-    expect(html).toContain('Co podnosi cenę działki');
-    expect(html).toContain('+33%');
-    expect(html).toContain('prąd i woda na działce');
-    expect(html).toContain('reguła całego rynku');
-  });
-
-  it('bez czynników sekcja w ogóle się nie pojawia', () => {
-    const html = render(wycena({ factors: [] }));
+    expect(html).toContain('zupełnie inaczej');
     expect(html).not.toContain('Co podnosi cenę działki');
   });
 
