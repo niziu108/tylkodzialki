@@ -23,6 +23,7 @@ droga dojazdowa, uzbrojenie (sprawdzanie + koszt), podział działki (koszt), in
 - [x] Użytkowanie wieczyste a własność: różnice (slug: uzytkowanie-wieczyste-a-wlasnosc-roznice)
 - [x] Służebność przesyłu (słupy, rury): co oznacza dla kupującego (slug: sluzebnosc-przesylu-co-oznacza-dla-kupujacego)
 - [x] Plan ogólny gminy: co zmienia reforma planowania (slug: plan-ogolny-gminy-co-zmienia-reforma)
+- [x] Warunki zabudowy do 31 sierpnia 2026: ostatni moment na starych zasadach (slug: warunki-zabudowy-do-31-sierpnia-2026) [dopisany, GORACY temat/deadline]
 - [x] Działka w obszarze Natura 2000: co wolno (slug: dzialka-natura-2000-co-wolno)
 - [x] Działka na terenie zalewowym: ryzyka i ograniczenia (slug: dzialka-na-terenie-zalewowym-ryzyka)
 - [x] Strefa ochronna linii energetycznej i gazociągu: co to znaczy (slug: strefa-ochronna-linii-energetycznej-i-gazociagu)
