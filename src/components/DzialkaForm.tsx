@@ -223,9 +223,18 @@ const FIELD_STEP: Record<FieldKey, number> = {
   biuroOpiekun: 4,
 };
 
+// Zapisy w try/catch jak odczyty niżej: localStorage rzuca przy zablokowanych danych
+// witryny (Chrome „blokuj wszystkie pliki cookie") i po przekroczeniu limitu. Bez tego
+// wyjątek leci z useEffect i zabiera cały formularz, czyli dokładnie to, przed czym
+// wersja robocza ma chronić. Cicha porażka jest tu lepsza niż utrata wpisanych danych.
 function saveCreateDraft(draft: DzialkaDraft) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(CREATE_DRAFT_KEY, JSON.stringify(draft));
+
+  try {
+    localStorage.setItem(CREATE_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // brak miejsca albo zablokowane dane witryny — formularz działa dalej, tylko bez kopii
+  }
 }
 
 function loadCreateDraft(): DzialkaDraft | null {
@@ -242,12 +251,22 @@ function loadCreateDraft(): DzialkaDraft | null {
 
 function clearCreateDraft() {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(CREATE_DRAFT_KEY);
+
+  try {
+    localStorage.removeItem(CREATE_DRAFT_KEY);
+  } catch {
+    // jw.
+  }
 }
 
 function saveSellerDefaults(defaults: SellerDefaults) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(SELLER_DEFAULTS_KEY, JSON.stringify(defaults));
+
+  try {
+    localStorage.setItem(SELLER_DEFAULTS_KEY, JSON.stringify(defaults));
+  } catch {
+    // jw.
+  }
 }
 
 function loadSellerDefaults(): SellerDefaults | null {
@@ -1578,6 +1597,20 @@ export default function DzialkaForm({
         </aside>
 
         <div className="w-full min-w-0 px-6 pb-24 pt-7 md:px-10 md:pt-12">
+          {/* Nagłówek strony — H1 dla wyszukiwarki (strona jest w sitemapie) i dwie obiekcje
+              zdjęte od razu: koszt oraz konto. Wcześniej padały dopiero w bramce logowania,
+              czyli po wypełnieniu całego kreatora. Tylko w trybie dodawania. */}
+          {mode === 'create' ? (
+            <div className="mb-8">
+              <h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
+                Dodaj działkę
+              </h1>
+              <p className="mt-3 max-w-[42rem] text-[15px] leading-7 text-fg/72">
+                Wystawienie jest bezpłatne. Konto zakładasz dopiero przy publikacji.
+              </p>
+            </div>
+          ) : null}
+
           {/* Pasek kroków — mobile/tablet (klikalny, poziomy u góry) */}
           <div className="mb-7 xl:hidden">
             <div className="mb-3 flex items-center justify-between text-[12px] font-medium">
