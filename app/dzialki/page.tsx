@@ -5,7 +5,11 @@ import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
 import { SEO_REGIONS, SEO_TYPES } from '@/lib/seo-locations';
 import { getRegionTotals } from '@/lib/seoHub';
 
-export const revalidate = 3600;
+// 15 minut, nie godzina: od 2026-08-28 huby serwują pierwszą stronę ofert z SSR,
+// więc to `revalidate` decyduje, jak stara jest lista i liczniki. Kwadrans to
+// kompromis między świeżością podaży a liczbą regeneracji (regenerują się tylko
+// strony, które ktoś odwiedza, i to w tle — odwiedzający nigdy nie czeka).
+export const revalidate = 900;
 
 export const metadata: Metadata = {
   title: 'Działki na sprzedaż w Polsce, według województw i miast',

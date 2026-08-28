@@ -16,7 +16,11 @@ type PageProps = {
   params: Promise<{ woj: string }>;
 };
 
-export const revalidate = 3600;
+// 15 minut, nie godzina: od 2026-08-28 huby serwują pierwszą stronę ofert z SSR,
+// więc to `revalidate` decyduje, jak stara jest lista i liczniki. Kwadrans to
+// kompromis między świeżością podaży a liczbą regeneracji (regenerują się tylko
+// strony, które ktoś odwiedza, i to w tle — odwiedzający nigdy nie czeka).
+export const revalidate = 900;
 
 // Bez generateStaticParams Next renderuje trasę dynamicznie przy każdym wejściu,
 // więc powyższy revalidate nie działał (produkcja zwracała x-vercel-cache: MISS
