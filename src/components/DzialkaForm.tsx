@@ -18,6 +18,7 @@ import {
   EyeIcon,
   handleOpisPasteAsPlainText,
 } from '@/components/dzialka-form/ui';
+import { buildOpisZDanych } from '@/lib/opisGenerator';
 
 type Przeznaczenie =
   | 'INWESTYCYJNA'
@@ -554,6 +555,53 @@ export default function DzialkaForm({
   const [previewSrc, setPreviewSrc] = useState('');
   // Na telefonie podgląd jest wyłącznie mobilny (bez przełącznika Komputer/Telefon).
   const [previewIsPhone, setPreviewIsPhone] = useState(false);
+
+  // Opis składany z pól, które sprzedający już wypełnił. Świadomie bez modelu językowego:
+  // opis idzie pod jego nazwiskiem jako informacja o konkretnej działce, więc nie może
+  // zawierać niczego, czego nie ma w formularzu (reguły w src/lib/opisGenerator.ts).
+  function generujOpisZDanych() {
+    const opisTekstem = opis.replace(/<[^>]*>/g, '').trim();
+
+    if (opisTekstem && !window.confirm('Zastąpić obecny opis tekstem złożonym z Twoich danych?')) {
+      return;
+    }
+
+    const tekst = buildOpisZDanych({
+      transakcja,
+      przeznaczenia,
+      powierzchniaM2: parseFormattedNumber(powierzchniaM2),
+      cenaPln: parseFormattedNumber(cenaPln),
+      locationLabel: location?.locationLabel ?? null,
+      locationFull: location?.locationFull ?? null,
+      prad,
+      woda,
+      kanalizacja,
+      gaz,
+      swiatlowod,
+      wzWydane,
+      mpzp,
+      projektDomu,
+      klasaZiemi,
+      wymiary,
+      ksiegaWieczysta,
+    });
+
+    // Edytor trzyma HTML, więc akapity zamieniamy na <p>. Treść pól jest od użytkownika,
+    // więc ucieka przez escape, zanim trafi do innerHTML.
+    const html = tekst
+      .split('\n\n')
+      .map(
+        (akapit) =>
+          `<p>${akapit
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')}</p>`
+      )
+      .join('');
+
+    setOpis(html.slice(0, MAX_OPIS_CHARS));
+    requestAnimationFrame(() => syncOpisEditorHeight());
+  }
 
   function syncOpisEditorHeight() {
     const wrap = opisWrapRef.current;
@@ -2229,6 +2277,15 @@ export default function DzialkaForm({
               onInputCapture={() => syncOpisEditorHeight()}
             >
               <MarkdownOpis
+                action={
+                  <button
+                    type="button"
+                    onClick={generujOpisZDanych}
+                    className="inline-flex min-h-[40px] items-center rounded-full border border-fg/25 px-4 text-[12px] uppercase tracking-[0.06em] text-fg/70 transition hover:border-fg/45 hover:text-fg"
+                  >
+                    Wygeneruj z danych
+                  </button>
+                }
                 value={opis}
                 onChange={(v: string) => {
                   const next = (v ?? '').slice(0, MAX_OPIS_CHARS);
@@ -2241,21 +2298,26 @@ export default function DzialkaForm({
               Opis: {opis.length}/{MAX_OPIS_CHARS}
             </div>
 
+            {/* Kolory z tokenów motywu, nie na sztywno. Ten blok pochodził z czasów
+                ciemnego motywu i wymuszał biały tekst z !important, więc po przejściu
+                na jasny motyw opis był biały na tle #f6f7f3, czyli niewidoczny podczas
+                pisania. Zmierzone w przeglądarce przed poprawką: kolor tekstu
+                rgba(255,255,255,0.92) przy tle rgb(246,247,243). */}
             <style jsx global>{`
               .opis-mobile-fix textarea,
               .opis-mobile-fix input,
               .opis-mobile-fix [contenteditable='true'] {
-                color: rgba(255, 255, 255, 0.92) !important;
-                -webkit-text-fill-color: rgba(255, 255, 255, 0.92) !important;
-                caret-color: #ffffff !important;
+                color: var(--fg) !important;
+                -webkit-text-fill-color: var(--fg) !important;
+                caret-color: var(--fg) !important;
                 background: transparent !important;
               }
 
               .opis-mobile-fix textarea::placeholder,
               .opis-mobile-fix input::placeholder,
               .opis-mobile-fix [contenteditable='true']::placeholder {
-                color: rgba(255, 255, 255, 0.4) !important;
-                -webkit-text-fill-color: rgba(255, 255, 255, 0.4) !important;
+                color: var(--muted) !important;
+                -webkit-text-fill-color: var(--muted) !important;
               }
 
               .opis-mobile-fix textarea *,
@@ -2281,10 +2343,10 @@ export default function DzialkaForm({
               .opis-mobile-fix [contenteditable='true'] a,
               .opis-mobile-fix [contenteditable='true'] code,
               .opis-mobile-fix [contenteditable='true'] blockquote {
-                color: rgba(255, 255, 255, 0.92) !important;
-                -webkit-text-fill-color: rgba(255, 255, 255, 0.92) !important;
+                color: var(--fg) !important;
+                -webkit-text-fill-color: var(--fg) !important;
                 background-color: transparent !important;
-                border-color: rgba(255, 255, 255, 0.15) !important;
+                border-color: var(--line) !important;
               }
 
               .opis-mobile-fix textarea,
@@ -2296,7 +2358,7 @@ export default function DzialkaForm({
                 -webkit-overflow-scrolling: touch;
                 line-height: 1.55 !important;
                 scrollbar-width: thin;
-                scrollbar-color: rgba(255, 255, 255, 0.45) rgba(255, 255, 255, 0.08);
+                scrollbar-color: var(--line-strong) transparent;
               }
 
               .opis-mobile-fix textarea::-webkit-scrollbar,
@@ -2306,13 +2368,13 @@ export default function DzialkaForm({
 
               .opis-mobile-fix textarea::-webkit-scrollbar-track,
               .opis-mobile-fix [contenteditable='true']::-webkit-scrollbar-track {
-                background: rgba(255, 255, 255, 0.08);
+                background: var(--line);
                 border-radius: 999px;
               }
 
               .opis-mobile-fix textarea::-webkit-scrollbar-thumb,
               .opis-mobile-fix [contenteditable='true']::-webkit-scrollbar-thumb {
-                background: rgba(255, 255, 255, 0.42);
+                background: var(--line-strong);
                 border-radius: 999px;
                 border: 2px solid transparent;
                 background-clip: padding-box;
@@ -2320,7 +2382,7 @@ export default function DzialkaForm({
 
               .opis-mobile-fix textarea::-webkit-scrollbar-thumb:hover,
               .opis-mobile-fix [contenteditable='true']::-webkit-scrollbar-thumb:hover {
-                background: rgba(255, 255, 255, 0.62);
+                background: var(--muted);
                 background-clip: padding-box;
               }
 

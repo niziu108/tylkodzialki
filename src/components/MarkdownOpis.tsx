@@ -20,12 +20,16 @@ type Props = {
   value: string;
   onChange: (html: string) => void;
   title?: string;
+  // Miejsce na akcję przy tytule (dziś: „Wygeneruj z danych"). Slot, a nie konkretny
+  // przycisk, żeby edytor nie wiedział nic o formularzu działki.
+  action?: React.ReactNode;
 };
 
 export default function OpisEditor({
   value,
   onChange,
   title = 'Opis oferty',
+  action,
 }: Props) {
   const id = useId();
   const ref = useRef<HTMLDivElement | null>(null);
@@ -110,9 +114,12 @@ export default function OpisEditor({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight text-fg">
-        {title}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight text-fg">
+          {title}
+        </h2>
+        {action}
+      </div>
 
       <div className="flex flex-wrap gap-8">
         <Tool isOn={active.bold} label="Pogrub" onClick={() => exec('bold')} />
