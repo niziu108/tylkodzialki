@@ -689,8 +689,12 @@ export const getNearbyOffers = cache(async (lat: number, lng: number, km: number
     where: { id: { in: near.map((n) => n.id) } },
     include: PAGE_INCLUDE,
   });
+  // Dystans jedzie razem z ofertą: w raporcie to on tłumaczy, czemu akurat ta działka tu jest.
   const order = new Map(near.map((n, i) => [n.id, i]));
-  return rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  const dist = new Map(near.map((n) => [n.id, n.dist]));
+  return rows
+    .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+    .map((r) => ({ ...r, distanceKm: dist.get(r.id) ?? null }));
 });
 
 // Wpisy huba do sitemapy: dla każdego miasta total + per typ (jeden odczyt całej bazy,

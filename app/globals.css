@@ -319,3 +319,63 @@ html {
 .font-logo {
   font-family: var(--font-logo), var(--font-geist), system-ui, sans-serif;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * DRUK RAPORTU „Sprawdź działkę"
+ *
+ * Na papier (i do PDF-a z okna drukowania) idzie sam raport: bez menu, wyszukiwarki,
+ * sekcji marketingowych, FAQ i stopki. Zamiast generowania PDF-a na serwerze — jeden
+ * arkusz, który zawsze pokazuje to, co użytkownik ma na ekranie, i nie wymaga utrzymania.
+ *
+ * Chowamy przez `visibility`, nie `display`, bo raport siedzi głęboko w drzewie i zwijanie
+ * rodziców zwinęłoby także jego. Elementy nieprzydatne na papierze (mapa, karuzela ofert,
+ * przyciski) mają klasę `.no-print`.
+ * ───────────────────────────────────────────────────────────────────────────── */
+@media print {
+  /* Druk zawsze jasny, także gdy ktoś ma włączony ciemny motyw. */
+  :root,
+  [data-theme='dark'] {
+    color-scheme: light;
+
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #ffffff;
+    --fg: #111111;
+    --ink: #111111;
+    --muted: rgba(17, 17, 17, 0.6);
+    --line: rgba(17, 17, 17, 0.2);
+    --line-strong: rgba(17, 17, 17, 0.32);
+  }
+
+  body:has(.print-report) * {
+    visibility: hidden;
+  }
+
+  body:has(.print-report) .print-report,
+  body:has(.print-report) .print-report * {
+    visibility: visible;
+  }
+
+  body:has(.print-report) .print-report {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0;
+  }
+
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  /* Sekcje raportu nie mają się łamać w połowie wiersza danych. */
+  .print-report h3,
+  .print-report .print-keep {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 16mm 14mm;
+  }
+}

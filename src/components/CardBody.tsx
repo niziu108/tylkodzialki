@@ -19,6 +19,7 @@ export function CardBody({
   isRent,
   tytul,
   loc,
+  distanceKm = null,
   area,
   przezn,
   media,
@@ -38,6 +39,8 @@ export function CardBody({
   /** Pominięty na mapie (w ciasnym popupie zbędny). */
   tytul?: string | null;
   loc: string;
+  /** Odległość od punktu odniesienia (raport „Sprawdź działkę"); null = nie pokazujemy. */
+  distanceKm?: number | null;
   area: number;
   /** Gotowa etykieta przeznaczeń, np. „Budowlana, Rolna" lub „—". */
   przezn: string;
@@ -105,6 +108,15 @@ export function CardBody({
         >
           <IconPin className={`${ic} shrink-0 text-fg/64`} />
           <span className="truncate">{locClean}</span>
+          {typeof distanceKm === 'number' ? (
+            // Poza `truncate`, żeby przy długiej nazwie miejscowości ucinał się adres, a nie
+            // odległość — w raporcie to ona jest powodem, dla którego ta oferta tu jest.
+            <span className="shrink-0 whitespace-nowrap text-fg/50">
+              · {distanceKm < 1
+                ? `${Math.max(50, Math.round((distanceKm * 1000) / 50) * 50)} m`
+                : `${distanceKm.toLocaleString('pl-PL', { maximumFractionDigits: 1 })} km`}
+            </span>
+          ) : null}
         </div>
 
         <div

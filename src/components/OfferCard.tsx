@@ -57,6 +57,8 @@ export type OfferData = {
   powierzchniaM2: number;
   transakcja?: TransakcjaTyp | null;
   locationLabel?: string | null;
+  /** Odległość od sprawdzanego punktu (raport „Sprawdź działkę"). Puste na zwykłych listach. */
+  distanceKm?: number | null;
   przeznaczenia?: Przeznaczenie[];
   zdjecia?: Photo[];
   isFeatured?: boolean | null;
@@ -517,6 +519,7 @@ export function OfferCard({
           isRent={isRent}
           tytul={d.tytul}
           loc={loc}
+          distanceKm={d.distanceKm ?? null}
           area={area}
           przezn={przezn}
           media={parcelMediaLabel(d)}

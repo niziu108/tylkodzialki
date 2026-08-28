@@ -132,7 +132,15 @@ export default function Raport({ data }: { data: RaportData }) {
   const [mapShown, setMapShown] = useState(false);
 
   return (
-    <div className="w-full text-left">
+    <div className="print-report w-full text-left">
+      {/* Nagłówek wyłącznie na wydruku: kartka ma mówić, skąd pochodzi i z kiedy jest. */}
+      <div className="mb-6 hidden border-b border-fg/25 pb-3 print:block">
+        <div className="flex items-baseline justify-between gap-4 text-[11px] uppercase tracking-[0.18em] text-fg/60">
+          <span>tylkodzialki.pl · raport działki</span>
+          <span>{new Date().toLocaleDateString('pl-PL')}</span>
+        </div>
+      </div>
+
       {/* NAGŁÓWEK + przycisk mapy */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -145,19 +153,29 @@ export default function Raport({ data }: { data: RaportData }) {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setMapShown((s) => !s)}
-          className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg"
-        >
-          {mapShown ? 'Ukryj mapę' : 'Zobacz na mapie'}
-          <span aria-hidden>→</span>
-        </button>
+        <div className="no-print flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg"
+          >
+            Pobierz PDF
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMapShown((s) => !s)}
+            className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg"
+          >
+            {mapShown ? 'Ukryj mapę' : 'Zobacz na mapie'}
+            <span aria-hidden>→</span>
+          </button>
+        </div>
       </div>
 
       {/* MAPA — na mobile full-bleed (pełna szerokość ekranu), na desktopie kafelek w kolumnie. */}
       {mapShown ? (
-        <div className="relative left-1/2 mt-6 w-screen -translate-x-1/2 border-y border-fg/12 md:left-auto md:w-full md:translate-x-0 md:overflow-hidden md:rounded-2xl md:border">
+        <div className="no-print relative left-1/2 mt-6 w-screen -translate-x-1/2 border-y border-fg/12 md:left-auto md:w-full md:translate-x-0 md:overflow-hidden md:rounded-2xl md:border">
           <div className="h-[60vh] max-h-[620px] min-h-[360px] w-full md:h-[460px] md:max-h-none md:min-h-0">
             <RaportMap rings={parcel.rings} center={parcel.center} />
           </div>
@@ -165,7 +183,7 @@ export default function Raport({ data }: { data: RaportData }) {
       ) : null}
 
       {/* CENA */}
-      <div className="mt-8 border-t border-fg/12 pt-8">
+      <div className="print-keep mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Orientacyjna cena okolicy</Eyebrow>
         {v && lead ? (
           <>
@@ -242,7 +260,7 @@ export default function Raport({ data }: { data: RaportData }) {
       </div>
 
       {/* PLAN MIEJSCOWY (MPZP) */}
-      <div className="mt-8 border-t border-fg/12 pt-8">
+      <div className="print-keep mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Plan miejscowy (MPZP)</Eyebrow>
         {mpzp ? (
           (() => {
@@ -305,7 +323,7 @@ export default function Raport({ data }: { data: RaportData }) {
       </div>
 
       {/* DANE Z EWIDENCJI */}
-      <div className="mt-8 border-t border-fg/12 pt-8">
+      <div className="print-keep mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Dane z ewidencji</Eyebrow>
         <div className="mt-5 border-t border-fg/10">
           <Row label="Numer działki" value={parcel.parcelNumber} />
@@ -323,24 +341,24 @@ export default function Raport({ data }: { data: RaportData }) {
       {/* DZIAŁKI W OKOLICY — raport ma się kończyć czymś do kliknięcia, a nie samym odesłaniem
           do urzędu. Te same karty co na /kup, więc działają identycznie (galeria, ulubione). */}
       {nearby && nearby.length ? (
-        <div className="mt-10 border-t border-fg/12 pt-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h3 className="text-xl font-semibold tracking-tight text-brand-text md:text-2xl">
-              Działki na sprzedaż w okolicy
-            </h3>
-            <Link
-              href={`/kup?lat=${parcel.center.lat}&lng=${parcel.center.lng}&radius=${valuation.radiusKm}`}
-              className="text-[15px] text-fg/70 underline decoration-1 underline-offset-4 transition hover:text-fg"
-            >
-              Zobacz wszystkie
-            </Link>
-          </div>
+        <div className="no-print mt-10 border-t border-fg/12 pt-8">
+          <h3 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
+            Działki na sprzedaż w okolicy
+          </h3>
           <p className="mt-2 text-sm text-fg/60">
             {valuation.offersNearby}{' '}
             {valuation.offersNearby === 1 ? 'oferta' : 'ofert'} w promieniu {valuation.radiusKm} km
-            od sprawdzanej działki.
+            od sprawdzanej działki.{' '}
+            <Link
+              href={`/kup?lat=${parcel.center.lat}&lng=${parcel.center.lng}&radius=${valuation.radiusKm}`}
+              className="text-fg/80 underline decoration-1 underline-offset-4 transition hover:text-fg"
+            >
+              Zobacz wszystkie
+            </Link>
           </p>
-          <div className="mt-6">
+          {/* Strzałki karuzeli siedzą 68 px NAD railem (HomeHorizontalSlider), więc bez tego
+              odstępu wchodziły na nagłówek i link. Na telefonie strzałek nie ma. */}
+          <div className="mt-6 md:mt-[84px]">
             <FeaturedRail items={nearby} />
           </div>
         </div>
