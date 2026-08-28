@@ -144,12 +144,69 @@ export default function SprawdzSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Jedno miejsce, w którym pytamy API o raport: ze wskazanego punktu albo z numeru działki
+  // (wejście z linku). Błąd wraca jako wyjątek z komunikatem gotowym do pokazania.
+  async function pobierzRaport(
+    body: { lat: number; lng: number } | { parcelId: string }
+  ): Promise<RaportData> {
+    const res = await fetch('/api/sprawdz-dzialke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = (await res.json()) as RaportData | { error: string };
+    if (!res.ok || 'error' in json) {
+      throw new Error('error' in json ? json.error : 'Nie udało się sprawdzić działki.');
+    }
+    return json;
+  }
+
+  // Numer działki ląduje w adresie (bez przeładowania strony), żeby raport dało się wysłać
+  // linkiem i wrócić do niego z zakładki.
+  function zapiszWAdresie(parcelId: string) {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('d', parcelId);
+      window.history.replaceState(null, '', url.toString());
+    } catch {
+      // brak History API to nie powód, żeby psuć gotowy raport
+    }
+  }
+
   // Po otrzymaniu raportu zjeżdżamy do niego, żeby było jasne, że jest gotowy.
   useEffect(() => {
     if (result && reportRef.current) {
       reportRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [result]);
+
+  // Wejście z gotowym adresem „…/sprawdz-dzialke?d=<numer ewidencyjny>": raport wczytuje się sam.
+  // Dzięki temu link da się wysłać komuś albo wrócić do niego z zakładki. Czytamy z
+  // `window.location`, a nie z `useSearchParams`, bo ta strona jest generowana statycznie i hak
+  // wymusiłby na niej renderowanie po stronie klienta ([[project-isr-searchparams-gotcha]]).
+  useEffect(() => {
+    const parcelId = new URLSearchParams(window.location.search).get('d');
+    if (!parcelId) return;
+
+    let anulowane = false;
+    setLoading(true);
+    pobierzRaport({ parcelId })
+      .then((json) => {
+        if (!anulowane) setResult(json);
+      })
+      .catch((e: unknown) => {
+        if (!anulowane) {
+          setError(e instanceof Error ? e.message : 'Nie udało się wczytać raportu z tego linku.');
+        }
+      })
+      .finally(() => {
+        if (!anulowane) setLoading(false);
+      });
+
+    return () => {
+      anulowane = true;
+    };
+  }, []);
 
   // Mapa startuje ukryta (opacity-0), więc przy otwarciu wymuszamy przerysowanie i wracamy
   // na aktualny punkt — inaczej kafelki bywają szare do pierwszego ruchu.
@@ -197,21 +254,12 @@ export default function SprawdzSearch() {
     setLoading(true);
     setResult(null);
     try {
-      const res = await fetch('/api/sprawdz-dzialke', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat: point.lat, lng: point.lng }),
-      });
-      const json = (await res.json()) as RaportData | { error: string };
-
-      if (!res.ok || 'error' in json) {
-        setError('error' in json ? json.error : 'Nie udało się sprawdzić działki.');
-        return;
-      }
+      const json = await pobierzRaport({ lat: point.lat, lng: point.lng });
       setResult(json);
+      zapiszWAdresie(json.parcel.id);
       setMapOpen(false);
-    } catch {
-      setError('Coś poszło nie tak. Spróbuj ponownie za chwilę.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Coś poszło nie tak. Spróbuj ponownie za chwilę.');
     } finally {
       setLoading(false);
     }

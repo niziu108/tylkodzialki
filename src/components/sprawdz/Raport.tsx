@@ -86,6 +86,22 @@ export default function Raport({ data }: { data: RaportData }) {
   // testować bez renderowania komponentu.
   const { lead, value: v, mixed } = decydujCene(valuation, mpzp);
   const [mapShown, setMapShown] = useState(false);
+  const [linkSkopiowany, setLinkSkopiowany] = useState(false);
+
+  // Link do TEGO raportu: ten sam adres strony plus numer działki. Wysyłasz go komuś i widzi
+  // dokładnie to samo, bez wskazywania działki na mapie od nowa.
+  async function kopiujLink() {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('d', parcel.id);
+      await navigator.clipboard.writeText(url.toString());
+      setLinkSkopiowany(true);
+      setTimeout(() => setLinkSkopiowany(false), 2500);
+    } catch {
+      // brak dostępu do schowka (stara przeglądarka, brak HTTPS) nie psuje raportu —
+      // adres z numerem działki i tak stoi w pasku przeglądarki
+    }
+  }
 
   return (
     <div className="print-report w-full text-left">
@@ -110,6 +126,14 @@ export default function Raport({ data }: { data: RaportData }) {
         </div>
 
         <div className="no-print flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={kopiujLink}
+            className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg"
+          >
+            {linkSkopiowany ? 'Skopiowano' : 'Skopiuj link'}
+          </button>
+
           <button
             type="button"
             onClick={() => setMapShown((s) => !s)}
