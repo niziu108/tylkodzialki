@@ -8,6 +8,9 @@ import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
 import RadiusSelect from '@/components/RadiusSelect';
 import { loadGoogleMaps } from '@/lib/googleMaps';
+// Stałe promienia leżą poza tym plikiem, bo czyta je też komponent serwerowy app/kup/page.tsx
+// (import z modułu 'use client' oddaje serwerowi referencję klienta, nie wartość).
+import { KM_OPTIONS, DEFAULT_RADIUS_KM, parseRadiusKm, type RadiusKm } from '@/lib/searchRadius';
 
 // Lazy-load: KupMap ciągnie całą logikę mapy. Mapa
 // jest opt-in (otwiera się przyciskiem), więc nie ma jej w paczce startowej ani na
@@ -44,12 +47,6 @@ type ApiResponse = {
   items?: ApiDzialka[];
 };
 
-const KM_OPTIONS = [5, 10, 20, 40] as const;
-
-// Domyślny promień wyszukiwania z punktu (główna + /kup). Podbity z 5 na 20 km: przy
-// rzadkiej podaży 5 km w mniejszym mieście dawało „pusto", a kupujący działkę i tak
-// myśli regionem, nie adresem (huby SEO celowo używają 40 km). User zawęzi Zasięgiem.
-export const DEFAULT_RADIUS_KM: (typeof KM_OPTIONS)[number] = 20;
 
 const PRZEZN: { key: Przeznaczenie; label: string }[] = [
   { key: 'INWESTYCYJNA', label: 'INWESTYCYJNA' },
@@ -87,7 +84,7 @@ export type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'are
 
 type AppliedFilters = {
   locText: string;
-  radiusKm: (typeof KM_OPTIONS)[number];
+  radiusKm: RadiusKm;
   center: { lat: number; lng: number } | null;
   priceMin: string;
   priceMax: string;
@@ -368,10 +365,7 @@ function readStateFromUrl(useStorageFallback = true): StoredState {
     Number.isFinite(lng) &&
     !(lat === 0 && lng === 0);
 
-  const radiusRaw = Number(sp.get('radius') ?? String(DEFAULT_RADIUS_KM));
-  const radiusKm = KM_OPTIONS.includes(radiusRaw as unknown as (typeof KM_OPTIONS)[number])
-    ? (radiusRaw as (typeof KM_OPTIONS)[number])
-    : DEFAULT_RADIUS_KM;
+  const radiusKm = parseRadiusKm(sp.get('radius'));
 
   const przeznRaw = sp.get('przezn') ?? '';
   const przezn = przeznRaw
@@ -730,7 +724,7 @@ export default function KupSearch({
   const [page, setPage] = useState(initial.page);
 
   const [locText, setLocText] = useState(initial.filters.locText);
-  const [radiusKm, setRadiusKm] = useState<(typeof KM_OPTIONS)[number]>(initial.filters.radiusKm);
+  const [radiusKm, setRadiusKm] = useState<RadiusKm>(initial.filters.radiusKm);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(initial.filters.center);
 
   const [priceMin, setPriceMin] = useState(formatPLThousands(initial.filters.priceMin));
@@ -1317,7 +1311,7 @@ export default function KupSearch({
             className="mt-3"
             value={radiusKm}
             options={KM_OPTIONS}
-            onChange={(v) => setRadiusKm(v as (typeof KM_OPTIONS)[number])}
+            onChange={(v) => setRadiusKm(v as RadiusKm)}
           />
         </div>
       </div>

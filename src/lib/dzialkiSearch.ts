@@ -221,6 +221,49 @@ function coordsInBBox(d: GeoOffer, bbox: BBox) {
   return hasCoords(d) && d.lat! >= bbox.minLat && d.lat! <= bbox.maxLat && d.lng! >= bbox.minLng && d.lng! <= bbox.maxLng;
 }
 
+/* Końcówki, o które nazwa miejscowości może się różnić i wciąż być TĄ SAMĄ nazwą — czyli
+ * polska odmiana przez przypadki („Gdansk" → „Gdanska", „Radom" → „Radomiu", „Poznan" →
+ * „Poznania"). Zapis po normalizacji, więc bez ogonków. Zamknięta lista, a nie „dowolne dwie
+ * litery", bo doklejka spoza odmiany robi z miasta INNE miasto: „Radom" + „in" = Radomin
+ * (280 km dalej), „Radom" + „sko" = Radomsko. */
+const INFLECTION_SUFFIXES = new Set([
+  'a', 'e', 'i', 'o', 'u', 'y',
+  'ia', 'ie', 'iu', 'ej', 'em', 'om', 'ow', 'ym',
+  // Przymiotnik od nazwy miasta, czyli jak w danych zapisany jest powiat i gmina:
+  // „Ostrow" → „ostrowski", „Radom" → „radomski". locationFull to ścieżka administracyjna
+  // (ulica, miejscowość, gmina, powiat, województwo), więc bez tego zapytanie o miasto
+  // nie trafia w oferty z sąsiednich wsi tego samego powiatu.
+  // Świadomie BEZ „kie": „lodz" + „kie" to województwo łódzkie, nie miasto Łódź — a od tego
+  // zaczęła się cała ta historia (zapytanie o miasto zwracające jedną szesnastą kraju).
+  // Tylko forma męska, w jakiej zapisany jest POWIAT („ostrowski", „radomski"). Formy „skie"/
+  // „ska" odpadły po teście na żywych danych: „Strzałków" łapało wtedy „Miszewko Strzałkowskie"
+  // spod Płocka, bo przymiotnik jest też częścią nazw samych wsi.
+  'ski', 'cki',
+]);
+
+/* Najkrótszy rdzeń, dla którego w ogóle dopuszczamy doklejenie końcówki. Poniżej tego progu
+ * wymagamy dokładnego słowa: krótkie kawałki („r." z adresu, inicjały, „os.") pasowałyby do
+ * setek nazw. Cztery litery, bo tyle ma „Lodz" — bez tego „Łodzi" nie trafia w „Łódź". */
+const MIN_STEM_LENGTH = 4;
+
+/* Czy token z oferty i fraza z zapytania to ta sama nazwa.
+ *
+ * REGRESJA (błąd żył na produkcji): warunek był „którekolwiek jest prefiksem drugiego", bez
+ * limitu długości doklejki. Skutki zmierzone na żywej bazie: zapytanie „Radomsko" zwracało
+ * działki w RADOMIU (bo „radomsko".startsWith("radom")), a oferta z adresem „Powstańców 1863 r.,
+ * Nałęczów" trafiała do KAŻDEGO zapytania na literę „r" (token „r" jest prefiksem „radomsko”).
+ * Dopasowanie podciągiem w gołym tekście (`haystack.includes`) robiło to samo w drugą stronę:
+ * „Radom" wciągał Radomsko, Radomierz i Radomyśl. */
+function tokenMatchesTerm(token: string, term: string) {
+  if (token === term) return true;
+
+  const [longer, shorter] = token.length >= term.length ? [token, term] : [term, token];
+  if (shorter.length < MIN_STEM_LENGTH) return false;
+  if (!longer.startsWith(shorter)) return false;
+
+  return INFLECTION_SUFFIXES.has(longer.slice(shorter.length));
+}
+
 function matchesLocationText(d: GeoOffer, terms: string[]) {
   if (!terms.length) return false;
 
@@ -234,16 +277,7 @@ function matchesLocationText(d: GeoOffer, terms: string[]) {
 
   if (!tokens.length) return false;
 
-  return terms.every((term) => {
-    if (tokens.includes(term)) return true;
-    if (haystack.includes(term)) return true;
-
-    if (term.length >= 5) {
-      return tokens.some((token) => token.startsWith(term) || term.startsWith(token));
-    }
-
-    return false;
-  });
+  return terms.every((term) => tokens.some((token) => tokenMatchesTerm(token, term)));
 }
 
 export type SearchContext = {

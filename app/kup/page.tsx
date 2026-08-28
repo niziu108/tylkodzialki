@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { Przeznaczenie } from '@prisma/client';
-import KupSearch, { DEFAULT_RADIUS_KM } from './KupSearch';
+import KupSearch from './KupSearch';
+import { parseRadiusKm } from '@/lib/searchRadius';
 import type { SortOption } from './KupSearch';
 import { unstable_cache } from 'next/cache';
 import { queryDzialkiList } from '@/lib/dzialkiListing';
@@ -78,10 +79,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
     Number.isFinite(lng) &&
     !(lat === 0 && lng === 0);
 
-  const radiusRaw = Number(one(sp.radius) || String(DEFAULT_RADIUS_KM));
-  const radiusKm = [5, 10, 20, 40].includes(radiusRaw)
-    ? (radiusRaw as 5 | 10 | 20 | 40)
-    : DEFAULT_RADIUS_KM;
+  const radiusKm = parseRadiusKm(one(sp.radius));
 
   const przezn = one(sp.przezn)
     .split(',')

@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadGoogleMaps } from '@/lib/googleMaps';
+import { KM_OPTIONS, DEFAULT_RADIUS_KM, type RadiusKm } from '@/lib/searchRadius';
 import type { Przeznaczenie } from '@prisma/client';
 
-const KM_OPTIONS = [5, 10, 20, 40] as const;
+
 
 const QUICK_PRZEZN: { key: Przeznaczenie; label: string }[] = [
   { key: 'BUDOWLANA', label: 'Budowlana' },
@@ -45,9 +46,9 @@ export default function HeroSearchBar() {
 
   const [locText, setLocText] = useState('');
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
-  // Domyślny promień 20 km — spójnie z /kup (DEFAULT_RADIUS_KM). Przy rzadkiej podaży
-  // 10 km w mniejszym mieście dawało za mało; kupujący działkę myśli regionem.
-  const [radiusKm, setRadiusKm] = useState<(typeof KM_OPTIONS)[number]>(20);
+  // Domyślny promień wspólny z /kup — przy rzadkiej podaży 10 km w mniejszym mieście
+  // dawało za mało; kupujący działkę myśli regionem.
+  const [radiusKm, setRadiusKm] = useState<RadiusKm>(DEFAULT_RADIUS_KM);
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -133,7 +134,7 @@ export default function HeroSearchBar() {
 
         <select
           value={radiusKm}
-          onChange={(e) => setRadiusKm(Number(e.target.value) as (typeof KM_OPTIONS)[number])}
+          onChange={(e) => setRadiusKm(Number(e.target.value) as RadiusKm)}
           className="shrink-0 cursor-pointer bg-transparent py-2 pr-1 text-sm text-white/60 outline-none"
           aria-label="Zasięg wyszukiwania"
         >

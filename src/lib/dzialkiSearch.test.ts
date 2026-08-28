@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { VOIVODESHIPS, detectVoivodeship, detectCity } from './dzialkiSearch';
+import {
+  VOIVODESHIPS,
+  detectVoivodeship,
+  detectCity,
+  buildSearchContext,
+  getSearchMatchInfo,
+} from './dzialkiSearch';
 
 describe('detectVoivodeship', () => {
   it('rozpoznaje każde z 16 województw po własnej nazwie', () => {
@@ -101,5 +107,57 @@ describe('detectCity', () => {
   it('nie zgaduje przy braku miasta', () => {
     expect(detectCity('')).toBeNull();
     expect(detectCity('działka rolna')).toBeNull();
+  });
+});
+
+/* REGRESJA (zgłoszone z produkcji 2026-08-28): wpisanie „Radomsko" w wyszukiwarkę zwracało
+ * na pierwszych miejscach działki w RADOMIU — innym mieście 120 km dalej. Dwie przyczyny,
+ * obie tutaj: dopasowanie tekstowe przepuszczało dowolnie długą doklejkę do rdzenia
+ * („radom" + „sko"), a token „r" z adresu („Powstańców 1863 r.") pasował do każdego
+ * zapytania na tę literę. Tekst decyduje zawsze, gdy oferta nie ma współrzędnych, więc
+ * ta reguła musi być ostra sama z siebie. */
+describe('dopasowanie po nazwie miejscowości (bez współrzędnych)', () => {
+  function matches(query: string, offer: { locationLabel?: string; locationFull?: string }) {
+    const ctx = buildSearchContext(query, NaN, NaN, 0, false);
+    return getSearchMatchInfo(offer, ctx).anyMatch;
+  }
+
+  const radom = { locationLabel: 'Radom', locationFull: 'Mostowa, Radom, Radom, mazowieckie' };
+  const radomsko = { locationLabel: 'Radomsko', locationFull: 'Krańcowa, RADOMSKO, RADOMSZCZAŃSKI, ŁÓDZKIE' };
+  const naleczow = { locationLabel: 'NAŁĘCZÓW', locationFull: 'Powstańców 1863 r., NAŁĘCZÓW, PUŁAWSKI, LUBELSKIE' };
+
+  it('nie myli miejscowości o wspólnym rdzeniu', () => {
+    expect(matches('Radomsko, Polska', radom)).toBe(false);
+    expect(matches('Radom', radomsko)).toBe(false);
+    expect(matches('Radom', { locationLabel: 'Radomyśl Wielki', locationFull: 'Podborze, Radomyśl Wielki, mielecki, podkarpackie' })).toBe(false);
+    expect(matches('Radom', { locationLabel: 'Radomierz', locationFull: 'Radomierz, karkonoski, dolnośląskie' })).toBe(false);
+    expect(matches('Radom', { locationLabel: 'Radomin', locationFull: 'Radomin, golubsko-dobrzyński, kujawsko-pomorskie' })).toBe(false);
+  });
+
+  it('dopuszcza wyłącznie polską odmianę rdzenia, nie dowolną doklejkę', () => {
+    const radom = { locationLabel: 'Radom', locationFull: 'Radom, mazowieckie' };
+    expect(matches('Radomiu', radom)).toBe(true);
+    expect(matches('Radomia', radom)).toBe(true);
+    expect(matches('Poznaniu', { locationLabel: 'Poznań', locationFull: 'Poznań, wielkopolskie' })).toBe(true);
+    expect(matches('Lublinie', { locationLabel: 'Lublin', locationFull: 'Lublin, lubelskie' })).toBe(true);
+  });
+
+  it('nie łapie się na skróty i inicjały z adresu', () => {
+    expect(matches('Radomsko', naleczow)).toBe(false);
+    expect(matches('Rzeszów', naleczow)).toBe(false);
+  });
+
+  it('trafia własną miejscowość, też odmienioną i bez polskich znaków', () => {
+    expect(matches('Radomsko, Polska', radomsko)).toBe(true);
+    expect(matches('radomsko', radomsko)).toBe(true);
+    expect(matches('Nałęczów', naleczow)).toBe(true);
+    expect(matches('Naleczow', naleczow)).toBe(true);
+    expect(matches('Gdańska', { locationLabel: 'Gdańsk', locationFull: 'Gdańsk, pomorskie' })).toBe(true);
+    expect(matches('Wrocław', { locationLabel: 'Wrocławiu', locationFull: 'Wrocławiu, dolnośląskie' })).toBe(true);
+  });
+
+  it('wymaga trafienia KAŻDEGO słowa zapytania', () => {
+    expect(matches('Radomsko Piaski', { locationLabel: 'RADOMSKO, PIASKI', locationFull: 'Gidle, radomszczański, łódzkie' })).toBe(true);
+    expect(matches('Radomsko Piaski', radomsko)).toBe(false);
   });
 });
