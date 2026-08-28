@@ -201,9 +201,16 @@ export default function PakietyPage() {
     <main className="min-h-screen bg-bg px-6 py-6 text-fg/85">
       <div className="mx-auto max-w-[1450px]">
         <div className="mb-5 text-center">
+          {/* Tytuł nazywa stronę, zdanie o bezterminowości zeszło do podtytułu. Wcześniej
+              całe zdanie stało w H1, czyli Google i czytniki ekranu dostawały regulamin
+              zamiast nazwy strony. Skala podtytułu jak na /sprzedaj i /sprawdź działkę. */}
           <h1 className="text-2xl font-semibold tracking-tight text-fg md:text-4xl">
-            Kupione publikacje są przypisane do Twojego konta i nie wygasają.
+            Pakiety publikacji
           </h1>
+
+          <p className="mx-auto mt-3 max-w-xl text-[15px] leading-7 text-fg/70">
+            Kupione publikacje są przypisane do Twojego konta i nie wygasają.
+          </p>
 
           {credits && credits.listingCredits > 0 ? (
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/12 px-5 py-2 text-sm font-semibold text-brand-bright">

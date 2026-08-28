@@ -111,7 +111,11 @@ export default function BlogSearchSection({
         <HeroGradientBg />
 
         <div className="relative z-10 mx-auto max-w-4xl px-6 py-16 text-center md:px-8 md:py-20">
-          <h1 className="font-hero text-[34px] uppercase tracking-[0.06em] text-fg md:text-[58px] md:leading-none">
+          {/* Bez font-hero i wersalików: ten krój zostaje wyłącznie na hero strony
+              głównej. Wcześniej blog miał 58 px przy 52 px na głównej, czyli podstrona
+              była głośniejsza od wejścia. Skala jak na /sprawdz-dzialke, drugim hero
+              serwisu, które nie jest stroną główną. */}
+          <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-fg md:text-[42px]">
             Wiedza o działkach
           </h1>
 

@@ -225,6 +225,13 @@ export default async function KupPage({ searchParams }: KupPageProps) {
 
   return (
     <main>
+      {/* Nagłówek tylko dla wyszukiwarek. Strona wyników celowo nie ma widocznego tytułu
+          (to narzędzie, nie landing), ale bez H1 Google dostawał stronę z sitemapy, która
+          nigdzie nie mówi, o czym jest. Ten sam zabieg co na hubach /dzialki/... Treść
+          opisuje canonical, czyli /kup bez filtrów, bo warianty z ?loc i tak się do niego
+          sprowadzają. */}
+      <h1 className="sr-only">Działki na sprzedaż w całej Polsce</h1>
+
       <KupSearch
         initialPage={page}
         initialItems={initialItems as never}
