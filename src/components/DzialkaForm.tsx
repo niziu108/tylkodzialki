@@ -1601,8 +1601,8 @@ export default function DzialkaForm({
               zdjęte od razu: koszt oraz konto. Wcześniej padały dopiero w bramce logowania,
               czyli po wypełnieniu całego kreatora. Tylko w trybie dodawania. */}
           {mode === 'create' ? (
-            <div className="mb-8">
-              <h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
+            <div className="mb-6">
+              <h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">
                 Dodaj działkę
               </h1>
               <p className="mt-3 max-w-[42rem] text-[15px] leading-7 text-fg/72">
@@ -1657,10 +1657,6 @@ export default function DzialkaForm({
           </div>
 
         <form onSubmit={onSubmit} className="space-y-7">
-          <div className="text-xs text-fg/64">
-            <span className="text-brand-bright">*</span> pole wymagane
-          </div>
-
           {validationErrors.length > 0 ? (
             <div
               ref={errSummaryRef}
