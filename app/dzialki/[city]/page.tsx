@@ -5,6 +5,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
 import { getSeoCity, getRegionForCity, SEO_TYPES } from '@/lib/seo-locations';
 import { getCityStats, CITY_RADIUS_KM } from '@/lib/seoHub';
+import { queryHubListing } from '@/lib/dzialkiListing';
 import { buildCityMetaDescription } from '@/lib/seoCategoryContent';
 
 type PageProps = {
@@ -59,6 +60,13 @@ export default async function CityHubPage({ params }: PageProps) {
     sub: t.desc,
   }));
 
+  // Lista do HTML (nie tylko po hydracji) — patrz komentarz przy queryHubListing.
+  const hubListing = await queryHubListing({
+    qRaw: city.name,
+    center: { lat: city.lat, lng: city.lng },
+    radiusKm: CITY_RADIUS_KM,
+  });
+
   return (
     <main className="pb-24 pt-0">
       <h1 className="sr-only">Działki na sprzedaż {city.name}</h1>
@@ -83,6 +91,8 @@ export default async function CityHubPage({ params }: PageProps) {
 
       <KupSearch
         seoMode
+        initialItems={hubListing?.items as never}
+        initialCount={hubListing?.count}
         initialFilters={{
           locText: city.name,
           center: { lat: city.lat, lng: city.lng },

@@ -6,6 +6,7 @@ import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
 import { getSeoRegion, SEO_TYPES } from '@/lib/seo-locations';
 import { getVoivodeshipByKey } from '@/lib/dzialkiSearch';
 import { getVoivodeshipStats } from '@/lib/seoHub';
+import { queryHubListing } from '@/lib/dzialkiListing';
 import { getPowiatList } from '@/lib/seoPowiaty';
 import { powiatHeading } from '@/lib/seoPowiatContent';
 
@@ -75,6 +76,9 @@ export default async function WojewodztwoPage({ params }: PageProps) {
       count: p.total,
     }));
 
+  // Lista do HTML (nie tylko po hydracji) — patrz komentarz przy queryHubListing.
+  const hubListing = await queryHubListing({ bbox });
+
   return (
     <main className="pb-24 pt-0">
       <h1 className="sr-only">Działki na sprzedaż, województwo {region.name}</h1>
@@ -91,6 +95,8 @@ export default async function WojewodztwoPage({ params }: PageProps) {
 
       <KupSearch
         seoMode
+        initialItems={hubListing?.items as never}
+        initialCount={hubListing?.count}
         initialFilters={{
           bbox,
           przezn: [],

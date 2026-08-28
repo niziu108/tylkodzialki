@@ -540,3 +540,61 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
 
   return { ok: true, total, count: total, items, meta: buildMeta(total) };
 }
+
+// Pierwsza strona wyników dla huba SEO, policzona na serwerze.
+//
+// Huby /dzialki/... renderują KupSearch bez initialItems, więc do HTML szedł sam napis
+// „Ładowanie ofert…", a lista dociągała się dopiero po odpaleniu JavaScriptu. Efekt:
+// strony zbudowane wyłącznie po to, żeby się indeksowały, nie miały w HTML ANI JEDNEGO
+// linku do oferty, przy 7 tys. ofert w sitemapie. To ta sama zasada, którą projekt
+// stosuje już na stronie oferty („Podobne oferty" = SSR = linki dla Googlebota).
+//
+// Parametry budujemy dokładnie tak, jak robi to klient w KupSearch (skip 0, take 20,
+// sort newest, qRaw zamiast q — bo queryDzialkiList i tak bierze `qRaw || q`), żeby
+// lista w HTML zgadzała się z tym, co użytkownik zobaczy po hydracji.
+//
+// Błąd nie wywala strony: null → KupSearch dostaje undefined i zachowuje się jak dotąd.
+export async function queryHubListing(input: {
+  qRaw?: string;
+  center?: { lat: number; lng: number } | null;
+  radiusKm?: number;
+  bbox?: { n: number; s: number; e: number; w: number } | null;
+  przezn?: string[];
+}): Promise<{ items: unknown[]; count: number } | null> {
+  const sp = new URLSearchParams();
+
+  if (input.bbox) {
+    sp.set('n', String(input.bbox.n));
+    sp.set('s', String(input.bbox.s));
+    sp.set('e', String(input.bbox.e));
+    sp.set('w', String(input.bbox.w));
+  } else {
+    if (input.qRaw) sp.set('qRaw', input.qRaw);
+
+    if (input.center) {
+      sp.set('lat', String(input.center.lat));
+      sp.set('lng', String(input.center.lng));
+      sp.set('radius', String(input.radiusKm ?? 20));
+    }
+  }
+
+  if (input.przezn?.length) sp.set('przeznaczenia', input.przezn.join(','));
+
+  sp.set('skip', '0');
+  sp.set('take', '20');
+  sp.set('sort', 'newest');
+
+  try {
+    const body = await queryDzialkiList(sp);
+    if (!('items' in body)) return null;
+
+    // Serializacja do zwykłego JSON (Daty → ISO), czyli ten sam kształt, który klient
+    // dostaje z /api/dzialki.
+    return {
+      items: JSON.parse(JSON.stringify(body.items)) as unknown[],
+      count: body.count,
+    };
+  } catch {
+    return null;
+  }
+}

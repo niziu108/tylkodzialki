@@ -12,6 +12,7 @@ import {
   SEO_TYPES,
 } from '@/lib/seo-locations';
 import { getCityStats, getCategoryDetail, CITY_RADIUS_KM } from '@/lib/seoHub';
+import { queryHubListing } from '@/lib/dzialkiListing';
 import {
   buildSpecRows,
   buildLocalParagraphs,
@@ -79,6 +80,14 @@ export default async function CityTypePage({ params }: PageProps) {
     count: stats.byType[t.slug],
   }));
 
+  // Lista do HTML (nie tylko po hydracji) — patrz komentarz przy queryHubListing.
+  const hubListing = await queryHubListing({
+    qRaw: city.name,
+    center: { lat: city.lat, lng: city.lng },
+    radiusKm: CITY_RADIUS_KM,
+    przezn: [type.enum],
+  });
+
   return (
     <main className="pb-24 pt-0">
       <h1 className="sr-only">
@@ -106,6 +115,8 @@ export default async function CityTypePage({ params }: PageProps) {
 
       <KupSearch
         seoMode
+        initialItems={hubListing?.items as never}
+        initialCount={hubListing?.count}
         initialFilters={{
           locText: city.name,
           center: { lat: city.lat, lng: city.lng },

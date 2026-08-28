@@ -14,6 +14,7 @@ import {
   POWIAT_MIN_INDEX,
 } from '@/lib/seoPowiaty';
 import { buildPowiatParagraphs, buildPowiatFaq, powiatHeading } from '@/lib/seoPowiatContent';
+import { queryHubListing } from '@/lib/dzialkiListing';
 
 // Klucz strony jest ZŁOŻONY: województwo + powiat. Sam przymiotnik powiatu nie jest unikalny
 // (np. „brzeski" w opolskim i małopolskim), więc URL musi nieść oba segmenty, inaczej dwa rynki
@@ -86,6 +87,9 @@ export default async function PowiatPage({ params }: PageProps) {
     w: data.bbox.minLng,
   };
 
+  // Lista do HTML (nie tylko po hydracji) — patrz komentarz przy queryHubListing.
+  const hubListing = await queryHubListing({ bbox });
+
   return (
     <main className="pb-24 pt-0">
       <h1 className="sr-only">Działki na sprzedaż, {powiatNom(data.adj)}</h1>
@@ -108,7 +112,12 @@ export default async function PowiatPage({ params }: PageProps) {
         />
       </div>
 
-      <KupSearch seoMode initialFilters={{ bbox, przezn: [] }} />
+      <KupSearch
+        seoMode
+        initialItems={hubListing?.items as never}
+        initialCount={hubListing?.count}
+        initialFilters={{ bbox, przezn: [] }}
+      />
 
       <section className="mx-auto mt-16 max-w-6xl px-3 md:px-4">
         <h2 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
