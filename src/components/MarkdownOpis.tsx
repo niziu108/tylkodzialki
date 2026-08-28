@@ -114,7 +114,7 @@ export default function OpisEditor({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight text-fg">
           {title}
         </h2>
