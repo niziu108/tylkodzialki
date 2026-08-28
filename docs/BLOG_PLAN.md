@@ -51,7 +51,7 @@ droga dojazdowa, uzbrojenie (sprawdzanie + koszt), podział działki (koszt), in
 - [ ] Jak rozpoznać działkę inwestycyjną
 - [x] Jak sprawdzić planowane inwestycje w okolicy działki (slug: jak-sprawdzic-planowane-inwestycje-w-okolicy-dzialki)
 - [ ] Jak sprawdzić dostępność przyłączy na działce
-- [ ] Nasłonecznienie i ukształtowanie działki: jak ocenić
+- [x] Nasłonecznienie i ukształtowanie działki: jak ocenić (slug: naslonecznienie-i-uksztaltowanie-dzialki)
 
 ## Budowa
 - [x] Jak podłączyć prąd do działki krok po kroku (slug: jak-podlaczyc-prad-do-dzialki)
