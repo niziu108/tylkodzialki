@@ -8,6 +8,7 @@ import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
 import RadiusSelect from '@/components/RadiusSelect';
 import { loadGoogleMaps } from '@/lib/googleMaps';
+import { plural } from '@/lib/plural';
 // Stałe promienia leżą poza tym plikiem, bo czyta je też komponent serwerowy app/kup/page.tsx
 // (import z modułu 'use client' oddaje serwerowi referencję klienta, nie wartość).
 import { KM_OPTIONS, DEFAULT_RADIUS_KM, parseRadiusKm, type RadiusKm } from '@/lib/searchRadius';
@@ -721,6 +722,12 @@ export default function KupSearch({
   const [items, setItems] = useState<ApiDzialka[]>(initialItems ?? []);
   const [count, setCount] = useState(initialCount ?? 0);
 
+  // Podpowiedź „w szerszym promieniu coś jest" — liczona dopiero, gdy wynik wyjdzie pusty.
+  const [wider, setWider] = useState<{ radiusKm: RadiusKm; total: number } | null>(null);
+  // Dopóki false, sprawdzanie trwa (albo zaraz ruszy) — bez tego przy pustym wyniku mignęłaby
+  // na chwilę propozycja „Szukaj w całej Polsce", zanim policzymy szerszy promień.
+  const [widerChecked, setWiderChecked] = useState(false);
+
   const [page, setPage] = useState(initial.page);
 
   const [locText, setLocText] = useState(initial.filters.locText);
@@ -1096,6 +1103,55 @@ export default function KupSearch({
     } catch {}
   }, [loading, page, items.length]);
 
+  /* Zero wyników z konkretnego punktu to dziś ślepy zaułek: „Brak wyników" i koniec
+     rozmowy. Zamiast tego pytamy bazę, czy w szerszym promieniu coś jest, i podajemy to
+     jednym kliknięciem. Zapytanie leci TYLKO przy pustym wyniku (take=1, sama liczba),
+     więc normalne przeglądanie nic za to nie płaci. */
+  useEffect(() => {
+    if (loading || err || count > 0 || !applied.center || applied.bbox) {
+      setWider(null);
+      setWiderChecked(true);
+      return;
+    }
+
+    const bigger = KM_OPTIONS.filter((km) => km > applied.radiusKm);
+    if (!bigger.length) {
+      setWider(null);
+      setWiderChecked(true);
+      return;
+    }
+
+    let cancelled = false;
+    setWider(null);
+    setWiderChecked(false);
+
+    (async () => {
+      for (const km of bigger) {
+        try {
+          const params = makeParams({ ...applied, radiusKm: km }, 1);
+          params.set('take', '1');
+
+          const data = await fetchDzialki(params);
+          if (cancelled) return;
+
+          const total = Number(data.total ?? data.count ?? 0);
+          if (total > 0) {
+            setWider({ radiusKm: km, total });
+            break;
+          }
+        } catch {
+          if (cancelled) return;
+        }
+      }
+
+      if (!cancelled) setWiderChecked(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, err, count, applied]);
+
   async function applyAndSearch(asMap = false) {
     // Fallback: browser autocomplete may fill the DOM input without triggering React onChange
     const effectiveLocText = locText.trim() || (inputRef.current?.value?.trim() ?? '');
@@ -1158,6 +1214,31 @@ export default function KupSearch({
       // płynna animacja i tak rozbijałaby się o layout shift zwijanej karty.
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }), 80);
     }
+  }
+
+  /* Zmiana zasięgu jednym kliknięciem, wprost nad wynikami — bez wchodzenia w Filtry.
+     Kupujący działkę myśli „a co jest kawałek dalej", więc promień musi być widoczny
+     i przestawialny tam, gdzie patrzy na liczbę ofert. */
+  function applyRadiusKm(km: RadiusKm) {
+    if (km === applied.radiusKm || !applied.center || applied.bbox) return;
+
+    setRadiusKm(km);
+    const next: AppliedFilters = { ...applied, radiusKm: km };
+    setApplied(next);
+    fetchDataWith(next, 1);
+  }
+
+  /* Ostatnia deska ratunku przy pustym wyniku: zdejmujemy samą lokalizację (obszar/punkt),
+     a filtry ceny, powierzchni i przeznaczenia zostają — user ich nie ustawiał po to,
+     żeby mu je skasować. */
+  function searchWholeCountry() {
+    setLocText('');
+    setCenter(null);
+    setLocError(null);
+
+    const next: AppliedFilters = { ...applied, locText: '', center: null, bbox: null };
+    setApplied(next);
+    fetchDataWith(next, 1);
   }
 
   function reset() {
@@ -1528,6 +1609,62 @@ export default function KupSearch({
     : applied.locText.trim() || 'Cała Polska';
   const countLabel = loading && items.length === 0 ? 'Ładowanie ofert…' : `${count} ${ofertaLabel(count)}`;
 
+  /* Wiersz pod liczbą ofert: CO i W JAKIM PROMIENIU widać. Zasięg siedział dotąd wyłącznie
+     w rozwijanych Filtrach, więc lista czytała się jak „wszystko, co mamy w tej miejscowości",
+     a to były oferty w 20 km wokół punktu. Progi są klikalne wprost tutaj: kupujący działkę
+     myśli „a co jest kawałek dalej", i nie powinien tego szukać w panelu filtrów. */
+  const scopeLoc = applied.locText.trim();
+  const searchScope = applied.bbox ? (
+    <div className="mt-1 text-[13px] text-fg/60">Zaznaczony obszar na mapie</div>
+  ) : applied.center ? (
+    <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] text-fg/60">
+      {scopeLoc ? <span className="text-fg/75">{scopeLoc}</span> : null}
+      <span>w promieniu</span>
+      {KM_OPTIONS.map((km) => (
+        <button
+          key={km}
+          type="button"
+          onClick={() => applyRadiusKm(km)}
+          aria-current={km === applied.radiusKm ? 'true' : undefined}
+          className={
+            km === applied.radiusKm
+              ? 'border-b border-fg/55 pb-px font-medium text-fg'
+              : 'border-b border-transparent pb-px text-fg/50 transition hover:border-fg/25 hover:text-fg/80'
+          }
+        >
+          {km} km
+        </button>
+      ))}
+    </div>
+  ) : scopeLoc ? (
+    <div className="mt-1 text-[13px] text-fg/60">{scopeLoc} · dopasowanie po nazwie</div>
+  ) : null;
+
+  // Czy wynik zawężają filtry poza lokalizacją — przy pustej liście warto o tym powiedzieć.
+  const hasNarrowingFilters =
+    applied.przezn.length > 0 ||
+    applied.media.length > 0 ||
+    applied.transakcja.length > 0 ||
+    !!applied.priceMin ||
+    !!applied.priceMax ||
+    !!applied.areaMin ||
+    !!applied.areaMax;
+
+  const emptyTitle = applied.bbox
+    ? 'W zaznaczonym obszarze nie ma ofert.'
+    : applied.center
+      ? `Brak ofert w promieniu ${applied.radiusKm} km${scopeLoc ? ` (${scopeLoc})` : ''}.`
+      : scopeLoc
+        ? `Nic nie pasuje do: ${scopeLoc}.`
+        : 'Nic nie pasuje do tych filtrów.';
+
+  // Czy w ogóle jest dokąd poszerzać — po tym poznajemy, że sprawdzanie ma sens i trwa.
+  const canWiden =
+    !!applied.center && !applied.bbox && KM_OPTIONS.some((km) => km > applied.radiusKm);
+
+  const linkClass =
+    'border-b border-fg/40 pb-px text-fg transition hover:border-fg/70 disabled:opacity-50';
+
   return (
     <div className="w-full overflow-x-hidden">
       {/* bez overflow-hidden: rozwijana lista „Zasięg" wysuwa się poniżej karty i
@@ -1624,8 +1761,11 @@ export default function KupSearch({
       <section className="mx-auto max-w-6xl px-3 md:px-4">
         {/* „Sortuj:" zdjęte — w to miejsce liczba ofert (po lewej), a sam wybór sortowania
             po prawej. Krócej i użyteczniej niż zbędna etykieta. */}
-        <div ref={sortRef} className="relative mb-5 flex items-center justify-between gap-3">
-          <span className="text-[15px] font-medium tracking-[0.01em] text-fg">{countLabel}</span>
+        <div ref={sortRef} className="relative mb-5 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className="text-[15px] font-medium tracking-[0.01em] text-fg">{countLabel}</span>
+            {searchScope}
+          </div>
           <div className="relative">
           <button
             type="button"
@@ -1675,7 +1815,37 @@ export default function KupSearch({
           className="mb-6 mt-6"
         />
 
-        <KupList items={items} loading={loading} error={err} />
+        {!loading && !err && items.length === 0 ? (
+          /* Zamiast „Brak wyników." i ślepego zaułka: mówimy, CZEGO nie znaleziono, i dajemy
+             następny ruch. Najczęściej to po prostu szerszy promień, który sprawdzamy w tle. */
+          <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6">
+            <div className="text-[15px] text-fg/85">{emptyTitle}</div>
+
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-[14px]">
+              {wider ? (
+                <button type="button" className={linkClass} onClick={() => applyRadiusKm(wider.radiusKm)}>
+                  {/* Biernik, nie mianownik: „Pokaż 1 ofertę", a nie „Pokaż 1 oferta". */}
+                  Pokaż {wider.total} {plural(wider.total, 'ofertę', 'oferty', 'ofert')} w promieniu{' '}
+                  {wider.radiusKm} km
+                </button>
+              ) : canWiden && !widerChecked ? (
+                <span className="text-fg/55">Sprawdzam większy promień…</span>
+              ) : applied.center || applied.bbox || scopeLoc ? (
+                <button type="button" className={linkClass} onClick={searchWholeCountry}>
+                  Szukaj w całej Polsce
+                </button>
+              ) : null}
+
+              {hasNarrowingFilters ? (
+                <button type="button" className={linkClass} onClick={reset}>
+                  Wyczyść filtry
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <KupList items={items} loading={loading} error={err} />
+        )}
 
         <PagerResponsive
           page={safePage}
