@@ -112,12 +112,14 @@ export function UnderlineField({
   );
 }
 
-// Pigułka zaznaczenia — 1:1 klasa z filtrów na /kup (przeznaczenie, media, typ oferty).
-// Wcześniej formularz zaznaczał wybór cienkim podkreśleniem: przy pięciu podobnych
-// słowach w rzędzie („Brak przyłącza / Na działce / W drodze / …") trzeba było szukać,
-// które jest podkreślone. Zielone tło widać od razu i jest to ten sam język, którym
-// mówi wyszukiwarka.
-const CHIP_BASE = 'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition';
+// Pigułka zaznaczenia — kolor, kształt i rozmiar tekstu 1:1 z filtrami na /kup.
+// Wcześniej pigułki miały szerokość swojej treści, więc przy etykietach od „BRAK
+// do „PRZYDOMOWA OCZYSZCZALNIA" rząd wyglądał jak rozsypany, a dłuższe łamały się
+// na dwie linie i były wyższe od sąsiadów. Teraz każda wypełnia komórkę siatki:
+// jednakowa szerokość w kolumnie i jednakowa wysokość (min. 48 px, co przy
+// okazji daje porządny cel dotyku na telefonie), tekst wyśrodkowany.
+const CHIP_BASE =
+  'flex min-h-[48px] items-center justify-center rounded-full border px-2.5 py-2 text-center text-[12px] uppercase leading-[1.25] tracking-[0.06em] transition';
 const CHIP_ON = 'border-brand bg-brand/20 text-brand-bright';
 const CHIP_OFF = 'border-fg/25 text-fg/70 hover:border-fg/45';
 
@@ -131,7 +133,7 @@ export function Tabs({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3">
       {options.map((o) => {
         const active = value === o.value;
         return (
@@ -150,10 +152,11 @@ export function Tabs({
   );
 }
 
-// Siatka o stałych kolumnach (3 od sm, 2 niżej): sześć przeznaczeń nie mieści się
-// w jednym rzędzie, a przy flex-wrap „Siedliskowa" zawijała się samotnie do drugiego.
-// Trzy kolumny nie wchodzą poniżej ~480 px, bo same słowa to 348 px przy 366 px
-// kontenera. justify-items-start, żeby pigułki trzymały lewą krawędź kolumny.
+// Pigułki pakujemy ciasno (flex-wrap gap-2), dokładnie jak filtry na /kup. Siatka
+// o równych kolumnach, którą tu wcześniej miałem, rozrzucała je po całej szerokości:
+// kolumna ma 229 px, a „ROLNA" 79 px, więc między pigułkami robiły się dziury.
+// Jedna linia jest nieosiągalna bez zejścia z rozmiaru: sześć pigułek to 704 px
+// plus odstępy przy 688 px kontenera.
 export function MultiTabs({
   values,
   toggle,
@@ -164,7 +167,7 @@ export function MultiTabs({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="grid grid-cols-2 justify-items-start gap-2 sm:grid-cols-3">
+    <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3">
       {options.map((o) => {
         const active = values.includes(o.value);
         return (
@@ -183,9 +186,6 @@ export function MultiTabs({
   );
 }
 
-// Ta sama siatka co w MultiTabs: pięć opcji uzbrojenia przy flex-wrap zawijało się
-// jako 4+1, z „Możliwość przyłączenia" samotnie w drugim wierszu. Stałe kolumny dają
-// 3+2 i jeden układ dla wszystkich pól wyboru w formularzu.
 export function ChoiceRow({
   value,
   onChange,
@@ -196,7 +196,7 @@ export function ChoiceRow({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="grid grid-cols-2 justify-items-start gap-2 sm:grid-cols-3">
+    <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3">
       {options.map((o) => {
         const active = value === o.value;
         return (
