@@ -4,7 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { formatIntPL } from '@/lib/format';
 import type { ParcelReport } from '@/lib/uldk';
-import { isFarAndThin, isWideSpread, type PointValuation, type PriceStat } from '@/lib/seoHub';
+import { type PointValuation, type PriceStat } from '@/lib/seoHub';
+import { decydujCene } from '@/lib/raportCena';
 import type { MpzpInfo } from '@/lib/mpzp';
 import FeaturedRail from '@/components/FeaturedRail';
 import type { OfferData } from '@/components/OfferCard';
@@ -77,59 +78,41 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
   );
 }
 
-// Czy plan wskazuje grunt rolny/leśny. Wtedy raport prowadzi medianą działek rolnych — porównywanie
-// pola uprawnego do budowlanych sąsiadów zawyża tak samo, jak odwrotnie zaniżało.
-// Konserwatywnie: „zabudowa zagrodowa w gospodarstwach rolnych" to wciąż teren pod budowę.
-function looksRolny(mpzp: MpzpInfo | null): boolean {
-  if (!mpzp) return false;
-  const symbol = (mpzp.functionSymbol ?? '').trim().toUpperCase();
-  if (/^(R|RP|RL|ZL|ZR)\d*$/.test(symbol)) return true;
-  const name = (mpzp.functionName ?? '').toLowerCase();
-  if (!name || /zabudow/.test(name)) return false;
-  return /roln|leśn|lesn|upraw|grunt orn/.test(name);
-}
-
-// Pula, którą prowadzimy raport. Wcześniej dużą liczbą była mediana WSZYSTKICH typów — w okolicy
-// z przewagą pól po 15 zł/m² wychodziło z tego 55 zł/m² także dla działki w mieście. Kto sprawdza
-// działkę pod dom, chce mediany budowlanych, nie średniej z gruntami rolnymi.
-type Lead = { label: string; stat: PriceStat; kind: 'similar' | 'type' };
-
-// Kolejność: najpierw działki ZBLIŻONEJ WIELKOŚCI, bo to największe źródło rozrzutu w okolicy
-// (za metr działki pod dom płaci się kilka razy tyle co za metr wielohektarowego pola). Dopiero
-// gdy podobnych brakuje, schodzimy do „wszystkie budowlane" jak dotąd.
-function pickLead(valuation: PointValuation, mpzp: MpzpInfo | null): Lead | null {
-  const sim: Lead = {
-    label: 'działki podobnej wielkości',
-    stat: valuation.similarSize,
-    kind: 'similar',
-  };
-  const bud: Lead = { label: 'działki budowlane', stat: valuation.budowlana, kind: 'type' };
-  const rol: Lead = { label: 'działki rolne', stat: valuation.rolna, kind: 'type' };
-  const order = looksRolny(mpzp) ? [rol, bud] : [sim, bud, rol];
-
-  for (const cand of order) if (cand.stat.pricePerM2) return cand;
-  if (valuation.pricePerM2) {
-    return {
-      label: 'wszystkie typy działek',
-      stat: { pricePerM2: valuation.pricePerM2, sampleCount: valuation.sampleCount },
-      kind: 'type',
-    };
-  }
-  return null;
-}
-
 export default function Raport({ data }: { data: RaportData }) {
   const { parcel, valuation, mpzp, nearby } = data;
-  const lead = pickLead(valuation, mpzp);
-  // Gate pewności: gdy compary zebrały się dopiero na największym kole i jest ich mało, nie
-  // prowadzimy liczbą — spada do gałęzi „za mało porównywalnych działek". [[project-sprawdz-dzialke]]
-  const farThin = lead ? isFarAndThin(valuation.radiusKm, lead.stat.sampleCount) : false;
-  const v = farThin ? null : lead?.stat.pricePerM2 ?? null;
-  // Widełki zamiast mediany tylko wtedy, gdy próbka NIE jest zawężona do działek podobnej
-  // wielkości. Przy zawężonej mediana jest uczciwa, bo z rozrzutu wypadł jego największy
-  // składnik: mieszanie działki pod dom z wielohektarowym polem.
-  const mixed = isWideSpread(v) && lead?.kind !== 'similar';
+  // Wybór puli i decyzja „mediana czy widełki" siedzą w lib/raportCena.ts, wspólnie z generatorem
+  // PDF — inaczej plik pokazywałby inną cenę niż ekran.
+  const { lead, value: v, mixed } = decydujCene(valuation, mpzp);
   const [mapShown, setMapShown] = useState(false);
+  const [pdfState, setPdfState] = useState<'idle' | 'busy' | 'error'>('idle');
+
+  // Plik zamiast okna drukowania: użytkownik dostaje PDF, który może wysłać mailem albo zabrać
+  // do gminy. Otwieramy go też w nowej karcie, ale gdy przeglądarka zablokuje wyskakujące okna,
+  // pobrany plik i tak został zapisany.
+  async function pobierzPdf() {
+    setPdfState('busy');
+    try {
+      const res = await fetch('/api/sprawdz-dzialke/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parcelId: parcel.id }),
+      });
+      if (!res.ok) throw new Error('pdf');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `raport-dzialka-${parcel.parcelNumber.replace(/[^\w]+/g, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setPdfState('idle');
+    } catch {
+      setPdfState('error');
+    }
+  }
 
   return (
     <div className="print-report w-full text-left">
@@ -156,10 +139,15 @@ export default function Raport({ data }: { data: RaportData }) {
         <div className="no-print flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg"
+            onClick={pobierzPdf}
+            disabled={pdfState === 'busy'}
+            className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg disabled:opacity-60"
           >
-            Pobierz PDF
+            {pdfState === 'busy'
+              ? 'Przygotowuję PDF…'
+              : pdfState === 'error'
+                ? 'Nie wyszło, spróbuj ponownie'
+                : 'Pobierz PDF'}
           </button>
 
           <button

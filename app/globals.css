@@ -347,21 +347,17 @@ html {
     --line-strong: rgba(17, 17, 17, 0.32);
   }
 
-  body:has(.print-report) * {
-    visibility: hidden;
-  }
-
-  body:has(.print-report) .print-report,
-  body:has(.print-report) .print-report * {
-    visibility: visible;
+  /* Znika wszystko, co nie jest raportem, jego przodkiem ani jego zawartością. Wcześniej było
+     to robione przez `visibility: hidden`, ale ukryte sekcje nadal zajmowały miejsce w układzie
+     i wydruk raportu wychodził na pięciu kartkach, z czego cztery puste. */
+  body:has(.print-report) *:not(:has(.print-report)):not(.print-report):not(.print-report *) {
+    display: none !important;
   }
 
   body:has(.print-report) .print-report {
-    position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
     padding: 0;
+    margin: 0;
   }
 
   .no-print,
