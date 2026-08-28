@@ -7,6 +7,7 @@ import type { ParcelReport } from '@/lib/uldk';
 import { type PointValuation, type PriceStat } from '@/lib/seoHub';
 import { decydujCene } from '@/lib/raportCena';
 import type { MpzpInfo } from '@/lib/mpzp';
+import type { PogInfo } from '@/lib/pog';
 import FeaturedRail from '@/components/FeaturedRail';
 import type { OfferData } from '@/components/OfferCard';
 import RaportMap from './RaportMap';
@@ -19,6 +20,7 @@ export type RaportData = {
   parcel: ParcelReport;
   valuation: PointValuation;
   mpzp: MpzpInfo | null;
+  pog?: PogInfo | null;
   nearby?: OfferData[];
 };
 
@@ -79,7 +81,7 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
 }
 
 export default function Raport({ data }: { data: RaportData }) {
-  const { parcel, valuation, mpzp, nearby } = data;
+  const { parcel, valuation, mpzp, pog, nearby } = data;
   // Wybór puli i decyzja „mediana czy widełki" siedzą w lib/raportCena.ts, żeby dało się je
   // testować bez renderowania komponentu.
   const { lead, value: v, mixed } = decydujCene(valuation, mpzp);
@@ -243,6 +245,86 @@ export default function Raport({ data }: { data: RaportData }) {
           </p>
         )}
       </div>
+
+      {/* PLAN OGÓLNY GMINY — od reformy obowiązkowy dla każdej gminy i obejmujący CAŁY jej obszar,
+          więc odpowiada tam, gdzie planu miejscowego nie ma (a nie ma go dla większości działek).
+          Najważniejszy jest obszar uzupełnienia zabudowy: bez planu miejscowego to od niego zależy,
+          czy gmina w ogóle może wydać warunki zabudowy. Gdy gmina nie przysłała jeszcze danych do
+          usługi GUGiK, sekcji nie ma — nie mylimy „brak danych" z „poza obszarem". */}
+      {pog ? (
+        <div className="print-keep mt-8 border-t border-fg/12 pt-8">
+          <Eyebrow>Plan ogólny gminy</Eyebrow>
+          <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/80">
+            Działka leży w strefie:{' '}
+            <span className="text-fg">{pog.strefa.nazwa ?? `oznaczonej symbolem ${pog.strefa.symbol}`}</span>
+            .
+          </p>
+
+          <div className="mt-5 border-t border-fg/10">
+            <Row label="Oznaczenie strefy" value={pog.strefa.oznaczenie ?? pog.strefa.symbol} />
+            <Row
+              label="Maks. wysokość zabudowy"
+              value={pog.strefa.maksWysokoscZabudowy ? `${pog.strefa.maksWysokoscZabudowy} m` : null}
+            />
+            <Row
+              label="Maks. powierzchnia zabudowy"
+              value={
+                pog.strefa.maksUdzialPowierzchniZabudowy
+                  ? `${pog.strefa.maksUdzialPowierzchniZabudowy}%`
+                  : null
+              }
+            />
+            <Row
+              label="Min. powierzchnia biologicznie czynna"
+              value={
+                pog.strefa.minUdzialPowierzchniBiologicznieCzynnej
+                  ? `${pog.strefa.minUdzialPowierzchniBiologicznieCzynnej}%`
+                  : null
+              }
+            />
+            <Row
+              label="Maks. intensywność zabudowy"
+              value={pog.strefa.maksNadziemnaIntensywnoscZabudowy}
+            />
+            <Row label="Obowiązuje od" value={plDate(pog.strefa.obowiazujeOd)} />
+          </div>
+
+          {/* Sedno całej sekcji: czy na tej działce da się w ogóle dostać warunki zabudowy. */}
+          <p className="mt-5 max-w-2xl text-[15px] leading-7 text-fg/75">
+            {pog.ouz ? (
+              <>
+                <span className="font-medium text-fg">
+                  Działka leży w obszarze uzupełnienia zabudowy.
+                </span>{' '}
+                {mpzp
+                  ? 'O zabudowie i tak rozstrzyga plan miejscowy powyżej, bo tam gdzie plan obowiązuje, warunków zabudowy się nie wydaje.'
+                  : 'Gdy nie ma planu miejscowego, to warunek konieczny, żeby gmina mogła wydać decyzję o warunkach zabudowy. Sam obszar nie przesądza jeszcze o decyzji, ale bez niego nie ma o czym rozmawiać.'}
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-fg">
+                  Działka leży poza obszarem uzupełnienia zabudowy.
+                </span>{' '}
+                {mpzp
+                  ? 'Dla tej działki rozstrzyga jednak plan miejscowy powyżej, a warunków zabudowy nie wydaje się tam, gdzie plan obowiązuje.'
+                  : 'Bez planu miejscowego gmina co do zasady nie wyda tu warunków zabudowy pod nowy dom. Wyjątki dotyczą między innymi zabudowy zagrodowej w gospodarstwie rolnym. To pytanie zadaj w gminie w pierwszej kolejności.'}
+              </>
+            )}
+          </p>
+
+          {pog.srodmiejska ? (
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-fg/55">
+              Teren leży w obszarze zabudowy śródmiejskiej, gdzie obowiązują luźniejsze standardy
+              dostępu do terenów zieleni i infrastruktury społecznej.
+            </p>
+          ) : null}
+
+          <p className="mt-3 max-w-2xl text-xs leading-6 text-fg/45">
+            Dane z planów ogólnych gmin (GUGiK). Plan ogólny nie zastępuje planu miejscowego:
+            wyznacza ramy, w których gmina uchwala plany i wydaje decyzje o warunkach zabudowy.
+          </p>
+        </div>
+      ) : null}
 
       {/* DANE Z EWIDENCJI */}
       <div className="print-keep mt-8 border-t border-fg/12 pt-8">

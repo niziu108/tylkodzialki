@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getParcelById, getParcelByXY, UldkError, type ParcelReport } from '@/lib/uldk';
 import { getNearbyOffers, getPointValuation, type PointValuation } from '@/lib/seoHub';
 import { getMpzpAtPoint, type MpzpInfo } from '@/lib/mpzp';
+import { getPogAtPoint, type PogInfo } from '@/lib/pog';
 
 type NearbyOffer = Awaited<ReturnType<typeof getNearbyOffers>>[number];
 
@@ -19,6 +20,7 @@ export type SprawdzResponse = {
   parcel: ParcelReport;
   valuation: PointValuation;
   mpzp: MpzpInfo | null; // przeznaczenie z KIMPZP w środku działki; null gdy brak planu
+  pog: PogInfo | null; // plan ogólny gminy: strefa planistyczna + obszar uzupełnienia zabudowy
   nearby: NearbyOffer[]; // działki na sprzedaż najbliżej sprawdzanego punktu
 };
 
@@ -57,15 +59,16 @@ export async function POST(req: NextRequest) {
 
     // Wycenę i MPZP liczymy od środka znalezionej działki (spójnie z jej realną lokalizacją).
     // Powierzchnia z ewidencji idzie do wyceny, żeby porównywać do działek podobnej wielkości.
-    const [valuation, mpzp] = await Promise.all([
+    const [valuation, mpzp, pog] = await Promise.all([
       getPointValuation(parcel.center.lat, parcel.center.lng, parcel.areaM2),
       getMpzpAtPoint(parcel.center.lat, parcel.center.lng),
+      getPogAtPoint(parcel.center.lat, parcel.center.lng),
     ]);
 
     // Oferty z tego samego koła, na którym liczyliśmy cenę — spójnie z tym, co raport pokazuje.
     const nearby = await getNearbyOffers(parcel.center.lat, parcel.center.lng, valuation.radiusKm);
 
-    const payload: SprawdzResponse = { parcel, valuation, mpzp, nearby };
+    const payload: SprawdzResponse = { parcel, valuation, mpzp, pog, nearby };
     return NextResponse.json(payload);
   } catch (err) {
     if (err instanceof UldkError) {
