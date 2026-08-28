@@ -399,14 +399,20 @@ export type PriceStat = { pricePerM2: RangeStat | null; sampleCount: number };
 // wielkością mocniej niż cokolwiek innego w naszych danych (do 800 m²: 233 zł/m², powyżej
 // 5000 m²: 59 zł/m²), więc mediana „wszystkich budowlanych w okolicy" mieszała działkę pod dom
 // z polem na 3 ha. Porównujemy do rozmiaru zbliżonego: to zawęża widełki bez zgadywania.
-export const SIMILAR_SIZE_LOW = 0.6;
-export const SIMILAR_SIZE_HIGH = 1.7;
+// Drabinka widełek: bierzemy NAJWĘŻSZE, które daje sensowną próbkę — tak samo jak z promieniem.
+// Sztywne 0,6–1,7x sprawdzało się w gęstej podaży (Bełchatów: 7 ofert, Warszawa: 9), ale w
+// rzadszej okolicy nie zbierało nawet czterech ofert (Grójec: 2 na 10 km) i raport spadał do
+// „wszystkich budowlanych", czyli z powrotem porównywał działkę pod dom z wielohektarowym polem.
+// Lepiej poluzować wymóg podobieństwa niż zupełnie z niego zrezygnować.
+export const SIMILAR_SIZE_LADDER = [
+  { low: 0.6, high: 1.7 },
+  { low: 0.4, high: 2.5 },
+  { low: 0.25, high: 4 },
+] as const;
 
-export function similarSizeRange(areaM2: number): { minM2: number; maxM2: number } {
-  return {
-    minM2: Math.round(areaM2 * SIMILAR_SIZE_LOW),
-    maxM2: Math.round(areaM2 * SIMILAR_SIZE_HIGH),
-  };
+export function similarSizeRange(areaM2: number, step = 0): { minM2: number; maxM2: number } {
+  const s = SIMILAR_SIZE_LADDER[Math.min(step, SIMILAR_SIZE_LADDER.length - 1)];
+  return { minM2: Math.round(areaM2 * s.low), maxM2: Math.round(areaM2 * s.high) };
 }
 
 // Drabinka promienia: bierzemy NAJMNIEJSZE koło, które daje sensowną próbkę. Sztywne 10 km
@@ -534,13 +540,22 @@ export const getPointValuation = cache(
     );
     const rolneRows = near.filter((r) => r.przeznaczenia.includes('ROLNA'));
 
-    // Porównanie do działek zbliżonej wielkości (patrz SIMILAR_SIZE_LOW/HIGH).
-    const band = areaM2 && areaM2 > 0 ? similarSizeRange(areaM2) : null;
-    const similarRows = band
-      ? budowlaneRows.filter(
-          (r) => r.powierzchniaM2 >= band.minM2 && r.powierzchniaM2 <= band.maxM2
-        )
-      : [];
+    // Porównanie do działek zbliżonej wielkości: schodzimy drabinką widełek i zatrzymujemy się na
+    // pierwszych, które dają próbkę. Gdy nawet najszersze nie wystarczą, priceStat i tak zwróci
+    // null i raport zejdzie do „wszystkich budowlanych".
+    let band: { minM2: number; maxM2: number } | null = null;
+    let similarRows: typeof near = [];
+    if (areaM2 && areaM2 > 0) {
+      for (let step = 0; step < SIMILAR_SIZE_LADDER.length; step++) {
+        const kandydat = similarSizeRange(areaM2, step);
+        const rows = budowlaneRows.filter(
+          (r) => r.powierzchniaM2 >= kandydat.minM2 && r.powierzchniaM2 <= kandydat.maxM2
+        );
+        band = kandydat;
+        similarRows = rows;
+        if (priced(rows) >= MIN_SAMPLE) break;
+      }
+    }
 
     // Media „twardo na działce" (spójnie z filtrami listy). null przy próbce < MIN_SAMPLE.
     const mediaShares =
