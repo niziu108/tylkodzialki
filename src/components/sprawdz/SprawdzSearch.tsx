@@ -228,12 +228,19 @@ export default function SprawdzSearch() {
         <HeroGradientBg />
 
         <div className="relative z-10 flex flex-col items-center px-4 py-10 md:py-14">
-          <div className="w-full max-w-2xl rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
-            {/* Nagłówek dla SEO/czytników — bez wizualnego tytułu, wyszukiwarka jak na /kup. */}
-            <h1 className="sr-only">
-              Sprawdź działkę: granice, powierzchnia, przeznaczenie z planu i orientacyjna cena okolicy
+          {/* Widoczny nagłówek: bez niego strona otwierała się samym pustym polem i nigdzie nie
+              było napisane, że raport jest darmowy i bez konta. */}
+          <div className="mb-7 w-full max-w-2xl text-center md:mb-9">
+            <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-fg md:text-[42px]">
+              Sprawdź działkę za darmo
             </h1>
+            <p className="mx-auto mt-3 max-w-xl text-[15px] leading-7 text-fg/70 md:text-base">
+              Granice i powierzchnia z ewidencji gruntów, numer działki, przeznaczenie z planu
+              miejscowego i ceny w okolicy. Raport w kilka sekund, bez logowania i bez konta.
+            </p>
+          </div>
 
+          <div className="w-full max-w-2xl rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
             <div className="rounded-xl border border-fg/25">
               <input
                 ref={addrRef}

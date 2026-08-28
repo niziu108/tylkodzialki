@@ -6,8 +6,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getParcelById, getParcelByXY, UldkError, type ParcelReport } from '@/lib/uldk';
-import { getPointValuation, type PointValuation } from '@/lib/seoHub';
+import { getNearbyOffers, getPointValuation, type PointValuation } from '@/lib/seoHub';
 import { getMpzpAtPoint, type MpzpInfo } from '@/lib/mpzp';
+
+type NearbyOffer = Awaited<ReturnType<typeof getNearbyOffers>>[number];
 
 export const runtime = 'nodejs';
 
@@ -17,6 +19,7 @@ export type SprawdzResponse = {
   parcel: ParcelReport;
   valuation: PointValuation;
   mpzp: MpzpInfo | null; // przeznaczenie z KIMPZP w środku działki; null gdy brak planu
+  nearby: NearbyOffer[]; // działki na sprzedaż najbliżej sprawdzanego punktu
 };
 
 function isNum(v: unknown): v is number {
@@ -53,19 +56,28 @@ export async function POST(req: NextRequest) {
     }
 
     // Wycenę i MPZP liczymy od środka znalezionej działki (spójnie z jej realną lokalizacją).
+    // Powierzchnia z ewidencji idzie do wyceny, żeby porównywać do działek podobnej wielkości.
     const [valuation, mpzp] = await Promise.all([
-      getPointValuation(parcel.center.lat, parcel.center.lng),
+      getPointValuation(parcel.center.lat, parcel.center.lng, parcel.areaM2),
       getMpzpAtPoint(parcel.center.lat, parcel.center.lng),
     ]);
 
-    const payload: SprawdzResponse = { parcel, valuation, mpzp };
+    // Oferty z tego samego koła, na którym liczyliśmy cenę — spójnie z tym, co raport pokazuje.
+    const nearby = await getNearbyOffers(parcel.center.lat, parcel.center.lng, valuation.radiusKm);
+
+    const payload: SprawdzResponse = { parcel, valuation, mpzp, nearby };
     return NextResponse.json(payload);
   } catch (err) {
     if (err instanceof UldkError) {
       return NextResponse.json({ error: err.message }, { status: 422 });
     }
     return NextResponse.json(
-      { error: 'Nie udało się pobrać danych działki. Spróbuj ponownie za chwilę.' },
+      {
+        error: 'Nie udało się pobrać danych działki. Spróbuj ponownie za chwilę.',
+        ...(process.env.NODE_ENV === 'production'
+          ? {}
+          : { detail: err instanceof Error ? `${err.name}: ${err.message}` : String(err) }),
+      },
       { status: 502 }
     );
   }

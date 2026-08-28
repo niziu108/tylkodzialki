@@ -6,6 +6,8 @@ import { formatIntPL } from '@/lib/format';
 import type { ParcelReport } from '@/lib/uldk';
 import { isFarAndThin, isWideSpread, type PointValuation, type PriceStat } from '@/lib/seoHub';
 import type { MpzpInfo } from '@/lib/mpzp';
+import FeaturedRail from '@/components/FeaturedRail';
+import type { OfferData } from '@/components/OfferCard';
 import RaportMap from './RaportMap';
 
 // P24: raport „Sprawdź działkę" — układ redakcyjny (wszystko od lewej, cienkie linie zamiast
@@ -16,6 +18,7 @@ export type RaportData = {
   parcel: ParcelReport;
   valuation: PointValuation;
   mpzp: MpzpInfo | null;
+  nearby?: OfferData[];
 };
 
 const NEXT_STEPS: { href: string; label: string }[] = [
@@ -89,32 +92,43 @@ function looksRolny(mpzp: MpzpInfo | null): boolean {
 // Pula, którą prowadzimy raport. Wcześniej dużą liczbą była mediana WSZYSTKICH typów — w okolicy
 // z przewagą pól po 15 zł/m² wychodziło z tego 55 zł/m² także dla działki w mieście. Kto sprawdza
 // działkę pod dom, chce mediany budowlanych, nie średniej z gruntami rolnymi.
-function pickLead(
-  valuation: PointValuation,
-  mpzp: MpzpInfo | null
-): { label: string; stat: PriceStat } | null {
-  const bud = { label: 'działki budowlane', stat: valuation.budowlana };
-  const rol = { label: 'działki rolne', stat: valuation.rolna };
-  const order = looksRolny(mpzp) ? [rol, bud] : [bud, rol];
+type Lead = { label: string; stat: PriceStat; kind: 'similar' | 'type' };
+
+// Kolejność: najpierw działki ZBLIŻONEJ WIELKOŚCI, bo to największe źródło rozrzutu w okolicy
+// (za metr działki pod dom płaci się kilka razy tyle co za metr wielohektarowego pola). Dopiero
+// gdy podobnych brakuje, schodzimy do „wszystkie budowlane" jak dotąd.
+function pickLead(valuation: PointValuation, mpzp: MpzpInfo | null): Lead | null {
+  const sim: Lead = {
+    label: 'działki podobnej wielkości',
+    stat: valuation.similarSize,
+    kind: 'similar',
+  };
+  const bud: Lead = { label: 'działki budowlane', stat: valuation.budowlana, kind: 'type' };
+  const rol: Lead = { label: 'działki rolne', stat: valuation.rolna, kind: 'type' };
+  const order = looksRolny(mpzp) ? [rol, bud] : [sim, bud, rol];
 
   for (const cand of order) if (cand.stat.pricePerM2) return cand;
   if (valuation.pricePerM2) {
     return {
       label: 'wszystkie typy działek',
       stat: { pricePerM2: valuation.pricePerM2, sampleCount: valuation.sampleCount },
+      kind: 'type',
     };
   }
   return null;
 }
 
 export default function Raport({ data }: { data: RaportData }) {
-  const { parcel, valuation, mpzp } = data;
+  const { parcel, valuation, mpzp, nearby } = data;
   const lead = pickLead(valuation, mpzp);
   // Gate pewności: gdy compary zebrały się dopiero na największym kole i jest ich mało, nie
   // prowadzimy liczbą — spada do gałęzi „za mało porównywalnych działek". [[project-sprawdz-dzialke]]
   const farThin = lead ? isFarAndThin(valuation.radiusKm, lead.stat.sampleCount) : false;
   const v = farThin ? null : lead?.stat.pricePerM2 ?? null;
-  const mixed = isWideSpread(v);
+  // Widełki zamiast mediany tylko wtedy, gdy próbka NIE jest zawężona do działek podobnej
+  // wielkości. Przy zawężonej mediana jest uczciwa, bo z rozrzutu wypadł jego największy
+  // składnik: mieszanie działki pod dom z wielohektarowym polem.
+  const mixed = isWideSpread(v) && lead?.kind !== 'similar';
   const [mapShown, setMapShown] = useState(false);
 
   return (
@@ -165,26 +179,54 @@ export default function Raport({ data }: { data: RaportData }) {
               <span className="text-[13px] uppercase tracking-[0.1em] text-fg/45">{lead.label}</span>
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-fg/65">
-              {mixed
-                ? `Ceny w tej okolicy rozjeżdżają się za mocno, żeby podać jedną liczbę: w promieniu ${valuation.radiusKm} km mamy zarówno teren zabudowany, jak i tańsze działki poza nim. Traktuj to jako widełki, nie wycenę.`
-                : `${v.low === v.high ? `${formatIntPL(v.low)} zł/m²` : `Zakres od ${formatIntPL(v.low)} do ${formatIntPL(v.high)} zł/m²`} · w promieniu ${valuation.radiusKm} km.`}{' '}
+              {lead.kind === 'similar' && valuation.similarSizeBand
+                ? `Porównaliśmy do działek o powierzchni od ${formatIntPL(valuation.similarSizeBand.minM2)} do ${formatIntPL(valuation.similarSizeBand.maxM2)} m², w promieniu ${valuation.radiusKm} km. Większość z nich mieści się między ${formatIntPL(v.low)} a ${formatIntPL(v.high)} zł/m².`
+                : mixed
+                  ? `Ceny w tej okolicy rozjeżdżają się za mocno, żeby podać jedną liczbę: w promieniu ${valuation.radiusKm} km mamy zarówno teren zabudowany, jak i tańsze działki poza nim. Traktuj to jako widełki, nie wycenę.`
+                  : `${v.low === v.high ? `${formatIntPL(v.low)} zł/m²` : `Zakres od ${formatIntPL(v.low)} do ${formatIntPL(v.high)} zł/m²`} · w promieniu ${valuation.radiusKm} km.`}{' '}
               Liczone z {lead.stat.sampleCount}{' '}
               {lead.stat.sampleCount === 1 ? 'oferty' : 'ofert'} w naszym serwisie. To orientacja z
               ogłoszeń, nie operat rzeczoznawcy.
             </p>
 
-            {/* Rozbicie: uzbrojone vs bez (przy gęstej okolicy) oraz druga pula dla kontekstu.
-                Puste rubryki znikają same. */}
+            {/* CO PODNOSI CENĘ — odpowiedź na „gdzie w tych widełkach wyląduje moja działka".
+                Liczone z tej samej okolicy: mediana ofert z cechą kontra mediana ofert bez niej,
+                więc lokalizacja skraca się po obu stronach. Puste, gdy sygnał jest za słaby. */}
+            {valuation.factors.length ? (
+              <div className="mt-7">
+                <div className="text-[13px] uppercase tracking-[0.1em] text-fg/45">
+                  Co podnosi cenę działki
+                </div>
+                <div className="mt-3 border-t border-fg/10">
+                  {valuation.factors.map((f) => (
+                    <div
+                      key={f.key}
+                      className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 border-b border-fg/10 py-3"
+                    >
+                      <span className="text-[15px] text-fg/85">{f.label}</span>
+                      <span className="whitespace-nowrap text-[15px] font-medium text-fg">
+                        +{Math.round(f.delta * 100)}%
+                        <span className="ml-2 text-[13px] font-normal text-fg/45">
+                          {formatIntPL(f.withMedian)} zamiast {formatIntPL(f.withoutMedian)} zł/m²
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 max-w-2xl text-xs leading-6 text-fg/45">
+                  Porównanie median ofert z daną cechą i pozostałych, liczone na wszystkich{' '}
+                  {formatIntPL(valuation.factors[0].withCount + valuation.factors[0].withoutCount)}{' '}
+                  działkach budowlanych z ceną w naszym serwisie. To reguła całego rynku, nie pomiar
+                  dla tej jednej ulicy: w promieniu kilku kilometrów jest za mało ofert, żeby liczyć
+                  ją lokalnie i nie zmyślać.
+                </p>
+              </div>
+            ) : null}
+
+            {/* Druga pula dla kontekstu (budowlane/rolne). Puste rubryki znikają same. */}
             <div className="empty:hidden mt-6">
-              {valuation.budowlanaUzbrojona.pricePerM2 &&
-              valuation.budowlanaNieuzbrojona.pricePerM2 ? (
-                <>
-                  <PriceRow label="Budowlane z uzbrojeniem" stat={valuation.budowlanaUzbrojona} />
-                  <PriceRow label="Budowlane bez uzbrojenia" stat={valuation.budowlanaNieuzbrojona} />
-                </>
-              ) : null}
               {lead.label !== 'działki budowlane' ? (
-                <PriceRow label="Działki budowlane" stat={valuation.budowlana} />
+                <PriceRow label="Wszystkie budowlane w okolicy" stat={valuation.budowlana} />
               ) : null}
               {lead.label !== 'działki rolne' ? (
                 <PriceRow label="Działki rolne" stat={valuation.rolna} />
@@ -277,6 +319,32 @@ export default function Raport({ data }: { data: RaportData }) {
           Granice, powierzchnia i numer z ewidencji gruntów (ULDK, GUGiK) dla wskazanego punktu.
         </p>
       </div>
+
+      {/* DZIAŁKI W OKOLICY — raport ma się kończyć czymś do kliknięcia, a nie samym odesłaniem
+          do urzędu. Te same karty co na /kup, więc działają identycznie (galeria, ulubione). */}
+      {nearby && nearby.length ? (
+        <div className="mt-10 border-t border-fg/12 pt-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h3 className="text-xl font-semibold tracking-tight text-brand-text md:text-2xl">
+              Działki na sprzedaż w okolicy
+            </h3>
+            <Link
+              href={`/kup?lat=${parcel.center.lat}&lng=${parcel.center.lng}&radius=${valuation.radiusKm}`}
+              className="text-[15px] text-fg/70 underline decoration-1 underline-offset-4 transition hover:text-fg"
+            >
+              Zobacz wszystkie
+            </Link>
+          </div>
+          <p className="mt-2 text-sm text-fg/60">
+            {valuation.offersNearby}{' '}
+            {valuation.offersNearby === 1 ? 'oferta' : 'ofert'} w promieniu {valuation.radiusKm} km
+            od sprawdzanej działki.
+          </p>
+          <div className="mt-6">
+            <FeaturedRail items={nearby} />
+          </div>
+        </div>
+      ) : null}
 
       {/* CO SPRAWDZIĆ DALEJ */}
       <div className="mt-10 border-t border-fg/12 pt-8">

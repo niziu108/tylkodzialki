@@ -20,6 +20,7 @@ import {
   type WodaStatus,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { PAGE_INCLUDE } from '@/lib/dzialkiQuery';
 import {
   type BBox,
   buildSearchContext,
@@ -260,7 +261,7 @@ export type DetailStatRow = {
 };
 
 // „Uzbrojona twardo": prąd i woda fizycznie na działce (nie „w drodze/możliwość").
-function isUzbrojona(r: DetailStatRow): boolean {
+function isUzbrojona(r: { prad: PradStatus; woda: WodaStatus }): boolean {
   const pradOk = r.prad === 'PRZYLACZE_NA_DZIALCE';
   const wodaOk = r.woda === 'WODOCIAG_NA_DZIALCE' || r.woda === 'STUDNIA_GLEBINOWA';
   return pradOk && wodaOk;
@@ -394,6 +395,40 @@ export type MediaShares = {
 // pricePerM2 = null, gdy podpróbka nie dobija MIN_SAMPLE (nie zmyślamy przy 1-2 ofertach).
 export type PriceStat = { pricePerM2: RangeStat | null; sampleCount: number };
 
+// Widełki powierzchni, do których porównujemy sprawdzaną działkę. Cena za metr spada z
+// wielkością mocniej niż cokolwiek innego w naszych danych (do 800 m²: 233 zł/m², powyżej
+// 5000 m²: 59 zł/m²), więc mediana „wszystkich budowlanych w okolicy" mieszała działkę pod dom
+// z polem na 3 ha. Porównujemy do rozmiaru zbliżonego: to zawęża widełki bez zgadywania.
+export const SIMILAR_SIZE_LOW = 0.6;
+export const SIMILAR_SIZE_HIGH = 1.7;
+
+export function similarSizeRange(areaM2: number): { minM2: number; maxM2: number } {
+  return {
+    minM2: Math.round(areaM2 * SIMILAR_SIZE_LOW),
+    maxM2: Math.round(areaM2 * SIMILAR_SIZE_HIGH),
+  };
+}
+
+// Premia rynkowa za cechę działki, policzona na TEJ SAMEJ okolicy: mediana ofert z cechą kontra
+// mediana ofert bez niej. Odpowiedź na pytanie „gdzie w widełkach wyląduje moja działka", bez
+// udawania, że wyceniamy konkretną nieruchomość.
+export type PriceFactor = {
+  key: 'uzbrojenie' | 'gaz' | 'kanalizacja';
+  label: string;
+  withMedian: number;
+  withoutMedian: number;
+  withCount: number;
+  withoutCount: number;
+  // 0.42 = cecha podnosi medianę o 42%
+  delta: number;
+};
+
+// Czynnik pokazujemy tylko przy sensownych podpróbkach i wyraźnej różnicy. Gdy wychodzi, że
+// cecha OBNIŻA cenę (np. „nieuzbrojone drożej"), to sygnał, że próbka jest zatruta selekcją, a
+// nie odkrycie rynkowe — wtedy milczymy ([[feedback-filtry-twarde]]).
+export const FACTOR_MIN_SAMPLE = 6;
+export const FACTOR_MIN_DELTA = 0.15;
+
 // Drabinka promienia: bierzemy NAJMNIEJSZE koło, które daje sensowną próbkę. Sztywne 10 km
 // przeskakiwało granicę miasta (dzielnica po 300 zł/m² mieszała się ze wsią 5 km dalej po 40)
 // i mediana lądowała gdzieś pośrodku, czyli nigdzie. Bliżej = bardziej porównywalnie.
@@ -433,6 +468,13 @@ export type PointValuation = {
   // same działki rolne — raport prowadzi tą pulą, gdy MPZP wskazuje grunt rolny/leśny.
   // Bez tego mediana „wszystkich typów" mieszała pola uprawne po 15 zł/m² z budowlanymi.
   rolna: PriceStat;
+  // budowlane o powierzchni zbliżonej do sprawdzanej działki (patrz similarSizeRange).
+  // Pusty PriceStat, gdy nie znamy powierzchni albo w okolicy nie ma podobnych działek.
+  similarSize: PriceStat;
+  similarSizeBand: { minM2: number; maxM2: number } | null;
+  // co realnie podnosi cenę w TEJ okolicy (uzbrojenie, gaz, kanalizacja); pusta lista = brak
+  // wiarygodnego sygnału w próbce
+  factors: PriceFactor[];
   // liczba wszystkich aktywnych ofert w promieniu (baza dla „media w okolicy")
   offersNearby: number;
   // udział ofert z danym medium na działce; null gdy za mało ofert
@@ -440,8 +482,72 @@ export type PointValuation = {
   radiusKm: number;
 };
 
+// Premie za cechy liczymy KRAJOWO, nie w promieniu raportu. Przy naszej gęstości podaży w kole
+// 10 km bywa kilkanaście działek budowlanych z ceną, a uzbrojonych pojedyncze sztuki — lokalna
+// „premia" wychodziła wtedy losowa (w Bełchatowie +118% z trzech ofert, w Poznaniu -99% z jednej).
+// Relacja „z prądem i wodą kontra reszta" jest za to stabilna na całym kraju (ponad 2 tys. ofert),
+// więc podajemy ją jako regułę rynku i tak ją w raporcie nazywamy. Cache modułu: to samo dla
+// każdego raportu, a przeliczenie to jeden odczyt kilku tysięcy wierszy.
+const FACTORS_TTL_MS = 6 * 60 * 60 * 1000;
+let factorsCache: { at: number; value: PriceFactor[] } | null = null;
+
+export async function getPriceFactors(): Promise<PriceFactor[]> {
+  if (factorsCache && Date.now() - factorsCache.at < FACTORS_TTL_MS) return factorsCache.value;
+
+  const rows = await prisma.dzialka.findMany({
+    where: {
+      ownerId: { not: null },
+      status: DzialkaStatus.AKTYWNE,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      przeznaczenia: { has: 'BUDOWLANA' },
+      cenaPln: { gt: 0 },
+      powierzchniaM2: { gt: 0 },
+    },
+    select: { cenaPln: true, powierzchniaM2: true, prad: true, woda: true, gaz: true, kanalizacja: true },
+  });
+
+  // Odcinamy ogłoszenia z ceną oderwaną od rzeczywistości (śmieciowe „1 zł" i literówki w cenie),
+  // żeby nie ciągnęły median w żadną stronę.
+  const clean = rows
+    .map((r) => ({ ...r, ppm2: Math.round(r.cenaPln / r.powierzchniaM2) }))
+    .filter((r) => r.ppm2 >= 5 && r.ppm2 <= 5000);
+
+  const factorOf = (
+    key: PriceFactor['key'],
+    label: string,
+    has: (r: (typeof clean)[number]) => boolean
+  ): PriceFactor | null => {
+    const withIt = clean.filter(has).map((r) => r.ppm2);
+    const without = clean.filter((r) => !has(r)).map((r) => r.ppm2);
+    const a = rangeStat(withIt);
+    const b = rangeStat(without);
+    if (!a || !b) return null;
+    if (withIt.length < FACTOR_MIN_SAMPLE || without.length < FACTOR_MIN_SAMPLE) return null;
+    const delta = a.median / b.median - 1;
+    if (delta < FACTOR_MIN_DELTA) return null;
+    return {
+      key,
+      label,
+      withMedian: a.median,
+      withoutMedian: b.median,
+      withCount: withIt.length,
+      withoutCount: without.length,
+      delta,
+    };
+  };
+
+  const value = [
+    factorOf('uzbrojenie', 'prąd i woda na działce', isUzbrojona),
+    factorOf('gaz', 'gaz na działce', (r) => r.gaz === 'GAZ_NA_DZIALCE'),
+    factorOf('kanalizacja', 'kanalizacja miejska', (r) => r.kanalizacja === 'MIEJSKA_NA_DZIALCE'),
+  ].filter((f): f is PriceFactor => f !== null);
+
+  factorsCache = { at: Date.now(), value };
+  return value;
+}
+
 export const getPointValuation = cache(
-  async (lat: number, lng: number): Promise<PointValuation> => {
+  async (lat: number, lng: number, areaM2?: number | null): Promise<PointValuation> => {
     const maxKm = RADIUS_LADDER[RADIUS_LADDER.length - 1];
     const box = boxAround(lat, lng, maxKm);
     const now = new Date();
@@ -505,8 +611,23 @@ export const getPointValuation = cache(
     };
     const budowlaneRows = near.filter(isBudowlana);
     const budUzbr = budowlaneRows.filter(isUzbrojona);
-    const budNieuzbr = budowlaneRows.filter((r) => !isUzbrojona(r));
+    // Rubryka „bez uzbrojenia" tylko dla ofert, które JAWNIE deklarują brak obu przyłączy.
+    // Wcześniej wpadało tu wszystko poza „prąd i woda na działce", czyli także „w drodze",
+    // „możliwość podłączenia" i oferty z niewypełnionymi polami. W efekcie kubeł znaczył
+    // naprawdę „nie wiemy" i w dużych miastach wychodziło z niego, że działki bez uzbrojenia są
+    // droższe od uzbrojonych (Warszawa: 2604 kontra 897 zł/m²). Nie wiem ≠ nie ma.
+    const budNieuzbr = budowlaneRows.filter(
+      (r) => r.prad === 'BRAK_PRZYLACZA' && r.woda === 'BRAK_PRZYLACZA'
+    );
     const rolneRows = near.filter((r) => r.przeznaczenia.includes('ROLNA'));
+
+    // Porównanie do działek zbliżonej wielkości (patrz SIMILAR_SIZE_LOW/HIGH).
+    const band = areaM2 && areaM2 > 0 ? similarSizeRange(areaM2) : null;
+    const similarRows = band
+      ? budowlaneRows.filter(
+          (r) => r.powierzchniaM2 >= band.minM2 && r.powierzchniaM2 <= band.maxM2
+        )
+      : [];
 
     // Media „twardo na działce" (spójnie z filtrami listy). null przy próbce < MIN_SAMPLE.
     const mediaShares =
@@ -520,6 +641,8 @@ export const getPointValuation = cache(
           }
         : null;
 
+    const factors = await getPriceFactors();
+
     return {
       pricePerM2: detail.pricePerM2,
       sampleCount,
@@ -527,12 +650,48 @@ export const getPointValuation = cache(
       budowlanaUzbrojona: priceStat(budUzbr),
       budowlanaNieuzbrojona: priceStat(budNieuzbr),
       rolna: priceStat(rolneRows),
+      similarSize: priceStat(similarRows),
+      similarSizeBand: band,
+      factors,
       offersNearby: near.length,
       mediaShares,
       radiusKm: km,
     };
   }
 );
+
+// Oferty najbliżej sprawdzanego punktu — ten sam kształt danych co karta na /kup (PAGE_INCLUDE),
+// żeby raport nie kończył się ślepym zaułkiem. Dwa zapytania jak na liście: najpierw same
+// współrzędne (tanio), potem pełne dane wyłącznie dla kilku wybranych ofert.
+export const getNearbyOffers = cache(async (lat: number, lng: number, km: number, limit = 6) => {
+  const box = boxAround(lat, lng, km);
+  const now = new Date();
+  const coords = await prisma.dzialka.findMany({
+    where: {
+      ownerId: { not: null },
+      status: DzialkaStatus.AKTYWNE,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      lat: { gte: box.minLat, lte: box.maxLat },
+      lng: { gte: box.minLng, lte: box.maxLng },
+    },
+    select: { id: true, lat: true, lng: true },
+  });
+  const near = coords
+    .filter((c): c is { id: string; lat: number; lng: number } => c.lat !== null && c.lng !== null)
+    .map((c) => ({ id: c.id, dist: haversineKm(lat, lng, c.lat, c.lng) }))
+    .filter((c) => c.dist <= km)
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, limit);
+
+  if (!near.length) return [];
+
+  const rows = await prisma.dzialka.findMany({
+    where: { id: { in: near.map((n) => n.id) } },
+    include: PAGE_INCLUDE,
+  });
+  const order = new Map(near.map((n, i) => [n.id, i]));
+  return rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+});
 
 // Wpisy huba do sitemapy: dla każdego miasta total + per typ (jeden odczyt całej bazy,
 // dopasowanie miasta tą samą logiką co strony — spójne z noindex).
