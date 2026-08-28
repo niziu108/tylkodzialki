@@ -985,12 +985,16 @@ export default function KupSearch({
       const hasUrlQuery =
         typeof window !== 'undefined' &&
         new URLSearchParams(window.location.search).toString() !== '';
+      // Na hubach /dzialki/... seed z SSR jest zawsze prawidłowy: stan startowy bierzemy
+      // z propsów (startState = initial), a nie z adresu czy sesji, więc zapisany stan
+      // z /kup nie ma jak go nadpisać. Serwer liczy tę samą pierwszą stronę co klient
+      // (skip 0, take 20, sort newest — patrz queryHubListing), więc startowy fetch był
+      // czystym round-tripem po dane, które już są na ekranie.
       const seedValid =
         hasSsrItems &&
-        !seoMode &&
         !needsGeocode &&
         startPage === initialPage &&
-        (hasUrlQuery || !loadStoredState());
+        (seoMode || hasUrlQuery || !loadStoredState());
 
       // Cases A (coords in URL) and C (no location): search immediately, no Maps needed yet
       if (!navigationMode && !needsGeocode && !cancelled) {
