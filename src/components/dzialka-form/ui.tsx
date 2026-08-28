@@ -147,6 +147,18 @@ export function Tabs({
   );
 }
 
+// Siatka zamiast flex-wrap: przy sześciu przeznaczeniach etykiety mają 594 px przy
+// kontenerze 688, więc „Siedliskowa" zawijała się samotnie do drugiego rzędu.
+// Odrzucone warianty (zmierzone w przeglądarce):
+//   - odstęp 18 px zamiast 32 mieści wszystkie w jednej linii, ale rozjeżdża się przy
+//     pierwszej dłuższej etykiecie,
+//   - flex-wrap na telefonie, siatka od sm: przy 414 px daje 2 rzędy zamiast 3, ale
+//     przy 375 px wraca ta sama sierota i wychodzi 123 px zamiast 107.
+// Trzy kolumny nie mieszczą się poniżej ~480 px (same słowa to 348 px przy 366 px
+// kontenera), więc na telefonie zostają dwie. Kosztuje to jeden rząd na szerszych
+// telefonach i tyle: układ jest przewidywalny na każdej szerokości.
+// justify-items-start, bo tekst w <button> domyślnie centruje się i lewe krawędzie
+// kolumn by się postrzępiły.
 export function MultiTabs({
   values,
   toggle,
@@ -157,7 +169,7 @@ export function MultiTabs({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="flex flex-wrap gap-8">
+    <div className="grid grid-cols-2 justify-items-start gap-x-8 gap-y-6 sm:grid-cols-3">
       {options.map((o) => {
         const active = values.includes(o.value);
         return (
