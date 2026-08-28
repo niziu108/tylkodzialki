@@ -70,6 +70,7 @@ droga dojazdowa, uzbrojenie (sprawdzanie + koszt), podział działki (koszt), in
 - [x] Dom do 70 m2 bez pozwolenia: zasady w 2026 (slug: dom-bez-pozwolenia-jaka-dzialka)
 - [x] Jak ustawić dom względem stron świata (slug: jak-ustawic-dom-wzgledem-stron-swiata)
 - [x] Odległości budynku od granicy działki (slug: odleglosci-budynku-od-granicy-dzialki)
+- [x] Projekt zagospodarowania działki: co to jest i co zawiera (slug: projekt-zagospodarowania-dzialki) [dopisany poza backlogiem]
 - [ ] Przyłącze a instalacja: czym się różnią
 - [ ] Tymczasowy prąd budowlany: jak załatwić
 
