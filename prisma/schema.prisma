@@ -180,6 +180,7 @@ model Dzialka {
   favoritedBy    FavoriteDzialka[]
   perelkaUzyta   PerelkaUzyta?
   priceSnapshots DzialkaPriceSnapshot[]
+  listingSpells  DzialkaListingSpell[]
 
   @@index([lat, lng])
   @@index([ownerId])
@@ -328,6 +329,40 @@ model DzialkaPriceSnapshot {
   @@unique([dzialkaId, date])
   @@index([dzialkaId])
   @@index([date])
+}
+
+// Epizod życia oferty („spell"): od chwili, gdy działka trafiła na portal, do chwili, gdy z niego
+// zeszła. Jedna działka może mieć wiele epizodów, bo oferta potrafi zniknąć z feedu biura i wrócić
+// po miesiącach, często po obniżce. Tabela jest dopisywana, nigdy nadpisywana: to jedyne miejsce,
+// w którym ta historia zostaje, bo reaktywacja oferty czyści `Dzialka.endedAt` i przestawia
+// `publishedAt` na teraz. Bez tego czas sprzedaży działki jest nie do policzenia wstecz.
+//
+// Zapisem steruje rekoncyliator (src/lib/listing-spells.ts), a nie silniki importu. Świadomie:
+// import 126 biur ma prawo być ważniejszy niż statystyka i nie może się wywrócić przez zapis obok.
+model DzialkaListingSpell {
+  id             String            @id @default(cuid())
+  dzialkaId      String
+  startedAt      DateTime
+  endedAt        DateTime?
+  cenaStart      Int
+  cenaEnd        Int?
+  powierzchniaM2 Int
+  endReason      SpellEndReason?
+  provider       CrmProvider?
+  sourceType     DzialkaSourceType @default(MANUAL)
+  // false = epizod odtworzony, a nie zmierzony: dane sprzed naprawy sygnału `<oferta_usun>`
+  // (17.08.2026) albo koniec wywnioskowany z nadpisanego `publishedAt`. Do median się nie liczy.
+  reliable       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  dzialka Dzialka @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
+
+  @@unique([dzialkaId, startedAt])
+  @@index([dzialkaId])
+  @@index([endedAt])
+  @@index([provider, endedAt])
+  @@index([reliable, endedAt])
 }
 
 model PasswordResetToken {
@@ -879,4 +914,11 @@ enum CrmImportJobStatus {
   RUNNING
   SUCCESS
   ERROR
+}
+
+enum SpellEndReason {
+  ZNIKLA_ZE_ZRODLA
+  WYGASZONA_PROGIEM
+  RECZNIE
+  WYGASLA
 }

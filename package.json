@@ -23,7 +23,8 @@
     "crm:hektary": "tsx scripts/crm-napraw-hektary.ts",
     "crm:dedup": "tsx scripts/crm-dedup-galactica.ts",
     "crm:expire": "tsx scripts/crm-expire-stale.ts",
-    "crm:usun-backfill": "tsx scripts/crm-usun-backfill.ts"
+    "crm:usun-backfill": "tsx scripts/crm-usun-backfill.ts",
+    "spells": "tsx scripts/spells-reconcile.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

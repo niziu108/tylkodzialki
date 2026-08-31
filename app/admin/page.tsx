@@ -335,6 +335,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </Link>
 
             <Link
+              href="/admin/rynek"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10 px-5 text-sm font-semibold text-fg transition hover:border-brand hover:bg-brand/15"
+            >
+              Dane rynkowe
+            </Link>
+
+            <Link
               href="/admin/perelki"
               className="inline-flex h-11 items-center justify-center rounded-2xl border border-fg/10 bg-fg/5 px-5 text-sm font-semibold text-fg transition hover:bg-fg/10"
             >

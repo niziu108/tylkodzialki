@@ -6,6 +6,22 @@ dotenv.config({ path: ".env" });
 const LOOP_MODE = process.argv.includes("--loop");
 const POLL_INTERVAL_MS = 60_000;
 
+// Zapis historii epizodów ofert biegnie PO imporcie i celowo poza jego transakcjami: to statystyka,
+// a nie podaż. Gdyby padła, import 126 biur ma się o tym nie dowiedzieć.
+async function reconcileSpellsSafely() {
+  try {
+    const { reconcileListingSpells } = await import("../src/lib/listing-spells");
+    const r = await reconcileListingSpells();
+    if (r.opened || r.closed) {
+      console.log(
+        `📒 Historia ofert: +${r.opened} nowych, ${r.closed} domkniętych, ${r.reopened} wróciło.`,
+      );
+    }
+  } catch (error) {
+    console.error("⚠️ Rekoncyliator epizodów nie przeszedł (import nietknięty):", error);
+  }
+}
+
 async function runSingleJob(jobId: string) {
   const { prisma } = await import("../src/lib/prisma");
   const { runCrmImportJob } = await import("../src/lib/crm/run-crm-job");
@@ -13,6 +29,8 @@ async function runSingleJob(jobId: string) {
   console.log("Start importu CRM job:", jobId);
   await runCrmImportJob(jobId);
   console.log("Import CRM zakończony:", jobId);
+
+  await reconcileSpellsSafely();
 
   await prisma.$disconnect();
 }
@@ -118,6 +136,8 @@ async function runLoop() {
       await runCrmImportJob(job.id);
 
       console.log("✅ Zakończono job:", job.id);
+
+      await reconcileSpellsSafely();
     } catch (error) {
       console.error("❌ Błąd workera CRM:", error);
 
