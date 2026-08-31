@@ -19,7 +19,7 @@ import {
   handleOpisPasteAsPlainText,
 } from '@/components/dzialka-form/ui';
 import { buildOpisZDanych } from '@/lib/opisGenerator';
-import { DOJAZD_FILTR_KEYS, DOJAZD_LABEL } from '@/lib/dojazd';
+import { DOJAZD_FORM_KEYS, DOJAZD_LABEL } from '@/lib/dojazd';
 
 type Przeznaczenie =
   | 'INWESTYCYJNA'
@@ -2258,9 +2258,9 @@ export default function DzialkaForm({
                 value={dojazd}
                 onChange={(v) => setDojazd(v as DojazdStatus)}
                 clearValue="BRAK_INFORMACJI"
-                // Lista z jednego zrodla (DOJAZD_FILTR_KEYS), zeby formularz i filtr na /kup
-                // nigdy nie rozjechaly sie zestawem opcji.
-                options={DOJAZD_FILTR_KEYS.map((k) => ({ value: k, label: DOJAZD_LABEL[k] }))}
+                // Formularz ma o jedna opcje wiecej niz filtr: „brak dojazdu" to informacja,
+                // ktora sprzedajacy powinien moc podac, ale ktorej nikt nie szuka w wyszukiwarce.
+                options={DOJAZD_FORM_KEYS.map((k) => ({ value: k, label: DOJAZD_LABEL[k] }))}
               />
               <Hr className="mt-6" />
             </div>

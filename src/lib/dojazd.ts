@@ -39,9 +39,22 @@ export const DOJAZD_LABEL_KROTKI = {
 // droga polna po deszczu to dla kupującego zupełnie inna nieruchomość.
 export const DOJAZD_TWARDY = ['ASFALT', 'KOSTKA', 'UTWARDZONA'] as const satisfies readonly DojazdStatus[];
 
-// Opcje wystawione w filtrze /kup. BRAK_INFORMACJI świadomie POZA listą: „nie wiadomo" nie jest
-// cechą działki, której ktokolwiek szuka, a wpuszczenie go do filtra złamałoby zasadę twardości.
-export const DOJAZD_FILTR_KEYS = ['ASFALT', 'KOSTKA', 'UTWARDZONA', 'GRUNTOWA', 'LESNA', 'BRAK_DOJAZDU'] as const;
+// Opcje w formularzu wystawiania: wszystko, co sprzedający może o działce powiedzieć.
+export const DOJAZD_FORM_KEYS = [
+  'ASFALT',
+  'KOSTKA',
+  'UTWARDZONA',
+  'GRUNTOWA',
+  'LESNA',
+  'BRAK_DOJAZDU',
+] as const satisfies readonly DojazdStatus[];
+
+// Opcje w filtrze /kup — świadomie WĘŻSZE niż w formularzu.
+// BRAK_INFORMACJI poza listą, bo „nie wiadomo" nie jest cechą, której ktoś szuka, a wpuszczenie
+// go złamałoby zasadę twardego filtra. BRAK_DOJAZDU też poza listą: prawie każda działka jakiś
+// dojazd ma, nikt nie szuka działki bez dojazdu, a martwy chip to tylko szum w panelu. W samej
+// ofercie ta informacja zostaje, bo tam jest ostrzeżeniem dla kupującego.
+export const DOJAZD_FILTR_KEYS = ['ASFALT', 'KOSTKA', 'UTWARDZONA', 'GRUNTOWA', 'LESNA'] as const;
 export type DojazdKey = (typeof DOJAZD_FILTR_KEYS)[number];
 
 export function maTwardyDojazd(v: unknown): boolean {
