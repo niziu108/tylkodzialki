@@ -310,7 +310,7 @@ export default function LocationPicker({ value, onChange }: Props) {
         ref={inputRef}
         placeholder="Wpisz miejscowość lub adres…"
         defaultValue={value?.locationLabel ?? ''}
-        className="field-line w-full bg-transparent pb-2 text-[18px] text-fg/90 outline-none placeholder:text-fg/62 focus:ring-0 md:text-[19px] selection:bg-fg/20 selection:text-fg"
+        className="field-line w-full bg-transparent pb-2 text-[18px] text-fg/90 outline-none placeholder:text-fg/62 focus:ring-0 md:text-[19px]"
       />
 
       <div className="flex flex-wrap gap-8">

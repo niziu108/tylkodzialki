@@ -162,15 +162,6 @@ export default function OpisEditor({
           }}
         />
       </div>
-
-      {/* ✅ ZAZNACZENIE TEKSTU — bez CSS.escape, bez błędu SSR */}
-      <style jsx>{`
-        #${id}::selection,
-        #${id} *::selection {
-          background: rgba(243, 239, 245, 0.35);
-          color: rgba(255, 255, 255, 0.98);
-        }
-      `}</style>
     </div>
   );
 }

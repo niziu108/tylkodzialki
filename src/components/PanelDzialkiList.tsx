@@ -459,6 +459,8 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
 function PanelDzialkaCard({ d }: { d: Dzialka }) {
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
+  // Wyniki zwinięte domyślnie — karta ma być krótka jak ogłoszenie na liście.
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const photos = (d.zdjecia ?? [])
     .slice()
@@ -552,41 +554,41 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   return (
     <div
       ref={cardRef}
-      className={`group flex flex-col overflow-hidden rounded-3xl border transition lg:flex-row lg:items-stretch ${
+      className={`group overflow-hidden rounded-3xl border bg-surface transition ${
         effectiveStatus === 'ZAKONCZONE'
-          ? 'border-fg/10 bg-surface-2/15 opacity-85'
+          ? 'border-fg/10 opacity-85'
           : isFeaturedActive
-          ? 'border-brand/55 bg-surface-2/20 shadow-[0_0_0_1px_rgba(122,163,51,0.30),0_0_24px_rgba(122,163,51,0.20)] hover:border-brand/80 hover:shadow-[0_0_0_1px_rgba(122,163,51,0.45),0_0_30px_rgba(122,163,51,0.30)]'
-          : 'border-fg/14 bg-surface-2/20 hover:border-fg/30'
+          ? 'border-brand/55 shadow-[0_0_0_1px_rgba(122,163,51,0.30),0_0_24px_rgba(122,163,51,0.20)] hover:border-brand/80 hover:shadow-[0_0_0_1px_rgba(122,163,51,0.45),0_0_30px_rgba(122,163,51,0.30)]'
+          : 'border-fg/14 hover:border-fg/30'
       }`}
     >
-      {/* Zdjęcie: na desktopie z lewej (jak lista /kup), na telefonie u góry.
-          Klikalne — otwiera ofertę w nowej karcie. */}
-      <Link
-        href={`/dzialka/${d.id}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block lg:w-[38%] lg:shrink-0"
-      >
-        <Carousel
-          photos={photos}
-          coverFallback={coverFallback}
-          title={d.tytul}
-          featured={isFeaturedActive}
-          rent={isRent}
-          horizontal
-          status={effectiveStatus}
-        />
-      </Link>
-
-      {/* Prawa kolumna: wspólne CardBody (cena, tytuł, lokalizacja, fakty)
-          + narzędzia właściciela. Na desktopie wypełnia wysokość obok zdjęcia. */}
-      <div className="flex flex-1 flex-col lg:min-w-0">
+      {/* GÓRA KARTY = dokładnie to, co widzi kupujący na liście /kup: te same
+          proporcje zdjęcia (42% szerokości, 256 px wysokości na desktopie) i to
+          samo CardBody. Wcześniej panel miał własny, wyższy układ i właściciel
+          nie poznawał w nim swojego ogłoszenia. Klik otwiera ofertę. */}
+      <div className="block lg:flex lg:h-[256px] lg:items-stretch">
         <Link
           href={`/dzialka/${d.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="block"
+          className="block lg:w-[42%] lg:shrink-0"
+        >
+          <Carousel
+            photos={photos}
+            coverFallback={coverFallback}
+            title={d.tytul}
+            featured={isFeaturedActive}
+            rent={isRent}
+            horizontal
+            status={effectiveStatus}
+          />
+        </Link>
+
+        <Link
+          href={`/dzialka/${d.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block lg:min-w-0 lg:flex-1"
         >
           <CardBody
             cena={d.cenaPln}
@@ -596,21 +598,15 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
             area={area}
             przezn={przezn}
             media={media}
+            horizontal
           />
         </Link>
+      </div>
 
-        {/* Narzędzia właściciela: wyniki, status i akcje. Poza <Link>, żeby
-            klik w statystyki lub przyciski nie otwierał oferty. */}
-        <div className="mt-auto border-t border-fg/8 px-5 pb-5 pt-5 md:px-6 md:pb-6">
-        <PanelStats
-          viewsCount={viewsCount}
-          detailViewsCount={detailViewsCount}
-          favoritesCount={favoritesCount}
-          phoneClicksCount={phoneClicksCount}
-          messageClicksCount={messageClicksCount}
-        />
-
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px]">
+      {/* DÓŁ: narzędzia właściciela. Poza <Link>, żeby klik w przycisk nie
+          otwierał oferty. */}
+      <div className="border-t border-fg/10 px-5 pb-4 pt-4 md:px-6">
+        <div className="text-[12px]">
           {effectiveStatus === 'AKTYWNE' ? (
             isIndefinite ? (
               <span className="text-fg/68">Widoczne bezterminowo</span>
@@ -623,7 +619,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
               </span>
             )
           ) : (
-            <span className="text-red-300/70">
+            <span className="text-red-400/80">
               {d.status === 'ZAKONCZONE'
                 ? 'Ogłoszenie zakończone'
                 : 'Ogłoszenie wygasło'}
@@ -632,12 +628,12 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
         </div>
 
         {actionError ? (
-          <div className="mt-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="mt-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-500">
             {actionError}
           </div>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           <ActionBtnAsLink
             href={`/panel/ogloszenia/${d.id}/edytuj`}
             label="Edytuj"
@@ -696,7 +692,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
 
           {isFeaturedActive ? (
             <span
-              className="inline-flex min-h-[40px] items-center rounded-full border border-brand/30 bg-brand/12 px-4 text-[12px] font-semibold text-brand-bright"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-brand/30 bg-brand/12 px-4 text-[12px] font-semibold text-brand-text"
               title="Ogłoszenie jest aktualnie wyróżnione"
             >
               Wyróżnione do: {formatDatePL(d.featuredUntil)}
@@ -733,9 +729,60 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
             }}
           />
         </div>
-        </div>
       </div>
+
+      {/* Wyniki zwinięte do jednego paska: w spoczynku karta jest krótka jak
+          ogłoszenie, a liczby są na jedno kliknięcie. Pasek jest OSTATNI, więc
+          rozwijanie nie przesuwa przycisków akcji. */}
+      <button
+        type="button"
+        aria-expanded={statsOpen}
+        onClick={() => setStatsOpen((v) => !v)}
+        className="flex w-full items-center gap-3 border-t border-fg/10 px-5 py-3 text-left transition hover:bg-fg/[0.03] md:px-6"
+      >
+        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-fg/64">
+          Wyniki
+        </span>
+        <span className="min-w-0 truncate text-[12px] tabular-nums text-fg/72">
+          {formatIntPL(viewsCount)} wyświetleń · {formatIntPL(detailViewsCount)} wejść ·{' '}
+          {formatIntPL(favoritesCount)} zapisów
+        </span>
+        <Chevron
+          className={`ml-auto h-4 w-4 shrink-0 text-fg/55 transition ${
+            statsOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {statsOpen ? (
+        <div className="border-t border-fg/10 px-5 pb-5 pt-4 md:px-6">
+          <PanelStats
+            viewsCount={viewsCount}
+            detailViewsCount={detailViewsCount}
+            favoritesCount={favoritesCount}
+            phoneClicksCount={phoneClicksCount}
+            messageClicksCount={messageClicksCount}
+          />
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function Chevron({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
   );
 }
 
@@ -752,22 +799,14 @@ function PanelStats({
   phoneClicksCount: number;
   messageClicksCount: number;
 }) {
+  // Nagłówek jest w pasku rozwijającym — tu zostaje sama siatka liczb.
   return (
-    <div>
-      <div className="mb-3 flex items-center gap-3">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fg/64">
-          Wyniki ogłoszenia
-        </span>
-        <span className="h-px flex-1 bg-fg/10" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
-        <StatCell label="Wyświetlenia" hint="lista i mapa" value={viewsCount} />
-        <StatCell label="Wejścia" hint="otwarcia oferty" value={detailViewsCount} />
-        <StatCell label="Ulubione" hint="zapisali ofertę" value={favoritesCount} accent />
-        <StatCell label="Telefony" hint="kliknięcia w numer" value={phoneClicksCount} />
-        <StatCell label="Wiadomości" hint="otwarcia kontaktu" value={messageClicksCount} />
-      </div>
+    <div className="grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
+      <StatCell label="Wyświetlenia" hint="lista i mapa" value={viewsCount} />
+      <StatCell label="Wejścia" hint="otwarcia oferty" value={detailViewsCount} />
+      <StatCell label="Ulubione" hint="zapisali ofertę" value={favoritesCount} accent />
+      <StatCell label="Telefony" hint="kliknięcia w numer" value={phoneClicksCount} />
+      <StatCell label="Wiadomości" hint="otwarcia kontaktu" value={messageClicksCount} />
     </div>
   );
 }

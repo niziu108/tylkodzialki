@@ -276,8 +276,7 @@ function AuthPageContent() {
                         className={cx(
                           'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                           'field-line pb-2',
-                          'placeholder:text-fg/62 outline-none',
-                          'selection:bg-fg/20 selection:text-fg'
+                          'placeholder:text-fg/62 outline-none'
                         )}
                       />
                     </label>
@@ -295,8 +294,7 @@ function AuthPageContent() {
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                         'field-line pb-2',
-                        'placeholder:text-fg/62 outline-none',
-                        'selection:bg-fg/20 selection:text-fg'
+                        'placeholder:text-fg/62 outline-none'
                       )}
                     />
                   </label>
@@ -314,8 +312,7 @@ function AuthPageContent() {
                       className={cx(
                         'mt-2 w-full bg-transparent text-[18px] text-fg/90',
                         'field-line pb-2',
-                        'placeholder:text-fg/62 outline-none',
-                        'selection:bg-fg/20 selection:text-fg'
+                        'placeholder:text-fg/62 outline-none'
                       )}
                     />
                   </label>

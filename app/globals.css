@@ -375,3 +375,13 @@ html {
     margin: 16mm 14mm;
   }
 }
+
+/* ====== ZAZNACZENIE TEKSTU ======
+   Domyślne systemowe (niebieskie) gryzło się z zielenią marki, a edytor opisu
+   w „Dodaj działkę" miał na sztywno biel po ciemnym motywie — na jasnym tle
+   zaznaczony tekst po prostu znikał. Jeden zielony tint dla całego serwisu,
+   tekst zawsze w kolorze motywu, więc widać co jest zaznaczone. */
+::selection {
+  background: color-mix(in srgb, var(--brand) 35%, transparent);
+  color: var(--fg);
+}

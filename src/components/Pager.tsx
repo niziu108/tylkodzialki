@@ -166,7 +166,7 @@ export default function Pager({
             value={val}
             onChange={(e) => setVal(e.target.value.replace(/[^\d]/g, ""))}
             inputMode="numeric"
-            className="w-[72px] rounded-xl border border-fg/20 bg-transparent px-3 py-2 text-center text-[13px] text-fg/85 outline-none focus:border-fg/45 selection:bg-fg/20 selection:text-fg"
+            className="w-[72px] rounded-xl border border-fg/20 bg-transparent px-3 py-2 text-center text-[13px] text-fg/85 outline-none focus:border-fg/45"
             placeholder="…"
             onKeyDown={(e) => {
               if (e.key === "Enter") go();

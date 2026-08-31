@@ -85,8 +85,7 @@ export function UnderlineField({
           className={cx(
             'field-line mt-2 w-full resize-none overflow-hidden bg-transparent pb-2 text-[18px] leading-snug text-fg/90 md:text-[19px]',
             'placeholder:text-fg/62 outline-none focus:ring-0',
-            error ? 'field-line-error' : '',
-            'selection:bg-fg/20 selection:text-fg'
+            error ? 'field-line-error' : ''
           )}
         />
       ) : (
@@ -103,8 +102,7 @@ export function UnderlineField({
             // szara w spoczynku, zielona tylko w foku (podczas pisania), czerwona przy błędzie.
             'field-line mt-2 w-full bg-transparent pb-2 text-[18px] md:text-[19px] text-fg/90',
             'placeholder:text-fg/62 outline-none focus:ring-0',
-            error ? 'field-line-error' : '',
-            'selection:bg-fg/20 selection:text-fg'
+            error ? 'field-line-error' : ''
           )}
         />
       )}
