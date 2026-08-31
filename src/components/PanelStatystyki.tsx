@@ -30,19 +30,24 @@ type Props = {
   windowDays: number;
 };
 
+// Kolejnosc od najwiekszych liczb do najmniejszych: wyswietlenia i wejscia maja
+// dane od pierwszego dnia, leady dopiero rosna. Odwrotna kolejnosc sprawiala, ze
+// panel otwieral sie zerami i wygladal na pusty.
 const METRICS: { key: MetricKey; label: string; hint: string }[] = [
+  { key: "views", label: "Wyświetlenia", hint: "lista i mapa" },
+  { key: "detailViews", label: "Wejścia", hint: "otwarcia oferty" },
   { key: "leads", label: "Leady", hint: "telefon lub wiadomość" },
   { key: "phoneClicks", label: "Telefony", hint: "kliknięcia w numer" },
   { key: "messageClicks", label: "Wiadomości", hint: "otwarcia kontaktu" },
-  { key: "detailViews", label: "Wejścia", hint: "otwarcia oferty" },
-  { key: "views", label: "Wyświetlenia", hint: "lista i mapa" },
 ];
 
 const HEADLINE: { key: MetricKey; label: string; hint: string; accent: boolean }[] = [
+  { key: "views", label: "Wyświetlenia", hint: "lista i mapa", accent: false },
+  { key: "detailViews", label: "Wejścia", hint: "otwarcia oferty", accent: false },
+  // Leady zielone: to jedyna liczba, ktora znaczy realny kontakt od kupujacego.
   { key: "leads", label: "Leady", hint: "telefon lub wiadomość", accent: true },
   { key: "phoneClicks", label: "Telefony", hint: "kliknięcia w numer", accent: false },
   { key: "messageClicks", label: "Wiadomości", hint: "otwarcia kontaktu", accent: false },
-  { key: "detailViews", label: "Wejścia", hint: "otwarcia oferty", accent: false },
 ];
 
 function formatIntPL(value: number) {
@@ -70,7 +75,7 @@ export default function PanelStatystyki({
   snapshotDaysInWindow,
   windowDays,
 }: Props) {
-  const [metric, setMetric] = useState<MetricKey>("leads");
+  const [metric, setMetric] = useState<MetricKey>("detailViews");
 
   const hasChart = points.length > 0;
   const activeMetric = METRICS.find((m) => m.key === metric)!;
@@ -108,7 +113,7 @@ export default function PanelStatystyki({
           </span>
           <span className="h-px flex-1 bg-fg/10" />
         </div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
           {HEADLINE.map((h) => (
             <div key={h.key} className="border-b border-fg/10 pb-2.5">
               <div

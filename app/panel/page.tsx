@@ -8,7 +8,8 @@ import CrmIntegrationPanel from "@/components/CrmIntegrationPanel";
 import PanelAlertsList from "@/components/PanelAlertsList";
 import PanelStatystyki from "@/components/PanelStatystyki";
 import { getBiuroDailySeries } from "@/lib/biuroStats";
-import KupList from "../kup/KupList";
+import { getFavoriteOffers } from "@/lib/favorites";
+import UlubioneWidok from "../ulubione/UlubioneWidok";
 
 type PanelPageProps = {
   searchParams?: Promise<{
@@ -29,6 +30,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
   const email = session?.user?.email;
 
   const params = await searchParams;
+
   const activeTab =
     params?.tab === "statystyki"
       ? "statystyki"
@@ -104,7 +106,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
     biuroSlug: rawUser.biuroSlug ?? null,
   };
 
-  const [rawItems, invoices, crmIntegration, alertsRaw, favoritesRaw, statsSeries] = await Promise.all([
+  const [rawItems, invoices, crmIntegration, alertsRaw, favoriteItems, statsSeries] = await Promise.all([
     activeTab === "ogloszenia"
       ? prisma.dzialka.findMany({
           where: { ownerId: user.id },
@@ -188,23 +190,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
         })
       : Promise.resolve([]),
     activeTab === "ulubione"
-      ? prisma.favoriteDzialka.findMany({
-          where: { userId: user.id },
-          orderBy: { createdAt: "desc" },
-          include: {
-            dzialka: {
-              include: {
-                zdjecia: { orderBy: { kolejnosc: "asc" } },
-                owner: {
-                  select: {
-                    defaultBiuroLogoUrl: true,
-                    defaultBiuroNazwa: true,
-                  },
-                },
-              },
-            },
-          },
-        })
+      ? getFavoriteOffers(user.id)
       : Promise.resolve([]),
     activeTab === "statystyki"
       ? getBiuroDailySeries(user.id, 30)
@@ -220,13 +206,6 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           createdAt: a.createdAt.toISOString(),
           lastNotifiedAt: a.lastNotifiedAt ? a.lastNotifiedAt.toISOString() : null,
         }))
-      : [];
-
-  const favoriteItems =
-    activeTab === "ulubione"
-      ? (favoritesRaw as any[])
-          .map((f) => f.dzialka)
-          .filter((d) => d && d.status === "AKTYWNE")
       : [];
 
   const now = Date.now();
@@ -312,20 +291,25 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
         <div className="mb-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-bright">
+              {/* Jeden tytul zamiast dwoch: drobne „Panel klienta" nad wielkim „Panel
+                  uzytkownika" bylo tym samym napisem dwa razy. Zostaje zielony naglowek,
+                  a pod nim samo konto (nazwa, jesli jest, i mail). */}
+              <div className="text-[15px] font-semibold uppercase tracking-[0.22em] text-brand-bright md:text-[18px]">
                 Panel klienta
               </div>
-              <div className="mt-2 h-px w-12 bg-brand/55" />
+              <div className="mt-3 h-px w-12 bg-brand/55" />
 
-              <div className="mt-4 text-[28px] font-semibold leading-tight text-fg md:text-[34px]">
-                {user.name || "Panel użytkownika"}
-              </div>
+              {user.name ? (
+                <div className="mt-4 truncate text-[24px] font-semibold leading-tight text-fg md:text-[28px]">
+                  {user.name}
+                </div>
+              ) : null}
 
-              <div className="mt-2 text-sm text-fg/70">
-                {user.email ? (
-                  <span className="truncate text-fg/72">{user.email}</span>
-                ) : null}
-              </div>
+              {user.email ? (
+                <div className="mt-3 truncate text-[15px] text-fg/72 md:text-[16px]">
+                  {user.email}
+                </div>
+              ) : null}
             </div>
 
             <div className="flex shrink-0 flex-wrap gap-3">
@@ -335,6 +319,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 <Link
                   href={`/biuro/${user.biuroSlug}`}
                   className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-fg/14 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-fg/28 hover:bg-fg/[0.05]"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   Twoja wizytówka
                 </Link>
@@ -407,20 +393,6 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               </Link>
 
               <Link
-                href="/panel?tab=crm"
-                className={`pb-4 transition ${
-                  activeTab === "crm"
-                    ? "border-b-2 border-brand text-fg"
-                    : "text-fg/68 hover:text-fg"
-                }`}
-              >
-                Integracje CRM{" "}
-                <span className="text-[12px] font-normal text-fg/45">
-                  (dla biur)
-                </span>
-              </Link>
-
-              <Link
                 href="/panel?tab=ulubione"
                 className={`pb-4 transition ${
                   activeTab === "ulubione"
@@ -440,6 +412,20 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 }`}
               >
                 Alerty
+              </Link>
+
+              <Link
+                href="/panel?tab=crm"
+                className={`pb-4 transition ${
+                  activeTab === "crm"
+                    ? "border-b-2 border-brand text-fg"
+                    : "text-fg/68 hover:text-fg"
+                }`}
+              >
+                Integracje CRM{" "}
+                <span className="text-[12px] font-normal text-fg/45">
+                  (dla biur)
+                </span>
               </Link>
             </div>
           </div>
@@ -655,39 +641,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             <PanelAlertsList initialAlerts={alerts} />
           </>
         ) : activeTab === "ulubione" ? (
-          <>
-            <div className="mb-5 text-[19px] font-medium text-fg">
-              Ulubione działki
-            </div>
-
-            {favoriteItems.length === 0 ? (
-              <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
-                <div className="max-w-2xl">
-                  <h2 className="text-xl font-semibold text-fg">
-                    Brak zapisanych ofert
-                  </h2>
-                  <p className="mt-3 leading-7 text-fg/70">
-                    Zapisuj działki, do których chcesz wrócić, pojawią się tutaj,
-                    zsynchronizowane z zakładką Ulubione.
-                  </p>
-                  <div className="mt-6">
-                    <Link
-                      href="/kup"
-                      className="inline-flex rounded-full border border-brand/50 px-5 py-3 text-sm font-semibold text-fg transition hover:border-brand"
-                    >
-                      Przeglądaj działki
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <KupList
-                items={favoriteItems as any}
-                loading={false}
-                error={null}
-              />
-            )}
-          </>
+          <UlubioneWidok items={favoriteItems} />
         ) : (
           <>
             <div className="mb-5 text-[19px] font-medium text-fg">
