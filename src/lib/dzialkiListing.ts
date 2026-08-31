@@ -16,6 +16,7 @@ import { prisma } from '@/lib/prisma';
 import { buildSearchContext, getSearchMatchInfo, computeGeoPrefilterBBox } from '@/lib/dzialkiSearch';
 import { listDzialkiPaginated, PAGE_INCLUDE, FEATURED_TOP_CAP, type ListSort } from '@/lib/dzialkiQuery';
 import { MEDIA_AVAILABLE } from '@/lib/media';
+import { DOJAZD_TWARDY } from '@/lib/dojazd';
 
 function isFeaturedActive(d: any) {
   return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
@@ -146,6 +147,10 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
     ? przeznRaw.split(',').map((s) => s.trim()).filter(Boolean)
     : [];
 
+  // Dojazd: jeden przelacznik, nie lista nawierzchni. Kupujacego interesuje pytanie „czy dojade
+  // tam osobowka o kazdej porze roku", a nie czy to asfalt czy kostka.
+  const dojazdTwardy = searchParams.get('dojazd') === '1';
+
   const mediaRaw = (searchParams.get('media') || '').trim();
   const media = mediaRaw
     ? mediaRaw.split(',').map((s) => s.trim()).filter(Boolean)
@@ -234,6 +239,13 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
     else if (key === 'kanalizacja')
       andFilters.push({ kanalizacja: { in: [...MEDIA_AVAILABLE.kanalizacja] } });
     else if (key === 'gaz') andFilters.push({ gaz: { in: [...MEDIA_AVAILABLE.gaz] } });
+  }
+
+  // Filtr twardy, jak przy mediach: oferta bez potwierdzonej nawierzchni NIE wchodzi do wynikow.
+  // BRAK_INFORMACJI to nie to samo co „jest asfalt", a obiecana i nieistniejaca droga to najgorszy
+  // rodzaj rozczarowania przy ogladaniu dzialki.
+  if (dojazdTwardy) {
+    andFilters.push({ dojazd: { in: [...DOJAZD_TWARDY] } });
   }
 
   if (hasBBox) {

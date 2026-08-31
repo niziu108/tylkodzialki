@@ -7,6 +7,7 @@ import {
   WodaStatus,
   KanalizacjaStatus,
   GazStatus,
+  DojazdStatus,
   SwiatlowodStatus,
   TransakcjaTyp,
 } from '@prisma/client';
@@ -130,6 +131,7 @@ export async function PATCH(req: Request, { params }: Props) {
     kanalizacja,
     gaz,
     swiatlowod,
+    dojazd,
     wzWydane,
     mpzp,
     projektDomu,
@@ -228,6 +230,9 @@ export async function PATCH(req: Request, { params }: Props) {
   const kanalParsed = parseEnum(KanalizacjaStatus, kanalizacja) ?? KanalizacjaStatus.BRAK;
   const gazParsed = parseEnum(GazStatus, gaz) ?? GazStatus.BRAK;
   const swiatParsed = parseEnum(SwiatlowodStatus, swiatlowod) ?? SwiatlowodStatus.BRAK;
+  // Nierozpoznana wartość ląduje w BRAK_INFORMACJI, nigdy w konkretnej nawierzchni: filtr jest
+  // twardy, więc zła dana z formularza nie może obiecać kupującemu asfaltu.
+  const dojazdParsed = parseEnum(DojazdStatus, dojazd) ?? DojazdStatus.BRAK_INFORMACJI;
 
   const klasa = cleanOptionalString(klasaZiemi);
   const wym = cleanOptionalString(wymiary);
@@ -285,6 +290,7 @@ export async function PATCH(req: Request, { params }: Props) {
           kanalizacja: kanalParsed,
           gaz: gazParsed,
           swiatlowod: swiatParsed,
+          dojazd: dojazdParsed,
 
           wzWydane: !!wzWydane,
           mpzp: !!mpzp,

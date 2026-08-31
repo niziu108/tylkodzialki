@@ -19,6 +19,7 @@ import {
   handleOpisPasteAsPlainText,
 } from '@/components/dzialka-form/ui';
 import { buildOpisZDanych } from '@/lib/opisGenerator';
+import { DOJAZD_LABEL } from '@/lib/dojazd';
 
 type Przeznaczenie =
   | 'INWESTYCYJNA'
@@ -31,6 +32,7 @@ type Przeznaczenie =
 type LocationMode = 'EXACT' | 'APPROX';
 type SprzedajacyTypUI = 'PRYWATNIE' | 'BIURO_NIERUCHOMOSCI';
 type SwiatlowodStatus = 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE' | 'MOZLIWOSC_PODLACZENIA';
+type DojazdStatus = 'ASFALT' | 'UTWARDZONA' | 'GRUNTOWA' | 'BRAK_DOJAZDU' | 'BRAK_INFORMACJI';
 
 type FieldKey =
   | 'tytul'
@@ -106,6 +108,7 @@ type DzialkaDraft = {
     | 'MOZLIWOSC_PODLACZENIA';
   gaz: 'BRAK' | 'GAZ_NA_DZIALCE' | 'GAZ_W_DRODZE' | 'MOZLIWOSC_PODLACZENIA';
   swiatlowod: SwiatlowodStatus;
+  dojazd: DojazdStatus;
   wzWydane: boolean;
   mpzp: boolean;
   projektDomu: boolean;
@@ -172,6 +175,7 @@ export type DzialkaFormInitialData = {
 
   gaz: 'BRAK' | 'GAZ_NA_DZIALCE' | 'GAZ_W_DRODZE' | 'MOZLIWOSC_PODLACZENIA';
   swiatlowod: SwiatlowodStatus;
+  dojazd: DojazdStatus;
 
   wzWydane: boolean;
   mpzp: boolean;
@@ -486,6 +490,10 @@ export default function DzialkaForm({
     initialData?.swiatlowod ?? 'BRAK'
   );
 
+  const [dojazd, setDojazd] = useState<DojazdStatus>(
+    initialData?.dojazd ?? 'BRAK_INFORMACJI'
+  );
+
   const [wzWydane, setWzWydane] = useState(initialData?.wzWydane ?? false);
   const [mpzp, setMpzp] = useState(initialData?.mpzp ?? false);
   const [projektDomu, setProjektDomu] = useState(initialData?.projektDomu ?? false);
@@ -578,6 +586,7 @@ export default function DzialkaForm({
       kanalizacja,
       gaz,
       swiatlowod,
+      dojazd,
       wzWydane,
       mpzp,
       projektDomu,
@@ -754,6 +763,7 @@ export default function DzialkaForm({
     setKanalizacja((draft.kanalizacja ?? 'BRAK') as any);
     setGaz(draft.gaz ?? 'BRAK');
     setSwiatlowod(draft.swiatlowod ?? 'BRAK');
+    setDojazd(draft.dojazd ?? 'BRAK_INFORMACJI');
     setWzWydane(!!draft.wzWydane);
     setMpzp(!!draft.mpzp);
     setProjektDomu(!!draft.projektDomu);
@@ -796,6 +806,7 @@ export default function DzialkaForm({
       kanalizacja,
       gaz,
       swiatlowod,
+      dojazd,
       wzWydane,
       mpzp,
       projektDomu,
@@ -1063,6 +1074,7 @@ export default function DzialkaForm({
       kanalizacja,
       gaz,
       swiatlowod,
+      dojazd,
       wzWydane,
       mpzp,
       projektDomu,
@@ -1097,6 +1109,7 @@ export default function DzialkaForm({
       kanalizacja,
       gaz,
       swiatlowod,
+      dojazd,
       wzWydane,
       mpzp,
       projektDomu,
@@ -2225,6 +2238,22 @@ export default function DzialkaForm({
                   { value: 'W_DRODZE', label: 'W drodze' },
                   { value: 'NA_DZIALCE', label: 'Na działce' },
                   { value: 'MOZLIWOSC_PODLACZENIA', label: 'Możliwość podłączenia' },
+                ]}
+              />
+              <Hr className="mt-6" />
+            </div>
+
+            <div className="space-y-6">
+              <SectionTitle>Dojazd</SectionTitle>
+              <ChoiceRow
+                value={dojazd}
+                onChange={(v) => setDojazd(v as DojazdStatus)}
+                options={[
+                  { value: 'ASFALT', label: DOJAZD_LABEL.ASFALT },
+                  { value: 'UTWARDZONA', label: DOJAZD_LABEL.UTWARDZONA },
+                  { value: 'GRUNTOWA', label: DOJAZD_LABEL.GRUNTOWA },
+                  { value: 'BRAK_DOJAZDU', label: DOJAZD_LABEL.BRAK_DOJAZDU },
+                  { value: 'BRAK_INFORMACJI', label: 'Nie wiem' },
                 ]}
               />
               <Hr className="mt-6" />

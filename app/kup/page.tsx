@@ -87,6 +87,8 @@ export default async function KupPage({ searchParams }: KupPageProps) {
       ALLOWED_PRZEZN.includes(x as Przeznaczenie)
     );
 
+  const dojazd = one(sp.dojazd) === '1';
+
   const media = one(sp.media)
     .split(',')
     .map((s) => s.trim())
@@ -178,6 +180,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
     if (aMax) apiParams.set('areaMax', aMax);
     if (przezn.length) apiParams.set('przeznaczenia', przezn.join(','));
     if (media.length) apiParams.set('media', media.join(','));
+    if (dojazd) apiParams.set('dojazd', '1');
     if (transakcja.length) apiParams.set('transakcja', transakcja.join(','));
     apiParams.set('skip', String((page - 1) * 20));
     apiParams.set('take', '20');
@@ -193,6 +196,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
       sort === 'newest' &&
       !przezn.length &&
       !media.length &&
+      !dojazd &&
       !transakcja.length &&
       !pMin &&
       !pMax &&
@@ -246,6 +250,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
           areaMax: digitsOnly(one(sp.areaMax)),
           przezn,
           media,
+          dojazd,
           transakcja,
           bbox: hasBBox ? { n: bn, s: bs, e: be, w: bw } : null,
           sort,

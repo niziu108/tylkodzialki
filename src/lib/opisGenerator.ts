@@ -34,6 +34,7 @@ export type OpisKanalizacja =
 export type OpisGaz = 'BRAK' | 'GAZ_NA_DZIALCE' | 'GAZ_W_DRODZE' | 'MOZLIWOSC_PODLACZENIA';
 
 export type OpisSwiatlowod = 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE' | 'MOZLIWOSC_PODLACZENIA';
+type OpisDojazd = 'ASFALT' | 'UTWARDZONA' | 'GRUNTOWA' | 'BRAK_DOJAZDU' | 'BRAK_INFORMACJI';
 
 export type OpisInput = {
   transakcja?: 'SPRZEDAZ' | 'WYNAJEM';
@@ -47,6 +48,7 @@ export type OpisInput = {
   kanalizacja?: OpisKanalizacja;
   gaz?: OpisGaz;
   swiatlowod?: OpisSwiatlowod;
+  dojazd?: OpisDojazd;
   wzWydane?: boolean;
   mpzp?: boolean;
   projektDomu?: boolean;
@@ -161,6 +163,13 @@ export function buildOpisZDanych(input: OpisInput): string {
 
   // 4. Plan, dokumenty, grunt.
   const zdaniaFormalne: string[] = [];
+  // Dojazd zaraz na poczatku akapitu o cechach: kupujacy pyta o niego tuz po cenie i mediach,
+  // a przy dzialkach rekreacyjnych bywa wazniejszy niz plan. BRAK_INFORMACJI pomijamy - lepiej
+  // nie napisac nic, niz napisac "brak informacji o dojezdzie" w ogloszeniu.
+  if (input.dojazd === 'ASFALT') zdaniaFormalne.push('Dojazd drogą asfaltową.');
+  if (input.dojazd === 'UTWARDZONA') zdaniaFormalne.push('Dojazd drogą utwardzoną.');
+  if (input.dojazd === 'GRUNTOWA') zdaniaFormalne.push('Dojazd drogą gruntową.');
+  if (input.dojazd === 'BRAK_DOJAZDU') zdaniaFormalne.push('Działka bez urządzonego dojazdu.');
   if (input.mpzp) zdaniaFormalne.push('Działka objęta miejscowym planem zagospodarowania przestrzennego.');
   if (input.wzWydane) zdaniaFormalne.push('Wydane warunki zabudowy.');
   if (input.projektDomu) zdaniaFormalne.push('Do działki dołączony jest projekt domu.');

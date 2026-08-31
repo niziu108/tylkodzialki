@@ -93,6 +93,7 @@ type AppliedFilters = {
   areaMax: string;
   przezn: Przeznaczenie[];
   media: MediaKey[];
+  dojazd: boolean;
   transakcja: TransakcjaKey[];
   bbox: BBox | null;
   sort: SortOption;
@@ -113,6 +114,7 @@ const EMPTY_APPLIED: AppliedFilters = {
   areaMax: '',
   przezn: [],
   media: [],
+  dojazd: false,
   transakcja: [],
   bbox: null,
   sort: 'newest',
@@ -268,6 +270,7 @@ function buildUrlFromState(filters: AppliedFilters, page: number) {
   if (filters.areaMax) sp.set('areaMax', filters.areaMax);
   if (filters.przezn.length) sp.set('przezn', filters.przezn.join(','));
   if (filters.media.length) sp.set('media', filters.media.join(','));
+  if (filters.dojazd) sp.set('dojazd', '1');
   if (filters.transakcja.length) sp.set('transakcja', filters.transakcja.join(','));
   if (filters.sort && filters.sort !== 'newest') sp.set('sort', filters.sort);
   if (page > 1) sp.set('page', String(page));
@@ -380,6 +383,8 @@ function readStateFromUrl(useStorageFallback = true): StoredState {
     .filter(Boolean)
     .filter((x): x is MediaKey => MEDIA_KEYS.includes(x as MediaKey));
 
+  const dojazd = sp.get('dojazd') === '1';
+
   const transakcjaRaw = sp.get('transakcja') ?? '';
   const transakcja = transakcjaRaw
     .split(',')
@@ -402,6 +407,7 @@ function readStateFromUrl(useStorageFallback = true): StoredState {
       areaMax: digitsOnly(sp.get('areaMax') ?? ''),
       przezn,
       media,
+      dojazd,
       transakcja,
       bbox,
       sort,
@@ -448,6 +454,7 @@ function makeParams(filters: AppliedFilters, page: number) {
   if (filters.areaMax) sp.set('areaMax', filters.areaMax);
   if (filters.przezn.length) sp.set('przeznaczenia', filters.przezn.join(','));
   if (filters.media.length) sp.set('media', filters.media.join(','));
+  if (filters.dojazd) sp.set('dojazd', '1');
   if (filters.transakcja.length) sp.set('transakcja', filters.transakcja.join(','));
 
   sp.set('skip', String((page - 1) * PAGE_SIZE));
@@ -701,6 +708,7 @@ export default function KupSearch({
         center: initialFilters.center ?? null,
         przezn: initialFilters.przezn ?? [],
         media: initialFilters.media ?? [],
+        dojazd: initialFilters.dojazd ?? false,
         transakcja: initialFilters.transakcja ?? [],
       },
     };
@@ -745,6 +753,7 @@ export default function KupSearch({
 
   const [przezn, setPrzezn] = useState<Przeznaczenie[]>(initial.filters.przezn);
   const [media, setMedia] = useState<MediaKey[]>(initial.filters.media);
+  const [dojazd, setDojazd] = useState<boolean>(initial.filters.dojazd);
   const [transakcja, setTransakcja] = useState<TransakcjaKey[]>(initial.filters.transakcja);
   const [applied, setApplied] = useState<AppliedFilters>(initial.filters);
   // Na stronach SEO (huby) trzymamy wyszukiwarkę zwiniętą do docelowej, małej wersji
@@ -754,6 +763,7 @@ export default function KupSearch({
     !seoMode &&
       (initial.filters.przezn.length > 0 ||
         initial.filters.media.length > 0 ||
+        initial.filters.dojazd ||
         initial.filters.transakcja.length > 0 ||
         !!initial.filters.priceMin ||
         !!initial.filters.priceMax ||
@@ -824,12 +834,14 @@ export default function KupSearch({
     setAreaMax(formatPLThousands(f.areaMax));
     setPrzezn(f.przezn);
     setMedia(f.media);
+    setDojazd(f.dojazd);
     setTransakcja(f.transakcja);
     setApplied(f);
     setExpanded(
       !seoMode &&
         (f.przezn.length > 0 ||
           f.media.length > 0 ||
+          f.dojazd ||
           f.transakcja.length > 0 ||
           !!f.priceMin ||
           !!f.priceMax ||
@@ -1224,6 +1236,7 @@ export default function KupSearch({
       areaMax: digitsOnly(areaMax),
       przezn,
       media,
+      dojazd,
       transakcja,
       bbox: keepBBox,
       sort: applied.sort,
@@ -1307,6 +1320,7 @@ export default function KupSearch({
     setAreaMax('');
     setPrzezn([]);
     setMedia([]);
+    setDojazd(false);
     setTransakcja([]);
 
     if (navigationMode) {
@@ -1608,6 +1622,29 @@ export default function KupSearch({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
+              Dojazd
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {/* Jeden przełącznik zamiast listy nawierzchni: kupujący pyta „czy dojadę tam
+                  osobówką", a nie czy to asfalt czy kostka. Filtr twardy — oferty bez
+                  potwierdzonej nawierzchni nie wchodzą, więc obiecujemy tylko to, co wiemy. */}
+              <button
+                type="button"
+                onClick={() => setDojazd((v) => !v)}
+                className={[
+                  'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                  dojazd
+                    ? 'border-brand bg-brand/20 text-brand-bright'
+                    : 'border-fg/25 text-fg/70 hover:border-fg/45',
+                ].join(' ')}
+              >
+                Utwardzony
+              </button>
             </div>
           </div>
         </div>

@@ -80,6 +80,7 @@ export default async function EdytujOgloszeniePage({ params }: Props) {
         kanalizacja: dzialka.kanalizacja as any,
         gaz: dzialka.gaz as any,
         swiatlowod: dzialka.swiatlowod as any,
+        dojazd: dzialka.dojazd as any,
 
         wzWydane: dzialka.wzWydane,
         mpzp: dzialka.mpzp,

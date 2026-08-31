@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { HeartIcon } from '@/components/OfferCard';
 import { OfficeLogo } from '@/components/OfficeLogo';
 import { formatOpis, plainText } from '@/lib/formatOpis';
+import { DOJAZD_LABEL } from '@/lib/dojazd';
 import AlertBar from '@/components/AlertBar';
 import type { AlertCriteria } from '@/lib/alertCriteria';
 import type { OfferPriceTrend } from '@/lib/dzialkaPriceHistory';
@@ -38,6 +39,7 @@ type Dzialka = {
   kanalizacja?: string | null;
   gaz?: string | null;
   swiatlowod?: string | null;
+  dojazd?: string | null;
 
   wzWydane?: boolean | null;
   mpzp?: boolean | null;
@@ -524,6 +526,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const kan = labelKanalizacja(d?.kanalizacja ?? null);
   const gaz = labelGazShort(d?.gaz ?? null);
   const sw = labelSwiatlowod(d?.swiatlowod ?? null);
+  // Dojazd celowo POZA blokiem „Uzbrojenie": to nie media, tylko cecha dostępu do działki,
+  // a kupujący pyta o nią osobno („czy dojadę tam zimą"). „Brak informacji" nie pokazujemy wcale,
+  // bo pusty wiersz w specyfikacji wygląda jak zaniedbanie oferty.
+  const dojazdLabel =
+    d?.dojazd && d.dojazd !== 'BRAK_INFORMACJI'
+      ? DOJAZD_LABEL[d.dojazd as keyof typeof DOJAZD_LABEL] ?? null
+      : null;
   const hasUzbrojenie = Boolean(prad || woda || kan || gaz || sw);
 
   const opis = formatOpis(d?.opis);
@@ -1164,6 +1173,15 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       {gaz ? <div>Gaz: <span className="text-fg/95">{gaz}</span></div> : null}
                       {sw ? <div>Światłowód: <span className="text-fg/95">{sw}</span></div> : null}
                     </div>
+                  </FieldBlock>
+                  <Hr />
+                </>
+              ) : null}
+
+              {dojazdLabel ? (
+                <>
+                  <FieldBlock label="Dojazd">
+                    <div className="text-[14px] text-fg/90">{dojazdLabel}</div>
                   </FieldBlock>
                   <Hr />
                 </>
