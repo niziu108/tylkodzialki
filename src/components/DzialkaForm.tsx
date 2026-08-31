@@ -19,7 +19,7 @@ import {
   handleOpisPasteAsPlainText,
 } from '@/components/dzialka-form/ui';
 import { buildOpisZDanych } from '@/lib/opisGenerator';
-import { DOJAZD_LABEL } from '@/lib/dojazd';
+import { DOJAZD_FILTR_KEYS, DOJAZD_LABEL } from '@/lib/dojazd';
 
 type Przeznaczenie =
   | 'INWESTYCYJNA'
@@ -32,7 +32,14 @@ type Przeznaczenie =
 type LocationMode = 'EXACT' | 'APPROX';
 type SprzedajacyTypUI = 'PRYWATNIE' | 'BIURO_NIERUCHOMOSCI';
 type SwiatlowodStatus = 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE' | 'MOZLIWOSC_PODLACZENIA';
-type DojazdStatus = 'ASFALT' | 'UTWARDZONA' | 'GRUNTOWA' | 'BRAK_DOJAZDU' | 'BRAK_INFORMACJI';
+type DojazdStatus =
+  | 'ASFALT'
+  | 'KOSTKA'
+  | 'UTWARDZONA'
+  | 'GRUNTOWA'
+  | 'LESNA'
+  | 'BRAK_DOJAZDU'
+  | 'BRAK_INFORMACJI';
 
 type FieldKey =
   | 'tytul'
@@ -2245,16 +2252,15 @@ export default function DzialkaForm({
 
             <div className="space-y-6">
               <SectionTitle>Dojazd</SectionTitle>
+              {/* Pole nieobowiazkowe: brak zaznaczenia znaczy „nie wiadomo", wiec nie ma tu opcji
+                  „Nie wiem". Ponowny klik w zaznaczona pigulke odznacza wybor (clearValue). */}
               <ChoiceRow
                 value={dojazd}
                 onChange={(v) => setDojazd(v as DojazdStatus)}
-                options={[
-                  { value: 'ASFALT', label: DOJAZD_LABEL.ASFALT },
-                  { value: 'UTWARDZONA', label: DOJAZD_LABEL.UTWARDZONA },
-                  { value: 'GRUNTOWA', label: DOJAZD_LABEL.GRUNTOWA },
-                  { value: 'BRAK_DOJAZDU', label: DOJAZD_LABEL.BRAK_DOJAZDU },
-                  { value: 'BRAK_INFORMACJI', label: 'Nie wiem' },
-                ]}
+                clearValue="BRAK_INFORMACJI"
+                // Lista z jednego zrodla (DOJAZD_FILTR_KEYS), zeby formularz i filtr na /kup
+                // nigdy nie rozjechaly sie zestawem opcji.
+                options={DOJAZD_FILTR_KEYS.map((k) => ({ value: k, label: DOJAZD_LABEL[k] }))}
               />
               <Hr className="mt-6" />
             </div>

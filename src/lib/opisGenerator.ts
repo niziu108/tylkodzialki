@@ -34,7 +34,14 @@ export type OpisKanalizacja =
 export type OpisGaz = 'BRAK' | 'GAZ_NA_DZIALCE' | 'GAZ_W_DRODZE' | 'MOZLIWOSC_PODLACZENIA';
 
 export type OpisSwiatlowod = 'BRAK' | 'W_DRODZE' | 'NA_DZIALCE' | 'MOZLIWOSC_PODLACZENIA';
-type OpisDojazd = 'ASFALT' | 'UTWARDZONA' | 'GRUNTOWA' | 'BRAK_DOJAZDU' | 'BRAK_INFORMACJI';
+type OpisDojazd =
+  | 'ASFALT'
+  | 'KOSTKA'
+  | 'UTWARDZONA'
+  | 'GRUNTOWA'
+  | 'LESNA'
+  | 'BRAK_DOJAZDU'
+  | 'BRAK_INFORMACJI';
 
 export type OpisInput = {
   transakcja?: 'SPRZEDAZ' | 'WYNAJEM';
@@ -167,8 +174,10 @@ export function buildOpisZDanych(input: OpisInput): string {
   // a przy dzialkach rekreacyjnych bywa wazniejszy niz plan. BRAK_INFORMACJI pomijamy - lepiej
   // nie napisac nic, niz napisac "brak informacji o dojezdzie" w ogloszeniu.
   if (input.dojazd === 'ASFALT') zdaniaFormalne.push('Dojazd drogą asfaltową.');
+  if (input.dojazd === 'KOSTKA') zdaniaFormalne.push('Dojazd drogą z kostki brukowej.');
   if (input.dojazd === 'UTWARDZONA') zdaniaFormalne.push('Dojazd drogą utwardzoną.');
   if (input.dojazd === 'GRUNTOWA') zdaniaFormalne.push('Dojazd drogą gruntową.');
+  if (input.dojazd === 'LESNA') zdaniaFormalne.push('Dojazd drogą leśną.');
   if (input.dojazd === 'BRAK_DOJAZDU') zdaniaFormalne.push('Działka bez urządzonego dojazdu.');
   if (input.mpzp) zdaniaFormalne.push('Działka objęta miejscowym planem zagospodarowania przestrzennego.');
   if (input.wzWydane) zdaniaFormalne.push('Wydane warunki zabudowy.');

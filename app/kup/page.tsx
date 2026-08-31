@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { Przeznaczenie } from '@prisma/client';
 import KupSearch from './KupSearch';
 import { parseRadiusKm } from '@/lib/searchRadius';
+import { DOJAZD_FILTR_KEYS, type DojazdKey } from '@/lib/dojazd';
 import type { SortOption } from './KupSearch';
 import { unstable_cache } from 'next/cache';
 import { queryDzialkiList } from '@/lib/dzialkiListing';
@@ -87,7 +88,10 @@ export default async function KupPage({ searchParams }: KupPageProps) {
       ALLOWED_PRZEZN.includes(x as Przeznaczenie)
     );
 
-  const dojazd = one(sp.dojazd) === '1';
+  const dojazd = one(sp.dojazd)
+    .split(',')
+    .map((s) => s.trim())
+    .filter((x): x is DojazdKey => (DOJAZD_FILTR_KEYS as readonly string[]).includes(x));
 
   const media = one(sp.media)
     .split(',')
@@ -180,7 +184,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
     if (aMax) apiParams.set('areaMax', aMax);
     if (przezn.length) apiParams.set('przeznaczenia', przezn.join(','));
     if (media.length) apiParams.set('media', media.join(','));
-    if (dojazd) apiParams.set('dojazd', '1');
+    if (dojazd.length) apiParams.set('dojazd', dojazd.join(','));
     if (transakcja.length) apiParams.set('transakcja', transakcja.join(','));
     apiParams.set('skip', String((page - 1) * 20));
     apiParams.set('take', '20');
@@ -196,7 +200,7 @@ export default async function KupPage({ searchParams }: KupPageProps) {
       sort === 'newest' &&
       !przezn.length &&
       !media.length &&
-      !dojazd &&
+      !dojazd.length &&
       !transakcja.length &&
       !pMin &&
       !pMax &&

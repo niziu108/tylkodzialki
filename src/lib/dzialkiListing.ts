@@ -16,7 +16,7 @@ import { prisma } from '@/lib/prisma';
 import { buildSearchContext, getSearchMatchInfo, computeGeoPrefilterBBox } from '@/lib/dzialkiSearch';
 import { listDzialkiPaginated, PAGE_INCLUDE, FEATURED_TOP_CAP, type ListSort } from '@/lib/dzialkiQuery';
 import { MEDIA_AVAILABLE } from '@/lib/media';
-import { DOJAZD_TWARDY } from '@/lib/dojazd';
+import { DOJAZD_FILTR_KEYS, type DojazdKey } from '@/lib/dojazd';
 
 function isFeaturedActive(d: any) {
   return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
@@ -147,9 +147,14 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
     ? przeznRaw.split(',').map((s) => s.trim()).filter(Boolean)
     : [];
 
-  // Dojazd: jeden przelacznik, nie lista nawierzchni. Kupujacego interesuje pytanie „czy dojade
-  // tam osobowka o kazdej porze roku", a nie czy to asfalt czy kostka.
-  const dojazdTwardy = searchParams.get('dojazd') === '1';
+  // Dojazd: lista nawierzchni do wyboru, jak przeznaczenie i media. Nic nie zaznaczone = bez filtra.
+  const dojazdRaw = (searchParams.get('dojazd') || '').trim();
+  const dojazd = dojazdRaw
+    ? dojazdRaw
+        .split(',')
+        .map((x) => x.trim())
+        .filter((x): x is DojazdKey => (DOJAZD_FILTR_KEYS as readonly string[]).includes(x))
+    : [];
 
   const mediaRaw = (searchParams.get('media') || '').trim();
   const media = mediaRaw
@@ -241,11 +246,11 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
     else if (key === 'gaz') andFilters.push({ gaz: { in: [...MEDIA_AVAILABLE.gaz] } });
   }
 
-  // Filtr twardy, jak przy mediach: oferta bez potwierdzonej nawierzchni NIE wchodzi do wynikow.
-  // BRAK_INFORMACJI to nie to samo co „jest asfalt", a obiecana i nieistniejaca droga to najgorszy
-  // rodzaj rozczarowania przy ogladaniu dzialki.
-  if (dojazdTwardy) {
-    andFilters.push({ dojazd: { in: [...DOJAZD_TWARDY] } });
+  // Filtr twardy, jak przy mediach: BRAK_INFORMACJI nie jest wsrod opcji do wyboru, wiec oferta
+  // bez potwierdzonej nawierzchni nigdy nie wpadnie do wynikow. Obiecana i nieistniejaca droga to
+  // najgorszy rodzaj rozczarowania przy ogladaniu dzialki.
+  if (dojazd.length) {
+    andFilters.push({ dojazd: { in: dojazd } });
   }
 
   if (hasBBox) {

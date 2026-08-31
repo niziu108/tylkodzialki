@@ -12,15 +12,20 @@ dotenv.config({ path: ".env" });
  * dla EstiCRM `groundRoad`. Bez tego skryptu filtr zapełniałby się tygodniami, bo oferta dostaje
  * nową wartość dopiero, gdy biuro ją zaktualizuje, a paczki różnicowe dotykają ułamka portfela.
  *
- * Bezpieczeństwo: rusza WYŁĄCZNIE oferty z `dojazd = BRAK_INFORMACJI`, czyli nigdy nie nadpisuje
- * wartości odczytanej na żywo z feedu. Powtarzalny: drugi przebieg nie ma już czego poprawiać.
+ * Bezpieczeństwo: domyślnie rusza WYŁĄCZNIE oferty z `dojazd = BRAK_INFORMACJI`, czyli nigdy nie
+ * nadpisuje wartości odczytanej na żywo z feedu. Powtarzalny: drugi przebieg nie ma czego poprawiać.
  *
  * Uruchomienie:
- *   npm run dojazd:backfill          -> raport, NIC nie zapisuje
- *   npm run dojazd:backfill -- --apply
+ *   npm run dojazd:backfill                        -> raport, NIC nie zapisuje
+ *   npm run dojazd:backfill -- --apply             -> uzupełnia puste
+ *   npm run dojazd:backfill -- --przelicz --apply  -> liczy oferty z CRM od nowa
  */
 
 const APPLY = process.argv.includes("--apply");
+// --przelicz: nadpisuje TAKZE oferty, ktore maja juz jakis stan. Potrzebne po zmianie regul
+// mapowania (np. wydzielenie kostki i drogi lesnej do osobnych kategorii). Ograniczone do ofert
+// z CRM, zeby nigdy nie zdeptac wartosci wybranej recznie przez sprzedajacego w formularzu.
+const PRZELICZ = process.argv.includes("--przelicz");
 
 type Payload = {
   params?: Record<string, unknown>;
@@ -54,7 +59,10 @@ async function main() {
     WHERE l."dzialkaId" IS NOT NULL
       AND l.payload IS NOT NULL
       AND l.action IN ('CREATE', 'UPDATE')
-      AND d."dojazd" = 'BRAK_INFORMACJI'
+      AND (
+        d."dojazd" = 'BRAK_INFORMACJI'
+        OR (${PRZELICZ} AND d."sourceType" = 'CRM')
+      )
     ORDER BY l."dzialkaId", l."createdAt" DESC`;
 
   console.log(`Ofert do sprawdzenia: ${wiersze.length}`);
@@ -100,7 +108,9 @@ async function main() {
       const r = await prisma.dzialka.updateMany({
         // Warunek na BRAK_INFORMACJI powtórzony świadomie: między odczytem a zapisem mógł
         // przebiec import i ustawić wartość na żywo. Ta ma pierwszeństwo przed odtworzoną.
-        where: { id: { in: partia }, dojazd: "BRAK_INFORMACJI" },
+        where: PRZELICZ
+          ? { id: { in: partia }, sourceType: "CRM" }
+          : { id: { in: partia }, dojazd: "BRAK_INFORMACJI" },
         data: { dojazd: stan as never },
       });
       zapisane += r.count;

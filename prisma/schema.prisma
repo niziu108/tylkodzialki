@@ -849,8 +849,10 @@ enum GazStatus {
 // co „nie da się dojechać", a filtr twardy nie może traktować jednego jak drugiego.
 enum DojazdStatus {
   ASFALT
+  KOSTKA
   UTWARDZONA
   GRUNTOWA
+  LESNA
   BRAK_DOJAZDU
   BRAK_INFORMACJI
 }

@@ -188,10 +188,18 @@ export function ChoiceRow({
   value,
   onChange,
   options,
+  clearValue,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: Array<{ value: string; label: string }>;
+  /**
+   * Gdy podane, klik w zaznaczoną opcję wraca do tej wartości, czyli odznacza wybór.
+   * Pole nieobowiązkowe nie potrzebuje osobnej opcji „nie wiem": brak zaznaczenia mówi
+   * dokładnie to samo, a nie każe sprzedającemu deklarować niewiedzy. Bez tego propa
+   * zachowanie jest takie jak było (klik zawsze ustawia), więc media nic nie tracą.
+   */
+  clearValue?: string;
 }) {
   return (
     <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3">
@@ -201,7 +209,9 @@ export function ChoiceRow({
           <button
             key={o.value}
             type="button"
-            onClick={() => onChange(o.value)}
+            onClick={() =>
+              onChange(active && clearValue !== undefined ? clearValue : o.value)
+            }
             aria-pressed={active}
             className={cx(CHIP_BASE, active ? CHIP_ON : CHIP_OFF)}
           >

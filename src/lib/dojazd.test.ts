@@ -12,10 +12,14 @@ describe('mapDojazd', () => {
     }
   });
 
-  it('traktuje kostkę i bruk jak nawierzchnię twardą', () => {
-    expect(mapDojazd('kostka')).toBe('ASFALT');
-    expect(mapDojazd('kostka brukowa')).toBe('ASFALT');
-    expect(mapDojazd('bruk')).toBe('ASFALT');
+  // Kostka to osobna kategoria, nie odmiana asfaltu: inna nawierzchnia, inna cena wykonania,
+  // a kupujacy widzi w ofercie dokladnie to, co jest. Dla filtra obie sa twarde.
+  it('kostka ma własną kategorię', () => {
+    expect(mapDojazd('kostka')).toBe('KOSTKA');
+    expect(mapDojazd('kostka brukowa')).toBe('KOSTKA');
+    expect(mapDojazd('bruk')).toBe('KOSTKA');
+    expect(maTwardyDojazd(mapDojazd('kostka'))).toBe(true);
+    expect(maTwardyDojazd(mapDojazd('asfalt'))).toBe(true);
   });
 
   it('rozpoznaje drogę utwardzoną', () => {
@@ -25,8 +29,7 @@ describe('mapDojazd', () => {
   });
 
   it('rozpoznaje drogę gruntową', () => {
-    // „droga leśna" wzięta z produkcji: 20 ofert, w praktyce zawsze nawierzchnia nieutwardzona.
-    for (const v of ['gruntowa', 'droga gruntowa', 'polna', 'ziemna', 'piaszczysta', 'droga leśna']) {
+    for (const v of ['gruntowa', 'droga gruntowa', 'polna', 'ziemna', 'piaszczysta']) {
       expect(mapDojazd(v), v).toBe('GRUNTOWA');
     }
   });
@@ -37,6 +40,13 @@ describe('mapDojazd', () => {
     expect(mapDojazd('nieutwardzona')).toBe('GRUNTOWA');
     expect(mapDojazd('nie utwardzona')).toBe('GRUNTOWA');
     expect(mapDojazd('droga nieutwardzona')).toBe('GRUNTOWA');
+  });
+
+  // Leśna osobno, a nie jako odmiana gruntowej: przy działce rekreacyjnej pod lasem to zaleta.
+  it('droga leśna ma własną kategorię', () => {
+    expect(mapDojazd('droga leśna')).toBe('LESNA');
+    expect(mapDojazd('leśna')).toBe('LESNA');
+    expect(maTwardyDojazd(mapDojazd('droga leśna'))).toBe(false);
   });
 
   it('rozpoznaje brak dojazdu', () => {
@@ -86,7 +96,7 @@ describe('maTwardyDojazd', () => {
 
 describe('etykiety', () => {
   it('każdy stan ma etykietę dla UI', () => {
-    for (const stan of ['ASFALT', 'UTWARDZONA', 'GRUNTOWA', 'BRAK_DOJAZDU', 'BRAK_INFORMACJI'] as const) {
+    for (const stan of ['ASFALT', 'KOSTKA', 'UTWARDZONA', 'GRUNTOWA', 'LESNA', 'BRAK_DOJAZDU', 'BRAK_INFORMACJI'] as const) {
       expect(DOJAZD_LABEL[stan]).toBeTruthy();
     }
   });
