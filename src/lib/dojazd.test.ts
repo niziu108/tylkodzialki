@@ -25,7 +25,8 @@ describe('mapDojazd', () => {
   });
 
   it('rozpoznaje drogę gruntową', () => {
-    for (const v of ['gruntowa', 'droga gruntowa', 'polna', 'ziemna', 'piaszczysta']) {
+    // „droga leśna" wzięta z produkcji: 20 ofert, w praktyce zawsze nawierzchnia nieutwardzona.
+    for (const v of ['gruntowa', 'droga gruntowa', 'polna', 'ziemna', 'piaszczysta', 'droga leśna']) {
       expect(mapDojazd(v), v).toBe('GRUNTOWA');
     }
   });
@@ -47,7 +48,8 @@ describe('mapDojazd', () => {
   // Te wartości mówią o charakterze drogi, nie o nawierzchni. Filtr twardy nie może zgadywać:
   // „główna droga" bywa asfaltem, ale bywa też szutrem.
   it('nie zgaduje nawierzchni z opisu charakteru drogi', () => {
-    for (const v of ['LOKALNA DROGA', 'CICHA ULICA', 'GŁÓWNA DROGA', 'inna', 'droga wewnętrzna']) {
+    // „droga wewnętrzna" to status prawny, nie nawierzchnia — bywa i asfaltem, i błotem.
+    for (const v of ['LOKALNA DROGA', 'CICHA ULICA', 'GŁÓWNA DROGA', 'inna', 'droga wewnętrzna', 'osiedlowa']) {
       expect(mapDojazd(v), v).toBe('BRAK_INFORMACJI');
     }
   });

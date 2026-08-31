@@ -57,7 +57,9 @@ function normalizuj(s: string): string {
 const ZAPRZECZENIA = ['nieutwardzon', 'nie utwardzon', 'brak dojazd', 'bez dojazdu', 'bez drogi', 'brak drogi'];
 const ASFALT = ['asfalt', 'beton', 'kostka', 'bruk', 'brukowa'];
 const UTWARDZONA = ['utwardzon', 'szuter', 'szutrow', 'tluczen', 'zwir', 'zwirow', 'klinkiet', 'plyty betonowe'];
-const GRUNTOWA = ['gruntow', 'polna', 'ziemna', 'piaszczyst', 'nieutwardzon', 'nie utwardzon', 'grunt'];
+// „leśna" dopisana po sprawdzeniu produkcji: droga leśna w praktyce zawsze jest nieutwardzona,
+// a zostawiona bez stanu tylko zubażała opis oferty (20 ofert w bazie).
+const GRUNTOWA = ['gruntow', 'polna', 'ziemna', 'piaszczyst', 'lesna', 'nieutwardzon', 'nie utwardzon', 'grunt'];
 const BRAK = ['brak dojazd', 'bez dojazdu', 'brak drogi', 'bez drogi', 'brak'];
 
 function zawiera(text: string, klucze: readonly string[]): boolean {
