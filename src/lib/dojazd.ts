@@ -39,23 +39,28 @@ export const DOJAZD_LABEL_KROTKI = {
 // droga polna po deszczu to dla kupującego zupełnie inna nieruchomość.
 export const DOJAZD_TWARDY = ['ASFALT', 'KOSTKA', 'UTWARDZONA'] as const satisfies readonly DojazdStatus[];
 
-// Opcje w formularzu wystawiania: wszystko, co sprzedający może o działce powiedzieć.
-export const DOJAZD_FORM_KEYS = [
-  'ASFALT',
-  'KOSTKA',
-  'UTWARDZONA',
-  'GRUNTOWA',
-  'LESNA',
-  'BRAK_DOJAZDU',
-] as const satisfies readonly DojazdStatus[];
-
-// Opcje w filtrze /kup — świadomie WĘŻSZE niż w formularzu.
-// BRAK_INFORMACJI poza listą, bo „nie wiadomo" nie jest cechą, której ktoś szuka, a wpuszczenie
-// go złamałoby zasadę twardego filtra. BRAK_DOJAZDU też poza listą: prawie każda działka jakiś
-// dojazd ma, nikt nie szuka działki bez dojazdu, a martwy chip to tylko szum w panelu. W samej
-// ofercie ta informacja zostaje, bo tam jest ostrzeżeniem dla kupującego.
+// Opcje do wyboru — te same w formularzu i w filtrze.
+// BRAK_INFORMACJI poza listą, bo pole jest nieobowiązkowe: brak zaznaczenia mówi to samo.
+// BRAK_DOJAZDU też poza listą: prawie każda działka jakiś dojazd ma, nikt takiej nie szuka
+// i nikt się nią nie chwali. Wartość zostaje w enumie, bo przychodzi z feedów CRM i wtedy
+// pokazujemy ją w ofercie jako ostrzeżenie dla kupującego.
 export const DOJAZD_FILTR_KEYS = ['ASFALT', 'KOSTKA', 'UTWARDZONA', 'GRUNTOWA', 'LESNA'] as const;
 export type DojazdKey = (typeof DOJAZD_FILTR_KEYS)[number];
+
+// Ta sama lista pod nazwą mówiącą o formularzu — żeby wywołania czytały się jednoznacznie.
+export const DOJAZD_FORM_KEYS = DOJAZD_FILTR_KEYS;
+
+/**
+ * Czy pokazywać filtr dojazdu w /kup.
+ *
+ * Wyłączony ŚWIADOMIE: przy 7,2 tys. ofert i 63% pokryciu kliknięcie „asfaltowy" zawęża wynik
+ * do jednej trzeciej podaży, a wśród ukrytych są działki, które asfalt mają, tylko biuro tego
+ * nie wpisało. Przy tej wielkości bazy zawężanie boli bardziej, niż pomaga.
+ *
+ * Cała reszta (odczyt z feedów, zapis, wyświetlanie w ofercie, obsługa parametru w URL) działa
+ * dalej i zbiera dane. Włączenie to zmiana tej jednej flagi na `true`, gdy podaż urośnie.
+ */
+export const DOJAZD_FILTR_WIDOCZNY = false;
 
 export function maTwardyDojazd(v: unknown): boolean {
   return typeof v === 'string' && (DOJAZD_TWARDY as readonly string[]).includes(v);

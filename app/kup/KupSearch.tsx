@@ -8,7 +8,12 @@ import KupList from './KupList';
 import AlertBar from '@/components/AlertBar';
 import RadiusSelect from '@/components/RadiusSelect';
 import { loadGoogleMaps } from '@/lib/googleMaps';
-import { DOJAZD_FILTR_KEYS, DOJAZD_LABEL, type DojazdKey } from '@/lib/dojazd';
+import {
+  DOJAZD_FILTR_KEYS,
+  DOJAZD_FILTR_WIDOCZNY,
+  DOJAZD_LABEL,
+  type DojazdKey,
+} from '@/lib/dojazd';
 import { plural } from '@/lib/plural';
 // Stałe promienia leżą poza tym plikiem, bo czyta je też komponent serwerowy app/kup/page.tsx
 // (import z modułu 'use client' oddaje serwerowi referencję klienta, nie wartość).
@@ -1634,6 +1639,7 @@ export default function KupSearch({
             </div>
           </div>
 
+          {DOJAZD_FILTR_WIDOCZNY ? (
           <div>
             <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
               Dojazd
@@ -1662,6 +1668,7 @@ export default function KupSearch({
               })}
             </div>
           </div>
+          ) : null}
         </div>
       )}
 
