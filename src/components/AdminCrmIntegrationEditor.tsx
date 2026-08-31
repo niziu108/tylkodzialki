@@ -64,6 +64,11 @@ function formatDate(value: string | Date | null | undefined) {
   }
 }
 
+// Nasz wlasny serwer FTP: biura wysylaja paczki DO nas, wiec host jest zawsze ten sam.
+// Pole zostaje edytowalne (gdyby kiedys doszedl drugi serwer), ale wypelnia sie samo.
+// Wpisywane z reki bylo generatorem literowek: jedna integracja pojechala na "tp." zamiast "ftp.".
+const DOMYSLNY_HOST_FTP = "ftp.tylkodzialki.pl";
+
 export default function AdminCrmIntegrationEditor({
   userId,
   userLabel,
@@ -93,7 +98,7 @@ export default function AdminCrmIntegrationEditor({
       | "PROPERTLY"
       | "LOCUMNET",
     isActive: integration?.isActive ?? true,
-    ftpHost: integration?.ftpHost ?? "",
+    ftpHost: integration?.ftpHost ?? DOMYSLNY_HOST_FTP,
     ftpPort: String(integration?.ftpPort ?? 21),
     ftpUsername: integration?.ftpUsername ?? "",
     ftpPassword: "",
@@ -115,7 +120,7 @@ export default function AdminCrmIntegrationEditor({
         | "PROPERTLY"
         | "LOCUMNET",
       isActive: currentIntegration?.isActive ?? true,
-      ftpHost: currentIntegration?.ftpHost ?? "",
+      ftpHost: currentIntegration?.ftpHost ?? DOMYSLNY_HOST_FTP,
       ftpPort: String(currentIntegration?.ftpPort ?? 21),
       ftpUsername: currentIntegration?.ftpUsername ?? "",
       ftpPassword: "",
@@ -546,7 +551,7 @@ export default function AdminCrmIntegrationEditor({
                       onChange={(e) =>
                         setForm((prev) => ({ ...prev, ftpHost: e.target.value }))
                       }
-                      placeholder="ftp.twojadomena.pl"
+                      placeholder={DOMYSLNY_HOST_FTP}
                       className="w-full rounded-2xl border border-fg/10 bg-fg/[0.04] px-4 py-3 text-fg outline-none transition focus:border-brand/50"
                     />
                   </label>

@@ -205,6 +205,28 @@ export default async function AdminCrmMonitoringPage({
     offerLinkCounts.map((row) => [row.integrationId, row._count._all]),
   );
 
+  // Rozroznienie, ktorego sam licznik ofert nie daje: "nigdy nic nie przyszlo" to inna rozmowa
+  // z biurem niz "kiedys dzialalo i zgaslo". Do tego ostatni slad ze zrodla (lastSeenAt), bo
+  // lastSuccessAt mowi tylko tyle, ze przebieg sie udal, nawet gdy nie przyniosl ani jednej oferty.
+  const [aktywneLinki, ostatnieSlady] = await Promise.all([
+    prisma.crmOfferLink.groupBy({
+      by: ["integrationId"],
+      where: { isActiveInSource: true },
+      _count: { _all: true },
+    }),
+    prisma.crmOfferLink.groupBy({
+      by: ["integrationId"],
+      _max: { lastSeenAt: true },
+    }),
+  ]);
+
+  const aktywneByIntegration = new Map(
+    aktywneLinki.map((row) => [row.integrationId, row._count._all]),
+  );
+  const sladByIntegration = new Map(
+    ostatnieSlady.map((row) => [row.integrationId, row._max.lastSeenAt]),
+  );
+
   const params = await searchParams;
   const sort = parseSort(params?.sort);
 
@@ -213,7 +235,13 @@ export default async function AdminCrmMonitoringPage({
   const rows = (integrations as IntegrationRow[])
     .map((it) => {
       const offerCount = offerCountByIntegration.get(it.id) ?? 0;
-      return { ...it, offerCount, health: computeHealth(it, now, offerCount) };
+      return {
+        ...it,
+        offerCount,
+        aktywneOferty: aktywneByIntegration.get(it.id) ?? 0,
+        ostatniSlad: sladByIntegration.get(it.id) ?? null,
+        health: computeHealth(it, now, offerCount),
+      };
     })
     .sort((a, b) => {
       if (sort === "nowe") return time(b.createdAt) - time(a.createdAt);
@@ -243,6 +271,32 @@ export default async function AdminCrmMonitoringPage({
     DISABLED: 0,
   };
   for (const row of rows) counts[row.health] += 1;
+
+  // Lista do odzyskania: wlaczone integracje, ktore nie dowoza ani jednej oferty. To biura
+  // przekonane, ze sa z nami podlaczone, podczas gdy na portalu nie ma ich ani jednej dzialki.
+  // Podzial na "nigdy nic" i "zgaslo" jest istotny, bo to dwie rozne rozmowy: pierwsza o tym,
+  // czy w ogole wlaczyli eksport u siebie, druga o tym, co sie zepsulo.
+  const doOdzyskania = rows
+    .filter((r) => r.isActive && r.aktywneOferty === 0)
+    .map((r) => ({
+      id: r.id,
+      userId: r.user.id,
+      kontakt: r.user.email || r.user.name || r.name,
+      provider: r.provider,
+      nigdyNic: r.offerCount === 0,
+      bylo: r.offerCount,
+      dniCzekania: Math.max(0, Math.floor((now - time(r.createdAt)) / 86400000)),
+      ostatniBlad: r.lastErrorMessage,
+    }))
+    .sort((a, b) => b.dniCzekania - a.dniCzekania);
+
+  // Ten sam objaw u wielu biur na jednym silniku to jedna diagnoza kanalu, a nie N telefonow.
+  const odzyskanieWgSilnika = [...
+    doOdzyskania.reduce((map, r) => {
+      map.set(r.provider, (map.get(r.provider) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>()),
+  ].sort((a, b) => b[1] - a[1]);
 
   const total = rows.length;
   const activeCount = total - counts.DISABLED;
@@ -382,6 +436,74 @@ export default async function AdminCrmMonitoringPage({
                   </div>
                 </div>
               ))}
+            </div>
+          </section>
+        ) : null}
+
+        {doOdzyskania.length > 0 ? (
+          <section className="mb-6 rounded-3xl border border-amber-400/25 bg-amber-400/[0.06] p-4 md:p-5">
+            <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-sm font-semibold text-fg">
+                Do odzyskania: {doOdzyskania.length}{" "}
+                {doOdzyskania.length === 1 ? "biuro" : "biur"} bez ani jednej oferty
+              </h2>
+              <div className="text-xs text-fg/60">
+                {odzyskanieWgSilnika
+                  .map(([prov, ile]) => `${providerLabel(prov)}: ${ile}`)
+                  .join(" · ")}
+              </div>
+            </div>
+
+            <p className="mb-4 max-w-3xl text-xs text-fg/60">
+              Włączone integracje, z których nie mamy ani jednej aktywnej działki. Kilka biur z tym
+              samym objawem na jednym silniku to jedna diagnoza kanału, a nie tyle telefonów, ile
+              wierszy.
+            </p>
+
+            <div className="overflow-auto rounded-2xl border border-fg/10 bg-surface">
+              <table className="w-full min-w-[720px] text-sm">
+                <thead className="text-left text-xs uppercase tracking-wide text-fg/50">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Biuro</th>
+                    <th className="px-4 py-3 font-semibold">CRM</th>
+                    <th className="px-4 py-3 font-semibold">Stan</th>
+                    <th className="px-4 py-3 font-semibold">Czeka</th>
+                    <th className="px-4 py-3 font-semibold">Ostatni błąd</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doOdzyskania.map((r) => (
+                    <tr key={r.id} className="border-t border-fg/10 align-top">
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/crm/${r.userId}`}
+                          className="font-semibold text-fg no-underline transition hover:text-brand"
+                        >
+                          {r.kontakt}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-fg/70">{providerLabel(r.provider)}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
+                            r.nigdyNic
+                              ? "bg-red-400/15 text-red-200"
+                              : "bg-amber-400/15 text-amber-100"
+                          }`}
+                        >
+                          {r.nigdyNic ? "nic nigdy nie weszło" : `zgasło (było ${r.bylo})`}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-fg/70">
+                        {r.dniCzekania} dni
+                      </td>
+                      <td className="px-4 py-3 text-xs text-fg/60">
+                        {r.ostatniBlad ? r.ostatniBlad.slice(0, 90) : "bez błędu, źródło milczy"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         ) : null}
