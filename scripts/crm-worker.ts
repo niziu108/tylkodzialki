@@ -8,6 +8,10 @@ const POLL_INTERVAL_MS = 60_000;
 
 // Zapis historii epizodów ofert biegnie PO imporcie i celowo poza jego transakcjami: to statystyka,
 // a nie podaż. Gdyby padła, import 126 biur ma się o tym nie dowiedzieć.
+//
+// Odpala się raz po opróżnieniu kolejki, a nie po każdym jobie. Rekoncyliator czyta za każdym razem
+// pełny stan ofert, a jobów w cyklu jest tyle, ile integracji: wołany po każdym z nich przeczytałby
+// te same kilkadziesiąt tysięcy rekordów ponad sto razy dziennie bez żadnego zysku.
 async function reconcileSpellsSafely() {
   try {
     const { reconcileListingSpells } = await import("../src/lib/listing-spells");
@@ -111,6 +115,9 @@ async function runLoop() {
   const SWEEP_MIN_AGE_MS = 12 * 60 * 60 * 1000;
   let lastSweepAt = Date.now();
 
+  // Ustawiane po każdym jobie, konsumowane dopiero gdy kolejka opustoszeje.
+  let historiaDoUzupelnienia = false;
+
   while (true) {
     try {
       if (Date.now() - lastSweepAt >= SWEEP_INTERVAL_MS) {
@@ -125,6 +132,11 @@ async function runLoop() {
       });
 
       if (!job) {
+        if (historiaDoUzupelnienia) {
+          historiaDoUzupelnienia = false;
+          await reconcileSpellsSafely();
+        }
+
         await new Promise((resolve) =>
           setTimeout(resolve, POLL_INTERVAL_MS)
         );
@@ -137,7 +149,7 @@ async function runLoop() {
 
       console.log("✅ Zakończono job:", job.id);
 
-      await reconcileSpellsSafely();
+      historiaDoUzupelnienia = true;
     } catch (error) {
       console.error("❌ Błąd workera CRM:", error);
 
