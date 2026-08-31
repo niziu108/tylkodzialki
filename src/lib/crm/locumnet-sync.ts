@@ -7,6 +7,7 @@ import * as ftp from "basic-ftp";
 import unzipper from "unzipper";
 import { XMLParser } from "fast-xml-parser";
 import {
+  DojazdStatus,
   GazStatus,
   KanalizacjaStatus,
   LocationMode,
@@ -16,6 +17,7 @@ import {
   WodaStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { mapDojazd } from "@/lib/dojazd";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
@@ -77,6 +79,7 @@ type LocumnetOffer = {
   woda: WodaStatus;
   kanalizacja: KanalizacjaStatus;
   gaz: GazStatus;
+  dojazd: DojazdStatus;
   mpzp: boolean;
   wzWydane: boolean;
   ksiegaWieczysta: string | null;
@@ -434,6 +437,15 @@ function parseLocumnetOffer(
   const gaz = mapGaz(rawOffer.medgaz);
   const kanalizacja = mapKanalizacja(rawOffer.medkan);
 
+  // LocumNet skraca nazwy pól (medele, medwod, medgaz, medkan), więc drogi szukamy pod kilkoma
+  // wariantami. Nieznane pole = BRAK_INFORMACJI, czyli oferta po prostu nie wejdzie do filtra.
+  const dojazd = mapDojazd(
+    toTextValue(rawOffer.droga) ||
+      toTextValue(rawOffer.dojazd) ||
+      toTextValue(rawOffer.dojazdow) ||
+      toTextValue(rawOffer.naw)
+  );
+
   const mpzp = boolFromCoded(rawOffer.planzags);
   const wzWydane = boolFromCoded(rawOffer.warun);
 
@@ -465,6 +477,7 @@ function parseLocumnetOffer(
     woda,
     kanalizacja,
     gaz,
+    dojazd,
     mpzp,
     wzWydane,
     ksiegaWieczysta,
@@ -930,6 +943,7 @@ function buildDzialkaDataFromOffer(offer: LocumnetOffer) {
     woda: offer.woda,
     kanalizacja: offer.kanalizacja,
     gaz: offer.gaz,
+    dojazd: offer.dojazd,
     mpzp: offer.mpzp,
     wzWydane: offer.wzWydane,
     ksiegaWieczysta: offer.ksiegaWieczysta,

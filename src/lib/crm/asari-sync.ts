@@ -5,6 +5,7 @@ import { promises as fsp } from "fs";
 import * as ftp from "basic-ftp";
 import { XMLParser } from "fast-xml-parser";
 import {
+  DojazdStatus,
   GazStatus,
   KanalizacjaStatus,
   LocationMode,
@@ -14,6 +15,7 @@ import {
   WodaStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { mapDojazd } from "@/lib/dojazd";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords, coordsMatchLocationText } from "@/lib/geo";
@@ -70,6 +72,7 @@ type AsariOffer = {
   woda: WodaStatus;
   kanalizacja: KanalizacjaStatus;
   gaz: GazStatus;
+  dojazd: DojazdStatus;
   wymiary: string | null;
   payload: Prisma.InputJsonValue;
 };
@@ -644,6 +647,20 @@ function parseAsariOffer(
   const kanalizacja = mapKanalizacja(mediaText);
   const gaz = mapGaz(mediaText);
 
+  // Dojazd: ASARI adresuje pola po nazwie z definictions.xml, więc szukamy pola o drodze bez
+  // znajomości jego ID. Gdy biuro takiego pola nie wysyła, wychodzi BRAK_INFORMACJI i nic się nie
+  // psuje. Wartości nieopisujące nawierzchni („tak", odległość w metrach) też dają BRAK_INFORMACJI,
+  // bo filtr jest twardy i nie zgaduje.
+  const dojazd = mapDojazd(
+    [
+      getTextByName(params, definitions, ["droga"], []),
+      getTextByName(params, definitions, ["dojazd"], []),
+      getTextByName(params, definitions, ["nawierzchnia"], []),
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+
   return {
     externalId,
     externalUpdatedAt:
@@ -673,6 +690,7 @@ function parseAsariOffer(
     woda,
     kanalizacja,
     gaz,
+    dojazd,
     wymiary: buildWymiary(width, length),
     payload: toInputJsonValue({
       externalId,
@@ -1165,6 +1183,7 @@ function buildDzialkaDataFromOffer(offer: AsariOffer) {
     woda: offer.woda,
     kanalizacja: offer.kanalizacja,
     gaz: offer.gaz,
+    dojazd: offer.dojazd,
     wymiary: offer.wymiary,
     sourceType: "CRM" as const,
     crmImportedAt: new Date(),

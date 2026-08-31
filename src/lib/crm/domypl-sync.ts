@@ -13,6 +13,7 @@ import {
   GazStatus,
   KanalizacjaStatus,
   LocationMode,
+  DojazdStatus,
   PradStatus,
   Prisma,
   Przeznaczenie,
@@ -21,6 +22,7 @@ import {
 } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
+import { mapDojazd } from "@/lib/dojazd";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
@@ -74,6 +76,7 @@ type ParsedDomyOffer = {
   woda: WodaStatus;
   kanalizacja: KanalizacjaStatus;
   gaz: GazStatus;
+  dojazd: DojazdStatus;
   wymiary: string | null;
   payload: Prisma.InputJsonValue;
 };
@@ -1076,6 +1079,9 @@ function parseOfferFragment(
     const woda = mapWodaFromParams(params);
     const kanalizacja = mapKanalizacjaFromParams(params);
     const gaz = mapGazFromParams(params);
+    // Dojazd: feed DOMY.PL ma to w `drogadojazdowa` i wypełnia je ~98% ofert, ale wartości są
+    // niespójne („asfalt", „ASFALTOWA", „kostka", „cicha ulica"). Normalizacja w src/lib/dojazd.ts.
+    const dojazd = mapDojazd(toTextValue(params.drogadojazdowa));
     const wymiary = buildWymiary(params);
 
     console.log("[CRM DEBUG] Zaakceptowano ofertę:", externalId, {
@@ -1111,6 +1117,7 @@ function parseOfferFragment(
       woda,
       kanalizacja,
       gaz,
+      dojazd,
       wymiary,
       payload: toInputJsonValue({
         externalId,
@@ -1122,6 +1129,7 @@ function parseOfferFragment(
           woda,
           kanalizacja,
           gaz,
+          dojazd,
           wymiary,
         },
       }),
@@ -1420,6 +1428,7 @@ function buildDzialkaDataFromOffer(offer: ParsedDomyOffer) {
     woda: offer.woda,
     kanalizacja: offer.kanalizacja,
     gaz: offer.gaz,
+    dojazd: offer.dojazd,
     wymiary: offer.wymiary,
     sourceType: "CRM" as const,
     crmImportedAt: new Date(),

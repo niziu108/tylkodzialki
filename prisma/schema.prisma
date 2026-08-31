@@ -155,6 +155,7 @@ model Dzialka {
   kanalizacja        KanalizacjaStatus @default(BRAK)
   gaz                GazStatus         @default(BRAK)
   swiatlowod         SwiatlowodStatus  @default(BRAK)
+  dojazd             DojazdStatus      @default(BRAK_INFORMACJI)
   prad               PradStatus        @default(BRAK_PRZYLACZA)
   woda               WodaStatus        @default(BRAK_PRZYLACZA)
   opis               String?
@@ -841,6 +842,17 @@ enum GazStatus {
   GAZ_NA_DZIALCE
   GAZ_W_DRODZE
   MOZLIWOSC_PODLACZENIA
+}
+
+// Dojazd do działki. Normalizacja surowych wartości z feedów siedzi w src/lib/dojazd.ts.
+// BRAK_INFORMACJI jest domyślne i celowo osobne od BRAK_DOJAZDU: „nie wiemy" to nie to samo
+// co „nie da się dojechać", a filtr twardy nie może traktować jednego jak drugiego.
+enum DojazdStatus {
+  ASFALT
+  UTWARDZONA
+  GRUNTOWA
+  BRAK_DOJAZDU
+  BRAK_INFORMACJI
 }
 
 enum SwiatlowodStatus {

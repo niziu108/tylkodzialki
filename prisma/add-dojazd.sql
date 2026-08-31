@@ -1,0 +1,7 @@
+-- CreateEnum
+CREATE TYPE "DojazdStatus" AS ENUM ('ASFALT', 'UTWARDZONA', 'GRUNTOWA', 'BRAK_DOJAZDU', 'BRAK_INFORMACJI');
+
+-- AlterTable
+ALTER TABLE "Dzialka" ADD COLUMN     "dojazd" "DojazdStatus" NOT NULL DEFAULT 'BRAK_INFORMACJI';
+
+
