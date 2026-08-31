@@ -417,6 +417,8 @@ async function fetchDzialki(params: URLSearchParams): Promise<ApiResponse> {
   return (await res.json()) as ApiResponse;
 }
 
+type PlaceHint = { label: string; lat: number; lng: number; count: number };
+
 function makeParams(filters: AppliedFilters, page: number) {
   const sp = new URLSearchParams();
 
@@ -724,6 +726,8 @@ export default function KupSearch({
 
   // Podpowiedź „w szerszym promieniu coś jest" — liczona dopiero, gdy wynik wyjdzie pusty.
   const [wider, setWider] = useState<{ radiusKm: RadiusKm; total: number } | null>(null);
+  // „Czy chodziło o…" — nazwy miejscowości z naszej podaży, najbliższe literowo temu, co wpisał user.
+  const [suggestions, setSuggestions] = useState<PlaceHint[]>([]);
   // Dopóki false, sprawdzanie trwa (albo zaraz ruszy) — bez tego przy pustym wyniku mignęłaby
   // na chwilę propozycja „Szukaj w całej Polsce", zanim policzymy szerszy promień.
   const [widerChecked, setWiderChecked] = useState(false);
@@ -1152,6 +1156,39 @@ export default function KupSearch({
     };
   }, [loading, err, count, applied]);
 
+  /* Literówka w nazwie („Radmosko") daje dziś zero wyników i koniec — Google podpowiada tylko
+     temu, kto KLIKNIE podpowiedź, a wpisany z palca tekst z przestawioną literą nie geokoduje
+     się na nic. Przy pustej liście pytamy więc własną bazę o najbliższą nazwę, w której
+     naprawdę mamy oferty. Zapytanie leci wyłącznie przy zerowym wyniku. */
+  useEffect(() => {
+    const query = applied.locText.trim();
+
+    if (loading || err || count > 0 || !query) {
+      setSuggestions([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/dzialki/podpowiedzi?q=${encodeURIComponent(query)}`, {
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+
+        const data = (await res.json()) as { items?: PlaceHint[] };
+        if (!cancelled) setSuggestions(Array.isArray(data.items) ? data.items.slice(0, 3) : []);
+      } catch {
+        // Podpowiedź to dodatek — cisza zamiast błędu na liście.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, err, count, applied]);
+
   async function applyAndSearch(asMap = false) {
     // Fallback: browser autocomplete may fill the DOM input without triggering React onChange
     const effectiveLocText = locText.trim() || (inputRef.current?.value?.trim() ?? '');
@@ -1224,6 +1261,24 @@ export default function KupSearch({
 
     setRadiusKm(km);
     const next: AppliedFilters = { ...applied, radiusKm: km };
+    setApplied(next);
+    fetchDataWith(next, 1);
+  }
+
+  /* Klik w „Czy chodziło o: Radomsko" — wchodzimy w tę miejscowość ze współrzędnymi jej
+     własnej podaży, więc wynik nie zależy już od tego, czy Google rozpozna literówkę. */
+  function applySuggestion(hint: PlaceHint) {
+    setLocText(hint.label);
+    setCenter({ lat: hint.lat, lng: hint.lng });
+    setLocError(null);
+
+    const next: AppliedFilters = {
+      ...applied,
+      locText: hint.label,
+      center: { lat: hint.lat, lng: hint.lng },
+      bbox: null,
+    };
+
     setApplied(next);
     fetchDataWith(next, 1);
   }
@@ -1609,36 +1664,7 @@ export default function KupSearch({
     : applied.locText.trim() || 'Cała Polska';
   const countLabel = loading && items.length === 0 ? 'Ładowanie ofert…' : `${count} ${ofertaLabel(count)}`;
 
-  /* Wiersz pod liczbą ofert: CO i W JAKIM PROMIENIU widać. Zasięg siedział dotąd wyłącznie
-     w rozwijanych Filtrach, więc lista czytała się jak „wszystko, co mamy w tej miejscowości",
-     a to były oferty w 20 km wokół punktu. Progi są klikalne wprost tutaj: kupujący działkę
-     myśli „a co jest kawałek dalej", i nie powinien tego szukać w panelu filtrów. */
   const scopeLoc = applied.locText.trim();
-  const searchScope = applied.bbox ? (
-    <div className="mt-1 text-[13px] text-fg/60">Zaznaczony obszar na mapie</div>
-  ) : applied.center ? (
-    <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] text-fg/60">
-      {scopeLoc ? <span className="text-fg/75">{scopeLoc}</span> : null}
-      <span>w promieniu</span>
-      {KM_OPTIONS.map((km) => (
-        <button
-          key={km}
-          type="button"
-          onClick={() => applyRadiusKm(km)}
-          aria-current={km === applied.radiusKm ? 'true' : undefined}
-          className={
-            km === applied.radiusKm
-              ? 'border-b border-fg/55 pb-px font-medium text-fg'
-              : 'border-b border-transparent pb-px text-fg/50 transition hover:border-fg/25 hover:text-fg/80'
-          }
-        >
-          {km} km
-        </button>
-      ))}
-    </div>
-  ) : scopeLoc ? (
-    <div className="mt-1 text-[13px] text-fg/60">{scopeLoc} · dopasowanie po nazwie</div>
-  ) : null;
 
   // Czy wynik zawężają filtry poza lokalizacją — przy pustej liście warto o tym powiedzieć.
   const hasNarrowingFilters =
@@ -1761,11 +1787,8 @@ export default function KupSearch({
       <section className="mx-auto max-w-6xl px-3 md:px-4">
         {/* „Sortuj:" zdjęte — w to miejsce liczba ofert (po lewej), a sam wybór sortowania
             po prawej. Krócej i użyteczniej niż zbędna etykieta. */}
-        <div ref={sortRef} className="relative mb-5 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <span className="text-[15px] font-medium tracking-[0.01em] text-fg">{countLabel}</span>
-            {searchScope}
-          </div>
+        <div ref={sortRef} className="relative mb-5 flex items-center justify-between gap-3">
+          <span className="text-[15px] font-medium tracking-[0.01em] text-fg">{countLabel}</span>
           <div className="relative">
           <button
             type="button"
@@ -1820,6 +1843,23 @@ export default function KupSearch({
              następny ruch. Najczęściej to po prostu szerszy promień, który sprawdzamy w tle. */
           <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6">
             <div className="text-[15px] text-fg/85">{emptyTitle}</div>
+
+            {suggestions.length > 0 ? (
+              <div className="mt-3 text-[14px] text-fg/70">
+                Czy chodziło o:{' '}
+                {suggestions.map((hint, i) => (
+                  <span key={`${hint.label}-${hint.lat}`}>
+                    {i > 0 ? ', ' : ''}
+                    {/* Bez liczby ofert przy nazwie: podpowiedź prowadzi do wyszukania z
+                        promieniem, więc wynik i tak wyjdzie inny niż liczba samych ofert
+                        podpisanych tą miejscowością. Podaż rozstrzyga tylko kolejność. */}
+                    <button type="button" className={linkClass} onClick={() => applySuggestion(hint)}>
+                      {hint.label}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
 
             <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-[14px]">
               {wider ? (
