@@ -33,7 +33,7 @@ droga dojazdowa, uzbrojenie (sprawdzanie + koszt), podział działki (koszt), in
 - [ ] Akt notarialny zakupu działki: co musi zawierać
 
 ## Kupno działki
-- [ ] Jak kupić działkę krok po kroku (pełny przewodnik)
+- [x] Jak kupić działkę krok po kroku (pełny przewodnik) (slug: jak-kupic-dzialke-krok-po-kroku)
 - [x] Podatek PCC przy zakupie działki: ile i kiedy (slug: podatek-pcc-przy-zakupie-dzialki)
 - [x] Koszty notarialne przy zakupie działki (slug: koszty-notarialne-przy-zakupie-dzialki)
 - [x] Umowa przedwstępna na zakup działki: co zawrzeć (slug: umowa-przedwstepna-na-zakup-dzialki)
