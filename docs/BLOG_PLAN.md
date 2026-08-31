@@ -84,7 +84,7 @@ droga dojazdowa, uzbrojenie (sprawdzanie + koszt), podział działki (koszt), in
 - [x] Działka rolna do 0,3 ha: zasady zabudowy (slug: dzialka-rolna-do-0-3-ha-zasady-zabudowy)
 - [ ] Klasa bonitacyjna a odrolnienie
 - [x] Co można wybudować na działce rolnej bez odrolnienia (slug: co-wybudowac-na-dzialce-rolnej-bez-odrolnienia)
-- [ ] Sprzedaż działki rolnej: prawo pierwokupu KOWR
+- [x] Sprzedaż działki rolnej: prawo pierwokupu KOWR (slug: sprzedaz-dzialki-rolnej-prawo-pierwokupu-kowr)
 - [x] Podatek rolny i ulga rolna: ile zapłacisz (slug: podatek-rolny-i-ulga-rolna)
 - [ ] Działka rolna pod fotowoltaikę: czy się opłaca
 - [x] Łąka, pastwisko, grunt orny: co oznaczają oznaczenia (slug: oznaczenia-uzytkow-laka-pastwisko-grunt-orny)
