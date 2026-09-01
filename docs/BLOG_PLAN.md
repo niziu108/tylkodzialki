@@ -99,7 +99,7 @@ droga dojazdowa, uzbrojenie (sprawdzanie + koszt), podział działki (koszt), in
 - [x] Jak zrobić dobre zdjęcia działki do ogłoszenia (slug: jak-zrobic-dobre-zdjecia-dzialki)
 - [x] Jak napisać skuteczne ogłoszenie działki (slug: jak-napisac-skuteczne-ogloszenie-dzialki)
 - [x] Sprzedaż przez biuro a samodzielnie (slug: sprzedaz-dzialki-przez-biuro-a-samodzielnie)
-- [ ] Sprzedaż udziału w działce
+- [x] Sprzedaż udziału w działce (slug: sprzedaz-udzialu-w-dzialce)
 - [ ] Sprzedaż działki z domem w budowie
 - [ ] Jak podzielić działkę przed sprzedażą, żeby zarobić więcej
 - [ ] Najczęstsze błędy przy sprzedaży działki
