@@ -10,7 +10,8 @@ droga dojazdowa, uzbrojenie (sprawdzanie + koszt), podział działki (koszt), in
 ---
 
 ## Aktualności / news (poza backlogiem poradnikowym)
-- [x] RE/MAX Polska dołącza do grona biur na tylkodzialki.pl (slug: remax-polska-na-tylkodzialki) [news; kategoria robocza: Kupno działki]
+Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona okładki = megafon).
+- [x] RE/MAX Polska dołącza do grona biur na tylkodzialki.pl (slug: remax-polska-na-tylkodzialki) [kategoria: Aktualności]
 
 ## Formalności i prawo
 - [x] Odrolnienie działki: kiedy jest potrzebne i jak je przeprowadzić (slug: odrolnienie-dzialki-kiedy-i-jak)
