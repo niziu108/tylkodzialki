@@ -14,6 +14,7 @@ export const ARTICLE_CATEGORIES: ArticleCategory[] = [
   { slug: "budowa", label: "Budowa" },
   { slug: "dzialka-rolna", label: "Działka rolna" },
   { slug: "inwestowanie", label: "Inwestowanie" },
+  { slug: "aktualnosci", label: "Aktualności" },
 ];
 
 export function getCategoryLabel(slug?: string | null): string | null {

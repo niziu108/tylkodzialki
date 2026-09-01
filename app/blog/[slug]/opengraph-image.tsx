@@ -88,6 +88,13 @@ function renderCategoryIcon(slug: string | null | undefined) {
           <path d="M17 7h4v4" />
         </svg>
       );
+    case "aktualnosci":
+      return (
+        <svg {...p}>
+          <path d="M3 10v4h3l8 5V5L6 10H3z" />
+          <path d="M18 9a4 4 0 0 1 0 6" />
+        </svg>
+      );
     default:
       return (
         <svg {...p}>
