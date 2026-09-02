@@ -27,6 +27,7 @@
     "spells": "tsx scripts/spells-reconcile.ts",
     "dojazd:backfill": "tsx scripts/dojazd-backfill.ts",
     "admin:backfill": "tsx scripts/admin-backfill.ts",
+    "rcn:backfill": "tsx scripts/rcn-backfill.ts",
     "crm:nowe": "tsx scripts/crm-ftp-nowe-biura.ts"
   },
   "dependencies": {

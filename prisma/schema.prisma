@@ -152,6 +152,9 @@ model Dzialka {
   adminGmina     String?
   adminAt        DateTime?
 
+  // Kiedy ostatnio odpytalismy RCN o transakcje w okolicy tej oferty (patrz model RcnTransakcja).
+  rcnScanAt      DateTime?
+
   sprzedajacyImie String?
   biuroNazwa      String?
   biuroOpiekun    String?
@@ -212,6 +215,7 @@ model Dzialka {
   // Oś administracyjna (huby powiatowe + agregaty cen per gmina).
   @@index([adminTeryt])
   @@index([status, adminTeryt])
+  @@index([rcnScanAt])
 }
 
 // Perełka „zużyta" — poszła już na posta na FB/Insta i ma nie wracać na listę w /admin/perelki.
@@ -951,4 +955,55 @@ enum SpellEndReason {
   WYGASZONA_PROGIEM
   RECZNIE
   WYGASLA
+}
+
+
+/// Transakcja z Rejestru Cen Nieruchomosci (RCN, GUGiK) - cena FAKTYCZNIE ZAPLACONA.
+///
+/// Zrodlo: WMS `mapy.geoportal.gov.pl/wss/service/rcn`, warstwa `dzialki`, GetFeatureInfo
+/// w `text/xml` (GML tego samego punktu NIE zawiera ceny). Zbieramy tylko okolice naszych
+/// ofert, nie cala Polske - przy limicie skali 1:5001 skan kraju bylby niewykonalny.
+///
+/// UWAGA NA DANE (zmierzone 2026-09-02 na probce z 6 wojewodztw):
+///  - jednostka powierzchni jest NIESPOJNA miedzy powiatami: wiekszosc podaje hektary
+///    („0.1713"), ale np. powiat 2464 podaje metry („15013"). Normalizujemy heurystyka
+///    przy zapisie i trzymamy tu juz czyste m².
+///  - `TRAN_CENA_BRUTTO` dotyczy calej NIERUCHOMOSCI w transakcji, wiec zl/m² liczymy
+///    przez `NIER_POW_GRUNTU`, a nie przez powierzchnie pojedynczej dzialki.
+///  - w rejestrze sa transakcje sprzed kilkunastu lat; filtrowanie po dacie robimy przy odczycie.
+///
+/// Uslugа jest wg GUGiK „rozwiazaniem tymczasowym", dlatego trzymamy kopie u siebie.
+model RcnTransakcja {
+  id       String @id @default(cuid())
+
+  // Klucz naturalny z rejestru: identyfikator transakcji + identyfikator dzialki.
+  lokalnyIdIip String
+  idDzialki    String
+
+  teryt          String    // kod powiatu z rejestru, np. „1016"
+  dataTransakcji DateTime
+  cenaBruttoPln  Int       // cena calej nieruchomosci w transakcji
+  powierzchniaM2 Int       // znormalizowana (patrz uwaga wyzej)
+  cenaZaM2       Float     // cenaBruttoPln / powierzchniaM2, liczone przy zapisie
+
+  rodzajTransakcji    String  // np. wolnyRynek, sprzedazZBonifikata
+  rodzajNieruchomosci String  // np. nieruchomoscGruntowaNiezabudowana
+  udzial              String  // np. „1/1"; ulamki psuja zl/m², wiec filtrujemy
+  sprzedajacy         String?
+  kupujacy            String?
+  przeznaczenieMpzp   String?
+  sposobUzytkowania   String?
+  nrDzialki           String?
+
+  // Punkt zapytania (srodek symbolu na mapie WMS), nie geometria dzialki. Dokladnosc rzedu metrow.
+  lat Float
+  lng Float
+
+  pobranoAt DateTime @default(now())
+
+  @@unique([lokalnyIdIip, idDzialki])
+  @@index([teryt])
+  @@index([lat, lng])
+  @@index([dataTransakcji])
+  @@index([teryt, rodzajNieruchomosci, dataTransakcji])
 }
