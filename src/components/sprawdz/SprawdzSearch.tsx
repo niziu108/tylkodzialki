@@ -51,7 +51,15 @@ async function geocodeAddress(text: string): Promise<Point | null> {
   return null;
 }
 
-export default function SprawdzSearch() {
+// `demo` = zamrożony raport prawdziwej działki, pokazywany dopóki user nie sprawdzi swojej.
+// Stoi dokładnie tam, gdzie za chwilę stanie jego własny wynik, więc od razu widać, co się dostaje.
+export default function SprawdzSearch({
+  demo,
+  demoZebrano,
+}: {
+  demo?: RaportData;
+  demoZebrano?: string;
+}) {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const addrRef = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -271,8 +279,9 @@ export default function SprawdzSearch() {
 
   return (
     <div className="w-full">
-      {/* HERO gradient spójny ze stroną główną (bez zdjęcia => szybki LCP). */}
-      <section className="relative w-full overflow-hidden">
+      {/* HERO gradient spójny ze stroną główną (bez zdjęcia => szybki LCP).
+          `id` jest celem kotwicy „Sprawdź swoją działkę" z sekcji pod spodem. */}
+      <section id="narzedzie" className="relative w-full scroll-mt-20 overflow-hidden">
         <HeroGradientBg />
 
         <div className="relative z-10 flex flex-col items-center px-4 py-10 md:py-14">
@@ -404,11 +413,50 @@ export default function SprawdzSearch() {
         </div>
       </div>
 
-      {/* WYNIK — pod hero, na jasnym tle, od lewej */}
+      {/* WYNIK — pod hero, na jasnym tle, od lewej. Zanim user sprawdzi swoją działkę, stoi tu
+          przykładowy raport: to samo miejsce, ten sam układ, więc widać wprost, co się dostaje.
+          Znika, gdy tylko ruszy sprawdzanie (loading), żeby nikt nie wziął cudzych danych za swoje. */}
       <div ref={reportRef} className="mx-auto max-w-6xl scroll-mt-24 px-6 md:px-10">
         {result ? (
           <div className="mt-14">
             <Raport data={result} />
+          </div>
+        ) : demo && !loading ? (
+          <div className="mt-14">
+            {/* Ostrzeżenie musi być nie do przeoczenia: to cudza działka, nie Twoja. */}
+            <div className="rounded-2xl border border-brand/35 bg-brand/10 px-5 py-4 md:px-7 md:py-5">
+              <div className="text-[12px] font-medium uppercase tracking-[0.2em] text-brand-text">
+                Przykład
+              </div>
+              <p className="mt-2 text-[15px] leading-7 text-fg/80">
+                <span className="font-medium text-fg">To nie jest Twoja działka.</span> Tak wygląda
+                gotowy raport dla prawdziwej działki w miejscowości{' '}
+                {demo.parcel.commune ?? 'w Polsce'}. Wpisz swój adres na górze, a w tym samym
+                miejscu pojawi się raport Twojej działki.
+              </p>
+              {demoZebrano ? (
+                <p className="mt-2 text-[13px] leading-6 text-fg/50">
+                  Dane z ewidencji i planu pobrane {demoZebrano}. Ceny i oferty poniżej są
+                  aktualne, liczone przy każdym otwarciu strony.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="mt-10">
+              <Raport data={demo} przyklad />
+            </div>
+
+            <div className="mt-12 border-t border-fg/12 pt-8">
+              <a
+                href="#narzedzie"
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-7 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright"
+              >
+                Sprawdź swoją działkę
+              </a>
+              <p className="mt-3 text-sm text-fg/60">
+                Taki sam raport dla dowolnej działki w Polsce. Za darmo i bez konta.
+              </p>
+            </div>
           </div>
         ) : null}
       </div>

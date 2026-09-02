@@ -82,7 +82,10 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
   );
 }
 
-export default function Raport({ data }: { data: RaportData }) {
+// `przyklad` = raport pokazywany jako demo pod narzędziem. Ten sam układ i te same dane, ale
+// nie wolno mu udawać wyniku użytkownika: nagłówek mówi „Przykładowa działka", a kopiowanie
+// linku znika (nikt nie potrzebuje wysyłać komuś linku do cudzej działki).
+export default function Raport({ data, przyklad = false }: { data: RaportData; przyklad?: boolean }) {
   const { parcel, valuation, mpzp, pog, trend, nearby } = data;
   // Wybór puli i decyzja „mediana czy widełki" siedzą w lib/raportCena.ts, żeby dało się je
   // testować bez renderowania komponentu.
@@ -118,7 +121,7 @@ export default function Raport({ data }: { data: RaportData }) {
       {/* NAGŁÓWEK + przycisk mapy */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Eyebrow>Twoja działka</Eyebrow>
+          <Eyebrow>{przyklad ? 'Przykładowa działka' : 'Twoja działka'}</Eyebrow>
           <h3 className="mt-2 text-[26px] font-semibold tracking-tight text-fg md:text-[38px]">
             {areaLabel(parcel.areaM2)}
           </h3>
@@ -128,13 +131,15 @@ export default function Raport({ data }: { data: RaportData }) {
         </div>
 
         <div className="no-print flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={kopiujLink}
-            className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg"
-          >
-            {linkSkopiowany ? 'Skopiowano' : 'Skopiuj link'}
-          </button>
+          {przyklad ? null : (
+            <button
+              type="button"
+              onClick={kopiujLink}
+              className="inline-flex items-center gap-2 rounded-xl border border-fg/20 px-4 py-2.5 text-sm font-medium text-fg/80 transition hover:border-brand/50 hover:text-fg"
+            >
+              {linkSkopiowany ? 'Skopiowano' : 'Skopiuj link'}
+            </button>
+          )}
 
           <button
             type="button"
