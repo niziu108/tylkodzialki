@@ -46,15 +46,6 @@ const FEATURES = [
   },
 ];
 
-/**
- * Liczby w hero stoją obok siebie, więc muszą być grupowane tak samo. `formatIntPL`
- * idzie za regułą pl-PL i czterocyfrowych nie rozdziela ("7245" obok "27 000"),
- * a tutaj chcemy jeden rytm: spacja nierozdzielająca co trzy cyfry.
- */
-function liczbaZeSpacja(n: number): string {
-  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
-}
-
 const LEAD_POINTS = [
   {
     title: 'Telefon do agenta',
@@ -89,9 +80,8 @@ const STEPS = [
 ];
 
 export default async function DlaBiurPage() {
-  const [agencyCount, aktywneOferty, topOwnerzy] = await Promise.all([
+  const [agencyCount, topOwnerzy] = await Promise.all([
     prisma.user.count({ where: { defaultBiuroLogoUrl: { not: null } } }),
-    prisma.dzialka.count({ where: { status: 'AKTYWNE' } }),
     prisma.dzialka.groupBy({
       by: ['ownerId'],
       where: { status: 'AKTYWNE', ownerId: { not: null } },
@@ -168,43 +158,6 @@ export default async function DlaBiurPage() {
                 Jak to działa
               </Link>
             </div>
-
-            {/* Twarde fakty zamiast obietnic: co biuro dostaje i na jakich warunkach.
-                Siatka, a nie ciąg w linii, żeby na wąskim ekranie nie robiła się drabinka. */}
-            <dl className="mt-9 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-fg/10 pt-6 sm:grid-cols-3">
-              {/* flex-col-reverse: liczba wizualnie na górze, a w kodzie zostaje
-                  poprawna kolejność dt→dd. Dzięki temu łamiąca się etykieta nie
-                  zbija liczb z jednej linii. */}
-              <div className="flex flex-col-reverse gap-1.5 self-start">
-                <dt className="text-[11px] uppercase tracking-[0.14em] text-fg/50">
-                  Działek w bazie
-                </dt>
-                <dd className="text-[20px] font-semibold tracking-tight text-fg">
-                  {liczbaZeSpacja(aktywneOferty)}
-                </dd>
-              </div>
-
-              {/* Świadomie BEZ liczby wyświetleń: przy 7 tys. ofert każdy podzieli ją
-                  przez podaż i wyjdzie mu kilka wyświetleń na ogłoszenie. Zamiast tego
-                  fakt, który realnie odróżnia nas od ręcznego wystawiania. */}
-              <div className="flex flex-col-reverse gap-1.5 self-start">
-                <dt className="text-[11px] uppercase tracking-[0.14em] text-fg/50">
-                  Synchronizacja ofert
-                </dt>
-                <dd className="text-[20px] font-semibold tracking-tight text-fg">
-                  co 2 h
-                </dd>
-              </div>
-
-              <div className="flex flex-col-reverse gap-1.5 self-start">
-                <dt className="text-[11px] uppercase tracking-[0.14em] text-fg/50">
-                  Koszt publikacji
-                </dt>
-                <dd className="text-[20px] font-semibold tracking-tight text-fg">
-                  0 zł
-                </dd>
-              </div>
-            </dl>
           </div>
         </div>
       </section>
