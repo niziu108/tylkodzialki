@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import AgencyCounter from '@/components/AgencyCounter';
 import DlaBiurForm from '@/components/DlaBiurForm';
 import ScrollFill from '@/components/ScrollFill';
+import { OfficeLogo } from '@/components/OfficeLogo';
 
 export const revalidate = 300;
 
@@ -18,6 +19,9 @@ export const metadata: Metadata = {
       'Integracja z każdym CRM, automatyczny import i synchronizacja ofert działek. Portal wyłącznie o działkach.',
     url: '/dla-biur',
     type: 'website',
+    // Metadane strony nadpisują cały blok openGraph z layoutu, więc bez tej linii
+    // link do /dla-biur wklejony na Facebooku czy w mailu szedł bez grafiki.
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'tylkodzialki.pl' }],
   },
 };
 
@@ -42,11 +46,35 @@ const FEATURES = [
   },
 ];
 
+/**
+ * Liczby w hero stoją obok siebie, więc muszą być grupowane tak samo. `formatIntPL`
+ * idzie za regułą pl-PL i czterocyfrowych nie rozdziela ("7245" obok "27 000"),
+ * a tutaj chcemy jeden rytm: spacja nierozdzielająca co trzy cyfry.
+ */
+function liczbaZeSpacja(n: number): string {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+}
+
+const LEAD_POINTS = [
+  {
+    title: 'Telefon do agenta',
+    body: 'Przycisk „Zadzwoń" i SMS z gotową treścią prowadzą wprost na numer opiekuna oferty.',
+  },
+  {
+    title: 'Bez pośrednika w kontakcie',
+    body: 'Nie mamy skrzynki na zapytania i nie odsprzedajemy leadów. Rozmowa jest Twoja.',
+  },
+  {
+    title: 'Twoja marka przy ofercie',
+    body: 'Logo i nazwa biura widoczne na liście, na mapie i na stronie każdej działki.',
+  },
+];
+
 const STEPS = [
   {
     n: '01',
     title: 'Zgłoś się do nas',
-    body: 'Wypełnij formularz poniżej. Dopytamy o Twój system CRM i liczbę ofert działek.',
+    body: 'Wypełnij formularz poniżej. Odpowiadamy tego samego dnia roboczego, osobiście, nie automatem.',
   },
   {
     n: '02',
@@ -60,10 +88,68 @@ const STEPS = [
   },
 ];
 
+/**
+ * Miesięczne wyświetlenia ofert (lista + mapa), liczone z liczników biur.
+ *
+ * BiuroDailyStat trzyma stan NARASTAJĄCO, więc ruch dnia to różnica względem dnia
+ * poprzedniego. Bierzemy medianę z 7 ostatnich pełnych dni i mnożymy przez 30:
+ * mediana zamiast średniej, bo pojedynczy nieudany przebieg crona robi sztuczny skok.
+ * Świadomie krótkie okno, bo liczniki sprzed 24.08.2026 zawierały jeszcze roboty.
+ */
+async function miesieczneWyswietlenia(): Promise<number | null> {
+  const dni = await prisma.$queryRaw<{ delta: number | null }[]>`
+    WITH d AS (
+      SELECT date, sum("viewsCount")::int AS v
+      FROM "BiuroDailyStat"
+      WHERE date > current_date - 10
+      GROUP BY date
+    )
+    SELECT (v - lag(v) OVER (ORDER BY date))::int AS delta FROM d ORDER BY date`;
+
+  const delty = dni
+    .map((d) => d.delta)
+    .filter((d): d is number => typeof d === 'number' && d > 0)
+    .sort((a, b) => a - b);
+
+  if (delty.length < 4) return null;
+
+  const mediana = delty[Math.floor(delty.length / 2)];
+  // W dół do pełnego tysiąca: na stronie ma stać liczba, której zawsze da się bronić.
+  return Math.floor((mediana * 30) / 1000) * 1000;
+}
+
 export default async function DlaBiurPage() {
-  const agencyCount = await prisma.user.count({
-    where: { defaultBiuroLogoUrl: { not: null } },
-  });
+  const [agencyCount, aktywneOferty, wyswietleniaMies, topOwnerzy] = await Promise.all([
+    prisma.user.count({ where: { defaultBiuroLogoUrl: { not: null } } }),
+    prisma.dzialka.count({ where: { status: 'AKTYWNE' } }),
+    miesieczneWyswietlenia(),
+    prisma.dzialka.groupBy({
+      by: ['ownerId'],
+      where: { status: 'AKTYWNE', ownerId: { not: null } },
+      _count: { _all: true },
+      orderBy: { _count: { ownerId: 'desc' } },
+      take: 40,
+    }),
+  ]);
+
+  // Pas logotypów: biura z największą liczbą ofert, bo to one najlepiej świadczą o portalu.
+  const kolejnosc = topOwnerzy.map((g) => g.ownerId).filter((id): id is string => !!id);
+  const biuraZLogo = kolejnosc.length
+    ? await prisma.user.findMany({
+        where: { id: { in: kolejnosc }, defaultBiuroLogoUrl: { not: null } },
+        select: {
+          id: true,
+          defaultBiuroNazwa: true,
+          defaultBiuroLogoUrl: true,
+          defaultBiuroLogoBg: true,
+        },
+      })
+    : [];
+
+  const logotypy = kolejnosc
+    .map((id) => biuraZLogo.find((b) => b.id === id))
+    .filter((b): b is (typeof biuraZLogo)[number] => !!b?.defaultBiuroLogoUrl)
+    .slice(0, 18);
 
   return (
     <main
@@ -84,7 +170,11 @@ export default async function DlaBiurPage() {
           ) : null}
 
           <div className={agencyCount > 0 ? '' : 'lg:col-span-2'}>
-            <h1 className="text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[40px] lg:text-[44px]">
+            <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand/12 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text md:text-[12px]">
+              Publikacja bezpłatna, bez wyłączności
+            </span>
+
+            <h1 className="mt-5 text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[40px] lg:text-[44px]">
               Wystawiaj oferty działek automatycznie przez integrację z CRM.
             </h1>
 
@@ -109,9 +199,79 @@ export default async function DlaBiurPage() {
                 Jak to działa
               </Link>
             </div>
+
+            {/* Twarde liczby zamiast obietnic: co biuro dostaje i jaki ruch tu jest.
+                Siatka, a nie ciąg w linii, żeby na wąskim ekranie nie robiła się drabinka. */}
+            <dl className="mt-9 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-fg/10 pt-6 sm:grid-cols-3">
+              {/* flex-col-reverse: liczba wizualnie na górze, a w kodzie zostaje
+                  poprawna kolejność dt→dd. Dzięki temu łamiąca się etykieta nie
+                  zbija liczb z jednej linii. */}
+              <div className="flex flex-col-reverse gap-1.5 self-start">
+                <dt className="text-[11px] uppercase tracking-[0.14em] text-fg/50">
+                  Działek w bazie
+                </dt>
+                <dd className="text-[20px] font-semibold tracking-tight text-fg">
+                  {liczbaZeSpacja(aktywneOferty)}
+                </dd>
+              </div>
+
+              {wyswietleniaMies ? (
+                <div className="flex flex-col-reverse gap-1.5 self-start">
+                  <dt className="text-[11px] uppercase tracking-[0.14em] text-fg/50">
+                    Wyświetleń ofert / mies.
+                  </dt>
+                  <dd className="text-[20px] font-semibold tracking-tight text-fg">
+                    {liczbaZeSpacja(wyswietleniaMies)}
+                  </dd>
+                </div>
+              ) : null}
+
+              <div className="flex flex-col-reverse gap-1.5 self-start">
+                <dt className="text-[11px] uppercase tracking-[0.14em] text-fg/50">
+                  Koszt publikacji
+                </dt>
+                <dd className="text-[20px] font-semibold tracking-tight text-fg">
+                  0 zł
+                </dd>
+              </div>
+            </dl>
           </div>
         </div>
       </section>
+
+      {/* PAS LOGOTYPÓW: dowód zamiast deklaracji. Kolejność wg liczby ofert, więc
+          na przodzie idą biura, które realnie na nas postawiły. */}
+      {logotypy.length >= 6 ? (
+        <section className="relative border-b border-fg/10 bg-surface-2/40">
+          <div className="mx-auto max-w-7xl px-6 py-9 md:px-10 md:py-11">
+            <p className="text-center text-[11px] uppercase tracking-[0.22em] text-fg/45">
+              Publikują u nas między innymi
+            </p>
+
+            <div className="pas-logo mt-7">
+              <div className="pas-logo-track">
+                {[...logotypy, ...logotypy].map((b, i) => (
+                  <span
+                    key={`${b.id}-${i}`}
+                    className="flex shrink-0 items-center px-7 opacity-75 transition hover:opacity-100 md:px-9"
+                    aria-hidden={i >= logotypy.length}
+                  >
+                    <OfficeLogo
+                      src={b.defaultBiuroLogoUrl as string}
+                      alt={b.defaultBiuroNazwa ?? ''}
+                      variant="preview"
+                      bg={!!b.defaultBiuroLogoBg}
+                      // Pas jedzie transformacją, a nie scrollem, więc leniwe ładowanie
+                      // zostawiłoby dziury w miejscu logotypów, które dopiero wjeżdżają.
+                      eager
+                    />
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {/* INTEGRACJE: łączymy się z każdym CRM */}
       <section className="relative overflow-hidden">
@@ -194,6 +354,62 @@ export default async function DlaBiurPage() {
         </div>
       </section>
 
+      {/* LEAD ZOSTAJE U BIURA. Pierwsza obawa pośrednika przy nowym portalu brzmi
+          „czy wy mi przejmiecie klienta", więc odpowiadamy na nią wprost. */}
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_30%,rgba(122,163,51,0.10),transparent_32%)]" />
+
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-24">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
+            <div>
+              <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+                Twój klient
+              </div>
+
+              <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
+                Kupujący dzwoni prosto do Ciebie.
+              </h2>
+
+              <p className="mt-6 max-w-xl text-base leading-8 text-fg/70">
+                Nie wchodzimy między Ciebie a klienta. Przy każdej ofercie stoi
+                Twoje logo, nazwa biura i numer opiekuna. Zapytanie idzie na ten
+                numer, a nie do naszej skrzynki.
+              </p>
+            </div>
+
+            <ul className="grid gap-4 sm:grid-cols-3">
+              {LEAD_POINTS.map((p) => (
+                <li
+                  key={p.title}
+                  className="rounded-[24px] border border-fg/12 bg-surface-2/60 p-6 backdrop-blur"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand/25 bg-brand/10">
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="h-4 w-4 text-brand-text"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 10.5 8 14.5 16 6" />
+                    </svg>
+                  </div>
+
+                  <h3 className="mt-4 text-[15px] font-semibold text-fg">
+                    {p.title}
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-6 text-fg/70">{p.body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* KONTAKT — 2 kolumny na desktopie: lewo tekst, prawo formularz */}
       <section id="kontakt" className="relative scroll-mt-24 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(122,163,51,0.14),transparent_34%)]" />
@@ -215,7 +431,15 @@ export default async function DlaBiurPage() {
                 instalacji, bez przepisywania, bez pracy po Twojej stronie.
               </p>
 
-              <p className="mt-6 text-sm text-fg/68">
+              <p className="mt-6 flex items-center gap-2.5 text-sm font-medium text-fg">
+                <span
+                  className="inline-block h-2 w-2 rounded-full bg-brand"
+                  aria-hidden="true"
+                />
+                Odpowiadamy tego samego dnia roboczego.
+              </p>
+
+              <p className="mt-4 text-sm text-fg/68">
                 Wolisz e-mail? Napisz na{' '}
                 <a
                   href="mailto:biuro@tylkodzialki.pl"

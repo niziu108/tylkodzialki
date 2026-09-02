@@ -385,3 +385,55 @@ html {
   background: color-mix(in srgb, var(--brand) 35%, transparent);
   color: var(--fg);
 }
+
+/* ====== PAS LOGOTYPÓW BIUR (/dla-biur) ======
+   Lista logotypów jest w markupie zdublowana, więc przesunięcie o -50% zapętla się
+   bez skoku. Najazd myszą zatrzymuje pas, żeby dało się przeczytać nazwę biura.
+   Przy prefers-reduced-motion animacja znika, a pas zostaje przewijalny palcem. */
+.pas-logo {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 7%,
+    #000 93%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 7%,
+    #000 93%,
+    transparent
+  );
+}
+
+.pas-logo-track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  animation: pas-logo-przesuw 52s linear infinite;
+}
+
+.pas-logo:hover .pas-logo-track {
+  animation-play-state: paused;
+}
+
+@keyframes pas-logo-przesuw {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pas-logo {
+    overflow-x: auto;
+  }
+
+  .pas-logo-track {
+    animation: none;
+  }
+}
