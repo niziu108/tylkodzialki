@@ -28,6 +28,7 @@
     "dojazd:backfill": "tsx scripts/dojazd-backfill.ts",
     "admin:backfill": "tsx scripts/admin-backfill.ts",
     "rcn:backfill": "tsx scripts/rcn-backfill.ts",
+    "rcn:stan": "tsx scripts/rcn-stan.ts",
     "demo:zamroz": "tsx scripts/demo-zamroz.ts",
     "demo:orto": "tsx scripts/demo-ortofoto.ts",
     "crm:nowe": "tsx scripts/crm-ftp-nowe-biura.ts"
