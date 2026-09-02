@@ -303,9 +303,10 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                   </span>{' '}
                   <span className="text-fg/55">
                     Obie liczby liczą się z innych zbiorów (ogłoszenia z promienia{' '}
-                    {valuation.radiusKm} km i z dziś, akty z {rcn.promienKm} km i z ostatnich dwóch
-                    lat), więc to nie jest gotowa odpowiedź, ile da się utargować. Ale pokazuje, w
-                    którą stronę rozjeżdżają się oczekiwania i rzeczywistość.
+                    {valuation.radiusKm} km i z dziś, akty z {rcn.promienKm} km i z lat{' '}
+                    {rcn.odRoku}-{rcn.doRoku}), więc to nie jest gotowa odpowiedź, ile da się
+                    utargować: część różnicy bierze się stąd, że grunty przez ten czas drożały.
+                    Ale pokazuje, w którą stronę rozjeżdżają się oczekiwania i rzeczywistość.
                   </span>
                 </p>
               );

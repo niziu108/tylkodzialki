@@ -18,11 +18,17 @@ import { haversineKm } from '@/lib/dzialkiSearch';
 
 const KM_PER_DEG_LAT = 111.32;
 
+// Próg i okno dobrane pomiarem na naszych danych (2026-09-02, próbka 100 ofert), a nie na oko.
+// Okno 5 lat zamiast 2 przy progu 10 zamiast 5 daje TAKIE SAMO pokrycie (51% wobec 49%
+// sprawdzanych działek), ale typowa próbka rośnie z 7 do 17 aktów. Przy siedmiu mediana bywa
+// loterią (odnotowany przypadek: 570 zł/m² na wsi), a tej liczby nie wolno pokazywać obok ceny
+// ofertowej jako faktu. Ceny gruntów ruszają się wolniej niż mieszkań, więc starsze akty wciąż
+// coś mówią — raport i tak podaje, z jakich lat pochodzą ([[project_rcn_ceny_transakcyjne]]).
 /** Minimalna liczba aktów, przy której w ogóle podajemy medianę. */
-export const RCN_MIN_PROBKA = 5;
+export const RCN_MIN_PROBKA = 10;
 
 /** Ile miesięcy wstecz uznajemy za „dzisiejszy rynek". */
-export const RCN_MIESIECY = 24;
+export const RCN_MIESIECY = 60;
 
 /** Drabinka promieni (km): bierzemy pierwszy, który daje próbkę. */
 export const RCN_PROMIENIE = [10, 20, 35] as const;
