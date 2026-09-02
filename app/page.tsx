@@ -8,6 +8,7 @@ import KupSearch from "./kup/KupSearch";
 import HeroCounter from "@/components/HeroCounter";
 import HeroGradientBg from "@/components/HeroGradientBg";
 import FeaturedRail from "@/components/FeaturedRail";
+import CheckIcon from "@/components/CheckIcon";
 import ScrollFill from "@/components/ScrollFill";
 import type { OfferData } from "@/components/OfferCard";
 import { SEO_REGIONS } from "@/lib/seo-locations";
@@ -27,6 +28,19 @@ export const metadata: Metadata = {
 };
 
 const PAGE_BG = 'var(--bg)';
+
+// P38 C1: skrót raportu na stronie głównej. Hasła, nie akapity — pełne odpowiedzi stoją na
+// `/sprawdz-dzialke` i nie ma sensu ich tu dublować. Zadanie tej listy jest podwójne: czytający
+// od razu wie, po co ma kliknąć, a strona główna zyskuje konkretne frazy (plan miejscowy,
+// cena metra, ewidencja gruntów, księga wieczysta) zamiast samego zaproszenia.
+const W_RAPORCIE: string[] = [
+  'Czy plan miejscowy pozwala postawić tu dom',
+  'Ile kosztuje metr działki w tej okolicy',
+  'Dokładne granice, metraż i kształt z ewidencji gruntów',
+  'Numer działki i obręb do wniosku w urzędzie',
+  'Działki na sprzedaż w tym samym promieniu',
+  'Co sprawdzić samemu: klasa gruntu, media, dojazd, księga wieczysta',
+];
 
 function PopularSearchesSection() {
   return (
@@ -242,6 +256,56 @@ export default async function HomePage() {
         </section>
       ) : null}
 
+      {/* P38 C1: wejście do narzędzia „Sprawdź działkę". Wcześniej stało pod blogiem, czyli
+          praktycznie nigdzie. Teraz zaraz po ofertach: kto nie znalazł działki u nas, ma tu drugi
+          powód, żeby zostać, a kto już jakąś ogląda gdzie indziej, sprawdzi ją u nas.
+          Jeden przycisk zamiast drugiego pola tekstowego (na górze stoi wyszukiwarka ofert i dwa
+          pola na jednym ekranie myliłyby), a pod nim wprost, co jest w raporcie. */}
+      <section className="relative overflow-hidden border-t border-fg/10 bg-surface-2">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
+
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
+          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+            Sprawdź działkę
+          </div>
+
+          <h2 className="mt-4 max-w-3xl text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
+            Masz na oku konkretną działkę?
+          </h2>
+
+          <p className="mt-6 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
+            Zanim zadzwonisz do sprzedającego, sprawdź, czy w ogóle postawisz na niej dom i ile ta
+            ziemia kosztuje w okolicy. Wpisujesz adres albo wskazujesz działkę na mapie, a resztę
+            zbieramy z rejestrów GUGiK i z ogłoszeń w promieniu kilku kilometrów. Raport masz w
+            kilka sekund, za darmo i bez zakładania konta.
+          </p>
+
+          <div className="mt-8">
+            <Link
+              href="/sprawdz-dzialke"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright"
+            >
+              Sprawdź działkę
+            </Link>
+          </div>
+
+          <div className="mt-12 border-t border-fg/12 pt-8">
+            <h3 className="text-[12px] font-medium uppercase tracking-[0.18em] text-fg/55">
+              W raporcie znajdziesz
+            </h3>
+
+            <div className="mt-6 grid gap-x-14 gap-y-4 md:grid-cols-2">
+              {W_RAPORCIE.map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <CheckIcon className="mt-[3px] h-[18px] w-[18px]" />
+                  <p className="text-[15px] leading-7 text-fg/75">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="relative overflow-hidden">
         <ScrollFill />
 
@@ -309,36 +373,6 @@ export default async function HomePage() {
               className="inline-flex text-sm text-fg/72 transition hover:text-fg"
             >
               Zobacz wszystkie artykuły →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* P24: wejście do narzędzia „Sprawdź działkę" — pod blogiem, od lewej, styl /dla-biur. */}
-      <section className="relative overflow-hidden border-t border-fg/10 bg-surface-2">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
-
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
-          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
-            Sprawdź działkę
-          </div>
-
-          <h2 className="mt-4 max-w-3xl text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
-            Pełna analiza działki na podstawie rejestrów publicznych.
-          </h2>
-
-          <p className="mt-6 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
-            Wpisz adres albo wskaż działkę na mapie, a przygotujemy raport oparty na danych
-            ewidencji gruntów GUGiK i Krajowej Integracji MPZP: granice, powierzchnia, przeznaczenie
-            w planie miejscowym oraz orientacyjna wycena z ofert w okolicy.
-          </p>
-
-          <div className="mt-8">
-            <Link
-              href="/sprawdz-dzialke"
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright"
-            >
-              Sprawdź działkę
             </Link>
           </div>
         </div>

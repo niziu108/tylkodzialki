@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import FaqSection from '@/components/FaqSection';
 import type { FaqItem } from '@/lib/seoCategoryContent';
 import SprawdzSearch from '@/components/sprawdz/SprawdzSearch';
+import CheckIcon from '@/components/CheckIcon';
 import type { RaportData } from '@/components/sprawdz/Raport';
 import { DEMO_MPZP, DEMO_PARCEL, DEMO_POG, DEMO_ZEBRANO } from '@/components/sprawdz/demoRaport';
 import { getNearbyOffers, getPointValuation } from '@/lib/seoHub';
@@ -23,27 +24,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
 };
-
-// Ptaszek marki — czysty glif bez kółka/plakietki ([[feedback-ui-podkreslenia]]);
-// stroke dziedziczy zieleń przez text-brand (currentColor).
-function CheckIcon() {
-  return (
-    <svg
-      viewBox="0 0 22 22"
-      aria-hidden="true"
-      className="mt-0.5 h-[22px] w-[22px] shrink-0 text-brand"
-    >
-      <path
-        d="M4 11.5l4.5 4.5L18 6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 // Nie lista funkcji, tylko pytania, które kupujący ma w głowie stojąc na działce.
 // Każde z nich raport naprawdę zamyka danymi, które zwracamy (ULDK, MPZP z KIMPZP,
@@ -167,7 +147,7 @@ export default async function SprawdzDzialkePage() {
                 key={item.title}
                 className="flex items-start gap-4 border-t border-fg/12 pt-6"
               >
-                <CheckIcon />
+                <CheckIcon className="mt-0.5" />
                 <div>
                   <h3 className="text-[17px] font-semibold text-fg md:text-[19px]">
                     {item.title}
