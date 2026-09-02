@@ -262,10 +262,8 @@ export default async function HomePage() {
           Jeden przycisk zamiast drugiego pola tekstowego (na górze stoi wyszukiwarka ofert i dwa
           pola na jednym ekranie myliłyby), a pod nim wprost, co jest w raporcie. */}
       <section className="relative overflow-hidden border-t border-fg/10 bg-surface-2">
-        {/* Zieleń wstająca przy scrollu, ta sama co pod „Wiedzą o działkach" i w /dla-biur.
-            Sam radialny gradient robił z tej sekcji płaską płytę; ScrollFill daje jej ruch.
-            Ciemniejszy podkład (bg-surface-2) zostaje, żeby nie zlała się z sekcją bloga pod nią. */}
-        <ScrollFill />
+        {/* Bez ScrollFill (próbowane 2026-09-02, cofnięte): wstająca zieleń przeciągała wzrok na
+            tło i odbierała uwagę tekstowi, a to sekcja, która ma być czytana, nie oglądana. */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
