@@ -11,7 +11,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Dla biur nieruchomości: integracja z CRM i import ofert działek',
   description:
-    'Łączymy tylkodzialki.pl z każdym systemem CRM. Automatyczny import i synchronizacja Twoich ofert działek co dwie godziny, bez ręcznego przepisywania. Dołącz do biur, które już nam zaufały.',
+    'Łączymy tylkodzialki.pl z każdym systemem CRM. Automatyczny import i synchronizacja Twoich ofert działek na bieżąco, bez ręcznego przepisywania. Dołącz do biur, które już nam zaufały.',
   alternates: { canonical: '/dla-biur' },
   openGraph: {
     title: 'Dla biur nieruchomości | tylkodzialki.pl',
@@ -37,7 +37,7 @@ const FEATURES = [
     body: 'Twoje działki trafiają na portal bez przepisywania. Raz skonfigurowane połączenie działa samo, także przy setkach ofert.',
   },
   {
-    title: 'Synchronizacja co 2 h',
+    title: 'Synchronizacja na bieżąco',
     body: 'Portal odpytuje Twój system co dwie godziny. Ceny i statusy same się aktualizują, sprzedane znika, nowe się pojawia.',
   },
   {
@@ -138,7 +138,7 @@ export default async function DlaBiurPage() {
             </h1>
 
             <p className="mt-6 max-w-xl text-[15px] leading-7 text-fg/68 md:text-base">
-              Łączymy się z Twoim systemem i co dwie godziny synchronizujemy oferty.
+              Łączymy się z Twoim systemem i na bieżąco synchronizujemy oferty.
               Zero ręcznego dodawania. Ty sprzedajesz, my dbamy o widoczność
               Twoich gruntów w całej Polsce.
             </p>
