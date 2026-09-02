@@ -357,56 +357,52 @@ export default async function DlaBiurPage() {
       {/* LEAD ZOSTAJE U BIURA. Pierwsza obawa pośrednika przy nowym portalu brzmi
           „czy wy mi przejmiecie klienta", więc odpowiadamy na nią wprost. */}
       <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_30%,rgba(122,163,51,0.10),transparent_32%)]" />
+        <ScrollFill />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-24">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
-            <div>
-              <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
-                Twój klient
-              </div>
-
-              <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
-                Kupujący dzwoni prosto do Ciebie.
-              </h2>
-
-              <p className="mt-6 max-w-xl text-base leading-8 text-fg/70">
-                Nie wchodzimy między Ciebie a klienta. Przy każdej ofercie stoi
-                Twoje logo, nazwa biura i numer opiekuna. Zapytanie idzie na ten
-                numer, a nie do naszej skrzynki.
-              </p>
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+          <div className="max-w-3xl">
+            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+              Twój klient
             </div>
 
-            <ul className="grid gap-4 sm:grid-cols-3">
-              {LEAD_POINTS.map((p) => (
-                <li
-                  key={p.title}
-                  className="rounded-[24px] border border-fg/12 bg-surface-2/60 p-6 backdrop-blur"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand/25 bg-brand/10">
-                    <svg
-                      viewBox="0 0 20 20"
-                      className="h-4 w-4 text-brand-text"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M4 10.5 8 14.5 16 6" />
-                    </svg>
-                  </div>
+            <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
+              Kupujący dzwoni prosto do Ciebie.
+            </h2>
 
-                  <h3 className="mt-4 text-[15px] font-semibold text-fg">
-                    {p.title}
-                  </h3>
-
-                  <p className="mt-2 text-sm leading-6 text-fg/70">{p.body}</p>
-                </li>
-              ))}
-            </ul>
+            <p className="mt-6 text-base leading-8 text-fg/70 md:text-lg">
+              Nie wchodzimy między Ciebie a klienta. Przy każdej ofercie stoi
+              Twoje logo, nazwa biura i numer opiekuna. Zapytanie idzie na ten
+              numer, a nie do naszej skrzynki.
+            </p>
           </div>
+
+          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {LEAD_POINTS.map((p) => (
+              <li
+                key={p.title}
+                className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-7 backdrop-blur transition hover:border-brand/35"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="h-5 w-5 text-brand-bright"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 10.5 8 14.5 16 6" />
+                  </svg>
+                </div>
+
+                <h3 className="mt-5 text-lg font-semibold text-fg">{p.title}</h3>
+
+                <p className="mt-3 text-sm leading-7 text-fg/72">{p.body}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
