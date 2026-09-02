@@ -9,6 +9,7 @@ import { decydujCene } from '@/lib/raportCena';
 import type { MpzpInfo } from '@/lib/mpzp';
 import type { PogInfo } from '@/lib/pog';
 import type { AreaPriceTrend } from '@/lib/dzialkaPriceHistory';
+import type { RcnOkolica } from '@/lib/rcnStats';
 import FeaturedRail from '@/components/FeaturedRail';
 import type { OfferData } from '@/components/OfferCard';
 import RaportMap from './RaportMap';
@@ -23,6 +24,7 @@ export type RaportData = {
   mpzp: MpzpInfo | null;
   pog?: PogInfo | null;
   trend?: AreaPriceTrend | null;
+  rcn?: RcnOkolica | null;
   nearby?: OfferData[];
 };
 
@@ -86,7 +88,7 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
 // nie wolno mu udawać wyniku użytkownika: nagłówek mówi „Przykładowa działka", a kopiowanie
 // linku znika (nikt nie potrzebuje wysyłać komuś linku do cudzej działki).
 export default function Raport({ data, przyklad = false }: { data: RaportData; przyklad?: boolean }) {
-  const { parcel, valuation, mpzp, pog, trend, nearby } = data;
+  const { parcel, valuation, mpzp, pog, trend, rcn, nearby } = data;
   // Wybór puli i decyzja „mediana czy widełki" siedzą w lib/raportCena.ts, żeby dało się je
   // testować bez renderowania komponentu.
   const { lead, value: v, mixed } = decydujCene(valuation, mpzp);
@@ -245,6 +247,69 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
           </p>
         )}
       </div>
+
+      {/* CENY TRANSAKCYJNE (RCN) — kwoty z aktów notarialnych, a nie życzenia z ogłoszeń.
+          Sekcja pojawia się tylko tam, gdzie mamy wiarygodną próbkę aktów dla TEJ SAMEJ puli
+          (budowlane / rolne), więc na większości działek jej po prostu nie będzie. Tak ma być:
+          rejestr udostępnia dane kaflami i zbieramy je stopniowo wokół naszych ofert. */}
+      {rcn ? (
+        <div className="print-keep mt-8 border-t border-fg/12 pt-8">
+          <Eyebrow>Ile realnie płacono w okolicy</Eyebrow>
+
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-3">
+            <span className="text-[34px] font-semibold tracking-tight text-fg md:text-[46px]">
+              {formatIntPL(rcn.medianaZlM2)}
+            </span>
+            <span className="text-lg font-medium text-fg/55">zł/m²</span>
+            <span className="text-[13px] uppercase tracking-[0.1em] text-fg/45">
+              {rcn.klasa === 'rolna' ? 'grunty rolne' : 'działki budowlane'}
+            </span>
+          </div>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-fg/65">
+            Mediana z {rcn.liczba} {rcn.liczba === 1 ? 'transakcji' : 'transakcji'} zapisanych w
+            Rejestrze Cen Nieruchomości (GUGiK) w promieniu {rcn.promienKm} km
+            {rcn.odRoku === rcn.doRoku ? ` w ${rcn.odRoku} roku` : `, z lat ${rcn.odRoku}-${rcn.doRoku}`}.
+            To kwoty faktycznie zapłacone u notariusza, nie ceny z ogłoszeń. Połowa transakcji
+            zamknęła się między {formatIntPL(rcn.low)} a {formatIntPL(rcn.high)} zł/m².
+          </p>
+
+          {/* Sedno całej sekcji: różnica między tym, czego się chce, a tym, co się dostaje.
+              Uczciwie zaznaczamy, że to dwa różne zbiory (inne koło, inny okres), więc czytelnik
+              nie weźmie tego za wyliczenie „ile utargujesz". */}
+          {v ? (
+            (() => {
+              const roznica = Math.round(((v.median - rcn.medianaZlM2) / rcn.medianaZlM2) * 100);
+              if (Math.abs(roznica) < 5) {
+                return (
+                  <p className="mt-5 max-w-2xl text-[15px] leading-7 text-fg/75">
+                    <span className="font-medium text-fg">
+                      Ogłoszenia w tej okolicy trzymają się cen z aktów notarialnych.
+                    </span>{' '}
+                    Sprzedający chcą dziś {formatIntPL(v.median)} zł/m², czyli mniej więcej tyle,
+                    ile realnie płacono.
+                  </p>
+                );
+              }
+              return (
+                <p className="mt-5 max-w-2xl text-[15px] leading-7 text-fg/75">
+                  <span className="font-medium text-fg">
+                    Ogłoszenia chcą dziś {formatIntPL(v.median)} zł/m², czyli o{' '}
+                    {Math.abs(roznica)}% {roznica > 0 ? 'więcej' : 'mniej'} niż wynosi mediana
+                    zapłaconych kwot.
+                  </span>{' '}
+                  <span className="text-fg/55">
+                    Obie liczby liczą się z innych zbiorów (ogłoszenia z promienia{' '}
+                    {valuation.radiusKm} km i z dziś, akty z {rcn.promienKm} km i z ostatnich dwóch
+                    lat), więc to nie jest gotowa odpowiedź, ile da się utargować. Ale pokazuje, w
+                    którą stronę rozjeżdżają się oczekiwania i rzeczywistość.
+                  </span>
+                </p>
+              );
+            })()
+          ) : null}
+        </div>
+      ) : null}
 
       {/* PLAN MIEJSCOWY (MPZP) */}
       <div className="print-keep mt-8 border-t border-fg/12 pt-8">

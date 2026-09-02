@@ -10,6 +10,8 @@ import { getNearbyOffers, getPointValuation, type PointValuation } from '@/lib/s
 import { getMpzpAtPoint, type MpzpInfo } from '@/lib/mpzp';
 import { getPogAtPoint, type PogInfo } from '@/lib/pog';
 import { getAreaPriceTrend, type AreaPriceTrend } from '@/lib/dzialkaPriceHistory';
+import { getRcnOkolica, type RcnOkolica } from '@/lib/rcnStats';
+import { looksRolny } from '@/lib/raportCena';
 
 type NearbyOffer = Awaited<ReturnType<typeof getNearbyOffers>>[number];
 
@@ -23,6 +25,7 @@ export type SprawdzResponse = {
   mpzp: MpzpInfo | null; // przeznaczenie z KIMPZP w środku działki; null gdy brak planu
   pog: PogInfo | null; // plan ogólny gminy: strefa planistyczna + obszar uzupełnienia zabudowy
   trend: AreaPriceTrend | null;
+  rcn: RcnOkolica | null; // ceny z aktow notarialnych (RCN, GUGiK) w okolicy; null = za mala probka
   nearby: NearbyOffer[]; // działki na sprzedaż najbliżej sprawdzanego punktu
 };
 
@@ -68,12 +71,15 @@ export async function POST(req: NextRequest) {
     ]);
 
     // Oferty z tego samego koła, na którym liczyliśmy cenę — spójnie z tym, co raport pokazuje.
-    const [nearby, trend] = await Promise.all([
+    // Ceny transakcyjne z RCN idą własną drabinką promieni (aktów jest znacznie mniej niż ofert),
+    // a pulę dobieramy tak samo jak przy cenie ofertowej: plan rolny => transakcje gruntów rolnych.
+    const [nearby, trend, rcn] = await Promise.all([
       getNearbyOffers(parcel.center.lat, parcel.center.lng, valuation.radiusKm),
       getAreaPriceTrend(parcel.center.lat, parcel.center.lng, valuation.radiusKm),
+      getRcnOkolica(parcel.center.lat, parcel.center.lng, looksRolny(mpzp) ? 'rolna' : 'budowlana'),
     ]);
 
-    const payload: SprawdzResponse = { parcel, valuation, mpzp, pog, trend, nearby };
+    const payload: SprawdzResponse = { parcel, valuation, mpzp, pog, trend, rcn, nearby };
     return NextResponse.json(payload);
   } catch (err) {
     if (err instanceof UldkError) {

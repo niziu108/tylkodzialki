@@ -7,6 +7,8 @@ import type { RaportData } from '@/components/sprawdz/Raport';
 import { DEMO_MPZP, DEMO_PARCEL, DEMO_POG, DEMO_ZEBRANO } from '@/components/sprawdz/demoRaport';
 import { getNearbyOffers, getPointValuation } from '@/lib/seoHub';
 import { getAreaPriceTrend } from '@/lib/dzialkaPriceHistory';
+import { getRcnOkolica } from '@/lib/rcnStats';
+import { looksRolny } from '@/lib/raportCena';
 
 // P24: narzędzie „Sprawdź działkę". Publiczny magnes na linki + fraza SEO „sprawdź działkę".
 export const revalidate = 3600;
@@ -108,11 +110,12 @@ async function zbudujDemo(): Promise<RaportData | undefined> {
   try {
     const { lat, lng } = DEMO_PARCEL.center;
     const valuation = await getPointValuation(lat, lng, DEMO_PARCEL.areaM2);
-    const [nearby, trend] = await Promise.all([
+    const [nearby, trend, rcn] = await Promise.all([
       getNearbyOffers(lat, lng, valuation.radiusKm),
       getAreaPriceTrend(lat, lng, valuation.radiusKm),
+      getRcnOkolica(lat, lng, looksRolny(DEMO_MPZP) ? 'rolna' : 'budowlana'),
     ]);
-    return { parcel: DEMO_PARCEL, valuation, mpzp: DEMO_MPZP, pog: DEMO_POG, trend, nearby };
+    return { parcel: DEMO_PARCEL, valuation, mpzp: DEMO_MPZP, pog: DEMO_POG, trend, rcn, nearby };
   } catch {
     // Brak demo nie może wywrócić narzędzia — samo pole wyszukiwania działa dalej.
     return undefined;

@@ -115,6 +115,51 @@ describe('sekcja ceny', () => {
     expect(html).toContain('stoją w miejscu');
   });
 
+  it('ceny transakcyjne z RCN pokazuje jako kwoty zaplacone i zestawia z ogloszeniami', () => {
+    const html = render(wycenaZeSrednia(), {
+      rcn: {
+        klasa: 'budowlana',
+        medianaZlM2: 80,
+        low: 62,
+        high: 110,
+        liczba: 13,
+        promienKm: 10,
+        odRoku: 2024,
+        doRoku: 2026,
+      },
+    });
+    expect(html).toContain('Ile realnie płacono w okolicy');
+    expect(html).toContain('80');
+    expect(html).toContain('13');
+    expect(html).toContain('u notariusza');
+    // Oferty 107 zł/m² kontra 80 zł/m² zapłacone = 34% w górę; to jest sedno sekcji.
+    expect(html).toContain('34%');
+    expect(html).toContain('więcej');
+  });
+
+  it('gdy oferty trzymaja sie kwot z aktow, nie sugeruje negocjacji', () => {
+    const html = render(wycenaZeSrednia(), {
+      rcn: {
+        klasa: 'budowlana',
+        medianaZlM2: 105,
+        low: 90,
+        high: 120,
+        liczba: 8,
+        promienKm: 20,
+        odRoku: 2025,
+        doRoku: 2026,
+      },
+    });
+    expect(html).toContain('trzymają się cen z aktów notarialnych');
+    expect(html).not.toContain('mediana zapłaconych kwot');
+  });
+
+  it('bez wiarygodnej probki aktow raport w ogole nie wspomina o cenach transakcyjnych', () => {
+    const html = render(wycenaZeSrednia());
+    expect(html).not.toContain('Ile realnie płacono');
+    expect(html).not.toContain('notariusza');
+  });
+
   it('bez historii cen raport nie wspomina o trendzie', () => {
     const html = render(wycenaZeSrednia());
     expect(html).not.toContain('w tej okolicy wzrosły');
