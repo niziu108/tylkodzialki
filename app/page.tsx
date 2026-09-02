@@ -267,19 +267,22 @@ export default async function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+          {/* Bez zielonej etykietki nad nagłówkiem: powtarzała słowo „sprawdź" tuż nad nim, a sam
+              nagłówek jest krótki, więc na telefonie nie łamie się na osieroconą linię. */}
+          <h2 className="max-w-3xl text-[26px] font-semibold tracking-tight text-fg md:text-[38px] md:leading-[1.1]">
             Sprawdź działkę
-          </div>
-
-          <h2 className="mt-4 max-w-3xl text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
-            Sprawdź dowolną działkę w Polsce
           </h2>
 
-          {/* Krótko i bez zakładania roli: z narzędzia korzysta tak samo kupujący, jak pośrednik
-              przed spotkaniem czy deweloper szukający gruntu. Co jest w raporcie, mówi lista niżej. */}
-          <p className="mt-6 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
-            Wpisz adres albo wskaż ją na mapie. Raport z rejestrów GUGiK i z naszych ofert masz w
-            kilka sekund, za darmo i bez konta.
+          {/* Bez zakładania roli: korzysta z tego kupujący, pośrednik przed spotkaniem i deweloper.
+              Drugi akapit tylko na dużym ekranie, gdzie sama zajawka zostawiała pustą płachtę. */}
+          <p className="mt-5 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
+            Wpisz adres albo wskaż ją na mapie. Raport masz w kilka sekund, za darmo i bez konta.
+          </p>
+
+          <p className="mt-4 hidden max-w-2xl text-base leading-8 text-fg/60 md:block">
+            Zaglądamy do ewidencji gruntów, planu miejscowego i planu ogólnego gminy, dokładamy
+            ceny z ogłoszeń w okolicy oraz kwoty z aktów notarialnych. To dane, po które inaczej
+            trzeba jechać do gminy i do starostwa, zebrane w jednym miejscu.
           </p>
 
           <div className="mt-8">
