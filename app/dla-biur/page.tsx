@@ -11,7 +11,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Dla biur nieruchomości: integracja z CRM i import ofert działek',
   description:
-    'Łączymy tylkodzialki.pl z każdym systemem CRM. Automatyczny import i codzienna synchronizacja Twoich ofert działek bez ręcznego przepisywania. Dołącz do biur, które już nam zaufały.',
+    'Łączymy tylkodzialki.pl z każdym systemem CRM. Automatyczny import i synchronizacja Twoich ofert działek co dwie godziny, bez ręcznego przepisywania. Dołącz do biur, które już nam zaufały.',
   alternates: { canonical: '/dla-biur' },
   openGraph: {
     title: 'Dla biur nieruchomości | tylkodzialki.pl',
@@ -37,8 +37,8 @@ const FEATURES = [
     body: 'Twoje działki trafiają na portal bez przepisywania. Raz skonfigurowane połączenie działa samo, także przy setkach ofert.',
   },
   {
-    title: 'Codzienna synchronizacja',
-    body: 'Ceny, opisy i statusy aktualizują się automatycznie. Sprzedane znika, nowe się pojawia. Dane zawsze aktualne.',
+    title: 'Synchronizacja co 2 h',
+    body: 'Portal odpytuje Twój system co dwie godziny. Ceny i statusy same się aktualizują, sprzedane znika, nowe się pojawia.',
   },
   {
     title: 'Wyłącznie działki',
@@ -88,41 +88,10 @@ const STEPS = [
   },
 ];
 
-/**
- * Miesięczne wyświetlenia ofert (lista + mapa), liczone z liczników biur.
- *
- * BiuroDailyStat trzyma stan NARASTAJĄCO, więc ruch dnia to różnica względem dnia
- * poprzedniego. Bierzemy medianę z 7 ostatnich pełnych dni i mnożymy przez 30:
- * mediana zamiast średniej, bo pojedynczy nieudany przebieg crona robi sztuczny skok.
- * Świadomie krótkie okno, bo liczniki sprzed 24.08.2026 zawierały jeszcze roboty.
- */
-async function miesieczneWyswietlenia(): Promise<number | null> {
-  const dni = await prisma.$queryRaw<{ delta: number | null }[]>`
-    WITH d AS (
-      SELECT date, sum("viewsCount")::int AS v
-      FROM "BiuroDailyStat"
-      WHERE date > current_date - 10
-      GROUP BY date
-    )
-    SELECT (v - lag(v) OVER (ORDER BY date))::int AS delta FROM d ORDER BY date`;
-
-  const delty = dni
-    .map((d) => d.delta)
-    .filter((d): d is number => typeof d === 'number' && d > 0)
-    .sort((a, b) => a - b);
-
-  if (delty.length < 4) return null;
-
-  const mediana = delty[Math.floor(delty.length / 2)];
-  // W dół do pełnego tysiąca: na stronie ma stać liczba, której zawsze da się bronić.
-  return Math.floor((mediana * 30) / 1000) * 1000;
-}
-
 export default async function DlaBiurPage() {
-  const [agencyCount, aktywneOferty, wyswietleniaMies, topOwnerzy] = await Promise.all([
+  const [agencyCount, aktywneOferty, topOwnerzy] = await Promise.all([
     prisma.user.count({ where: { defaultBiuroLogoUrl: { not: null } } }),
     prisma.dzialka.count({ where: { status: 'AKTYWNE' } }),
-    miesieczneWyswietlenia(),
     prisma.dzialka.groupBy({
       by: ['ownerId'],
       where: { status: 'AKTYWNE', ownerId: { not: null } },
@@ -179,7 +148,7 @@ export default async function DlaBiurPage() {
             </h1>
 
             <p className="mt-6 max-w-xl text-[15px] leading-7 text-fg/68 md:text-base">
-              Łączymy się z Twoim systemem i codziennie synchronizujemy oferty.
+              Łączymy się z Twoim systemem i co dwie godziny synchronizujemy oferty.
               Zero ręcznego dodawania. Ty sprzedajesz, my dbamy o widoczność
               Twoich gruntów w całej Polsce.
             </p>
@@ -200,7 +169,7 @@ export default async function DlaBiurPage() {
               </Link>
             </div>
 
-            {/* Twarde liczby zamiast obietnic: co biuro dostaje i jaki ruch tu jest.
+            {/* Twarde fakty zamiast obietnic: co biuro dostaje i na jakich warunkach.
                 Siatka, a nie ciąg w linii, żeby na wąskim ekranie nie robiła się drabinka. */}
             <dl className="mt-9 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-fg/10 pt-6 sm:grid-cols-3">
               {/* flex-col-reverse: liczba wizualnie na górze, a w kodzie zostaje
@@ -215,16 +184,17 @@ export default async function DlaBiurPage() {
                 </dd>
               </div>
 
-              {wyswietleniaMies ? (
-                <div className="flex flex-col-reverse gap-1.5 self-start">
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-fg/50">
-                    Wyświetleń ofert / mies.
-                  </dt>
-                  <dd className="text-[20px] font-semibold tracking-tight text-fg">
-                    {liczbaZeSpacja(wyswietleniaMies)}
-                  </dd>
-                </div>
-              ) : null}
+              {/* Świadomie BEZ liczby wyświetleń: przy 7 tys. ofert każdy podzieli ją
+                  przez podaż i wyjdzie mu kilka wyświetleń na ogłoszenie. Zamiast tego
+                  fakt, który realnie odróżnia nas od ręcznego wystawiania. */}
+              <div className="flex flex-col-reverse gap-1.5 self-start">
+                <dt className="text-[11px] uppercase tracking-[0.14em] text-fg/50">
+                  Synchronizacja ofert
+                </dt>
+                <dd className="text-[20px] font-semibold tracking-tight text-fg">
+                  co 2 h
+                </dd>
+              </div>
 
               <div className="flex flex-col-reverse gap-1.5 self-start">
                 <dt className="text-[11px] uppercase tracking-[0.14em] text-fg/50">
