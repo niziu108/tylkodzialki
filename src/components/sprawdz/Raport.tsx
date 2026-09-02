@@ -362,8 +362,41 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                 {!hasPurpose ? (
                   <p className="mt-4 max-w-2xl text-[13px] leading-7 text-fg/55">
                     Samo przeznaczenie dla tego punktu nie zostało udostępnione przez gminę w
-                    krajowej integracji. Podejrzyj plan jako warstwę na mapie powyżej albo dopytaj w
-                    gminie o zapis dla tej działki.
+                    krajowej integracji. Dopytaj w gminie o zapis dla tej działki.
+                  </p>
+                ) : null}
+
+                {/* Rejestr krajowy dostaje od większości gmin tylko symbol, opis i numer uchwały.
+                    Wysokość zabudowy, linie zabudowy czy powierzchnia biologicznie czynna siedzą
+                    w TEKŚCIE uchwały, którego integracja nie udostępnia pod żadnym adresem
+                    (sprawdzone 2026-09-02 na dziesięciu gminach). Zamiast udawać, że tych danych
+                    nie ma, mówimy gdzie są i prowadzimy do nich jednym kliknięciem. */}
+                {!mpzp.maxHeight && !mpzp.intensity ? (
+                  <p className="mt-4 max-w-2xl text-[13px] leading-7 text-fg/55">
+                    Krajowa integracja planów podaje dla tego terenu przeznaczenie i numer uchwały,
+                    ale nie parametry zabudowy. Maksymalną wysokość, linie zabudowy i powierzchnię
+                    biologicznie czynną znajdziesz w tekście uchwały
+                    {mpzp.resolution ? ` ${mpzp.resolution}` : ''}
+                    {mpzp.functionSymbol ? `, w zapisach dla terenu ${mpzp.functionSymbol}` : ''}.{' '}
+                    <a
+                      href={`https://www.google.com/search?q=${encodeURIComponent(
+                        [
+                          'uchwała',
+                          mpzp.resolution ?? '',
+                          'miejscowy plan zagospodarowania',
+                          parcel.commune,
+                          'tekst',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                    >
+                      Znajdź tekst uchwały
+                    </a>{' '}
+                    albo poproś o niego w gminie {parcel.commune}.
                   </p>
                 ) : null}
               </>

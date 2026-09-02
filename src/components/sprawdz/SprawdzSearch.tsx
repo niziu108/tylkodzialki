@@ -445,18 +445,6 @@ export default function SprawdzSearch({
             <div className="mt-10">
               <Raport data={demo} przyklad />
             </div>
-
-            <div className="mt-12 border-t border-fg/12 pt-8">
-              <a
-                href="#narzedzie"
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-7 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright"
-              >
-                Sprawdź swoją działkę
-              </a>
-              <p className="mt-3 text-sm text-fg/60">
-                Taki sam raport dla dowolnej działki w Polsce. Za darmo i bez konta.
-              </p>
-            </div>
           </div>
         ) : null}
       </div>

@@ -36,9 +36,9 @@ const PAGE_BG = 'var(--bg)';
 const W_RAPORCIE: string[] = [
   'Czy plan miejscowy pozwala postawić tu dom',
   'Ile kosztuje metr działki w tej okolicy',
+  'Ile realnie płacono u notariusza, gdy rejestr ma dane',
   'Dokładne granice, metraż i kształt z ewidencji gruntów',
   'Numer działki i obręb do wniosku w urzędzie',
-  'Działki na sprzedaż w tym samym promieniu',
   'Co sprawdzić samemu: klasa gruntu, media, dojazd, księga wieczysta',
 ];
 
@@ -262,6 +262,10 @@ export default async function HomePage() {
           Jeden przycisk zamiast drugiego pola tekstowego (na górze stoi wyszukiwarka ofert i dwa
           pola na jednym ekranie myliłyby), a pod nim wprost, co jest w raporcie. */}
       <section className="relative overflow-hidden border-t border-fg/10 bg-surface-2">
+        {/* Zieleń wstająca przy scrollu, ta sama co pod „Wiedzą o działkach" i w /dla-biur.
+            Sam radialny gradient robił z tej sekcji płaską płytę; ScrollFill daje jej ruch.
+            Ciemniejszy podkład (bg-surface-2) zostaje, żeby nie zlała się z sekcją bloga pod nią. */}
+        <ScrollFill />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
@@ -270,14 +274,14 @@ export default async function HomePage() {
           </div>
 
           <h2 className="mt-4 max-w-3xl text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
-            Masz na oku konkretną działkę?
+            Sprawdź dowolną działkę w Polsce
           </h2>
 
+          {/* Krótko i bez zakładania roli: z narzędzia korzysta tak samo kupujący, jak pośrednik
+              przed spotkaniem czy deweloper szukający gruntu. Co jest w raporcie, mówi lista niżej. */}
           <p className="mt-6 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
-            Zanim zadzwonisz do sprzedającego, sprawdź, czy w ogóle postawisz na niej dom i ile ta
-            ziemia kosztuje w okolicy. Wpisujesz adres albo wskazujesz działkę na mapie, a resztę
-            zbieramy z rejestrów GUGiK i z ogłoszeń w promieniu kilku kilometrów. Raport masz w
-            kilka sekund, za darmo i bez zakładania konta.
+            Wpisz adres albo wskaż ją na mapie. Raport z rejestrów GUGiK i z naszych ofert masz w
+            kilka sekund, za darmo i bez konta.
           </p>
 
           <div className="mt-8">
