@@ -33,7 +33,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Strefa ochronna linii energetycznej i gazociągu: co to znaczy (slug: strefa-ochronna-linii-energetycznej-i-gazociagu)
 - [x] Działka z lasem: odlesienie i ograniczenia (slug: odlesienie-dzialki-lesnej)
 - [x] Scalanie i podział nieruchomości: na czym polega (slug: scalanie-i-podzial-nieruchomosci)
-- [ ] Renta planistyczna i opłata adiacencka: kto płaci
+- [x] Renta planistyczna i opłata adiacencka: kto płaci (slug: renta-planistyczna-i-oplata-adiacencka)
 - [ ] Akt notarialny zakupu działki: co musi zawierać
 
 ## Kupno działki
