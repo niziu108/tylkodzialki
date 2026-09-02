@@ -17,6 +17,7 @@ import { DzialkaStatus, type Przeznaczenie } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { normalizeText, type BBox } from '@/lib/dzialkiSearch';
 import { getSeoRegion } from '@/lib/seo-locations';
+import { stripPowiatPrefix } from '@/lib/powiatLabel';
 import {
   bucketByType,
   computeDetail,
@@ -28,6 +29,12 @@ import {
 // ale leci noindex i jest poza sitemapą. Zgrany z MIN_SAMPLE (od tylu ofert pokazujemy
 // medianę), więc indeksujemy tylko strony z realną treścią liczbową.
 export const POWIAT_MIN_INDEX = 4;
+
+// Powiat ziemski w mianowniku to przymiotnik na "ki" (...ski/...cki/...zki). Dwa powiaty w Polsce
+// sa dwuczlonowe ("lodzki wschodni", "warszawski zachodni") i wczesniej wypadaly z calej osi, bo
+// nazwa nie konczy sie na "ki" - stad drugi wariant. Miasta na prawach powiatu nadal odpadaja
+// (nie sa przymiotnikiem), bo pokrywaja je huby miast.
+const POWIAT_ZIEMSKI = /ki$|ki\s+(wschodni|zachodni)$/;
 
 export type ParsedAdmin = { powiatSlug: string; powiatAdj: string; wojSlug: string };
 
@@ -54,18 +61,59 @@ export function parseAdmin(locationFull: string | null | undefined): ParsedAdmin
   // Miasto na prawach powiatu („Lublin m.") pomijamy — pokrywa je hub miasta.
   if (/\bm\.?$/.test(powiatAdj)) return null;
   // Powiat ziemski to przymiotnik na „ki" (…ski/…cki/…zki). Inne tokeny odrzucamy (precyzja).
-  if (!/ki$/.test(powiatAdj)) return null;
+  if (!POWIAT_ZIEMSKI.test(powiatAdj)) return null;
 
   return { powiatSlug: toSlug(powiatAdj), powiatAdj, wojSlug };
 }
 
 // Odmiana przymiotnika powiatu (regularna, wszystkie kończą się na „ki"):
 //   mianownik „giżycki" -> dopełniacz „giżyckiego" -> miejscownik „giżyckim".
+// Odmieniamy KAZDY czlon, bo powiat bywa dwuczlonowy: "lodzki wschodni" ->
+// "lodzkiego wschodniego" / "lodzkim wschodnim". Dla jednoczlonowych dziala jak wczesniej.
 export function powiatAdjGen(adj: string): string {
-  return adj.replace(/i$/, 'iego');
+  return adj
+    .split(/\s+/)
+    .map((w) => w.replace(/i$/, 'iego'))
+    .join(' ');
 }
 export function powiatAdjLoc(adj: string): string {
-  return adj.replace(/i$/, 'im');
+  return adj
+    .split(/\s+/)
+    .map((w) => w.replace(/i$/, 'im'))
+    .join(' ');
+}
+
+/**
+ * Os powiatu dla wiersza oferty: najpierw pewne kolumny z ULDK, potem tekst z feedu jako zapas.
+ * Jedno wejscie dla wszystkich miejsc, ktore licza powiaty, zeby nie rozjechaly sie miedzy soba.
+ */
+export function adminOf(row: {
+  adminWoj?: string | null;
+  adminPowiat?: string | null;
+  locationFull?: string | null;
+}): ParsedAdmin | null {
+  return adminFromColumns(row.adminWoj, row.adminPowiat) ?? parseAdmin(row.locationFull);
+}
+
+/**
+ * Os powiatu z KOLUMN oferty (`adminWoj`, `adminPowiat`), ustalonych z lat/lng przez ULDK.
+ * Zrodlo pewniejsze niz tekst z feedu, wiec ma pierwszenstwo przed `parseAdmin`.
+ */
+export function adminFromColumns(
+  adminWoj: string | null | undefined,
+  adminPowiat: string | null | undefined,
+): ParsedAdmin | null {
+  if (!adminWoj || !adminPowiat) return null;
+
+  const wojSlug = toSlug(adminWoj);
+  if (!getSeoRegion(wojSlug)) return null;
+
+  // ULDK podaje "powiat lodzki wschodni", geokodowanie w `locationFull` samo "lodzki wschodni".
+  // Scinamy prefiks, zeby oba zrodla trafialy do TEGO SAMEGO kubelka, a nie na dwa URL-e.
+  const powiatAdj = stripPowiatPrefix(adminPowiat).toLowerCase().trim();
+  if (!POWIAT_ZIEMSKI.test(powiatAdj)) return null;
+
+  return { powiatSlug: toSlug(powiatAdj), powiatAdj, wojSlug };
 }
 
 // Pełne formy do zdań: „powiat giżycki" / „powiatu giżyckiego" / „w powiecie giżyckim".
@@ -101,6 +149,8 @@ const loadAllPowiatRows = cache(async (): Promise<PowiatRow[]> => {
       lat: true,
       lng: true,
       locationFull: true,
+      adminWoj: true,
+      adminPowiat: true,
       przeznaczenia: true,
       cenaPln: true,
       powierzchniaM2: true,
@@ -115,7 +165,9 @@ const loadAllPowiatRows = cache(async (): Promise<PowiatRow[]> => {
   const out: PowiatRow[] = [];
   for (const r of rows) {
     if (r.lat == null || r.lng == null) continue;
-    const admin = parseAdmin(r.locationFull);
+    // Kolumny z ULDK maja pierwszenstwo (pewne), tekst z feedu jest zapasem dla ofert,
+    // ktorych backfill jeszcze nie objal.
+    const admin = adminFromColumns(r.adminWoj, r.adminPowiat) ?? parseAdmin(r.locationFull);
     if (!admin) continue;
     out.push({
       lat: r.lat,

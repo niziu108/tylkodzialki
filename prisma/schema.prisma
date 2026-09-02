@@ -139,6 +139,19 @@ model Dzialka {
   przeznaczenia  Przeznaczenie[]
   telefon        String
 
+  // Oś administracyjna ustalona z lat/lng przez ULDK (GUGiK), NIE z tekstu w feedzie biura.
+  // Powód: `locationFull` z CRM bywa niespójny („Łódzkie", „Dąbrowica, koniński"), przez co
+  // ~11% ofert wypadało z hubów powiatowych. Punkt oferty jest przybliżony, ale przybliżenie
+  // rzędu setek metrów nie zmienia gminy ani powiatu, więc ta precyzja jest uczciwa.
+  // ŚWIADOMIE nie zapisujemy pełnego identyfikatora działki ewidencyjnej — ten nadal podaje
+  // użytkownik w „Sprawdź działkę" (FILOZOFIA: precyzję działki podaje UŻYTKOWNIK).
+  // `adminTeryt` = 6-cyfrowy kod gminy (powiat = 4 pierwsze cyfry); klucz pod agregaty RCN.
+  adminTeryt     String?
+  adminWoj       String?
+  adminPowiat    String?
+  adminGmina     String?
+  adminAt        DateTime?
+
   sprzedajacyImie String?
   biuroNazwa      String?
   biuroOpiekun    String?
@@ -196,6 +209,9 @@ model Dzialka {
   @@index([status, createdAt])
   @@index([status, cenaPln])
   @@index([status, powierzchniaM2])
+  // Oś administracyjna (huby powiatowe + agregaty cen per gmina).
+  @@index([adminTeryt])
+  @@index([status, adminTeryt])
 }
 
 // Perełka „zużyta" — poszła już na posta na FB/Insta i ma nie wracać na listę w /admin/perelki.

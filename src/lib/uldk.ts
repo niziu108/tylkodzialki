@@ -221,6 +221,53 @@ export async function getParcelByXY(lat: number, lng: number): Promise<ParcelRep
   return buildReport(baseFromRow2180(rows[0]));
 }
 
+// ── Oś administracyjna z punktu (bez geometrii) ──────────────────────────────
+// Lekka wersja `getParcelByXY`: JEDNO zapytanie, bez geometrii i bez drugiego strzału po WKT.
+// Używana do przypisania oferty do gminy/powiatu, gdy `locationFull` z feedu CRM jest niespójny.
+//
+// UCZCIWOŚĆ: tu punkt jest PRZYBLIŻONY (współrzędne od biura), więc bierzemy z odpowiedzi wyłącznie
+// jednostki administracyjne i kod TERYT gminy. Numeru działki ewidencyjnej z takiego punktu NIE
+// wyprowadzamy — ten nadal wskazuje użytkownik w „Sprawdź działkę”.
+
+export type AdminUnit = {
+  teryt: string; // 6-cyfrowy kod gminy, np. „146510”; powiat = 4 pierwsze cyfry
+  voivodeship: string; // np. „mazowieckie”
+  county: string; // np. „powiat łódzki wschodni” albo „powiat Warszawa” (miasto na prawach powiatu)
+  commune: string; // np. „Tuszyn”
+};
+
+// Identyfikator ULDK ma postać „146510_8.0502.1/3”, gdzie przed „_” stoi 6-cyfrowy TERYT gminy.
+function terytFromParcelId(id: string): string | null {
+  const m = id.trim().match(/^(\d{6})_/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Jednostki administracyjne pod punktem WGS84. Zwraca `null`, gdy ULDK nie zna działki w tym
+ * miejscu (jezioro, las bez ewidencji, punkt tuż za granicą) albo gdy punkt jest poza Polską.
+ */
+export async function getAdminByXY(lat: number, lng: number): Promise<AdminUnit | null> {
+  if (!isInPoland(lat, lng)) return null;
+
+  const body = await uldkFetch({
+    request: 'GetParcelByXY',
+    xy: `${lng},${lat},4326`,
+    result: 'id,voivodeship,county,commune',
+  });
+
+  const rows = parseUldkRows(body);
+  if (rows.length === 0) return null;
+
+  const cols = rows[0].split('|').map((c) => c.trim());
+  const teryt = terytFromParcelId(cols[0] ?? '');
+  const voivodeship = cols[1] ?? '';
+  const county = cols[2] ?? '';
+  const commune = cols[3] ?? '';
+  if (!teryt || !voivodeship || !county) return null;
+
+  return { teryt, voivodeship, county, commune };
+}
+
 /**
  * Działka po pełnym identyfikatorze ewidencyjnym (np. „146510_8.0502.1/3"). Zwraca `null`, gdy
  * ULDK nie zna takiego identyfikatora.

@@ -9,7 +9,7 @@ import type {
   SprzedajacyTyp,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { parseAdmin, powiatNom } from '@/lib/seoPowiaty';
+import { adminOf, powiatNom } from '@/lib/seoPowiaty';
 import { getSeoRegion } from '@/lib/seo-locations';
 import { normalizeText } from '@/lib/dzialkiSearch';
 import { stripPowiatPrefix, powiatKey } from '@/lib/powiatLabel';
@@ -108,13 +108,15 @@ export function slugifyBiuro(input: string): string {
     .slice(0, 60);
 }
 
-function zbudujZasieg(rows: { locationFull: string | null }[]): WizytowkaZasieg {
+function zbudujZasieg(
+  rows: { locationFull: string | null; adminWoj: string | null; adminPowiat: string | null }[],
+): WizytowkaZasieg {
   const woj = new Map<string, number>();
   const pow = new Map<string, { label: string; count: number }>();
   let przypisane = 0;
 
   for (const row of rows) {
-    const admin = parseAdmin(row.locationFull);
+    const admin = adminOf(row);
     if (!admin) continue;
     przypisane += 1;
 
@@ -189,7 +191,10 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
       _min: { cenaPln: true, powierzchniaM2: true },
       _max: { powierzchniaM2: true },
     }),
-    prisma.dzialka.findMany({ where: aktywne, select: { locationFull: true } }),
+    prisma.dzialka.findMany({
+      where: aktywne,
+      select: { locationFull: true, adminWoj: true, adminPowiat: true },
+    }),
     prisma.dzialka.findMany({
       where: aktywne,
       orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],

@@ -39,7 +39,7 @@
 
 import { DzialkaStatus, Przeznaczenie, TransakcjaTyp } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { parseAdmin, powiatNom } from '@/lib/seoPowiaty';
+import { adminOf, powiatNom } from '@/lib/seoPowiaty';
 import { haversineKm } from '@/lib/dzialkiSearch';
 import { getParcelMedia, type MediaFlags } from '@/lib/media';
 
@@ -167,6 +167,8 @@ export async function getPerelkiReport(): Promise<PerelkiReport> {
       lat: true,
       lng: true,
       locationFull: true,
+      adminWoj: true,
+      adminPowiat: true,
       locationLabel: true,
       prad: true,
       woda: true,
@@ -215,7 +217,7 @@ export async function getPerelkiReport(): Promise<PerelkiReport> {
 
     // Powiat wyłącznie jako etykieta (i województwo do wyboru grupy na FB). Oferta bez
     // rozpoznanego powiatu nadal jest kandydatem — geo mamy z lat/lng, nie z tokenu.
-    const admin = parseAdmin(s.locationFull);
+    const admin = adminOf(s);
     const media = getParcelMedia(s);
 
     const row: PerelkaRow = {

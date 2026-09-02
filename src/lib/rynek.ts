@@ -9,7 +9,7 @@
 // na posta i będzie nas obciążać przez lata.
 
 import { prisma } from "@/lib/prisma";
-import { parseAdmin } from "@/lib/seoPowiaty";
+import { adminOf } from "@/lib/seoPowiaty";
 import { getSeoRegion } from "@/lib/seo-locations";
 import { SPELL_TRUSTED_FROM } from "@/lib/listing-spells";
 
@@ -138,7 +138,7 @@ export async function getRynekReport(): Promise<RynekReport> {
           cenaStart: true,
           cenaEnd: true,
           powierzchniaM2: true,
-          dzialka: { select: { locationFull: true } },
+          dzialka: { select: { locationFull: true, adminWoj: true, adminPowiat: true } },
         },
       }),
       prisma.$queryRaw<Array<{ rekordow: bigint; dzialek: bigint; od: Date | null }>>`
@@ -148,7 +148,13 @@ export async function getRynekReport(): Promise<RynekReport> {
         FROM "DzialkaPriceSnapshot"`,
       prisma.dzialka.findMany({
         where: { status: "AKTYWNE", powierzchniaM2: { gt: 0 } },
-        select: { cenaPln: true, powierzchniaM2: true, locationFull: true },
+        select: {
+          cenaPln: true,
+          powierzchniaM2: true,
+          locationFull: true,
+          adminWoj: true,
+          adminPowiat: true,
+        },
       }),
       // Działki, których cena zmieniła się od pierwszego snapshotu. Bierzemy pierwszą i ostatnią
       // obserwację, a nie min/max: interesuje nas kierunek, w którym poszedł sprzedający.
@@ -184,7 +190,7 @@ export async function getRynekReport(): Promise<RynekReport> {
     dni: (s.endedAt!.getTime() - s.startedAt.getTime()) / DAY,
     cena: s.cenaEnd ?? s.cenaStart,
     pow: s.powierzchniaM2,
-    woj: parseAdmin(s.dzialka.locationFull)?.wojSlug ?? null,
+    woj: adminOf(s.dzialka)?.wojSlug ?? null,
   }));
 
   const oknoOd = zamknieteWiarygodne.length
@@ -224,7 +230,7 @@ export async function getRynekReport(): Promise<RynekReport> {
   // Podaż: mediany liczone na aktywnych ofertach, per województwo. Te dane są kompletne od dziś.
   const podazMap = new Map<string, { ppm2: number[]; cena: number[]; pow: number[] }>();
   for (const d of podazRaw) {
-    const woj = parseAdmin(d.locationFull)?.wojSlug;
+    const woj = adminOf(d)?.wojSlug;
     if (!woj) continue;
     const e = podazMap.get(woj) ?? { ppm2: [], cena: [], pow: [] };
     e.ppm2.push(d.cenaPln / d.powierzchniaM2);
