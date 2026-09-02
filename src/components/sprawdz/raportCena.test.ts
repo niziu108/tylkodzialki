@@ -137,6 +137,24 @@ describe('sekcja ceny', () => {
     expect(html).toContain('więcej');
   });
 
+  it('przy najszerszym promieniu ostrzega, ze to juz tlo rynku, nie ta okolica', () => {
+    const daleko = {
+      klasa: 'budowlana' as const,
+      medianaZlM2: 80,
+      low: 60,
+      high: 120,
+      liczba: 6,
+      promienKm: 35,
+      odRoku: 2024,
+      doRoku: 2026,
+    };
+    const html = render(wycenaZeSrednia(), { rcn: daleko });
+    expect(html).toContain('tło rynku');
+
+    const blisko = render(wycenaZeSrednia(), { rcn: { ...daleko, promienKm: 10 } });
+    expect(blisko).not.toContain('tło rynku');
+  });
+
   it('gdy oferty trzymaja sie kwot z aktow, nie sugeruje negocjacji', () => {
     const html = render(wycenaZeSrednia(), {
       rcn: {

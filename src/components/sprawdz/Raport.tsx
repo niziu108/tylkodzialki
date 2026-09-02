@@ -272,6 +272,9 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
             {rcn.odRoku === rcn.doRoku ? ` w ${rcn.odRoku} roku` : `, z lat ${rcn.odRoku}-${rcn.doRoku}`}.
             To kwoty faktycznie zapłacone u notariusza, nie ceny z ogłoszeń. Połowa transakcji
             zamknęła się między {formatIntPL(rcn.low)} a {formatIntPL(rcn.high)} zł/m².
+            {rcn.promienKm >= 35
+              ? ' Bliżej aktów w rejestrze na razie brakuje, a przy takim promieniu mieszczą się już inne miejscowości, więc traktuj tę liczbę jako tło rynku, nie jako cenę tej konkretnej okolicy.'
+              : ''}
           </p>
 
           {/* Sedno całej sekcji: różnica między tym, czego się chce, a tym, co się dostaje.
