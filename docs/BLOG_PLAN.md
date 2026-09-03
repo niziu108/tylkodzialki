@@ -105,14 +105,14 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Sprzedaż przez biuro a samodzielnie (slug: sprzedaz-dzialki-przez-biuro-a-samodzielnie)
 - [x] Sprzedaż udziału w działce (slug: sprzedaz-udzialu-w-dzialce)
 - [ ] Sprzedaż działki z domem w budowie
-- [ ] Jak podzielić działkę przed sprzedażą, żeby zarobić więcej
+- [x] ~~Jak podzielić działkę przed sprzedażą, żeby zarobić więcej~~ POKRYTE w „Jak zarabiać na podziale działki" (slug: jak-zarabiac-na-podziale-dzialki).
 - [ ] Najczęstsze błędy przy sprzedaży działki
 - [ ] Jak sprawdzić wiarygodność kupującego
 
 ## Inwestowanie
 - [ ] Czy warto inwestować w działki w 2026
 - [x] Działka jako lokata kapitału: plusy i minusy (slug: dzialka-jako-lokata-kapitalu-plusy-minusy)
-- [ ] Jak zarabiać na podziale działki
+- [x] Jak zarabiać na podziale działki (slug: jak-zarabiac-na-podziale-dzialki)
 - [x] Flipping działek: na czym polega (slug: flipping-dzialek-na-czym-polega)
 - [ ] Działka pod wynajem (parking, magazyn, reklama)
 - [x] Gdzie kupować działki pod inwestycję (slug: gdzie-kupowac-dzialki-pod-inwestycje)
