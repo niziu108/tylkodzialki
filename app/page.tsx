@@ -296,10 +296,15 @@ export default async function HomePage() {
               karta ląduje pod przyciskiem, żeby najpierw poszła treść, a nie przykład cudzej działki. */}
           <div className="grid gap-12 lg:grid-cols-[1fr_26rem] lg:items-start lg:gap-16">
             <div>
-              {/* Sam nagłówek, bez etykietki nad nim: nazwa produktu wystarczy, a co w nim jest
-                  mówi lista pod spodem. Krótki, więc nie łamie się na telefonie. */}
-              <h2 className="max-w-2xl text-[26px] font-semibold tracking-tight text-fg md:text-[38px] md:leading-[1.1]">
-                Raport o działce
+              {/* Etykieta w tym samym wzorcu co „Blog tylkodzialki.pl" nad Wiedzą o działkach:
+                  bez niej sekcja stała naga na tle pozostałych. Nagłówek to nazwa narzędzia,
+                  ta sama co w menu i we frazie, na którą chcemy wchodzić z Google. */}
+              <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">
+                Narzędzie tylkodzialki.pl
+              </div>
+
+              <h2 className="mt-3 max-w-2xl text-[26px] font-semibold tracking-tight text-fg md:text-[38px] md:leading-[1.1]">
+                Sprawdź działkę
               </h2>
 
               <div className="mt-8 grid gap-x-14 gap-y-4 sm:grid-cols-2 lg:grid-cols-1">
@@ -316,7 +321,7 @@ export default async function HomePage() {
                   href="/sprawdz-dzialke"
                   className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright"
                 >
-                  Sprawdź działkę
+                  Sprawdź swoją działkę
                 </Link>
 
                 <p className="mt-3 text-sm text-fg/60">
