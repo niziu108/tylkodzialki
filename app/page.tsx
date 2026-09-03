@@ -13,6 +13,10 @@ import ScrollFill from "@/components/ScrollFill";
 import type { OfferData } from "@/components/OfferCard";
 import { SEO_REGIONS } from "@/lib/seo-locations";
 import { getFeaturedListings } from "@/lib/dzialki";
+import { DEMO_MPZP, DEMO_PARCEL } from "@/components/sprawdz/demoRaport";
+import { getPointValuation } from "@/lib/seoHub";
+import { getRcnOkolica } from "@/lib/rcnStats";
+import { formatIntPL } from "@/lib/format";
 
 // ISR zamiast force-dynamic: strona główna nie renderuje się od zera przy każdym
 // wejściu (szybciej dla użytkownika i Googlebota). Licznik/wyróżnione świeże do 5 min.
@@ -41,6 +45,26 @@ const W_RAPORCIE: string[] = [
   'Numer działki i obręb do wniosku w urzędzie',
   'Co sprawdzić samemu: klasa gruntu, media, dojazd, księga wieczysta',
 ];
+
+// Kawałek PRAWDZIWEGO raportu obok zaproszenia. Sekcja opowiadała o narzędziu („w raporcie
+// znajdziesz…"), a to zawsze wygląda jak obietnica. Konkretne liczby z konkretnej działki są
+// dowodem: widać, że raport zwraca plan miejscowy i dwie ceny, zanim ktokolwiek kliknie.
+// Dane rejestrowe są zamrożone (`demoRaport.ts`, ta sama działka co demo na `/sprawdz-dzialke`),
+// ceny liczone tu i teraz z naszej bazy, więc karta nigdy nie pokazuje nieaktualnych kwot.
+async function przykladRaportu() {
+  try {
+    const { lat, lng } = DEMO_PARCEL.center;
+    const [wycena, rcn] = await Promise.all([
+      getPointValuation(lat, lng, DEMO_PARCEL.areaM2),
+      getRcnOkolica(lat, lng, 'budowlana'),
+    ]);
+    const oferty = wycena.similarSize.pricePerM2 ?? wycena.budowlana.pricePerM2 ?? wycena.pricePerM2;
+    return { ofertyZlM2: oferty?.median ?? null, rcn };
+  } catch {
+    // Karta jest dodatkiem; gdy baza nie odpowie, sekcja stoi dalej bez niej.
+    return null;
+  }
+}
 
 function PopularSearchesSection() {
   return (
@@ -117,7 +141,7 @@ export default async function HomePage() {
     OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
   };
 
-  const [featuredListings, latestArticles, listingCount] = await Promise.all([
+  const [featuredListings, latestArticles, listingCount, przyklad] = await Promise.all([
     getFeaturedListings(8),
     prisma.article.findMany({
       where: { isPublished: true },
@@ -125,6 +149,7 @@ export default async function HomePage() {
       take: 6,
     }),
     prisma.dzialka.count({ where: activeWhere }),
+    przykladRaportu(),
   ]);
 
   // Mapujemy tylko bezpieczne pola (bez editToken/telefon itp.), bo lecą do
@@ -267,40 +292,104 @@ export default async function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-          {/* Etykietka niesie treść („co znajdziesz"), więc nie powtarza już nagłówka pod sobą
-              i zastępuje osobny podtytuł nad listą. */}
-          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
-            Co znajdziesz w raporcie
-          </div>
+          {/* Dwie kolumny na dużym ekranie: po lewej obietnica, po prawej jej dowód. Na telefonie
+              karta ląduje pod przyciskiem, żeby najpierw poszła treść, a nie przykład cudzej działki. */}
+          <div className="grid gap-12 lg:grid-cols-[1fr_26rem] lg:items-start lg:gap-16">
+            <div>
+              <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+                Raport o działce
+              </div>
 
-          <h2 className="mt-4 max-w-3xl text-[26px] font-semibold tracking-tight text-fg md:text-[38px] md:leading-[1.1]">
-            Sprawdź działkę
-          </h2>
+              {/* Nagłówek mówi, co dostajesz, a nie jak narzędzie się nazywa (nazwa jest wyżej
+                  i na przycisku). To dwa pytania, od których zaczyna każdy przy działce. */}
+              <h2 className="mt-4 max-w-2xl text-balance text-[24px] font-semibold leading-[1.2] tracking-tight text-fg md:text-[38px] md:leading-[1.1]">
+                Co wolno tu zbudować i ile ta ziemia kosztuje
+              </h2>
 
-          {/* Od razu konkret zamiast zajawki: lista mówi więcej niż akapit o tym, że coś zbieramy.
-              Przycisk ląduje dopiero pod nią, bo tuż pod nagłówkiem gryzł się z nim na telefonie. */}
-          <div className="mt-8">
-            <div className="grid gap-x-14 gap-y-4 md:grid-cols-2">
-              {W_RAPORCIE.map((item) => (
-                <div key={item} className="flex items-start gap-3">
-                  <CheckIcon className="mt-[3px] h-[18px] w-[18px]" />
-                  <p className="text-[15px] leading-7 text-fg/75">{item}</p>
+              <div className="mt-8 grid gap-x-14 gap-y-4 sm:grid-cols-2 lg:grid-cols-1">
+                {W_RAPORCIE.map((item) => (
+                  <div key={item} className="flex items-start gap-3">
+                    <CheckIcon className="mt-[3px] h-[18px] w-[18px]" />
+                    <p className="text-[15px] leading-7 text-fg/75">{item}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-10">
+                <Link
+                  href="/sprawdz-dzialke"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright"
+                >
+                  Sprawdź działkę
+                </Link>
+
+                <p className="mt-3 text-sm text-fg/60">
+                  Wpisujesz adres albo wskazujesz działkę na mapie. Za darmo i bez konta.
+                </p>
+              </div>
+            </div>
+
+            {/* DOWÓD: prawdziwa działka, prawdziwe liczby, jedno kliknięcie do pełnego raportu. */}
+            {przyklad ? (
+              <div className="rounded-3xl border border-fg/12 bg-surface/75 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.05)] md:p-8">
+                <div className="text-[11px] uppercase tracking-[0.2em] text-fg/45">
+                  Przykład
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-10">
-              <Link
-                href="/sprawdz-dzialke"
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright"
-              >
-                Sprawdź działkę
-              </Link>
+                <div className="mt-3 text-[24px] font-semibold tracking-tight text-fg">
+                  {formatIntPL(DEMO_PARCEL.areaM2)} m²
+                </div>
+                <div className="mt-1 text-sm text-fg/60">
+                  {DEMO_PARCEL.commune}, {DEMO_PARCEL.county}
+                </div>
 
-              <p className="mt-3 text-sm text-fg/60">
-                Wpisujesz adres albo wskazujesz działkę na mapie. Za darmo i bez konta.
-              </p>
-            </div>
+                <dl className="mt-6 space-y-4 border-t border-fg/10 pt-5 text-[15px]">
+                  {DEMO_MPZP?.functionName ? (
+                    <div>
+                      <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
+                        Plan miejscowy
+                      </dt>
+                      <dd className="mt-1 leading-6 text-fg/85">
+                        {DEMO_MPZP.functionName}
+                        {DEMO_MPZP.functionSymbol ? ` (${DEMO_MPZP.functionSymbol})` : ''}
+                      </dd>
+                    </div>
+                  ) : null}
+
+                  {przyklad.ofertyZlM2 ? (
+                    <div>
+                      <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
+                        Ceny z ogłoszeń w okolicy
+                      </dt>
+                      <dd className="mt-1 font-medium text-fg">
+                        {formatIntPL(przyklad.ofertyZlM2)} zł/m²
+                      </dd>
+                    </div>
+                  ) : null}
+
+                  {przyklad.rcn ? (
+                    <div>
+                      <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
+                        Realnie zapłacono u notariusza
+                      </dt>
+                      <dd className="mt-1 font-medium text-brand-text">
+                        {formatIntPL(przyklad.rcn.medianaZlM2)} zł/m²
+                        <span className="ml-2 text-[13px] font-normal text-fg/45">
+                          z {przyklad.rcn.liczba} aktów
+                        </span>
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+
+                <Link
+                  href={`/sprawdz-dzialke?d=${encodeURIComponent(DEMO_PARCEL.id)}`}
+                  className="mt-6 inline-flex text-sm text-fg/80 underline decoration-1 underline-offset-4 transition hover:text-fg"
+                >
+                  Zobacz cały raport tej działki →
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
