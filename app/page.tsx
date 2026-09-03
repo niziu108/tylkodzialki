@@ -296,14 +296,10 @@ export default async function HomePage() {
               karta ląduje pod przyciskiem, żeby najpierw poszła treść, a nie przykład cudzej działki. */}
           <div className="grid gap-12 lg:grid-cols-[1fr_26rem] lg:items-start lg:gap-16">
             <div>
-              <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+              {/* Sam nagłówek, bez etykietki nad nim: nazwa produktu wystarczy, a co w nim jest
+                  mówi lista pod spodem. Krótki, więc nie łamie się na telefonie. */}
+              <h2 className="max-w-2xl text-[26px] font-semibold tracking-tight text-fg md:text-[38px] md:leading-[1.1]">
                 Raport o działce
-              </div>
-
-              {/* Nagłówek mówi, co dostajesz, a nie jak narzędzie się nazywa (nazwa jest wyżej
-                  i na przycisku). To dwa pytania, od których zaczyna każdy przy działce. */}
-              <h2 className="mt-4 max-w-2xl text-balance text-[24px] font-semibold leading-[1.2] tracking-tight text-fg md:text-[38px] md:leading-[1.1]">
-                Co wolno tu zbudować i ile ta ziemia kosztuje
               </h2>
 
               <div className="mt-8 grid gap-x-14 gap-y-4 sm:grid-cols-2 lg:grid-cols-1">
@@ -331,25 +327,30 @@ export default async function HomePage() {
 
             {/* DOWÓD: prawdziwa działka, prawdziwe liczby, jedno kliknięcie do pełnego raportu. */}
             {przyklad ? (
-              <div className="rounded-3xl border border-fg/12 bg-surface/75 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.05)] md:p-8">
-                <div className="text-[11px] uppercase tracking-[0.2em] text-fg/45">
-                  Przykład
+              // Bez ramki i cienia: ten sam język co raport na `/sprawdz-dzialke` (zielona
+              // etykieta, duża liczba, cienkie linie), więc przykład wygląda jak kawałek
+              // produktu, a nie jak wklejony kafelek.
+              <div className="lg:border-l lg:border-fg/12 lg:pl-16 lg:pt-1">
+                <div className="text-[12px] uppercase tracking-[0.2em] text-brand-text">
+                  Przykładowa działka
                 </div>
 
-                <div className="mt-3 text-[24px] font-semibold tracking-tight text-fg">
-                  {formatIntPL(DEMO_PARCEL.areaM2)} m²
+                <div className="mt-2 text-[26px] font-semibold tracking-tight text-fg md:text-[32px]">
+                  {formatIntPL(DEMO_PARCEL.areaM2)} m² · {Math.round(DEMO_PARCEL.areaM2 / 100)} ar
                 </div>
-                <div className="mt-1 text-sm text-fg/60">
-                  {DEMO_PARCEL.commune}, {DEMO_PARCEL.county}
+                <div className="mt-2 text-[15px] text-fg/60">
+                  {[DEMO_PARCEL.commune, DEMO_PARCEL.county, DEMO_PARCEL.voivodeship]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </div>
 
-                <dl className="mt-6 space-y-4 border-t border-fg/10 pt-5 text-[15px]">
+                <dl className="mt-7 border-t border-fg/12">
                   {DEMO_MPZP?.functionName ? (
-                    <div>
+                    <div className="border-b border-fg/10 py-4">
                       <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
                         Plan miejscowy
                       </dt>
-                      <dd className="mt-1 leading-6 text-fg/85">
+                      <dd className="mt-1.5 text-[15px] leading-6 text-fg/85">
                         {DEMO_MPZP.functionName}
                         {DEMO_MPZP.functionSymbol ? ` (${DEMO_MPZP.functionSymbol})` : ''}
                       </dd>
@@ -357,22 +358,22 @@ export default async function HomePage() {
                   ) : null}
 
                   {przyklad.ofertyZlM2 ? (
-                    <div>
+                    <div className="border-b border-fg/10 py-4">
                       <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
                         Ceny z ogłoszeń w okolicy
                       </dt>
-                      <dd className="mt-1 font-medium text-fg">
+                      <dd className="mt-1.5 text-[15px] font-medium text-fg">
                         {formatIntPL(przyklad.ofertyZlM2)} zł/m²
                       </dd>
                     </div>
                   ) : null}
 
                   {przyklad.rcn ? (
-                    <div>
+                    <div className="border-b border-fg/10 py-4">
                       <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
                         Realnie zapłacono u notariusza
                       </dt>
-                      <dd className="mt-1 font-medium text-brand-text">
+                      <dd className="mt-1.5 text-[15px] font-medium text-brand-text">
                         {formatIntPL(przyklad.rcn.medianaZlM2)} zł/m²
                         <span className="ml-2 text-[13px] font-normal text-fg/45">
                           z {przyklad.rcn.liczba} aktów
@@ -382,11 +383,14 @@ export default async function HomePage() {
                   ) : null}
                 </dl>
 
+                {/* Link prowadzi na samo narzędzie, bo ten sam przykład stoi tam pod wyszukiwarką.
+                    Wersja z numerem działki w adresie odpytywała rejestr od nowa i przez chwilę
+                    pokazywała to samo demo, więc kliknięcie wyglądało, jakby nic nie zrobiło. */}
                 <Link
-                  href={`/sprawdz-dzialke?d=${encodeURIComponent(DEMO_PARCEL.id)}`}
-                  className="mt-6 inline-flex text-sm text-fg/80 underline decoration-1 underline-offset-4 transition hover:text-fg"
+                  href="/sprawdz-dzialke"
+                  className="mt-5 inline-flex text-sm text-fg/80 underline decoration-1 underline-offset-4 transition hover:text-fg"
                 >
-                  Zobacz cały raport tej działki →
+                  Zobacz cały przykładowy raport →
                 </Link>
               </div>
             ) : null}
