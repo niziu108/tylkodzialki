@@ -267,45 +267,39 @@ export default async function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
-          {/* Bez zielonej etykietki nad nagłówkiem: powtarzała słowo „sprawdź" tuż nad nim, a sam
-              nagłówek jest krótki, więc na telefonie nie łamie się na osieroconą linię. */}
-          <h2 className="max-w-3xl text-[26px] font-semibold tracking-tight text-fg md:text-[38px] md:leading-[1.1]">
+          {/* Etykietka niesie treść („co znajdziesz"), więc nie powtarza już nagłówka pod sobą
+              i zastępuje osobny podtytuł nad listą. */}
+          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+            Co znajdziesz w raporcie
+          </div>
+
+          <h2 className="mt-4 max-w-3xl text-[26px] font-semibold tracking-tight text-fg md:text-[38px] md:leading-[1.1]">
             Sprawdź działkę
           </h2>
 
-          {/* Bez zakładania roli: korzysta z tego kupujący, pośrednik przed spotkaniem i deweloper.
-              Drugi akapit tylko na dużym ekranie, gdzie sama zajawka zostawiała pustą płachtę. */}
-          <p className="mt-5 max-w-2xl text-base leading-8 text-fg/70 md:text-lg">
-            Wpisz adres albo wskaż ją na mapie. Raport masz w kilka sekund, za darmo i bez konta.
-          </p>
-
-          <p className="mt-4 hidden max-w-2xl text-base leading-8 text-fg/60 md:block">
-            Zaglądamy do ewidencji gruntów, planu miejscowego i planu ogólnego gminy, dokładamy
-            ceny z ogłoszeń w okolicy oraz kwoty z aktów notarialnych. To dane, po które inaczej
-            trzeba jechać do gminy i do starostwa, zebrane w jednym miejscu.
-          </p>
-
+          {/* Od razu konkret zamiast zajawki: lista mówi więcej niż akapit o tym, że coś zbieramy.
+              Przycisk ląduje dopiero pod nią, bo tuż pod nagłówkiem gryzł się z nim na telefonie. */}
           <div className="mt-8">
-            <Link
-              href="/sprawdz-dzialke"
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright"
-            >
-              Sprawdź działkę
-            </Link>
-          </div>
-
-          <div className="mt-12 border-t border-fg/12 pt-8">
-            <h3 className="text-[12px] font-medium uppercase tracking-[0.18em] text-fg/55">
-              W raporcie znajdziesz
-            </h3>
-
-            <div className="mt-6 grid gap-x-14 gap-y-4 md:grid-cols-2">
+            <div className="grid gap-x-14 gap-y-4 md:grid-cols-2">
               {W_RAPORCIE.map((item) => (
                 <div key={item} className="flex items-start gap-3">
                   <CheckIcon className="mt-[3px] h-[18px] w-[18px]" />
                   <p className="text-[15px] leading-7 text-fg/75">{item}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-10">
+              <Link
+                href="/sprawdz-dzialke"
+                className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright"
+              >
+                Sprawdź działkę
+              </Link>
+
+              <p className="mt-3 text-sm text-fg/60">
+                Wpisujesz adres albo wskazujesz działkę na mapie. Za darmo i bez konta.
+              </p>
             </div>
           </div>
         </div>
