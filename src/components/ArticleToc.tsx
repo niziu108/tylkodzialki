@@ -37,6 +37,15 @@ export default function ArticleToc({ headings }: { headings: TocHeading[] }) {
             </span>
             <a
               href={`#${h.id}`}
+              onClick={(e) => {
+                // Płynne przewijanie tylko tutaj, w obrębie jednej strony. Globalny
+                // `scroll-behavior: smooth` psuł wchodzenie na kolejne strony (patrz globals.css).
+                const cel = document.getElementById(h.id);
+                if (!cel) return;
+                e.preventDefault();
+                cel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                history.replaceState(null, '', `#${h.id}`);
+              }}
               className="text-[15px] leading-6 text-fg/70 transition hover:text-fg"
             >
               {h.text}

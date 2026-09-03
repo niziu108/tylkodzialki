@@ -298,9 +298,11 @@ html.preview-active .global-nav { display: none !important; }
   display: none;
 }
 
-html {
-  scroll-behavior: smooth;
-}
+/* NIE dawać tu `scroll-behavior: smooth`. Next po przejściu na nową stronę wywołuje skok do
+   góry, a ta reguła zamienia go w animację startującą z miejsca, w którym stał czytelnik.
+   Gdy w jej trakcie cokolwiek się doładuje albo ktoś dotknie ekranu, animacja staje w połowie
+   i strona otwiera się „lekko przewinięta". Płynność tam, gdzie jej chcemy (spis treści,
+   wyniki wyszukiwania, raport), robimy przez `scrollIntoView({ behavior: 'smooth' })`. */
 
 .font-bungee {
   font-family: var(--font-bungee), sans-serif;
