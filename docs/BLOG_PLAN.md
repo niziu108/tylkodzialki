@@ -114,7 +114,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Działka jako lokata kapitału: plusy i minusy (slug: dzialka-jako-lokata-kapitalu-plusy-minusy)
 - [x] Jak zarabiać na podziale działki (slug: jak-zarabiac-na-podziale-dzialki)
 - [x] Flipping działek: na czym polega (slug: flipping-dzialek-na-czym-polega)
-- [ ] Działka pod wynajem (parking, magazyn, reklama)
+- [x] Działka pod wynajem (parking, magazyn, reklama) (slug: dzialka-pod-wynajem-parking-magazyn-reklama)
 - [x] Gdzie kupować działki pod inwestycję (slug: gdzie-kupowac-dzialki-pod-inwestycje)
 - [x] Jak wyłapać działkę z potencjałem (slug: jak-wylapac-dzialke-z-potencjalem)
 - [ ] Ziemia rolna jako inwestycja długoterminowa
