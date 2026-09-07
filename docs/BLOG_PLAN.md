@@ -94,7 +94,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Łąka, pastwisko, grunt orny: co oznaczają oznaczenia (slug: oznaczenia-uzytkow-laka-pastwisko-grunt-orny)
 
 ## Sprzedaż działki
-- [ ] Jak sprzedać działkę szybko i drożej
+- [x] Jak sprzedać działkę szybko i drożej (slug: jak-sprzedac-dzialke-szybko-i-drozej)
 - [x] Jak wycenić działkę przed sprzedażą (slug: jak-wycenic-dzialke-przed-sprzedaza)
 - [x] Jak przygotować działkę do sprzedaży (slug: jak-przygotowac-dzialke-do-sprzedazy)
 - [x] Dokumenty potrzebne do sprzedaży działki (slug: dokumenty-do-sprzedazy-dzialki)
