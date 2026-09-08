@@ -395,9 +395,8 @@ export default function SprawdzSearch({
               Sprawdź działkę za darmo
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-[15px] leading-7 text-fg/70 md:text-base">
-              Granice i powierzchnia z ewidencji gruntów, przeznaczenie z planu miejscowego i ceny
-              w okolicy. Wpisz adres albo sam obręb i numer działki, bo adresu większość działek
-              nie ma. Raport w kilka sekund, bez logowania i bez konta.
+              Wpisz adres albo sam obręb i numer działki. Raport w kilka sekund, bez logowania i
+              bez konta.
             </p>
           </div>
 
