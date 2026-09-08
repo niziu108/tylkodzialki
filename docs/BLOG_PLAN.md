@@ -64,7 +64,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Przyłącze gazowe: procedura i koszt (slug: przylacze-gazowe-do-dzialki-procedura-koszt)
 - [x] Szambo, oczyszczalnia czy kanalizacja: co wybrać (slug: szambo-oczyszczalnia-czy-kanalizacja)
 - [x] Studnia na działce: pozwolenie i koszt (slug: studnia-na-dzialce-pozwolenie-i-koszt)
-- [ ] Jak utwardzić drogę dojazdową do działki
+- [x] Jak utwardzić drogę dojazdową do działki (slug: jak-utwardzic-droge-dojazdowa-do-dzialki)
 - [ ] Warunki techniczne przyłączy: jak je uzyskać
 - [x] Od czego zacząć budowę domu na działce (slug: od-czego-zaczac-budowe-domu-na-dzialce)
 - [ ] Dziennik budowy i kierownik budowy: co musisz wiedzieć
