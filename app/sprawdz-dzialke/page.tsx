@@ -16,12 +16,12 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: 'Sprawdź działkę: granice, powierzchnia i orientacyjna cena w jednym raporcie',
   description:
-    'Wpisz adres albo wskaż działkę na mapie, a pokażemy granice, powierzchnię i numer działki z rejestru GUGiK, przeznaczenie z planu miejscowego (MPZP) oraz orientacyjną cenę okolicy. Za darmo.',
+    'Wpisz adres, podaj obręb i numer działki albo wskaż ją na mapie, a pokażemy granice, powierzchnię i numer działki z rejestru GUGiK, przeznaczenie z planu miejscowego (MPZP) oraz orientacyjną cenę okolicy. Za darmo.',
   alternates: { canonical: '/sprawdz-dzialke' },
   openGraph: {
     title: 'Sprawdź działkę | tylkodzialki.pl',
     description:
-      'Granice, powierzchnia i numer działki z GUGiK, przeznaczenie z planu miejscowego i orientacyjna cena. Wpisz adres albo wskaż działkę na mapie.',
+      'Granice, powierzchnia i numer działki z GUGiK, przeznaczenie z planu miejscowego i orientacyjna cena. Wpisz adres, podaj obręb i numer działki albo wskaż ją na mapie.',
     url: '/sprawdz-dzialke',
     type: 'website',
   },
@@ -62,7 +62,7 @@ const FAQ: FaqItem[] = [
   {
     question: 'Skąd bierzecie granice i powierzchnię działki?',
     answer:
-      'Z publicznego rejestru ewidencji gruntów (usługa ULDK prowadzona przez GUGiK). Odpytujemy go dla punktu, który wskażesz na mapie lub który wynika z wpisanego adresu, więc dane dotyczą konkretnej działki, a nie przybliżenia.',
+      'Z publicznego rejestru ewidencji gruntów (usługa ULDK prowadzona przez GUGiK). Odpytujemy go dla punktu, który wskażesz na mapie, dla adresu, który wpiszesz, albo wprost dla obrębu i numeru działki, więc dane dotyczą konkretnej działki, a nie przybliżenia.',
   },
   {
     question: 'Czy orientacyjna cena to wycena działki?',
@@ -85,9 +85,9 @@ const FAQ: FaqItem[] = [
       'Plan miejscowy to prawo lokalne, które z góry określa, co i jak można zbudować na działce. Gdy planu nie ma, o zabudowie decyduje indywidualna decyzja o warunkach zabudowy (WZ). Jeśli dla wskazanej działki nie znajdziemy planu w krajowej integracji, mówimy o tym wprost, bo najczęściej znaczy to właśnie tryb WZ.',
   },
   {
-    question: 'Czy mogę sprawdzić działkę po samym numerze ewidencyjnym?',
+    question: 'Czy mogę sprawdzić działkę po numerze, bez adresu?',
     answer:
-      'Na razie nie. Działkę wskazujesz adresem albo klikając ją na mapie, bo tak szuka większość osób. Numer ewidencyjny, obręb i identyfikator dostajesz w raporcie, więc możesz stąd wziąć je do urzędu czy księgi wieczystej.',
+      'Tak, i najczęściej właśnie tak trzeba, bo większość działek w Polsce nie ma żadnego adresu. Przełącz wyszukiwarkę na „Numer działki", podaj obręb (nazwę, na przykład Domiechowice, albo numer, na przykład 08) i numer działki, na przykład 123/4. Obie te rzeczy są w akcie notarialnym, w księdze wieczystej i w wypisie z ewidencji gruntów. Nazwy obrębów powtarzają się w kraju, więc gdy pasuje kilka działek, pokazujemy listę z gminą i powiatem i wybierasz swoją. Możesz też wkleić cały identyfikator w formacie 100102_2.0006.100.',
   },
   {
     question: 'Czy dane są aktualne i wiążące?',
@@ -139,9 +139,9 @@ export default async function SprawdzDzialkePage() {
           </h2>
           <p className="mt-4 max-w-3xl text-[15px] leading-8 text-fg/70 md:text-base">
             Ogłoszenie mówi metraż i cenę. Reszty, czyli tego, co decyduje o zakupie, szuka się
-            zwykle w gminie, w starostwie i w geoportalu, każdej rzeczy gdzie indziej. Wskaż
-            działkę na mapie albo wpisz adres, a zbierzemy to za Ciebie w kilka sekund. Za darmo,
-            bez logowania i tyle razy, ile chcesz.
+            zwykle w gminie, w starostwie i w geoportalu, każdej rzeczy gdzie indziej. Wpisz adres,
+            podaj obręb i numer działki z dokumentów albo wskaż ją na mapie, a zbierzemy to za
+            Ciebie w kilka sekund. Za darmo, bez logowania i tyle razy, ile chcesz.
           </p>
 
           <div className="mt-10 grid gap-x-14 gap-y-9 md:mt-12 md:grid-cols-2">
@@ -181,7 +181,9 @@ export default async function SprawdzDzialkePage() {
               Kupno działki zaczyna się od prostego pytania: gdzie dokładnie leżą jej granice i ile
               ma metrów. Nasze narzędzie odpowiada na nie od razu. Klikasz działkę na mapie albo
               wpisujesz adres, a my odpytujemy publiczny rejestr ewidencji gruntów (ULDK, GUGiK) i
-              rysujemy obrys działki wraz z powierzchnią i numerem ewidencyjnym.
+              rysujemy obrys działki wraz z powierzchnią i numerem ewidencyjnym. Adresu nie ma
+              jednak większość działek w Polsce, więc równie dobrze możesz podać sam obręb i numer
+              działki, czyli dokładnie to, co stoi w akcie notarialnym i w księdze wieczystej.
             </p>
             <p>
               Odczytujemy też plan miejscowy z Krajowej Integracji MPZP i wyciągamy z niego

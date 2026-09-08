@@ -13,6 +13,7 @@
 //   2) GetParcelById w SRID 4326 (WGS84) -> geometria do narysowania obrysu na Google Maps.
 
 import { isInPoland } from '@/lib/geo';
+import { buildParcelQueries } from '@/lib/uldkQuery';
 
 const ULDK_BASE = 'https://uldk.gugik.gov.pl/';
 
@@ -49,14 +50,29 @@ function parseUldkRows(body: string): string[] {
   return lines.slice(1).filter((l) => l.trim().length > 0);
 }
 
-async function uldkFetch(params: Record<string, string>): Promise<string> {
+async function uldkFetch(
+  params: Record<string, string>,
+  opts: { timeoutMs?: number } = {}
+): Promise<string> {
   const url = new URL(ULDK_BASE);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
-  const res = await fetch(url.toString(), {
-    // Geometria działki jest praktycznie statyczna — cache długo, jesteśmy grzeczni dla GUGiK.
-    next: { revalidate: 60 * 60 * 24 * 7 },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      // Geometria działki jest praktycznie statyczna — cache długo, jesteśmy grzeczni dla GUGiK.
+      next: { revalidate: 60 * 60 * 24 * 7 },
+      // Wyszukiwanie po nazwie obrębu GUGiK obsługuje we WSZYSTKICH powiatach, w których taka
+      // nazwa występuje, więc potrafi trwać kilka sekund. Limit czasu jest po to, żeby przy
+      // zadyszce usługi user dostał komunikat, a nie wiszącą stronę.
+      ...(opts.timeoutMs ? { signal: AbortSignal.timeout(opts.timeoutMs) } : {}),
+    });
+  } catch (err) {
+    if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+      throw new UldkError('Rejestr działek (GUGiK) nie odpowiedział na czas. Spróbuj ponownie.');
+    }
+    throw err;
+  }
   if (!res.ok) throw new UldkError(`ULDK HTTP ${res.status}`);
   return res.text();
 }
@@ -290,4 +306,91 @@ export async function getParcelById(id: string): Promise<ParcelReport | null> {
   const row = rows[0];
   const base = baseFromRow2180(extractId(row) ? row : `${clean}|${row}`);
   return buildReport(base);
+}
+
+// ── Wyszukiwanie działki po obrębie i numerze (bez adresu) ───────────────────
+// Większość działek w Polsce nie ma adresu. Właściciel ma za to akt notarialny, wypis z ewidencji
+// albo księgę wieczystą, a tam stoi obręb i numer działki. GUGiK szuka po tej parze we WSZYSTKICH
+// powiatach naraz (GetParcelByIdOrNr), więc „Dąbrowa 12" potrafi zwrócić kilkadziesiąt działek
+// w całej Polsce. Nie zgadujemy, o którą chodzi: oddajemy listę z jednostkami administracyjnymi
+// i to user wskazuje swoją ([[feedback-filtry-twarde]]).
+
+export type ParcelCandidate = {
+  id: string; // pełny identyfikator ewidencyjny, np. 100102_2.0006.100
+  parcelNumber: string; // numer działki, np. 100
+  voivodeship: string;
+  county: string;
+  commune: string;
+  region: string; // obręb: nazwa („Domiechowice") albo numer („08") — zależnie od powiatu
+};
+
+const CANDIDATE_LIMIT = 80;
+const SEARCH_TIMEOUT_MS = 20_000;
+
+// Wiersz „id|woj|powiat|gmina|obreb|numer" z GetParcelByIdOrNr.
+function candidateFromRow(row: string): ParcelCandidate | null {
+  const cols = row.split('|').map((c) => c.trim());
+  const id = cols[0] ?? '';
+  if (!id) return null;
+
+  return {
+    id,
+    parcelNumber: cols[5] || parcelNumberFromId(id),
+    voivodeship: cols[1] ?? '',
+    county: cols[2] ?? '',
+    commune: cols[3] ?? '',
+    region: cols[4] ?? '',
+  };
+}
+
+/**
+ * Działki pasujące do obrębu i numeru. `region` przyjmuje nazwę obrębu („Domiechowice"), jego
+ * numer („8", „08", „0008" — pytamy o wszystkie warianty, bo każdy powiat zapisuje go inaczej)
+ * albo gotowy identyfikator ewidencyjny. Pusta lista = nie ma takiej działki w rejestrze.
+ */
+export async function findParcels(region: string, number: string): Promise<ParcelCandidate[]> {
+  const queries = buildParcelQueries(region, number);
+  if (queries.length === 0) return [];
+
+  const settled = await Promise.allSettled(
+    queries.map((id) =>
+      uldkFetch(
+        {
+          request: 'GetParcelByIdOrNr',
+          id,
+          result: 'id,voivodeship,county,commune,region,parcel',
+        },
+        { timeoutMs: SEARCH_TIMEOUT_MS }
+      )
+    )
+  );
+
+  // Zadyszka jednego wariantu numeru obrębu nie może kasować wyników pozostałych; dopiero gdy
+  // padły wszystkie, mówimy o awarii zamiast udawać, że działki nie ma.
+  const ok = settled.filter((s) => s.status === 'fulfilled');
+  if (ok.length === 0) {
+    const first = settled[0];
+    if (first && first.status === 'rejected') {
+      throw first.reason instanceof Error ? first.reason : new UldkError('Błąd usługi ULDK.');
+    }
+    return [];
+  }
+
+  const byId = new Map<string, ParcelCandidate>();
+  for (const s of ok) {
+    for (const row of parseUldkRows((s as PromiseFulfilledResult<string>).value)) {
+      const candidate = candidateFromRow(row);
+      if (candidate && !byId.has(candidate.id)) byId.set(candidate.id, candidate);
+    }
+  }
+
+  return [...byId.values()]
+    .sort(
+      (a, b) =>
+        a.voivodeship.localeCompare(b.voivodeship, 'pl') ||
+        a.county.localeCompare(b.county, 'pl') ||
+        a.commune.localeCompare(b.commune, 'pl') ||
+        a.region.localeCompare(b.region, 'pl')
+    )
+    .slice(0, CANDIDATE_LIMIT);
 }

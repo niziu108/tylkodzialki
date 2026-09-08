@@ -5,6 +5,9 @@ import { loadGoogleMaps } from '@/lib/googleMaps';
 import { createParcelOverlay } from '@/lib/parcelOverlay';
 import HeroGradientBg from '@/components/HeroGradientBg';
 import Raport, { type RaportData } from './Raport';
+import type { ParcelCandidate } from '@/lib/uldk';
+import { powiatLabelFromUldk } from '@/lib/uldkQuery';
+import { plural } from '@/lib/plural';
 
 // P24: wyszukiwarka narzędzia w oprawie hero jak na stronie głównej (zdjęcie + ciemna
 // nakładka + karta z polami). Punkt wskazuje UŻYTKOWNIK (adres / obręb i numer / pinezka).
@@ -75,6 +78,16 @@ export default function SprawdzSearch({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RaportData | null>(null);
+
+  // Dwa wejścia do tego samego raportu. „Adres" działa, gdy działka go ma; większość działek
+  // w Polsce nie ma żadnego adresu, za to właściciel ma w dokumentach obręb i numer ewidencyjny
+  // — i to jest tryb „Numer działki". Ta sama para (obręb, numer) powtarza się w wielu powiatach,
+  // więc wynikiem bywa lista, z której user wskazuje swoją działkę.
+  const [mode, setMode] = useState<'adres' | 'numer'>('adres');
+  const [obreb, setObreb] = useState('');
+  const [numer, setNumer] = useState('');
+  const [candidates, setCandidates] = useState<ParcelCandidate[] | null>(null);
+  const [candidateFilter, setCandidateFilter] = useState('');
 
   function placeMarker(p: Point, zoom = 17) {
     const map = mapRef.current;
@@ -273,9 +286,99 @@ export default function SprawdzSearch({
     }
   }
 
-  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') handleCheck();
+  // Wspólne domknięcie obu trybów: z identyfikatora działki robimy raport w tym samym miejscu,
+  // co przy wskazaniu pinezką. Błędy rzuca dalej — wołający decyduje, gdzie je pokazać.
+  async function pokazRaport(parcelId: string) {
+    setResult(null);
+    const json = await pobierzRaport({ parcelId });
+    setResult(json);
+    zapiszWAdresie(json.parcel.id);
+    setCandidates(null);
+    setMapOpen(false);
   }
+
+  // Tryb „numer działki": pytamy rejestr GUGiK o obręb i numer. Jedna pasująca działka -> od razu
+  // raport; kilka (bo nazwy obrębów powtarzają się w całej Polsce) -> lista do wyboru. Nie
+  // zgadujemy, o którą chodzi ([[feedback-filtry-twarde]]).
+  async function handleSzukajPoNumerze() {
+    if (loading) return;
+    setError(null);
+
+    const o = obreb.trim();
+    const n = numer.trim();
+    if (!o) {
+      setError('Wpisz obręb (nazwę albo numer), a obok numer działki.');
+      return;
+    }
+    // Sam obręb bez numeru ma sens tylko wtedy, gdy user wkleił wszystko w jedno pole
+    // („Domiechowice 100") albo gotowy identyfikator ewidencyjny.
+    if (!n && !/[\s.]/.test(o)) {
+      setError('Wpisz jeszcze numer działki, np. 123/4.');
+      return;
+    }
+
+    setLoading(true);
+    setCandidates(null);
+    setCandidateFilter('');
+    try {
+      const res = await fetch(
+        `/api/sprawdz-dzialke/szukaj?obreb=${encodeURIComponent(o)}&numer=${encodeURIComponent(n)}`
+      );
+      const json = (await res.json()) as { items?: ParcelCandidate[]; error?: string };
+      if (!res.ok || json.error || !json.items) {
+        throw new Error(json.error ?? 'Nie udało się wyszukać działki.');
+      }
+
+      if (json.items.length === 0) {
+        setError(
+          'Nie znaleźliśmy takiej działki w rejestrze. Sprawdź pisownię obrębu i numer działki albo wskaż ją na mapie.'
+        );
+        return;
+      }
+      if (json.items.length === 1) {
+        await pokazRaport(json.items[0].id);
+        return;
+      }
+      setCandidates(json.items);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Nie udało się wyszukać działki.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function wybierzKandydata(parcelId: string) {
+    if (loading) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await pokazRaport(parcelId);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Nie udało się wczytać raportu tej działki.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handlePrimary() {
+    if (mode === 'numer') void handleSzukajPoNumerze();
+    else void handleCheck();
+  }
+
+  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') handlePrimary();
+  }
+
+  // Lista kandydatów bywa długa (ta sama „Dąbrowa 12" to kilkadziesiąt działek w Polsce), więc
+  // przy większej liczbie dokładamy pole zawężania. Filtrujemy to, co już mamy — bez dopytywania.
+  const filtrKandydatow = candidateFilter.trim().toLocaleLowerCase('pl-PL');
+  const widoczniKandydaci = (candidates ?? []).filter((c) =>
+    filtrKandydatow
+      ? `${c.commune} ${c.county} ${c.voivodeship} ${c.region}`
+          .toLocaleLowerCase('pl-PL')
+          .includes(filtrKandydatow)
+      : true
+  );
 
   return (
     <div className="w-full">
@@ -292,13 +395,43 @@ export default function SprawdzSearch({
               Sprawdź działkę za darmo
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-[15px] leading-7 text-fg/70 md:text-base">
-              Granice i powierzchnia z ewidencji gruntów, numer działki, przeznaczenie z planu
-              miejscowego i ceny w okolicy. Raport w kilka sekund, bez logowania i bez konta.
+              Granice i powierzchnia z ewidencji gruntów, przeznaczenie z planu miejscowego i ceny
+              w okolicy. Wpisz adres albo sam obręb i numer działki, bo adresu większość działek
+              nie ma. Raport w kilka sekund, bez logowania i bez konta.
             </p>
           </div>
 
           <div className="w-full max-w-2xl rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
-            <div className="rounded-xl border border-fg/25">
+            {/* Wybór wejścia. Pole adresu zostaje w DOM także w trybie numeru (tylko ukryte),
+                bo podpięty do niego podpowiadacz Google inicjuje się raz przy starcie i po
+                odmontowaniu inputu już by nie wrócił. */}
+            <div className="mb-4 flex overflow-hidden rounded-xl border border-fg/20 text-[12px] font-medium uppercase tracking-[0.14em]">
+              {(
+                [
+                  { value: 'adres', label: 'Adres' },
+                  { value: 'numer', label: 'Numer działki' },
+                ] as const
+              ).map((opt) => {
+                const active = mode === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setMode(opt.value);
+                      setError(null);
+                      setCandidates(null);
+                    }}
+                    aria-pressed={active}
+                    className={`flex-1 py-2.5 text-center transition ${active ? 'bg-brand text-ink' : 'text-fg/70 hover:text-fg'}`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={mode === 'adres' ? 'rounded-xl border border-fg/25' : 'hidden'}>
               <input
                 ref={addrRef}
                 onKeyDown={onKey}
@@ -306,6 +439,36 @@ export default function SprawdzSearch({
                 aria-label="Adres lub miejscowość działki"
                 className="w-full bg-transparent px-4 py-4 text-[16px] text-fg outline-none placeholder:text-fg/45"
               />
+            </div>
+
+            <div className={mode === 'numer' ? '' : 'hidden'}>
+              <div className="grid gap-3 sm:grid-cols-[1.35fr_1fr]">
+                <div className="rounded-xl border border-fg/25">
+                  <input
+                    value={obreb}
+                    onChange={(e) => setObreb(e.target.value)}
+                    onKeyDown={onKey}
+                    placeholder="Obręb: nazwa albo numer"
+                    aria-label="Obręb ewidencyjny: nazwa albo numer"
+                    className="w-full bg-transparent px-4 py-4 text-[16px] text-fg outline-none placeholder:text-fg/45"
+                  />
+                </div>
+                <div className="rounded-xl border border-fg/25">
+                  <input
+                    value={numer}
+                    onChange={(e) => setNumer(e.target.value)}
+                    onKeyDown={onKey}
+                    placeholder="Numer działki, np. 123/4"
+                    aria-label="Numer działki"
+                    className="w-full bg-transparent px-4 py-4 text-[16px] text-fg outline-none placeholder:text-fg/45"
+                  />
+                </div>
+              </div>
+              <p className="mt-3 text-[13px] leading-6 text-fg/55">
+                Obręb i numer działki znajdziesz w akcie notarialnym, w księdze wieczystej albo w
+                wypisie z ewidencji gruntów. Możesz też wkleić cały identyfikator, np.
+                100102_2.0006.100.
+              </p>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -319,13 +482,65 @@ export default function SprawdzSearch({
 
               <button
                 type="button"
-                onClick={handleCheck}
+                onClick={handlePrimary}
                 disabled={loading}
                 className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright disabled:opacity-60"
               >
-                {loading ? 'Sprawdzam…' : 'Sprawdź działkę'}
+                {loading ? 'Sprawdzam…' : mode === 'numer' ? 'Znajdź działkę' : 'Sprawdź działkę'}
               </button>
             </div>
+
+            {/* Ta sama para „obręb + numer" powtarza się w wielu powiatach, więc gdy pasuje
+                więcej niż jedna działka, wybór należy do usera. Pokazujemy gminę, powiat i
+                województwo, bo po tym człowiek pozna swoją okolicę. */}
+            {candidates && candidates.length > 1 && !loading ? (
+              <div className="mt-5 rounded-xl border border-fg/15 bg-surface/70 p-4">
+                <p className="text-[14px] leading-6 text-fg/75">
+                  <span className="font-medium text-fg">
+                    Taki numer w takim obrębie ma {candidates.length}{' '}
+                    {plural(candidates.length, 'działka', 'działki', 'działek')}
+                  </span>{' '}
+                  w różnych miejscach Polski. Wskaż swoją okolicę:
+                </p>
+
+                {candidates.length > 8 ? (
+                  <input
+                    value={candidateFilter}
+                    onChange={(e) => setCandidateFilter(e.target.value)}
+                    placeholder="Zawęź: gmina, powiat albo województwo"
+                    aria-label="Zawęź listę działek"
+                    className="mt-3 w-full rounded-lg border border-fg/25 bg-transparent px-3 py-2.5 text-[16px] text-fg outline-none placeholder:text-fg/45"
+                  />
+                ) : null}
+
+                <ul className="mt-3 max-h-72 space-y-1.5 overflow-y-auto pr-1">
+                  {widoczniKandydaci.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        onClick={() => wybierzKandydata(c.id)}
+                        className="w-full rounded-lg border border-fg/12 px-3 py-2.5 text-left transition hover:border-brand/60 hover:bg-brand/10"
+                      >
+                        <span className="block text-[14px] font-medium text-fg">
+                          {c.commune || c.county}
+                        </span>
+                        <span className="mt-0.5 block text-[12px] leading-5 text-fg/60">
+                          {powiatLabelFromUldk(c.county)}, {c.voivodeship} · obręb {c.region} ·
+                          działka {c.parcelNumber}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                {widoczniKandydaci.length === 0 ? (
+                  <p className="mt-3 text-[13px] leading-6 text-fg/55">
+                    Żadna z {candidates.length} znalezionych działek nie pasuje do tego zawężenia.
+                    Wpisz samą nazwę gminy albo powiatu.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             {loading ? (
               <p className="mt-4 text-sm text-fg/65">
