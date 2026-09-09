@@ -117,7 +117,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Działka pod wynajem (parking, magazyn, reklama) (slug: dzialka-pod-wynajem-parking-magazyn-reklama)
 - [x] Gdzie kupować działki pod inwestycję (slug: gdzie-kupowac-dzialki-pod-inwestycje)
 - [x] Jak wyłapać działkę z potencjałem (slug: jak-wylapac-dzialke-z-potencjalem)
-- [ ] Ziemia rolna jako inwestycja długoterminowa
+- [x] Ziemia rolna jako inwestycja długoterminowa (slug: ziemia-rolna-jako-inwestycja-dlugoterminowa)
 - [ ] Działka pod fotowoltaikę: dzierżawa dla inwestora
 - [x] ROI z działki: jak policzyć opłacalność (slug: roi-z-dzialki-jak-policzyc-oplacalnosc)
 - [ ] Jak znaleźć działki w okolicy planowanych inwestycji (UWAGA: możliwy duplikat „Jak sprawdzić planowane inwestycje w okolicy działki" — sprawdzić przed pisaniem)
