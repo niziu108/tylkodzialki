@@ -17,11 +17,13 @@ import {
   WodaStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { payloadForLog } from "@/lib/crm/log-policy";
 import { mapDojazd } from "@/lib/dojazd";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
 import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/crm/feed-signals";
+import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
 
 type IntegrationForSync = {
   id: string;
@@ -1016,7 +1018,8 @@ async function logSync(
       action: input.action,
       status: input.status,
       message: input.message ?? null,
-      payload: input.payload,
+      // Payload tylko tam, gdzie ratuje śledztwo — reguła i powód w log-policy.ts.
+      payload: payloadForLog(input.action, input.status, input.payload),
     },
   });
 }
@@ -1251,44 +1254,16 @@ async function deactivateExternalId(integrationId: string, externalId: string, r
   return "WYGASZONA";
 }
 
+// Wspólne wygaszanie z hamulcem udziału — szczegóły w deactivate-missing.ts.
 async function deactivateMissingOffers(integrationId: string, seenExternalIds: Set<string>) {
-  const now = new Date();
-
-  const linksToDeactivate = await prisma.crmOfferLink.findMany({
-    where: { integrationId, isActiveInSource: true, externalId: { notIn: [...seenExternalIds] } },
-    include: { dzialka: true },
+  const result = await deactivateOffersMissingFromFullExport({
+    integrationId,
+    seenExternalIds,
+    message: "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie EstiCRM.",
+    sourceLabel: "ESTICRM",
   });
 
-  let count = 0;
-
-  for (const link of linksToDeactivate) {
-    await prisma.$transaction(async (tx) => {
-      if (link.dzialka.status !== "ZAKONCZONE") {
-        await tx.dzialka.update({ where: { id: link.dzialkaId }, data: { status: "ZAKONCZONE", endedAt: now, crmLastSyncedAt: now } });
-      }
-
-      await tx.crmOfferLink.update({
-        where: { id: link.id },
-        data: { lastImportedAt: now, lastSeenAt: now, lastDeactivatedAt: now, isActiveInSource: false },
-      });
-
-      await tx.crmSyncLog.create({
-        data: {
-          integrationId,
-          dzialkaId: link.dzialkaId,
-          offerLinkId: link.id,
-          externalId: link.externalId,
-          action: "DEACTIVATE",
-          status: "SUCCESS",
-          message: "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie EstiCRM.",
-        },
-      });
-    });
-
-    count += 1;
-  }
-
-  return count;
+  return result.deactivated;
 }
 
 export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<SyncSummary> {

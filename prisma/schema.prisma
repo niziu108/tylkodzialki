@@ -623,6 +623,9 @@ model CrmOfferLink {
 
   @@unique([integrationId, externalId])
   @@index([integrationId])
+  // Skan podaży integracji stronami (bezpiecznik masowej deaktywacji czyta po kursorze `id`):
+  // bez tego przy kilku tysiacach ofert kazda strona sortuje caly zbior od nowa.
+  @@index([integrationId, id])
   @@index([dzialkaId])
   @@index([externalId])
   @@index([isActiveInSource])
@@ -646,6 +649,8 @@ model CrmSyncLog {
   offerLink   CrmOfferLink?  @relation(fields: [offerLinkId], references: [id], onDelete: SetNull)
 
   @@index([integrationId, createdAt])
+  // Retencja logow chodzi po samej dacie, bez integracji (src/lib/crm/log-retention.ts).
+  @@index([createdAt])
   @@index([dzialkaId])
   @@index([offerLinkId])
   @@index([externalId])

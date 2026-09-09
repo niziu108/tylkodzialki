@@ -26,6 +26,22 @@ async function reconcileSpellsSafely() {
   }
 }
 
+// Sprzątanie logów importu, jak rekoncyliator: poza transakcjami importu i bez prawa do jego
+// przewrócenia. Reguły i progi w src/lib/crm/log-retention.ts.
+async function retencjaLogowSafely() {
+  try {
+    const { runLogRetention } = await import("../src/lib/crm/log-retention");
+    const r = await runLogRetention({ apply: true });
+    if (r.payloadCleared || r.rowsDeleted) {
+      console.log(
+        `🧹 Logi CRM: zdjęto payload z ${r.payloadCleared} wpisów, usunięto ${r.rowsDeleted} starych wierszy.`,
+      );
+    }
+  } catch (error) {
+    console.error("⚠️ Retencja logów nie przeszła (import nietknięty):", error);
+  }
+}
+
 async function runSingleJob(jobId: string) {
   const { prisma } = await import("../src/lib/prisma");
   const { runCrmImportJob } = await import("../src/lib/crm/run-crm-job");
@@ -118,6 +134,12 @@ async function runLoop() {
   // Ustawiane po każdym jobie, konsumowane dopiero gdy kolejka opustoszeje.
   let historiaDoUzupelnienia = false;
 
+  // Retencja logów importu. Domyślnie WYŁĄCZONA: kasuje dane, więc włącza się świadomie przez
+  // CRM_LOG_RETENTION_AUTO=1 na VPS. Chodzi raz na dobę, po opróżnieniu kolejki, z limitem na
+  // przebieg — zaległości schodzą stopniowo, bez uderzenia w bazę w środku importu.
+  const RETENCJA_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  let lastRetencjaAt = 0;
+
   while (true) {
     try {
       if (Date.now() - lastSweepAt >= SWEEP_INTERVAL_MS) {
@@ -135,6 +157,14 @@ async function runLoop() {
         if (historiaDoUzupelnienia) {
           historiaDoUzupelnienia = false;
           await reconcileSpellsSafely();
+        }
+
+        if (
+          process.env.CRM_LOG_RETENTION_AUTO === "1" &&
+          Date.now() - lastRetencjaAt >= RETENCJA_INTERVAL_MS
+        ) {
+          lastRetencjaAt = Date.now();
+          await retencjaLogowSafely();
         }
 
         await new Promise((resolve) =>

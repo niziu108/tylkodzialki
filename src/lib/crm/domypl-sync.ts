@@ -22,6 +22,7 @@ import {
 } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
+import { payloadForLog } from "@/lib/crm/log-policy";
 import { mapDojazd } from "@/lib/dojazd";
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
@@ -33,6 +34,7 @@ import {
   wildcardToRegExp,
 } from "@/lib/crm/feed-batching";
 import { planFeedPrune, readPrunePolicyFromEnv } from "@/lib/crm/feed-pruning";
+import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
 
 type IntegrationForSync = {
   id: string;
@@ -1457,7 +1459,8 @@ async function logSync(
       action: input.action,
       status: input.status,
       message: input.message ?? null,
-      payload: input.payload,
+      // Payload tylko tam, gdzie ratuje śledztwo — reguła i powód w log-policy.ts.
+      payload: payloadForLog(input.action, input.status, input.payload),
     },
   });
 }
@@ -1793,64 +1796,18 @@ async function processOffer(
   return wasEnded ? "REACTIVATE" : "UPDATE";
 }
 
+// Wygaszanie po pełnym eksporcie żyje we wspólnym module: ma hamulec udziału (urwany eksport nie
+// kasuje całej podaży biura), czyta podaż stronami zamiast `notIn` z tysiącami parametrów
+// i zapisuje partiami. Patrz deactivate-missing.ts i mass-deactivation.ts.
 async function deactivateMissingOffers(integrationId: string, seenExternalIds: Set<string>) {
-  const now = new Date();
-
-  const linksToDeactivate = await prisma.crmOfferLink.findMany({
-    where: {
-      integrationId,
-      isActiveInSource: true,
-      externalId: {
-        notIn: [...seenExternalIds],
-      },
-    },
-    include: {
-      dzialka: true,
-    },
+  const result = await deactivateOffersMissingFromFullExport({
+    integrationId,
+    seenExternalIds,
+    message: "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie.",
+    sourceLabel: "CRM",
   });
 
-  let count = 0;
-
-  for (const link of linksToDeactivate) {
-    await prisma.$transaction(async (tx) => {
-      if (link.dzialka.status !== "ZAKONCZONE") {
-        await tx.dzialka.update({
-          where: { id: link.dzialkaId },
-          data: {
-            status: "ZAKONCZONE",
-            endedAt: now,
-            crmLastSyncedAt: now,
-          },
-        });
-      }
-
-      await tx.crmOfferLink.update({
-        where: { id: link.id },
-        data: {
-          lastImportedAt: now,
-          lastSeenAt: now,
-          lastDeactivatedAt: now,
-          isActiveInSource: false,
-        },
-      });
-
-      await tx.crmSyncLog.create({
-        data: {
-          integrationId,
-          dzialkaId: link.dzialkaId,
-          offerLinkId: link.id,
-          externalId: link.externalId,
-          action: "DEACTIVATE",
-          status: "SUCCESS",
-          message: "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie.",
-        },
-      });
-    });
-
-    count += 1;
-  }
-
-  return count;
+  return result.deactivated;
 }
 
 // R-C: aktywne usuwanie różnicowe — gasi konkretne oferty wskazane przez <oferta_usun>.
