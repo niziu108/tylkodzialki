@@ -72,12 +72,23 @@ w jednym `/sitemap.xml` z `take: 45000` na ofertach. Teraz `/sitemap.xml` jest i
 siedzi w `/sitemap-strony.xml` i `/sitemap-oferty/N.xml` (po 20 tys. ofert). Adres wejściowy się nie
 zmienił, więc robots.txt i to, co Google ma zapamiętane, zostaje ważne.
 
+## Wykonane na produkcji 2026-09-09
+
+Sprzątnięcie zaległości: `npm run crm:logi -- --apply` zdjął payload z 1 279 615 wpisów i usunął
+2 124 rutynowe wiersze (dwa przebiegi, łącznie ~21 minut). Payloady leżały w tabeli TOAST, więc
+plik nie zmalał sam z siebie: `VACUUM FULL "CrmSyncLog"` (345 s, przy pustej kolejce importu)
+sprowadził tabelę z 10 172 MB do 2 567 MB.
+
+Pozostałe ~1,9 GB to payloady z ostatnich 14 dni, czyli okno diagnostyczne, którego retencja nie
+rusza. Wpadną pod próg za dwa tygodnie — wtedy warto powtórzyć `npm run crm:logi -- --apply`
+(albo włączyć automat). Docelowy rozmiar tabeli to okolice 600–700 MB.
+
 ## Czeka na decyzję
 
-1. **Sprzątnięcie zaległych logów.** `npm run crm:logi -- --apply` na produkcji: 1,28 mln wpisów
-   do odchudzenia, około 7 GB. Operacja kasuje dane (same payloady), więc nie została wykonana.
-2. **Indeksy.** `prisma/skala-indeksy.sql`: `CrmOfferLink(integrationId, id)` pod skan podaży
+1. **Indeksy.** `prisma/skala-indeksy.sql`: `CrmOfferLink(integrationId, id)` pod skan podaży
    i `CrmSyncLog(createdAt)` pod retencję. Zmiana schematu na żywej bazie, do wykonania świadomie.
+2. **Automat retencji.** `CRM_LOG_RETENTION_AUTO=1` w env workera na VPS. Bez niego sprzątanie
+   trzeba uruchamiać ręcznie co kilka tygodni.
 3. **Kredyty publikacji.** Dziś `paymentsEnabled = false`, więc import wielkiego partnera przechodzi.
    Po włączeniu płatności biuro z 4 tys. ofert wpadnie w `SKIP_NO_CREDITS` i import stanie: konta
    partnerskie będą potrzebowały wyłączenia limitu albo puli kredytów.
