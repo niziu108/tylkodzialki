@@ -84,7 +84,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] ~~Ustawa o obrocie ziemią rolną: co musisz wiedzieć~~ POKRYTE w „Kto może kupić działkę rolną" (slug: kto-moze-kupic-dzialke-rolna) — progi 0,3/1 ha, rolnik indywidualny, KOWR, wyjątki.
 - [x] ~~Jak przekształcić działkę rolną w budowlaną~~ DUPLIKAT: ta sama intencja co „Odrolnienie działki" (slug: odrolnienie-dzialki-kiedy-i-jak) + „Wyłączenie gruntu z produkcji rolnej".
 - [x] Dzierżawa gruntów rolnych: jak działa (slug: dzierzawa-gruntow-rolnych-jak-dziala)
-- [ ] Dopłaty do gruntów rolnych: kto może dostać
+- [x] Dopłaty do gruntów rolnych: kto może dostać (slug: doplaty-do-gruntow-rolnych-kto-moze-dostac)
 - [x] Działka rolna do 0,3 ha: zasady zabudowy (slug: dzialka-rolna-do-0-3-ha-zasady-zabudowy)
 - [ ] Klasa bonitacyjna a odrolnienie
 - [x] Co można wybudować na działce rolnej bez odrolnienia (slug: co-wybudowac-na-dzialce-rolnej-bez-odrolnienia)
