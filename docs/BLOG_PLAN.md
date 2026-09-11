@@ -91,7 +91,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Co można wybudować na działce rolnej bez odrolnienia (slug: co-wybudowac-na-dzialce-rolnej-bez-odrolnienia)
 - [x] Sprzedaż działki rolnej: prawo pierwokupu KOWR (slug: sprzedaz-dzialki-rolnej-prawo-pierwokupu-kowr)
 - [x] Podatek rolny i ulga rolna: ile zapłacisz (slug: podatek-rolny-i-ulga-rolna)
-- [ ] Działka rolna pod fotowoltaikę: czy się opłaca
+- [x] Działka rolna pod fotowoltaikę: czy się opłaca (slug: dzialka-pod-fotowoltaike-dzierzawa)
 - [x] Łąka, pastwisko, grunt orny: co oznaczają oznaczenia (slug: oznaczenia-uzytkow-laka-pastwisko-grunt-orny)
 
 ## Sprzedaż działki
@@ -119,7 +119,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Gdzie kupować działki pod inwestycję (slug: gdzie-kupowac-dzialki-pod-inwestycje)
 - [x] Jak wyłapać działkę z potencjałem (slug: jak-wylapac-dzialke-z-potencjalem)
 - [x] Ziemia rolna jako inwestycja długoterminowa (slug: ziemia-rolna-jako-inwestycja-dlugoterminowa)
-- [ ] Działka pod fotowoltaikę: dzierżawa dla inwestora
+- [x] ~~Działka pod fotowoltaikę: dzierżawa dla inwestora~~ POKRYTE w „Działka pod fotowoltaikę: czy opłaca się dzierżawa" (slug: dzialka-pod-fotowoltaike-dzierzawa).
 - [x] ROI z działki: jak policzyć opłacalność (slug: roi-z-dzialki-jak-policzyc-oplacalnosc)
 - [ ] Jak znaleźć działki w okolicy planowanych inwestycji (UWAGA: możliwy duplikat „Jak sprawdzić planowane inwestycje w okolicy działki" — sprawdzić przed pisaniem)
 - [x] Działka uzbrojona a nieuzbrojona: co się bardziej opłaca (slug: dzialka-uzbrojona-a-nieuzbrojona)
