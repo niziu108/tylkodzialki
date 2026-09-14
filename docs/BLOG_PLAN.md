@@ -47,7 +47,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Działka od dewelopera a z rynku wtórnego (slug: dzialka-od-dewelopera-a-z-rynku-wtornego)
 - [x] Jak negocjować cenę działki (slug: jak-negocjowac-cene-dzialki)
 - [x] Kredyt na działkę: jak go dostać (slug: kredyt-na-dzialke-jak-dostac)
-- [ ] Działka z rozpoczętą budową: na co uważać
+- [x] Działka z rozpoczętą budową: na co uważać (slug: dzialka-z-rozpoczeta-budowa-na-co-uwazac)
 - [x] Jak sprawdzić dostęp do drogi publicznej (slug: jak-sprawdzic-dostep-do-drogi-publicznej)
 - [x] Geodeta przy zakupie działki: kiedy go zatrudnić (slug: geodeta-przy-zakupie-dzialki)
 - [x] Czerwone flagi przy zakupie działki (slug: czerwone-flagi-przy-zakupie-dzialki)
