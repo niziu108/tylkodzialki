@@ -317,9 +317,11 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
         </div>
       ) : null}
 
-      {/* PLAN MIEJSCOWY (MPZP). Trzy stany, bo „nie wiemy" to nie „nie ma": plan jest, planu nie ma
-          albo serwer planów gminy nie odpowiedział (mpzpNiedostepny). W dwóch ostatnich przypadkach
-          krajowa integracja odpowiada tym samym „brak wyniku", różni je tylko czas odpowiedzi. */}
+      {/* PLAN MIEJSCOWY (MPZP). Kilka stanów, bo „nie wiemy" to nie „nie ma": plan z danymi, plan bez
+          szczegółów (serwer gminy potwierdził plan, ale nic o nim nie podał), planu nie ma albo nie
+          wiemy (mpzpNiedostepny: serwer nie odpowiedział, zwrócił wyjątek albo sam rysunek planu).
+          Wiszący serwer i brak planu dają w krajowej integracji to samo „brak wyniku", różni je tylko
+          czas odpowiedzi. */}
       <div className="print-keep mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Plan miejscowy (MPZP)</Eyebrow>
         {mpzp ? (
@@ -332,6 +334,38 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
               !!mpzp.effectiveFrom ||
               !!mpzp.resolution ||
               !!mpzp.status;
+            // Serwer gminy trafił w punkcie obiekt planu, ale nic o nim nie podał (gminy GISON, gdy
+            // szczegóły nie przyszły albo gdy gmina ich nie wystawia). Plan jest, więc nie piszemy
+            // „brak planu", a zdań o przeznaczeniu i uchwale nie ma na czym oprzeć.
+            if (!hasDetails && !mpzp.planName && !mpzp.resolutionUrl) {
+              return (
+                <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/80">
+                  Dla tej działki obowiązuje miejscowy plan zagospodarowania. Serwer planów gminy
+                  potwierdził, że plan obejmuje ten teren, ale nie podał jego szczegółów: nazwy,
+                  uchwały ani przeznaczenia terenu.{' '}
+                  {mpzp.detailsUnavailable
+                    ? 'Sprawdź działkę ponownie za jakiś czas albo zapytaj o zapisy planu w gminie'
+                    : 'O zapisy planu zapytaj w gminie'}{' '}
+                  {parcel.commune}.{' '}
+                  <Link
+                    href="/blog/jak-sprawdzic-mpzp-dzialki-przed-zakupem"
+                    className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                  >
+                    Zobacz, jak sprawdzić plan miejscowy
+                  </Link>
+                  .
+                </p>
+              );
+            }
+            // Zdanie o parametrach zabudowy mówi tylko to, co krajowa integracja faktycznie podała.
+            const podaje =
+              hasPurpose && mpzp.resolution
+                ? 'przeznaczenie i numer uchwały'
+                : hasPurpose
+                  ? 'przeznaczenie'
+                  : mpzp.resolution
+                    ? 'numer uchwały'
+                    : null;
             return (
               <>
                 <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/80">
@@ -372,35 +406,53 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
 
                 {/* Rejestr krajowy dostaje od większości gmin tylko symbol, opis i numer uchwały.
                     Wysokość zabudowy, linie zabudowy czy powierzchnia biologicznie czynna siedzą
-                    w TEKŚCIE uchwały, którego integracja nie udostępnia pod żadnym adresem
-                    (sprawdzone 2026-09-02 na dziesięciu gminach). Zamiast udawać, że tych danych
-                    nie ma, mówimy gdzie są i prowadzimy do nich jednym kliknięciem. */}
+                    w TEKŚCIE uchwały. Większość gmin nie udostępnia go w integracji pod żadnym
+                    adresem (sprawdzone 2026-09-02 na dziesięciu gminach), więc prowadzimy do
+                    wyszukiwarki. Gdy gmina podaje publiczny PDF (np. hosting GISON), linkujemy
+                    wprost. Pierwsze zdanie składa się z `podaje`, żeby przy planie bez
+                    przeznaczenia nie twierdzić, że integracja je podaje. */}
                 {!mpzp.maxHeight && !mpzp.intensity ? (
                   <p className="mt-4 max-w-2xl text-[13px] leading-7 text-fg/55">
-                    Krajowa integracja planów podaje dla tego terenu przeznaczenie i numer uchwały,
-                    ale nie parametry zabudowy. Maksymalną wysokość, linie zabudowy i powierzchnię
-                    biologicznie czynną znajdziesz w tekście uchwały
+                    {podaje
+                      ? `Krajowa integracja planów podaje dla tego terenu ${podaje}, ale nie parametry zabudowy.`
+                      : 'Krajowa integracja planów nie podaje dla tego terenu parametrów zabudowy.'}{' '}
+                    Maksymalną wysokość, linie zabudowy i powierzchnię biologicznie czynną znajdziesz
+                    w tekście uchwały
                     {mpzp.resolution ? ` ${mpzp.resolution}` : ''}
                     {mpzp.functionSymbol ? `, w zapisach dla terenu ${mpzp.functionSymbol}` : ''}.{' '}
-                    <a
-                      href={`https://www.google.com/search?q=${encodeURIComponent(
-                        [
-                          'uchwała',
-                          mpzp.resolution ?? '',
-                          'miejscowy plan zagospodarowania',
-                          parcel.commune,
-                          'tekst',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
-                    >
-                      Znajdź tekst uchwały
-                    </a>{' '}
-                    albo poproś o niego w gminie {parcel.commune}.
+                    {mpzp.resolutionUrl ? (
+                      <a
+                        href={mpzp.resolutionUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                      >
+                        Otwórz tekst uchwały (PDF)
+                      </a>
+                    ) : (
+                      <>
+                        <a
+                          href={`https://www.google.com/search?q=${encodeURIComponent(
+                            [
+                              'uchwała',
+                              mpzp.resolution ?? '',
+                              'miejscowy plan zagospodarowania',
+                              parcel.commune,
+                              'tekst',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                        >
+                          Znajdź tekst uchwały
+                        </a>{' '}
+                        albo poproś o niego w gminie {parcel.commune}
+                      </>
+                    )}
+                    .
                   </p>
                 ) : null}
               </>
@@ -408,8 +460,9 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
           })()
         ) : mpzpNiedostepny ? (
           <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/70">
-            Serwer planów tej gminy nie odpowiedział, więc tym razem nie wiemy, czy działkę obejmuje
-            plan miejscowy. Sprawdź działkę ponownie za jakiś czas albo zapytaj o plan w gminie{' '}
+            Serwer planów tej gminy nie odpowiedział albo nie podał czytelnych danych, więc tym razem
+            nie wiemy, czy działkę obejmuje plan miejscowy. Sprawdź działkę ponownie za jakiś czas albo
+            zapytaj o plan w gminie{' '}
             {parcel.commune}.{' '}
             <Link
               href="/blog/jak-sprawdzic-mpzp-dzialki-przed-zakupem"

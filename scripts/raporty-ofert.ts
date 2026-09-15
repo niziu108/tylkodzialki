@@ -68,9 +68,11 @@ async function main() {
   });
 
   // Istniejące raporty. Przed migracją tabeli nie ma, a próba na sucho i tak ma działać.
-  const istniejace = new Map<string, { klucz: string; status: string }>();
+  const istniejace = new Map<string, Parameters<typeof raporty.wymagaOdswiezenia>[0]>();
   try {
-    const rows = await prisma.dzialkaRaport.findMany({ select: { dzialkaId: true, klucz: true, status: true } });
+    const rows = await prisma.dzialkaRaport.findMany({
+      select: { dzialkaId: true, klucz: true, status: true, sprawdzonoAt: true, dane: true },
+    });
     for (const r of rows) istniejace.set(r.dzialkaId, r);
   } catch (e) {
     if (APPLY) throw e;
@@ -82,7 +84,9 @@ async function main() {
     const wejscie = raporty.wejscieRaportu(o);
     if (!wejscie) continue;
     const jest = istniejace.get(o.id);
-    if (!ODSWIEZ && jest && jest.klucz === wejscie.klucz && jest.status !== "BLAD") continue;
+    // Gotowy raport pomijamy, chyba że wymaga odświeżenia tak jak na stronie oferty (np. „brak planu"
+    // ze starszego odczytu MPZP albo plany do doczytania). BLAD skrypt ponawia od razu.
+    if (!ODSWIEZ && jest && jest.status !== "BLAD" && !raporty.wymagaOdswiezenia(jest, wejscie.klucz)) continue;
     kandydaci.push({ o, ...wejscie, ponow: jest?.status === "BLAD" });
   }
 

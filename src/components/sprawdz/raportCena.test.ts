@@ -229,4 +229,53 @@ describe('sekcja planu miejscowego', () => {
     expect(pozaObszarem).toContain('Jeśli działki nie obejmuje plan miejscowy');
     expect(pozaObszarem).not.toContain('Bez planu miejscowego gmina');
   });
+
+  // Gminy GISON: krajowa integracja podaje nazwę planu, numer i datę uchwały oraz publiczny PDF, ale nie
+  // przeznaczenie. Albo nie podaje nic poza tym, że plan obejmuje punkt.
+  const planGison = {
+    planName: 'obrębu Skawinki na terenie gminy Lanckorona',
+    functionName: null,
+    functionSymbol: null,
+    maxHeight: null,
+    intensity: null,
+    effectiveFrom: null,
+    resolution: 'Nr XXXI/148/2026 z 25 marca 2026',
+    status: null,
+    resolutionUrl: 'https://rastry.gison.pl/mpzp-public/lanckorona/uchwaly/U_2026_148_XXXI.pdf',
+  };
+
+  it('plan bez szczegółów: mówi, że plan jest, i nie udaje przeznaczenia ani uchwały', () => {
+    const bezSzczegolow = { ...planGison, planName: null, resolution: null, resolutionUrl: null, detailsUnavailable: true };
+    const html = render(wycenaZeSrednia(), { mpzp: bezSzczegolow, pog: planOgolny(false) });
+    expect(html).toContain('Dla tej działki obowiązuje miejscowy plan zagospodarowania.');
+    expect(html).toContain('nie podał jego szczegółów');
+    expect(html).toContain('Sprawdź działkę ponownie');
+    expect(html).not.toContain('nie ma planu miejscowego w krajowej integracji');
+    expect(html).not.toContain('podaje dla tego terenu');
+    // Plan jest, więc plan ogólny nie odsyła do warunków zabudowy.
+    expect(html).toContain('rozstrzyga jednak plan miejscowy');
+  });
+
+  it('plan z PDF uchwały: link wprost zamiast wyszukiwarki i bez obietnicy przeznaczenia', () => {
+    const html = render(wycenaZeSrednia(), { mpzp: planGison });
+    expect(html).toContain('href="https://rastry.gison.pl/mpzp-public/lanckorona/uchwaly/U_2026_148_XXXI.pdf"');
+    expect(html).toContain('Otwórz tekst uchwały (PDF)');
+    expect(html).not.toContain('google.com/search');
+    expect(html).toContain('podaje dla tego terenu numer uchwały, ale nie parametry zabudowy');
+    expect(html).not.toContain('przeznaczenie i numer uchwały');
+  });
+
+  it('plan z przeznaczeniem i uchwałą, ale bez PDF: wyszukiwarka jak dotąd', () => {
+    const html = render(wycenaZeSrednia(), {
+      mpzp: {
+        ...planGison,
+        functionName: 'Tereny zabudowy mieszkaniowej jednorodzinnej',
+        functionSymbol: '4MN',
+        resolutionUrl: null,
+      },
+    });
+    expect(html).toContain('podaje dla tego terenu przeznaczenie i numer uchwały');
+    expect(html).toContain('google.com/search');
+    expect(html).not.toContain('Otwórz tekst uchwały');
+  });
 });

@@ -14,7 +14,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { findParcels, getAdminByXY, getParcelById, getParcelByXY, type ParcelReport } from '@/lib/uldk';
-import { getMpzpAtPoint, type MpzpInfo } from '@/lib/mpzp';
+import { getMpzpAtPoint, MPZP_WERSJA, ponowOdczytMpzp, type MpzpInfo } from '@/lib/mpzp';
 import { getPogAtPoint, type PogInfo } from '@/lib/pog';
 import { haversineKm } from '@/lib/dzialkiSearch';
 import {
@@ -32,9 +32,13 @@ export type RaportOfertyDane = {
   parcel: ParcelReport;
   mpzp: MpzpInfo | null;
   pog: PogInfo | null;
-  // Plany, których serwer nie odpowiedział przy sprawdzaniu (część gminnych serwerów MPZP wisi).
-  // Raport i tak zapisujemy, bo ewidencja jest pewna, a brakujący plan dociągamy później.
+  // Plany, których serwer nie odpowiedział przy sprawdzaniu (część gminnych serwerów MPZP wisi) albo
+  // odpowiedział nieczytelnie (wyjątek serwera gminy, sam rysunek planu). Raport i tak zapisujemy,
+  // bo ewidencja jest pewna, a brakujący plan dociągamy później.
   niedostepne?: ('mpzp' | 'pog')[];
+  // Wersja odczytu planu miejscowego (MPZP_WERSJA w lib/mpzp.ts). Brak = raport sprzed 2026-09-15,
+  // którego „brak planu" mógł być fałszywy (gminy GISON, format Krakowa, awarie serwerów gmin).
+  wersjaMpzp?: number;
 };
 
 export type RaportOferty = {
@@ -91,12 +95,19 @@ export function wejscieRaportu(o: OfertaDoRaportu): { zrodlo: ZrodloDzialki; klu
 
 type WierszRaportu = { klucz: string; status: string; sprawdzonoAt: Date; dane: Prisma.JsonValue };
 
-function wymagaOdswiezenia(row: WierszRaportu, klucz: string): boolean {
+/** Czy raport trzeba (prze)liczyć. Wspólna reguła strony oferty i `npm run raporty:backfill`. */
+export function wymagaOdswiezenia(row: WierszRaportu, klucz: string): boolean {
   if (row.klucz !== klucz) return true;
   const wiek = Date.now() - row.sprawdzonoAt.getTime();
   if (row.status === 'BLAD') return wiek > PONOW_BLAD_PO_MS;
-  const niepelny = row.status === 'GOTOWY' && (daneZBazy(row.dane)?.niedostepne?.length ?? 0) > 0;
-  return niepelny && wiek > PONOW_NIEPELNY_PO_MS;
+  const dane = row.status === 'GOTOWY' ? daneZBazy(row.dane) : null;
+  if (!dane) return false;
+  const niedostepne = dane.niedostepne ?? [];
+  // „Brak planu" ze starszego odczytu MPZP mógł być fałszywy (gminy GISON, Kraków): liczymy od razu.
+  // Plan bez szczegółów ponawiamy jak plan, którego serwer nie odpowiedział, czyli po tygodniu.
+  const mpzp = niedostepne.includes('mpzp') ? null : ponowOdczytMpzp(dane.mpzp, dane.wersjaMpzp);
+  if (mpzp === 'teraz') return true;
+  return (niedostepne.length > 0 || mpzp === 'pozniej') && wiek > PONOW_NIEPELNY_PO_MS;
 }
 
 /** Działka sprawdzona w ULDK, do diagnostyki skryptu: dlaczego przyjęta albo odrzucona. */
@@ -189,6 +200,7 @@ export async function zbudujDane(parcel: ParcelReport): Promise<RaportOfertyDane
     mpzp: mpzp.status === 'fulfilled' ? mpzp.value : null,
     pog: pog.status === 'fulfilled' ? pog.value : null,
     ...(niedostepne.length > 0 ? { niedostepne } : {}),
+    wersjaMpzp: MPZP_WERSJA,
   };
 }
 
@@ -267,6 +279,21 @@ export async function odswiezRaportOferty(
       update: pola,
     });
   };
+
+  // Ta sama działka, a do doczytania są tylko plany (serwer nie odpowiedział, plan bez szczegółów,
+  // „brak planu" ze starszego odczytu MPZP): bierzemy zapisaną działkę zamiast ustalać ją w ULDK od
+  // nowa. Awarie planów lądują w `niedostepne`, więc zapis się udaje i strona oferty nie ponawia tego
+  // przy każdym wejściu, nawet gdy ULDK leży. Pełne przeliczenie zostaje dla `wymus`.
+  const zapisane =
+    !opts.wymus && row?.status === 'GOTOWY' && row.klucz === wejscie.klucz ? daneZBazy(row.dane) : null;
+  if (zapisane) {
+    try {
+      await zapisz({ status: 'GOTOWY', parcelId: zapisane.parcel.id, dane: await zbudujDane(zapisane.parcel) });
+      return 'GOTOWY';
+    } catch {
+      return 'BLAD';
+    }
+  }
 
   try {
     const wynik = await ustalDzialke(o, wejscie.zrodlo);

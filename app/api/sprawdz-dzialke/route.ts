@@ -29,7 +29,8 @@ export type SprawdzResponse = {
   parcel: ParcelReport;
   valuation: PointValuation;
   mpzp: MpzpInfo | null; // przeznaczenie z KIMPZP w środku działki; null gdy brak planu
-  // true = serwer planów gminy nie odpowiedział (limit czasu albo błąd): mpzp jest wtedy null,
+  // true = serwer planów gminy nie odpowiedział albo odpowiedział nieczytelnie (limit czasu, błąd,
+  // wyjątek serwera gminy, sam rysunek planu): mpzp jest wtedy null,
   // ale to znaczy „nie wiemy", a nie „brak planu"
   mpzpNiedostepny: boolean;
   pog: PogInfo | null; // plan ogólny gminy: strefa planistyczna + obszar uzupełnienia zabudowy
@@ -79,7 +80,11 @@ export async function POST(req: NextRequest) {
     const [valuation, mpzpWynik, pog] = await Promise.all([
       getPointValuation(parcel.center.lat, parcel.center.lng, parcel.areaM2),
       getMpzpAtPoint(parcel.center.lat, parcel.center.lng, { rzucajBledy: true }).then(
-        (mpzp) => ({ mpzp, niedostepny: false }),
+        (mpzp) => {
+          // Plan jest, ale jego szczegóły z serwera gminy nie przyszły: do logu, żeby widzieć skalę.
+          if (mpzp?.detailsUnavailable) console.warn('SPRAWDZ_DZIALKE_MPZP_BEZ_SZCZEGOLOW', parcel.id);
+          return { mpzp, niedostepny: false };
+        },
         (err: unknown) => {
           const powod = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
           console.warn('SPRAWDZ_DZIALKE_MPZP_NIEDOSTEPNY', parcel.id, powod);
