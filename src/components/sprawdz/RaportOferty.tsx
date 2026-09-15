@@ -4,8 +4,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { formatIntPL } from '@/lib/format';
 import { ladnaNazwaObrebu } from '@/lib/dzialkaZOpisu';
+import { decydujCene } from '@/lib/raportCena';
 import type { RaportOfertyDane, ZrodloDzialki } from '@/lib/raportOferty';
 import type { RcnOkolica } from '@/lib/rcnStats';
+import type { PointValuation } from '@/lib/seoHub';
+import type { AreaPriceTrend } from '@/lib/dzialkaPriceHistory';
 import RaportMap from './RaportMap';
 import { areaLabel, Eyebrow, plDate, Row } from './Raport';
 
@@ -13,9 +16,11 @@ import { areaLabel, Eyebrow, plDate, Row } from './Raport';
 // „Sprawdź działkę", skrócone do tego, o co kupujący pyta przy konkretnym ogłoszeniu: co wolno tu
 // zbudować, co mówi ewidencja i ile realnie płacono w okolicy.
 //
-// Świadomie BEZ wyceny z naszych ofert i bez porównania „ogłoszenia chcą o X% więcej": pod ofertą
-// biura taka liczba czyta się jak ocena jego ceny, a biura to nasza podaż. Fakty z rejestrów tak,
-// werdykt o cenie nie.
+// Ceny pokazujemy jako tło rynku: mediana z naszych ogłoszeń w okolicy obok aktów notarialnych (tak
+// robią duże portale, np. transakcje z sąsiedztwa pod ofertą). Dane tak, komentarz nie: NIE ma „ta
+// oferta jest o X% droższa" ani zdania, że ogłoszenia w okolicy są zawyżone względem aktów. Taki
+// werdykt pod ofertą biura uderzałby w naszą podaż, a kupujący i tak widzi obie liczby obok siebie
+// (decyzja 2026-09-15).
 
 // Przy takim promieniu w próbce siedzą już inne miejscowości; pod konkretną ofertą to myli.
 const RCN_MAX_PROMIEN_KM = 35;
@@ -25,14 +30,39 @@ export default function RaportOferty({
   zrodlo,
   sprawdzono,
   rcn,
+  wycena,
+  trend,
 }: {
   dane: RaportOfertyDane;
   zrodlo: ZrodloDzialki;
   sprawdzono: string; // ISO: kiedy pobraliśmy ewidencję i plany
   rcn: RcnOkolica | null;
+  wycena: PointValuation | null; // z naszych ofert w okolicy, bez oglądanej oferty
+  trend: AreaPriceTrend | null;
 }) {
   const { parcel, mpzp, pog, niedostepne = [] } = dane;
   const mpzpNieznany = niedostepne.includes('mpzp');
+
+  // Pula (podobna wielkość / budowlane / rolne) i „mediana czy widełki" jak w „Sprawdź działkę"
+  // (lib/raportCena.ts). `value` = null, gdy porównywalnych ofert jest za mało: wtedy milczymy.
+  const cena = wycena ? decydujCene(wycena, mpzp) : null;
+  const v = cena?.lead ? cena.value : null;
+  const rcnPokaz = rcn && rcn.promienKm < RCN_MAX_PROMIEN_KM ? rcn : null;
+  const opisPuli =
+    !wycena || !cena?.lead || !v
+      ? null
+      : cena.lead.kind === 'similar' && wycena.similarSizeBand
+        ? `Działki od ${formatIntPL(wycena.similarSizeBand.minM2)} do ${formatIntPL(wycena.similarSizeBand.maxM2)} m² w promieniu ${wycena.radiusKm} km, większość między ${formatIntPL(v.low)} a ${formatIntPL(v.high)} zł/m².`
+        : cena.mixed
+          ? `W promieniu ${wycena.radiusKm} km ceny rozjeżdżają się za mocno na jedną liczbę, dlatego widełki.`
+          : `W promieniu ${wycena.radiusKm} km, większość między ${formatIntPL(v.low)} a ${formatIntPL(v.high)} zł/m².`;
+  const zdanieTrendu = !trend
+    ? null
+    : Math.abs(trend.changePct) < 0.005
+      ? `Ceny ofert w okolicy stoją w miejscu od ${plDate(trend.fromDate)}.`
+      : `Od ${plDate(trend.fromDate)} ceny ofert w okolicy ${trend.changePct > 0 ? 'wzrosły' : 'spadły'} o ${Math.abs(
+          trend.changePct * 100
+        ).toLocaleString('pl-PL', { maximumFractionDigits: 1 })}% (liczone na ${trend.sampleCount} ofertach, które wisiały wtedy i wiszą dziś).`;
   const [mapShown, setMapShown] = useState(false);
   const obreb = ladnaNazwaObrebu(parcel.region);
   const przeznaczenie = mpzp?.functionName
@@ -91,7 +121,56 @@ export default function RaportOferty({
           </div>
         ) : null}
 
-        <div className="mt-8 grid gap-x-12 gap-y-10 lg:grid-cols-2">
+        {/* CENY: tło rynku wokół działki. Ogłoszenia z naszej bazy obok aktów notarialnych (RCN):
+            ile się chce, a ile się płaci. Bez komentarza, wniosek zostawiamy czytającemu. */}
+        {v || rcnPokaz ? (
+          <div className="mt-8 grid gap-x-12 gap-y-8 border-t border-fg/12 pt-8 lg:grid-cols-2">
+            {v && cena?.lead ? (
+              <div className="min-w-0">
+                <Eyebrow>Orientacyjna cena okolicy</Eyebrow>
+                <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-[30px] font-semibold tracking-tight text-fg">
+                    {cena.mixed ? `${formatIntPL(v.low)}-${formatIntPL(v.high)}` : formatIntPL(v.median)}
+                  </span>
+                  <span className="text-base font-medium text-fg/55">zł/m²</span>
+                  <span className="text-[12px] uppercase tracking-[0.1em] text-fg/45">{cena.lead.label}</span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-fg/65">
+                  {opisPuli} Liczone z {cena.lead.stat.sampleCount} ofert w naszym serwisie, bez tej oferty. To
+                  orientacja z ogłoszeń, nie operat rzeczoznawcy: konkretna działka potrafi kosztować zupełnie
+                  inaczej, bo decyduje dojazd, prąd i woda na działce, kształt i odległość od zabudowy.
+                </p>
+                {zdanieTrendu ? <p className="mt-2 text-sm leading-6 text-fg/65">{zdanieTrendu}</p> : null}
+              </div>
+            ) : null}
+
+            {rcnPokaz ? (
+              <div className="min-w-0">
+                <Eyebrow>Ile realnie płacono w okolicy</Eyebrow>
+                <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-[30px] font-semibold tracking-tight text-fg">
+                    {formatIntPL(rcnPokaz.medianaZlM2)}
+                  </span>
+                  <span className="text-base font-medium text-fg/55">zł/m²</span>
+                  <span className="text-[12px] uppercase tracking-[0.1em] text-fg/45">
+                    {rcnPokaz.klasa === 'rolna' ? 'grunty rolne' : 'działki budowlane'}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-fg/65">
+                  Mediana z {rcnPokaz.liczba} transakcji z aktów notarialnych (Rejestr Cen Nieruchomości) w
+                  promieniu {rcnPokaz.promienKm} km
+                  {rcnPokaz.odRoku === rcnPokaz.doRoku
+                    ? `, ${rcnPokaz.odRoku} rok`
+                    : `, lata ${rcnPokaz.odRoku}-${rcnPokaz.doRoku}`}
+                  . Połowa transakcji zamknęła się między {formatIntPL(rcnPokaz.low)} a{' '}
+                  {formatIntPL(rcnPokaz.high)} zł/m².
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="mt-8 grid gap-x-12 gap-y-10 border-t border-fg/12 pt-8 lg:grid-cols-2">
           <div className="min-w-0">
             <Eyebrow>Plan miejscowy (MPZP)</Eyebrow>
             {mpzp ? (
@@ -170,27 +249,6 @@ export default function RaportOferty({
               <Row label="Powiat" value={parcel.county} />
               <Row label="Województwo" value={parcel.voivodeship} />
             </div>
-
-            {rcn && rcn.promienKm < RCN_MAX_PROMIEN_KM ? (
-              <div className="mt-10">
-                <Eyebrow>Ile realnie płacono w okolicy</Eyebrow>
-                <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-[30px] font-semibold tracking-tight text-fg">
-                    {formatIntPL(rcn.medianaZlM2)}
-                  </span>
-                  <span className="text-base font-medium text-fg/55">zł/m²</span>
-                  <span className="text-[12px] uppercase tracking-[0.1em] text-fg/45">
-                    {rcn.klasa === 'rolna' ? 'grunty rolne' : 'działki budowlane'}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-fg/65">
-                  Mediana z {rcn.liczba} transakcji z aktów notarialnych (Rejestr Cen Nieruchomości)
-                  w promieniu {rcn.promienKm} km
-                  {rcn.odRoku === rcn.doRoku ? `, ${rcn.odRoku} rok` : `, lata ${rcn.odRoku}-${rcn.doRoku}`}.
-                  Połowa transakcji zamknęła się między {formatIntPL(rcn.low)} a {formatIntPL(rcn.high)} zł/m².
-                </p>
-              </div>
-            ) : null}
           </div>
         </div>
 
@@ -198,8 +256,8 @@ export default function RaportOferty({
           {zrodlo === 'OPIS'
             ? 'Działkę wskazał numer podany w ogłoszeniu i sprawdzony w ewidencji gruntów: zgadza się gmina, położenie i powierzchnia. Przed zakupem potwierdź numer u sprzedającego.'
             : 'Działkę wskazał ogłoszeniodawca, stawiając pinezkę na mapie.'}{' '}
-          Ewidencja gruntów (ULDK) i plany (GUGiK): stan na {plDate(sprawdzono)}. Ceny transakcyjne:
-          Rejestr Cen Nieruchomości.{' '}
+          Ewidencja gruntów (ULDK) i plany (GUGiK): stan na {plDate(sprawdzono)}. Ceny liczone na
+          bieżąco z ogłoszeń w naszym serwisie i z Rejestru Cen Nieruchomości.{' '}
           <Link href="/sprawdz-dzialke" className="text-fg/70 underline decoration-1 underline-offset-2 hover:text-fg">
             Sprawdź inną działkę
           </Link>

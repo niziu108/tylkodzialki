@@ -9,7 +9,8 @@ import { getRcnOkolica } from '@/lib/rcnStats';
 import { looksRolny } from '@/lib/raportCena';
 import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
 import { getWizytowkaSlugForOwner } from '@/lib/biuroWizytowka';
-import { getOfferPriceTrend } from '@/lib/dzialkaPriceHistory';
+import { getAreaPriceTrend, getOfferPriceTrend } from '@/lib/dzialkaPriceHistory';
+import { getPointValuation } from '@/lib/seoHub';
 import { getSeoRegion } from '@/lib/seo-locations';
 import { normalizeText } from '@/lib/dzialkiSearch';
 import { decodeHtmlEntities } from '@/lib/formatOpis';
@@ -237,14 +238,20 @@ export default async function Page({ params }: PageProps) {
     after(() => odswiezRaportOferty(dzialkaId).then(() => undefined, () => undefined));
   }
 
-  // Ceny z aktów notarialnych liczymy na żywo z naszej tabeli RCN (skan rejestru wciąż rośnie).
-  const rcnRaportu = raport
-    ? await getRcnOkolica(
-        raport.dane.parcel.center.lat,
-        raport.dane.parcel.center.lng,
-        looksRolny(raport.dane.mpzp) ? 'rolna' : 'budowlana'
-      ).catch(() => null)
-    : null;
+  // Ceny do raportu liczymy na żywo, nie z zapisu: oferty w okolicy zmieniają się codziennie,
+  // a skan aktów notarialnych (RCN) wciąż rośnie. Cena okolicy pomija oglądaną ofertę.
+  const srodek = raport?.dane.parcel.center ?? null;
+  const [rcnRaportu, wycenaRaportu] =
+    raport && srodek && dzialka
+      ? await Promise.all([
+          getRcnOkolica(srodek.lat, srodek.lng, looksRolny(raport.dane.mpzp) ? 'rolna' : 'budowlana').catch(
+            () => null
+          ),
+          getPointValuation(srodek.lat, srodek.lng, raport.dane.parcel.areaM2, dzialka.id).catch(() => null),
+        ])
+      : ([null, null] as const);
+  const trendRaportu =
+    srodek && wycenaRaportu ? await getAreaPriceTrend(srodek.lat, srodek.lng, wycenaRaportu.radiusKm) : null;
 
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
@@ -399,6 +406,8 @@ export default async function Page({ params }: PageProps) {
           zrodlo={raport.zrodlo}
           sprawdzono={raport.sprawdzonoAt.toISOString()}
           rcn={rcnRaportu}
+          wycena={wycenaRaportu}
+          trend={trendRaportu}
         />
       ) : null}
 

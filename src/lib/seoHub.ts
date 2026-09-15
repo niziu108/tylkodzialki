@@ -465,14 +465,22 @@ export type PointValuation = {
   radiusKm: number;
 };
 
+// `pominId`: raport pod ofertą liczy cenę okolicy BEZ oglądanej oferty. Inaczej przy cienkiej
+// próbce oferta współtworzyłaby medianę, z którą kupujący ją potem porównuje.
 export const getPointValuation = cache(
-  async (lat: number, lng: number, areaM2?: number | null): Promise<PointValuation> => {
+  async (
+    lat: number,
+    lng: number,
+    areaM2?: number | null,
+    pominId?: string | null
+  ): Promise<PointValuation> => {
     const maxKm = RADIUS_LADDER[RADIUS_LADDER.length - 1];
     const box = boxAround(lat, lng, maxKm);
     const now = new Date();
 
     const rows = await prisma.dzialka.findMany({
       where: {
+        ...(pominId ? { id: { not: pominId } } : {}),
         ownerId: { not: null },
         status: DzialkaStatus.AKTYWNE,
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
