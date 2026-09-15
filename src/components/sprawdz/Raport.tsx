@@ -22,6 +22,8 @@ export type RaportData = {
   parcel: ParcelReport;
   valuation: PointValuation;
   mpzp: MpzpInfo | null;
+  // Serwer planów gminy nie odpowiedział: `mpzp: null` znaczy wtedy „nie wiemy", a nie „brak planu".
+  mpzpNiedostepny?: boolean;
   pog?: PogInfo | null;
   trend?: AreaPriceTrend | null;
   rcn?: RcnOkolica | null;
@@ -88,7 +90,7 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
 // nie wolno mu udawać wyniku użytkownika: nagłówek mówi „Przykładowa działka", a kopiowanie
 // linku znika (nikt nie potrzebuje wysyłać komuś linku do cudzej działki).
 export default function Raport({ data, przyklad = false }: { data: RaportData; przyklad?: boolean }) {
-  const { parcel, valuation, mpzp, pog, trend, rcn, nearby } = data;
+  const { parcel, valuation, mpzp, mpzpNiedostepny = false, pog, trend, rcn, nearby } = data;
   // Wybór puli i decyzja „mediana czy widełki" siedzą w lib/raportCena.ts, żeby dało się je
   // testować bez renderowania komponentu.
   const { lead, value: v, mixed } = decydujCene(valuation, mpzp);
@@ -315,7 +317,9 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
         </div>
       ) : null}
 
-      {/* PLAN MIEJSCOWY (MPZP) */}
+      {/* PLAN MIEJSCOWY (MPZP). Trzy stany, bo „nie wiemy" to nie „nie ma": plan jest, planu nie ma
+          albo serwer planów gminy nie odpowiedział (mpzpNiedostepny). W dwóch ostatnich przypadkach
+          krajowa integracja odpowiada tym samym „brak wyniku", różni je tylko czas odpowiedzi. */}
       <div className="print-keep mt-8 border-t border-fg/12 pt-8">
         <Eyebrow>Plan miejscowy (MPZP)</Eyebrow>
         {mpzp ? (
@@ -402,6 +406,19 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
               </>
             );
           })()
+        ) : mpzpNiedostepny ? (
+          <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/70">
+            Serwer planów tej gminy nie odpowiedział, więc tym razem nie wiemy, czy działkę obejmuje
+            plan miejscowy. Sprawdź działkę ponownie za jakiś czas albo zapytaj o plan w gminie{' '}
+            {parcel.commune}.{' '}
+            <Link
+              href="/blog/jak-sprawdzic-mpzp-dzialki-przed-zakupem"
+              className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+            >
+              Zobacz, jak sprawdzić plan miejscowy
+            </Link>
+            .
+          </p>
         ) : (
           <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/70">
             W tym punkcie nie ma planu miejscowego w krajowej integracji. Zwykle znaczy to, że o
@@ -469,7 +486,9 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                 </span>{' '}
                 {mpzp
                   ? 'O zabudowie i tak rozstrzyga plan miejscowy powyżej, bo tam gdzie plan obowiązuje, warunków zabudowy się nie wydaje.'
-                  : 'Gdy nie ma planu miejscowego, to warunek konieczny, żeby gmina mogła wydać decyzję o warunkach zabudowy. Sam obszar nie przesądza jeszcze o decyzji, ale bez niego nie ma o czym rozmawiać.'}
+                  : mpzpNiedostepny
+                    ? 'Jeśli działki nie obejmuje plan miejscowy, to warunek konieczny, żeby gmina mogła wydać decyzję o warunkach zabudowy. Jeśli plan jest, o zabudowie rozstrzyga on.'
+                    : 'Gdy nie ma planu miejscowego, to warunek konieczny, żeby gmina mogła wydać decyzję o warunkach zabudowy. Sam obszar nie przesądza jeszcze o decyzji, ale bez niego nie ma o czym rozmawiać.'}
               </>
             ) : (
               <>
@@ -478,7 +497,9 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                 </span>{' '}
                 {mpzp
                   ? 'Dla tej działki rozstrzyga jednak plan miejscowy powyżej, a warunków zabudowy nie wydaje się tam, gdzie plan obowiązuje.'
-                  : 'Bez planu miejscowego gmina co do zasady nie wyda tu warunków zabudowy pod nowy dom. Wyjątki dotyczą między innymi zabudowy zagrodowej w gospodarstwie rolnym. To pytanie zadaj w gminie w pierwszej kolejności.'}
+                  : mpzpNiedostepny
+                    ? 'Jeśli działki nie obejmuje plan miejscowy, gmina co do zasady nie wyda tu warunków zabudowy pod nowy dom. Wyjątki dotyczą między innymi zabudowy zagrodowej w gospodarstwie rolnym. Dlatego w gminie zapytaj najpierw, czy działkę obejmuje plan miejscowy.'
+                    : 'Bez planu miejscowego gmina co do zasady nie wyda tu warunków zabudowy pod nowy dom. Wyjątki dotyczą między innymi zabudowy zagrodowej w gospodarstwie rolnym. To pytanie zadaj w gminie w pierwszej kolejności.'}
               </>
             )}
           </p>
