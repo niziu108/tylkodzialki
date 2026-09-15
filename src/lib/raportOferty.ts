@@ -13,7 +13,7 @@
 
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { findParcels, getParcelById, getParcelByXY, type ParcelReport } from '@/lib/uldk';
+import { findParcels, getAdminByXY, getParcelById, getParcelByXY, type ParcelReport } from '@/lib/uldk';
 import { getMpzpAtPoint, type MpzpInfo } from '@/lib/mpzp';
 import { getPogAtPoint, type PogInfo } from '@/lib/pog';
 import { haversineKm } from '@/lib/dzialkiSearch';
@@ -83,7 +83,9 @@ export function wejscieRaportu(o: OfertaDoRaportu): { zrodlo: ZrodloDzialki; klu
   const z = numeryZOpisu(o.opis);
   const klucz = kluczZOpisu(z);
   // Sam numer bez gminy oferty nie wskaże działki: „Dąbrowa 12" to kilkadziesiąt działek w Polsce.
-  if (!klucz || (z.identyfikatory.length === 0 && !o.adminTeryt)) return null;
+  // Gminę bierzemy z `adminTeryt`, a gdy świeża oferta jeszcze jej nie ma, ustalimy ją z pinezki.
+  const znamyGmine = !!o.adminTeryt || (isNum(o.lat) && isNum(o.lng));
+  if (!klucz || (z.identyfikatory.length === 0 && !znamyGmine)) return null;
   return { zrodlo: 'OPIS', klucz: `opis:${o.adminTeryt ?? ''}|${klucz}` };
 }
 
@@ -135,9 +137,12 @@ export async function ustalDzialke(
 
   const z = numeryZOpisu(o.opis);
   const ids = new Set<string>(z.identyfikatory);
+  // Gmina oferty: z bazy, a gdy jej brak (świeża oferta przed backfillem osi administracyjnej),
+  // z przybliżonej pinezki. Kilkaset metrów niedokładności nie zmienia gminy.
+  const teryt =
+    o.adminTeryt ?? (isNum(o.lat) && isNum(o.lng) ? ((await getAdminByXY(o.lat, o.lng))?.teryt ?? null) : null);
 
-  if (ids.size === 0 && o.adminTeryt) {
-    const teryt = o.adminTeryt;
+  if (ids.size === 0 && teryt) {
     const regiony = regionyDoSzukania(z, miejscowoscZEtykiety(o.locationLabel));
     for (const numer of z.numery) {
       for (const region of regiony) {
@@ -157,7 +162,7 @@ export async function ustalDzialke(
   for (const id of ids) {
     const parcel = await getParcelById(id);
     if (!parcel) continue;
-    if (o.adminTeryt && !parcel.id.startsWith(o.adminTeryt)) continue;
+    if (teryt && !parcel.id.startsWith(teryt)) continue;
     if (pasuje(parcel, o, sprawdzone)) pasujace.set(parcel.id, parcel);
   }
   if (pasujace.size === 1) return { status: 'GOTOWY', parcel: [...pasujace.values()][0] };

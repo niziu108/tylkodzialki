@@ -41,7 +41,8 @@ const LISTA = `${NUMER}(?:${ROZDZIELNIK}${NUMER})*`;
 
 const PRZED = String.raw`(?<![\p{L}\d])`;
 const EWID = String.raw`(?:(?:ewid(?:encyjn\p{L}*|\.)?|geodezyjn\p{L}*)\s*)`;
-const DZIALKA = String.raw`(?:działk\p{L}*|dzialk\p{L}*|dz\.)`;
+// „działka/działki/działkę" oraz liczba mnoga „działek" („Numery działek: 119/2, 130/15").
+const DZIALKA = String.raw`(?:dzia[łl](?:k|ek)\p{L}*|dz\.)`;
 const NR = String.raw`(?:nr|numer(?:ze|em|y|ami|ach)?)\.?`;
 const SEP = String.raw`\s*[:\-–]?\s*`;
 
@@ -66,7 +67,7 @@ const OBREB_RE = new RegExp(
 
 // Słowa, na których nazwa obrębu na pewno się skończyła („obręb Kania Gmina Somianka").
 const KONIEC_NAZWY = new Set([
-  'gmina', 'gminie', 'gm', 'powiat', 'pow', 'województwo', 'woj', 'działka', 'działki', 'dz',
+  'gmina', 'gminie', 'gm', 'powiat', 'pow', 'województwo', 'woj', 'działka', 'działki', 'działek', 'dz',
   'nr', 'numer', 'ul', 'ulica', 'miejscowość', 'miejscowości', 'cena', 'powierzchnia', 'mpzp', 'kw',
 ]);
 

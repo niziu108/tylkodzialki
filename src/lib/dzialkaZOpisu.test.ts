@@ -29,6 +29,14 @@ describe('numeryZOpisu: numer działki', () => {
     expect(numeryZOpisu('<p>Dzia&#322;ka nr&nbsp;<b>98/1</b></p>').numery).toEqual(['98/1']);
   });
 
+  it('czyta liczbę mnogą „numery działek"', () => {
+    // RE/MAX, Rycerka Górna: oferta pięciu osobnych działek.
+    expect(
+      numeryZOpisu('Liczba działek: 5 Numery działek: 119/2, 130/15, 145, 793/14, 6866/23 Przeznaczenie w MPZP').numery
+    ).toEqual(['119/2', '130/15', '145']);
+    expect(numeryZOpisu('Sprzedam 2 działek nr 12 i 13').numery).toEqual(['12', '13']);
+  });
+
   it('zbiera kilka działek z jednej oferty', () => {
     expect(numeryZOpisu('Sprzedam działki nr 105/10 i 105/12, razem 2400 m2').numery).toEqual(['105/10', '105/12']);
   });
