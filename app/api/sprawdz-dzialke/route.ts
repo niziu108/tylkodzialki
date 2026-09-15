@@ -17,12 +17,21 @@ type NearbyOffer = Awaited<ReturnType<typeof getNearbyOffers>>[number];
 
 export const runtime = 'nodejs';
 
+// Odpowiedzi GUGiK w tej trasie zawsze na żywo. lib/uldk, lib/mpzp i lib/pog proszą Next o cache na
+// tydzień, a Next zapisuje każdą odpowiedź 200, także „brak wyniku", które krajowa integracja planów
+// wysyła po ~60 s, gdy serwer gminy wisi. Nieświeży wpis odświeża potem w tle już bez limitu czasu,
+// więc raport pokazywałby z cache „brak planu" tam, gdzie gmina po prostu nie odpowiedziała.
+export const fetchCache = 'force-no-store';
+
 type Body = { lat?: unknown; lng?: unknown; parcelId?: unknown };
 
 export type SprawdzResponse = {
   parcel: ParcelReport;
   valuation: PointValuation;
   mpzp: MpzpInfo | null; // przeznaczenie z KIMPZP w środku działki; null gdy brak planu
+  // true = serwer planów gminy nie odpowiedział (limit czasu albo błąd): mpzp jest wtedy null,
+  // ale to znaczy „nie wiemy", a nie „brak planu"
+  mpzpNiedostepny: boolean;
   pog: PogInfo | null; // plan ogólny gminy: strefa planistyczna + obszar uzupełnienia zabudowy
   trend: AreaPriceTrend | null;
   rcn: RcnOkolica | null; // ceny z aktow notarialnych (RCN, GUGiK) w okolicy; null = za mala probka
@@ -64,11 +73,22 @@ export async function POST(req: NextRequest) {
 
     // Wycenę i MPZP liczymy od środka znalezionej działki (spójnie z jej realną lokalizacją).
     // Powierzchnia z ewidencji idzie do wyceny, żeby porównywać do działek podobnej wielkości.
-    const [valuation, mpzp, pog] = await Promise.all([
+    // Plan miejscowy z `rzucajBledy`: gdy serwer gminy wisi, krajowa integracja po ~60 s odpowiada
+    // „brak wyniku", tym samym tekstem co przy prawdziwym braku planu (ten przychodzi w ułamku
+    // sekundy). Limit 20 s i osobna flaga pozwalają raportowi powiedzieć „gmina nie odpowiedziała".
+    const [valuation, mpzpWynik, pog] = await Promise.all([
       getPointValuation(parcel.center.lat, parcel.center.lng, parcel.areaM2),
-      getMpzpAtPoint(parcel.center.lat, parcel.center.lng),
+      getMpzpAtPoint(parcel.center.lat, parcel.center.lng, { rzucajBledy: true }).then(
+        (mpzp) => ({ mpzp, niedostepny: false }),
+        (err: unknown) => {
+          const powod = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+          console.warn('SPRAWDZ_DZIALKE_MPZP_NIEDOSTEPNY', parcel.id, powod);
+          return { mpzp: null, niedostepny: true };
+        }
+      ),
       getPogAtPoint(parcel.center.lat, parcel.center.lng),
     ]);
+    const { mpzp } = mpzpWynik;
 
     // Oferty z tego samego koła, na którym liczyliśmy cenę — spójnie z tym, co raport pokazuje.
     // Ceny transakcyjne z RCN idą własną drabinką promieni (aktów jest znacznie mniej niż ofert),
@@ -79,7 +99,16 @@ export async function POST(req: NextRequest) {
       getRcnOkolica(parcel.center.lat, parcel.center.lng, looksRolny(mpzp) ? 'rolna' : 'budowlana'),
     ]);
 
-    const payload: SprawdzResponse = { parcel, valuation, mpzp, pog, trend, rcn, nearby };
+    const payload: SprawdzResponse = {
+      parcel,
+      valuation,
+      mpzp,
+      mpzpNiedostepny: mpzpWynik.niedostepny,
+      pog,
+      trend,
+      rcn,
+      nearby,
+    };
     return NextResponse.json(payload);
   } catch (err) {
     if (err instanceof UldkError) {

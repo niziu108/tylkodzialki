@@ -5,6 +5,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import type { PogInfo } from '@/lib/pog';
 import type { PointValuation } from '@/lib/seoHub';
 import Raport, { type RaportData } from './Raport';
 
@@ -182,5 +183,50 @@ describe('sekcja ceny', () => {
     const html = render(wycenaZeSrednia());
     expect(html).not.toContain('w tej okolicy wzrosły');
     expect(html).not.toContain('stoją w miejscu');
+  });
+});
+
+// Plan miejscowy: gdy serwer gminy wisi, krajowa integracja odpowiada tym samym „brak wyniku" co przy
+// terenie bez planu, tylko po minucie. Trasa oznacza to flagą mpzpNiedostepny, a raport nie może
+// wtedy twierdzić, że planu nie ma, ani opierać na tym zdań o warunkach zabudowy.
+describe('sekcja planu miejscowego', () => {
+  const planOgolny = (ouz: boolean): PogInfo => ({
+    strefa: {
+      symbol: 'SW',
+      nazwa: 'strefa wielofunkcyjna z zabudową mieszkaniową jednorodzinną',
+      oznaczenie: '12SW',
+      mieszkaniowa: true,
+      obowiazujeOd: '2026-01-01',
+      maksWysokoscZabudowy: '12',
+      maksUdzialPowierzchniZabudowy: '40',
+      minUdzialPowierzchniBiologicznieCzynnej: '30',
+      maksNadziemnaIntensywnoscZabudowy: null,
+    },
+    ouz,
+    srodmiejska: false,
+  });
+
+  it('gdy serwer planów gminy nie odpowiedział, nie twierdzi, że planu nie ma', () => {
+    const html = render(wycenaZeSrednia(), { mpzpNiedostepny: true });
+    expect(html).toContain('nie odpowiedział');
+    expect(html).toContain('w gminie Bełchatów');
+    expect(html).not.toContain('nie ma planu miejscowego w krajowej integracji');
+    expect(html).not.toContain('warunki zabudowy (WZ)');
+  });
+
+  it('prawdziwy brak planu nadal prowadzi do warunków zabudowy', () => {
+    const html = render(wycenaZeSrednia());
+    expect(html).toContain('nie ma planu miejscowego w krajowej integracji');
+    expect(html).not.toContain('nie odpowiedział');
+  });
+
+  it('plan ogólny przy nieznanym planie miejscowym mówi „jeśli", a nie „bez planu"', () => {
+    const wObszarze = render(wycenaZeSrednia(), { mpzpNiedostepny: true, pog: planOgolny(true) });
+    expect(wObszarze).toContain('Jeśli działki nie obejmuje plan miejscowy');
+    expect(wObszarze).not.toContain('Gdy nie ma planu miejscowego');
+
+    const pozaObszarem = render(wycenaZeSrednia(), { mpzpNiedostepny: true, pog: planOgolny(false) });
+    expect(pozaObszarem).toContain('Jeśli działki nie obejmuje plan miejscowy');
+    expect(pozaObszarem).not.toContain('Bez planu miejscowego gmina');
   });
 });
