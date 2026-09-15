@@ -35,7 +35,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Działka z lasem: odlesienie i ograniczenia (slug: odlesienie-dzialki-lesnej)
 - [x] Scalanie i podział nieruchomości: na czym polega (slug: scalanie-i-podzial-nieruchomosci)
 - [x] Renta planistyczna i opłata adiacencka: kto płaci (slug: renta-planistyczna-i-oplata-adiacencka)
-- [ ] Akt notarialny zakupu działki: co musi zawierać
+- [x] Akt notarialny zakupu działki: co musi zawierać (slug: akt-notarialny-zakupu-dzialki)
 
 ## Kupno działki
 - [x] Jak kupić działkę krok po kroku (pełny przewodnik) (slug: jak-kupic-dzialke-krok-po-kroku)
