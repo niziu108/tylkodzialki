@@ -20,6 +20,22 @@ import {
 } from '@/components/dzialka-form/ui';
 import { buildOpisZDanych } from '@/lib/opisGenerator';
 import { DOJAZD_FORM_KEYS, DOJAZD_LABEL } from '@/lib/dojazd';
+import ParcelFinder from '@/components/dzialka-form/ParcelFinder';
+import KartaDzialki from '@/components/dzialka-form/KartaDzialki';
+import PodpowiedzCenyBox from '@/components/dzialka-form/PodpowiedzCeny';
+import { decydujCene } from '@/lib/raportCena';
+import {
+  lokalizacjaPelna,
+  nazwaMiejscowosci,
+  opisDzialkiEwidencyjnej,
+  podpowiedzCeny,
+  przeznaczeniaZPlanu,
+  punktWewnatrzDzialki,
+  tytulAutomatyczny,
+  type DaneDzialki,
+  type ZapisanaDzialka,
+} from '@/lib/kreatorDzialki';
+import type { LatLng } from '@/lib/uldk';
 
 type Przeznaczenie =
   | 'INWESTYCYJNA'
@@ -125,6 +141,13 @@ type DzialkaDraft = {
   uploaded: UploadedPhoto[];
   activeIdx: number;
   step?: number;
+  // Kreator „najpierw działka": działka wskazana numerem albo na mapie i to, co z niej uzupełniliśmy.
+  dzialka?: ZapisanaDzialka | null;
+  // Ostatni tytuł ułożony automatycznie. Dopóki tytuł jest równy temu, aktualizujemy go sami.
+  autoTytul?: string;
+  // Nasze zdjęcie z lotu ptaka: po przeładowaniu dalej wiemy, które zdjęcie podmienić przy zmianie działki.
+  aerialId?: string | null;
+  aerialKey?: string | null;
 };
 
 const CREATE_DRAFT_KEY = 'tylkodzialki:create-dzialka-draft:v2';
@@ -206,30 +229,31 @@ const MAX_PHOTOS = MAX_PHOTOS_PER_OFFER; // limit zdjęć na ofertę — jedno �
 
 type WizardStep = { title: string; short: string };
 
-// Kolejność kroków: NAJPIERW podstawy, potem lokalizacja, dalej reszta. Treść bloków
-// renderujemy po kluczu, nie po indeksie, żeby zmiana kolejności nie wymagała żmudnego
-// przenumerowania rozproszonych `stepKey === '...'`.
+// Kolejność kroków: NAJPIERW działka (numer z dokumentów albo mapa z granicami), bo z niej
+// uzupełniamy lokalizację, powierzchnię, przeznaczenie, tytuł i zdjęcie z lotu ptaka. Prywatny
+// sprzedający nie ma CRM-u, więc sam wpisuje tylko cenę i telefon. Treść bloków renderujemy po
+// kluczu, nie po indeksie, żeby zmiana kolejności nie wymagała przenumerowania `stepKey === '...'`.
 const STEPS: WizardStep[] = [
-  { title: 'Podstawowe informacje', short: 'Podstawy' },
-  { title: 'Lokalizacja', short: 'Lokalizacja' },
+  { title: 'Twoja działka', short: 'Działka' },
+  { title: 'Cena i podstawy', short: 'Cena' },
   { title: 'Zdjęcia', short: 'Zdjęcia' },
   { title: 'Szczegóły i uzbrojenie', short: 'Szczegóły' },
-  { title: 'Kto sprzedaje', short: 'Sprzedający' },
+  { title: 'Kontakt', short: 'Kontakt' },
 ];
-const STEP_KEYS = ['basics', 'location', 'photos', 'details', 'seller'] as const;
+const STEP_KEYS = ['location', 'basics', 'photos', 'details', 'seller'] as const;
 const LAST_STEP = STEPS.length - 1;
 
 // Każde pole wymagane mapujemy na krok, w którym się znajduje. Dzięki temu „Dalej"
 // waliduje tylko bieżący krok, a „Opublikuj" potrafi przeskoczyć do najwcześniejszego
 // kroku, w którym czegoś brakuje.
 const FIELD_STEP: Record<FieldKey, number> = {
-  tytul: 0,
-  cenaPln: 0,
-  powierzchniaM2: 0,
-  telefon: 0,
-  przeznaczenia: 0,
-  location: 1,
+  location: 0,
+  tytul: 1,
+  cenaPln: 1,
+  powierzchniaM2: 1,
+  przeznaczenia: 1,
   photos: 2,
+  telefon: 4,
   sprzedajacyImie: 4,
   biuroNazwa: 4,
   biuroOpiekun: 4,
@@ -509,6 +533,12 @@ export default function DzialkaForm({
   const [wymiary, setWymiary] = useState(initialData?.wymiary ?? '');
   const [ksiegaWieczysta, setKsiegaWieczysta] = useState(initialData?.ksiegaWieczysta ?? '');
 
+  // Kreator „najpierw działka" (tylko dodawanie). `dzialka` = działka wskazana numerem albo na
+  // mapie; `recznaLokalizacja` = sprzedający wybrał samą miejscowość i pinezkę, bez danych z ewidencji.
+  const [dzialka, setDzialka] = useState<ZapisanaDzialka | null>(null);
+  const [recznaLokalizacja, setRecznaLokalizacja] = useState(false);
+  const [autoTytul, setAutoTytul] = useState('');
+
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(mode === 'edit' ? STEPS.length - 1 : 0);
   const stepKey = STEP_KEYS[step];
@@ -529,6 +559,12 @@ export default function DzialkaForm({
   const aerialKeyRef = useRef<string | null>(null);
   const aerialIdRef = useRef<string | null>(null);
   const aerialBusyRef = useRef(false);
+  // Id naszego zdjęcia także w stanie: karta działki pokazuje je od razu po wgraniu.
+  const [aerialId, setAerialId] = useState<string | null>(null);
+  // Działka, dla której zdjęcie właśnie się robi, i prośba zgłoszona w trakcie. Gdy sprzedający
+  // zmieni działkę w połowie pobierania, zdjęcie starej nie trafia do ogłoszenia.
+  const aerialTargetRef = useRef<string | null>(null);
+  const aerialPendingRef = useRef<{ lat: number; lng: number; rings: LatLng[][] } | null>(null);
   const [aerialNote, setAerialNote] = useState(false);
   const [pullingAerial, setPullingAerial] = useState(false);
   // Podświetlenie obszaru zdjęć przy przeciąganiu plików z pulpitu.
@@ -779,6 +815,13 @@ export default function DzialkaForm({
     setKsiegaWieczysta(draft.ksiegaWieczysta ?? '');
     setUploaded(Array.isArray(draft.uploaded) ? draft.uploaded.slice(0, MAX_PHOTOS) : []);
     setActiveIdx(typeof draft.activeIdx === 'number' ? draft.activeIdx : 0);
+    setDzialka(draft.dzialka ?? null);
+    // Lokalizacja bez działki z ewidencji = sprzedający wybrał wcześniej samą miejscowość.
+    setRecznaLokalizacja(!!draft.location && !draft.dzialka);
+    setAutoTytul(draft.autoTytul ?? '');
+    aerialIdRef.current = draft.aerialId ?? null;
+    aerialKeyRef.current = draft.aerialKey ?? null;
+    setAerialId(draft.aerialId ?? null);
 
     if (typeof draft.step === 'number') {
       const restoredStep = Math.min(Math.max(draft.step, 0), STEPS.length - 1);
@@ -789,41 +832,14 @@ export default function DzialkaForm({
     setDraftHydrated(true);
   }, [mode]);
 
+  // Autozapis przez buildDraft, żeby wersja robocza miała jedno źródło prawdy (wcześniej lista pól
+  // była tu powtórzona i dojazd nie wyzwalał zapisu).
   useEffect(() => {
     if (mode !== 'create') return;
     if (!draftHydrated) return;
 
-    saveCreateDraft({
-      tytul,
-      telefon,
-      cenaPln,
-      powierzchniaM2,
-      transakcja,
-      sprzedajacyTyp,
-      sprzedajacyImie,
-      biuroNazwa,
-      biuroOpiekun,
-      biuroLogoUrl,
-      numerOferty,
-      przeznaczenia,
-      location,
-      opis,
-      prad,
-      woda,
-      kanalizacja,
-      gaz,
-      swiatlowod,
-      dojazd,
-      wzWydane,
-      mpzp,
-      projektDomu,
-      klasaZiemi,
-      wymiary,
-      ksiegaWieczysta,
-      uploaded,
-      activeIdx,
-      step,
-    });
+    saveCreateDraft(buildDraft(uploaded));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     mode,
     draftHydrated,
@@ -846,6 +862,7 @@ export default function DzialkaForm({
     kanalizacja,
     gaz,
     swiatlowod,
+    dojazd,
     wzWydane,
     mpzp,
     projektDomu,
@@ -855,6 +872,9 @@ export default function DzialkaForm({
     uploaded,
     activeIdx,
     step,
+    dzialka,
+    autoTytul,
+    aerialId,
   ]);
 
   useEffect(() => {
@@ -1126,6 +1146,10 @@ export default function DzialkaForm({
       uploaded: uploadedForDraft,
       activeIdx,
       step,
+      dzialka,
+      autoTytul,
+      aerialId: aerialIdRef.current,
+      aerialKey: aerialKeyRef.current,
     };
   }
 
@@ -1233,39 +1257,48 @@ export default function DzialkaForm({
     return true;
   }
 
-  // Ręczne pobranie zdjęcia z lotu ptaka (ortofoto GUGiK) dla wskazanej działki — dostępne tylko,
-  // gdy user podał DOKŁADNĄ lokalizację (pinezka). Obrys działki do narysowania na zdjęciu
-  // pobieramy dopiero teraz, na kliknięcie (nie zaciągamy żadnych danych do pól formularza).
-  // Wcześniejsze nasze ortofoto podmieniamy na nowe, własnych zdjęć użytkownika nie ruszamy.
-  async function pullAerialPhoto() {
-    const loc = location;
-    if (!loc || loc.locationMode !== 'EXACT') return;
-    const { lat, lng } = loc;
+  // Zdjęcie z lotu ptaka (ortofoto GUGiK) z obrysem działki. Dwa wejścia: automatycznie zaraz po
+  // wskazaniu działki w kreatorze (obrys już mamy w `cel`) albo przyciskiem przy zdjęciach, gdy
+  // sprzedający sam postawił dokładną pinezkę (obrys dociągamy wtedy z ewidencji). Wcześniejsze
+  // nasze ortofoto podmieniamy na nowe, własnych zdjęć użytkownika nie ruszamy.
+  async function pullAerialPhoto(cel?: { lat: number; lng: number; rings: LatLng[][] }) {
+    const lat = cel ? cel.lat : location?.locationMode === 'EXACT' ? location.lat : NaN;
+    const lng = cel ? cel.lng : location?.locationMode === 'EXACT' ? location.lng : NaN;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    if (aerialBusyRef.current) return;
 
     const locKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
-    // Mamy już nasze ortofoto dokładnie dla tej działki — nie dubluj.
-    if (aerialKeyRef.current === locKey && aerialIdRef.current) return;
+    // Mamy już nasze ortofoto dokładnie dla tej działki (i nikt go nie usunął) — nie dubluj.
+    const naszeJest =
+      !!aerialIdRef.current && uploaded.some((p) => (p.publicId ?? p.url) === aerialIdRef.current);
+    if (aerialKeyRef.current === locKey && naszeJest) return;
+    if (aerialBusyRef.current) {
+      // Trwa pobieranie dla poprzedniej działki: ta prośba poczeka na swoją kolej.
+      if (cel) aerialPendingRef.current = cel;
+      return;
+    }
 
     aerialBusyRef.current = true;
+    aerialTargetRef.current = locKey;
     setPullingAerial(true);
-    setErr(null);
+    // Automat po wskazaniu działki nie kasuje komunikatów, które sprzedający właśnie czyta.
+    if (!cel) setErr(null);
     try {
-      // Obrys działki (best-effort) — sam do narysowania granicy na zdjęciu, bez wypełniania pól.
-      let rings: { lat: number; lng: number }[][] = [];
-      try {
-        const gr = await fetch('/api/sprawdz-dzialke', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lng }),
-        });
-        const gj = await gr.json().catch(() => null);
-        if (gr.ok && gj?.parcel?.rings && Array.isArray(gj.parcel.rings)) {
-          rings = gj.parcel.rings;
+      let rings: LatLng[][] = cel?.rings ?? [];
+      if (!cel) {
+        // Obrys działki (best-effort) — sam do narysowania granicy na zdjęciu, bez wypełniania pól.
+        try {
+          const gr = await fetch('/api/sprawdz-dzialke', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat, lng }),
+          });
+          const gj = await gr.json().catch(() => null);
+          if (gr.ok && gj?.parcel?.rings && Array.isArray(gj.parcel.rings)) {
+            rings = gj.parcel.rings;
+          }
+        } catch {
+          // brak obrysu — trudno, zrobimy zdjęcie samego punktu
         }
-      } catch {
-        // brak obrysu — trudno, zrobimy zdjęcie samego punktu
       }
 
       // Najpierw wersja z obrysem działki; gdy się nie uda (brak rings/canvas), zwykłe ortofoto.
@@ -1278,13 +1311,15 @@ export default function DzialkaForm({
         file = new File([blob], 'dzialka-z-lotu-ptaka.jpg', { type: 'image/jpeg' });
       }
       const { url, key } = await uploadImageViaApi(file);
+      // Sprzedający w międzyczasie zmienił działkę: zdjęcie poprzedniej nie może trafić do ogłoszenia.
+      if (aerialTargetRef.current !== locKey) return;
       const prevAerialId = aerialIdRef.current;
       // Ile zostanie zdjęć po wyrzuceniu naszego poprzedniego ortofoto (własnych nie ruszamy).
       // Decyzję o limicie podejmujemy TU, przed setUploaded — updater w React 18 wykonuje się
       // dopiero przy renderze, więc flaga odczytana zaraz po nim byłaby zawsze nieaktualna.
       const ownCount = uploaded.filter((p) => (p.publicId ?? p.url) !== prevAerialId).length;
       if (ownCount >= MAX_PHOTOS) {
-        setErr(`Masz już ${MAX_PHOTOS} zdjęć — usuń jedno, żeby dodać zdjęcie z lotu ptaka.`);
+        if (!cel) setErr(`Masz już ${MAX_PHOTOS} zdjęć. Usuń jedno, żeby dodać zdjęcie z lotu ptaka.`);
         return;
       }
       setUploaded((prev) => {
@@ -1294,15 +1329,134 @@ export default function DzialkaForm({
       });
       aerialIdRef.current = key;
       aerialKeyRef.current = locKey;
+      setAerialId(key);
       clearFieldError('photos');
       setAerialNote(true);
     } catch {
-      setErr('Nie udało się zaciągnąć zdjęcia działki. Spróbuj ponownie za chwilę.');
+      // Po automatycznym pobraniu milczymy: brak zdjęcia z lotu ptaka to nie błąd, zdjęcia można
+      // dodać samemu, a przycisk przy zdjęciach spróbuje jeszcze raz.
+      if (!cel) setErr('Nie udało się zaciągnąć zdjęcia działki. Spróbuj ponownie za chwilę.');
     } finally {
       aerialBusyRef.current = false;
       setPullingAerial(false);
+      const nastepna = aerialPendingRef.current;
+      aerialPendingRef.current = null;
+      if (nastepna) void pullAerialPhoto(nastepna);
     }
   }
+
+  // Kreator „najpierw działka": sprzedający wskazał działkę, więc uzupełniamy to, co mówi o niej
+  // ewidencja i plan miejscowy. Ruszamy tylko pola z tych źródeł; cena, media i opis zostają.
+  function zastosujDzialke(dane: DaneDzialki) {
+    const p = dane.parcel;
+    const punkt = punktWewnatrzDzialki(p.rings) ?? p.center;
+    const zPlanu = przeznaczeniaZPlanu(dane.mpzp);
+
+    setLocation({
+      placeId: null,
+      locationFull: lokalizacjaPelna(p),
+      locationLabel: nazwaMiejscowosci(p),
+      lat: punkt.lat,
+      lng: punkt.lng,
+      mapsUrl: `https://www.google.com/maps?q=${punkt.lat},${punkt.lng}`,
+      locationMode: 'EXACT',
+      parcelText: opisDzialkiEwidencyjnej(p),
+    });
+    clearFieldError('location');
+
+    if (p.areaM2 > 0) {
+      setPowierzchniaM2(formatThousandsSpaces(String(p.areaM2)));
+      clearFieldError('powierzchniaM2');
+    }
+    if (zPlanu.length > 0) {
+      setPrzeznaczenia(zPlanu);
+      clearFieldError('przeznaczenia');
+    } else {
+      // Plan nic nie mówi, a formularz startuje z „Budowlana". Z automatycznym tytułem ten domyślny
+      // wybór wyglądałby jak ustalenie z ewidencji („Działka budowlana 1,01 ha" na pasie lasu), więc
+      // sam domyślny wybór czyścimy i przeznaczenie zaznacza sprzedający.
+      setPrzeznaczenia((prev) => (prev.length === 1 && prev[0] === 'BUDOWLANA' ? [] : prev));
+    }
+    // Plan w krajowej integracji = działka jest objęta planem miejscowym (pole „MPZP" w szczegółach).
+    setMpzp(Boolean(dane.mpzp));
+
+    setDzialka({
+      id: p.id,
+      parcelNumber: p.parcelNumber,
+      region: p.region,
+      commune: p.commune,
+      county: p.county,
+      voivodeship: p.voivodeship,
+      areaM2: p.areaM2,
+      rings: p.rings,
+      plan: dane.mpzp ? { symbol: dane.mpzp.functionSymbol, nazwa: dane.mpzp.functionName } : null,
+      przeznaczeniaZPlanu: zPlanu,
+      podpowiedz: podpowiedzCeny(
+        decydujCene(dane.valuation, dane.mpzp),
+        dane.valuation.radiusKm,
+        dane.rcn
+      ),
+    });
+    setRecznaLokalizacja(false);
+    setValidationErrors([]);
+
+    void pullAerialPhoto({ lat: punkt.lat, lng: punkt.lng, rings: p.rings });
+  }
+
+  // „To nie ta działka": cofamy to, co uzupełniliśmy z ewidencji, a czego sprzedający nie zmienił.
+  // Zdjęcie z lotu ptaka pokazuje starą działkę, więc znika razem z nią.
+  function zmienDzialke() {
+    const stara = dzialka;
+    const staryAerialId = aerialIdRef.current;
+    if (staryAerialId) {
+      setUploaded((prev) =>
+        normalizeUploadedOrder(prev.filter((u) => (u.publicId ?? u.url) !== staryAerialId))
+      );
+    }
+    aerialIdRef.current = null;
+    aerialKeyRef.current = null;
+    aerialTargetRef.current = null;
+    aerialPendingRef.current = null;
+    setAerialId(null);
+    setAerialNote(false);
+
+    if (stara) {
+      if (parseFormattedNumber(powierzchniaM2) === stara.areaM2) setPowierzchniaM2('');
+      const przeznaczeniaZPlanuBezZmian =
+        stara.przeznaczeniaZPlanu.length > 0 &&
+        przeznaczenia.length === stara.przeznaczeniaZPlanu.length &&
+        przeznaczenia.every((x) => stara.przeznaczeniaZPlanu.includes(x));
+      if (przeznaczeniaZPlanuBezZmian) setPrzeznaczenia(['BUDOWLANA']);
+      if (tytul === autoTytul) {
+        setTytul('');
+        setAutoTytul('');
+      }
+    }
+    setMpzp(false);
+    setDzialka(null);
+    setLocation(null);
+  }
+
+  // Tytuł układamy sami z przeznaczenia, powierzchni i miejscowości, dopóki sprzedający go nie
+  // zmieni. Efekt nie reaguje na sam tytuł, więc skasowanie tytułu nie wraca od razu.
+  useEffect(() => {
+    if (mode !== 'create' || !draftHydrated || !dzialka) return;
+    if (tytul.trim() && tytul !== autoTytul) return;
+    const nowy = tytulAutomatyczny({
+      przeznaczenia,
+      powierzchniaM2: parseFormattedNumber(powierzchniaM2),
+      miejscowosc: location?.locationLabel ?? '',
+    });
+    if (nowy !== tytul) setTytul(nowy);
+    if (nowy !== autoTytul) setAutoTytul(nowy);
+    clearFieldError('tytul');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, draftHydrated, dzialka, przeznaczenia, powierzchniaM2, location?.locationLabel]);
+
+  // Nasze zdjęcie z lotu ptaka do karty działki (null, dopóki się nie wgra albo gdy ktoś je usunął).
+  const aerialUrl = aerialId
+    ? uploaded.find((u) => (u.publicId ?? u.url) === aerialId)?.url ?? null
+    : null;
 
   function goNext() {
     if (!validateStep(step)) return;
@@ -1684,7 +1838,8 @@ export default function DzialkaForm({
                 Dodaj działkę
               </h1>
               <p className="mt-3 max-w-[42rem] text-[15px] leading-7 text-fg/72">
-                Wystawienie jest bezpłatne. Konto zakładasz dopiero przy publikacji.
+                Podaj numer działki, a lokalizację, powierzchnię i plan uzupełnimy z ewidencji gruntów.
+                Wystawienie jest bezpłatne, konto zakładasz dopiero przy publikacji.
               </p>
             </div>
           ) : null}
@@ -1751,23 +1906,6 @@ export default function DzialkaForm({
               </ul>
             </div>
           ) : null}
-
-          {stepKey === 'basics' && (
-          <div className="space-y-6">
-            <UnderlineField
-              label="Tytuł ogłoszenia"
-              required
-              multiline
-              value={tytul}
-              onChange={(v) => { setTytul(v.replace(/\n/g, ' ').slice(0, MAX_TITLE_CHARS)); clearFieldError('tytul'); }}
-              placeholder="Np. Działka budowlana"
-              maxLength={MAX_TITLE_CHARS}
-              showCounter
-              error={fieldErrors.has('tytul')}
-            />
-          </div>
-
-          )}
 
           {stepKey === 'photos' && (
           <div className="space-y-6">
@@ -1954,7 +2092,7 @@ export default function DzialkaForm({
           )}
 
           {stepKey === 'basics' && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div>
               <div className="mb-3 text-[11px] uppercase tracking-[0.18em] text-fg/70">Typ oferty</div>
               <Tabs
@@ -1967,57 +2105,126 @@ export default function DzialkaForm({
               />
             </div>
 
-            <div className="grid gap-8 md:grid-cols-2">
-              <UnderlineField
-                label="Telefon"
-                value={telefon}
-                onChange={(v) => { setTelefon(v); clearFieldError('telefon'); }}
-                placeholder="Np. 605 000 000"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                required
-                error={fieldErrors.has('telefon')}
-              />
+            <div className="space-y-4">
+              <div className="grid gap-8 md:grid-cols-2">
+                <UnderlineField
+                  label={transakcja === 'WYNAJEM' ? 'Czynsz (PLN / miesiąc)' : 'Cena (PLN)'}
+                  value={cenaPln}
+                  onChange={(v) => { setCenaPln(formatThousandsSpaces(v)); clearFieldError('cenaPln'); }}
+                  placeholder={transakcja === 'WYNAJEM' ? 'Np. 2 500' : 'Np. 150 000'}
+                  inputMode="numeric"
+                  required
+                  error={fieldErrors.has('cenaPln')}
+                />
 
-              <UnderlineField
-                label={transakcja === 'WYNAJEM' ? 'Czynsz (PLN / miesiąc)' : 'Cena (PLN)'}
-                value={cenaPln}
-                onChange={(v) => { setCenaPln(formatThousandsSpaces(v)); clearFieldError('cenaPln'); }}
-                placeholder={transakcja === 'WYNAJEM' ? 'Np. 2 500' : 'Np. 150 000'}
-                inputMode="numeric"
-                required
-                error={fieldErrors.has('cenaPln')}
-              />
+                <UnderlineField
+                  label="Powierzchnia (m²)"
+                  value={powierzchniaM2}
+                  onChange={(v) => { setPowierzchniaM2(formatThousandsSpaces(v)); clearFieldError('powierzchniaM2'); }}
+                  placeholder="Np. 1 200"
+                  inputMode="numeric"
+                  required
+                  error={fieldErrors.has('powierzchniaM2')}
+                />
+              </div>
 
-              <UnderlineField
-                label="Powierzchnia (m²)"
-                value={powierzchniaM2}
-                onChange={(v) => { setPowierzchniaM2(formatThousandsSpaces(v)); clearFieldError('powierzchniaM2'); }}
-                placeholder="Np. 1 200"
-                inputMode="numeric"
-                required
-                error={fieldErrors.has('powierzchniaM2')}
-              />
+              {dzialka && parseFormattedNumber(powierzchniaM2) === dzialka.areaM2 ? (
+                <p className="text-[12px] leading-5 text-fg/55">
+                  Powierzchnię policzyliśmy z granic działki w ewidencji. Jeśli w wypisie z rejestru
+                  gruntów masz inną, wpisz ją.
+                </p>
+              ) : null}
+
+              {transakcja === 'SPRZEDAZ' && dzialka?.podpowiedz ? (
+                <PodpowiedzCenyBox
+                  podpowiedz={dzialka.podpowiedz}
+                  cenaPln={parseFormattedNumber(cenaPln)}
+                  powierzchniaM2={parseFormattedNumber(powierzchniaM2)}
+                />
+              ) : (
+                (() => {
+                  const c = Number(cenaPln.replace(/\s/g, ''));
+                  const a = Number(powierzchniaM2.replace(/\s/g, ''));
+                  if (c > 0 && a > 0) {
+                    const per = Math.round(c / a);
+                    return (
+                      <div className="text-[13px] text-fg/70">
+                        To około{' '}
+                        <span className="font-semibold text-brand-text">
+                          {per.toLocaleString('pl-PL')} zł/m²
+                        </span>
+                        .
+                      </div>
+                    );
+                  }
+                  return null;
+                })()
+              )}
             </div>
 
-            {(() => {
-              const c = Number(cenaPln.replace(/\s/g, ''));
-              const a = Number(powierzchniaM2.replace(/\s/g, ''));
-              if (c > 0 && a > 0) {
-                const per = Math.round(c / a);
-                return (
-                  <div className="text-[13px] text-fg/70">
-                    To około{' '}
-                    <span className="font-semibold text-brand-text">
-                      {per.toLocaleString('pl-PL')} zł/m²
-                    </span>
-                    .
-                  </div>
-                );
-              }
-              return null;
-            })()}
+            <div className="space-y-3" data-field-error={fieldErrors.has('przeznaczenia') ? 'true' : undefined}>
+              <SectionTitle>
+                Przeznaczenie <span className="text-brand-bright">*</span>
+              </SectionTitle>
+
+              <MultiTabs
+                values={przeznaczenia}
+                toggle={(v) => togglePrzeznaczenie(v as Przeznaczenie)}
+                options={[
+                  { value: 'INWESTYCYJNA', label: 'Inwestycyjna' },
+                  { value: 'BUDOWLANA', label: 'Budowlana' },
+                  { value: 'ROLNA', label: 'Rolna' },
+                  { value: 'LESNA', label: 'Leśna' },
+                  { value: 'REKREACYJNA', label: 'Rekreacyjna' },
+                  { value: 'SIEDLISKOWA', label: 'Siedliskowa' },
+                ]}
+              />
+
+              {dzialka &&
+              dzialka.przeznaczeniaZPlanu.length > 0 &&
+              przeznaczenia.length === dzialka.przeznaczeniaZPlanu.length &&
+              przeznaczenia.every((x) => dzialka.przeznaczeniaZPlanu.includes(x)) ? (
+                <p className="text-[12px] leading-5 text-fg/55">
+                  Zaznaczone według planu miejscowego
+                  {dzialka.plan?.symbol ? ` (${dzialka.plan.symbol})` : ''}. Możesz to zmienić.
+                </p>
+              ) : null}
+
+              {dzialka && dzialka.przeznaczeniaZPlanu.length === 0 && przeznaczenia.length === 0 ? (
+                <p className="text-[12px] leading-5 text-fg/55">
+                  {dzialka.plan
+                    ? `Plan miejscowy tej działki${dzialka.plan.symbol ? ` (${dzialka.plan.symbol})` : ''} nie wskazuje wprost kategorii ogłoszenia.`
+                    : 'Dla tej działki nie znaleźliśmy planu miejscowego.'}{' '}
+                  Zaznacz przeznaczenie zgodne z dokumentami, na przykład z wypisu z ewidencji albo z
+                  decyzji o warunkach zabudowy.
+                </p>
+              ) : null}
+
+              {fieldErrors.has('przeznaczenia') ? (
+                <div className="text-[12px] text-red-400/90">Wybierz minimum 1 przeznaczenie.</div>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <UnderlineField
+                label="Tytuł ogłoszenia"
+                required
+                multiline
+                value={tytul}
+                onChange={(v) => { setTytul(v.replace(/\n/g, ' ').slice(0, MAX_TITLE_CHARS)); clearFieldError('tytul'); }}
+                placeholder="Np. Działka budowlana"
+                maxLength={MAX_TITLE_CHARS}
+                showCounter
+                error={fieldErrors.has('tytul')}
+              />
+              {dzialka && tytul && tytul === autoTytul ? (
+                <p className="text-[12px] leading-5 text-fg/55">
+                  Tytuł ułożyliśmy z danych działki. Możesz go zmienić.
+                </p>
+              ) : null}
+            </div>
+
+            <Hr className="mt-6" />
           </div>
 
           )}
@@ -2036,15 +2243,32 @@ export default function DzialkaForm({
             />
 
             {sprzedajacyTyp === 'PRYWATNIE' && (
-              <div className="max-w-xl pt-4">
-                <UnderlineField
-                  label="Imię sprzedającego"
-                  value={sprzedajacyImie}
-                  onChange={(v) => { setSprzedajacyImie(v); clearFieldError('sprzedajacyImie'); }}
-                  placeholder="Np. Daniel"
-                  required
-                  error={fieldErrors.has('sprzedajacyImie')}
-                />
+              <div className="pt-4">
+                <div className="grid gap-8 md:grid-cols-2">
+                  <UnderlineField
+                    label="Imię sprzedającego"
+                    value={sprzedajacyImie}
+                    onChange={(v) => { setSprzedajacyImie(v); clearFieldError('sprzedajacyImie'); }}
+                    placeholder="Np. Daniel"
+                    required
+                    error={fieldErrors.has('sprzedajacyImie')}
+                  />
+
+                  <UnderlineField
+                    label="Telefon"
+                    value={telefon}
+                    onChange={(v) => { setTelefon(v); clearFieldError('telefon'); }}
+                    placeholder="Np. 605 000 000"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    required
+                    error={fieldErrors.has('telefon')}
+                  />
+                </div>
+                <p className="mt-4 text-[12px] leading-5 text-fg/55">
+                  Kupujący dzwonią i piszą SMS-y wprost na ten numer.
+                </p>
               </div>
             )}
 
@@ -2067,6 +2291,18 @@ export default function DzialkaForm({
                     placeholder="Np. Daniel"
                     required
                     error={fieldErrors.has('biuroOpiekun')}
+                  />
+
+                  <UnderlineField
+                    label="Telefon"
+                    value={telefon}
+                    onChange={(v) => { setTelefon(v); clearFieldError('telefon'); }}
+                    placeholder="Np. 605 000 000"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    required
+                    error={fieldErrors.has('telefon')}
                   />
 
                   <UnderlineField
@@ -2119,34 +2355,6 @@ export default function DzialkaForm({
                 </div>
               </div>
             )}
-          </div>
-
-          )}
-
-          {stepKey === 'basics' && (
-          <div className="space-y-3" data-field-error={fieldErrors.has('przeznaczenia') ? 'true' : undefined}>
-            <SectionTitle>
-              Przeznaczenie <span className="text-brand-bright">*</span>
-            </SectionTitle>
-
-            <MultiTabs
-              values={przeznaczenia}
-              toggle={(v) => togglePrzeznaczenie(v as Przeznaczenie)}
-              options={[
-                { value: 'INWESTYCYJNA', label: 'Inwestycyjna' },
-                { value: 'BUDOWLANA', label: 'Budowlana' },
-                { value: 'ROLNA', label: 'Rolna' },
-                { value: 'LESNA', label: 'Leśna' },
-                { value: 'REKREACYJNA', label: 'Rekreacyjna' },
-                { value: 'SIEDLISKOWA', label: 'Siedliskowa' },
-              ]}
-            />
-
-            {fieldErrors.has('przeznaczenia') ? (
-              <div className="text-[12px] text-red-400/90">Wybierz minimum 1 przeznaczenie.</div>
-            ) : null}
-
-            <Hr className="mt-6" />
           </div>
 
           )}
@@ -2441,25 +2649,66 @@ export default function DzialkaForm({
           )}
 
           {stepKey === 'location' && (
-          <div className="space-y-5" data-field-error={fieldErrors.has('location') ? 'true' : undefined}>
-            <div className={cx(
-              'text-[11px] uppercase tracking-[0.18em]',
-              fieldErrors.has('location') ? 'text-red-400/90' : 'text-fg/70'
-            )}>
-              Lokalizacja
-              <span className={fieldErrors.has('location') ? 'text-red-400' : 'text-brand-bright'}> *</span>
-            </div>
-
-            <div className="mt-1">
-              <LocationPicker
-                value={location ?? undefined}
-                onChange={(v: any) => { setLocation(v); clearFieldError('location'); }}
+          <div className="space-y-5">
+            {/* Dodawanie: najpierw działka z ewidencji (numer albo mapa), potem karta „to ta działka".
+                Samą miejscowość z pinezką zostawiamy jako wyjście awaryjne; edycja istniejącego
+                ogłoszenia działa jak dotąd, bez nadpisywania pól danymi z ewidencji. */}
+            {mode === 'create' && dzialka ? (
+              <KartaDzialki
+                dzialka={dzialka}
+                miejscowosc={location?.locationLabel ?? ''}
+                zdjecieUrl={aerialUrl}
+                zdjecieLadowanie={pullingAerial}
+                onZmien={zmienDzialke}
               />
-            </div>
+            ) : mode === 'create' && !recznaLokalizacja ? (
+              <ParcelFinder
+                onFound={zastosujDzialke}
+                onFallback={() => {
+                  setRecznaLokalizacja(true);
+                  clearFieldError('location');
+                }}
+                error={fieldErrors.has('location')}
+              />
+            ) : (
+              <div className="space-y-5" data-field-error={fieldErrors.has('location') ? 'true' : undefined}>
+                <div className={cx(
+                  'text-[11px] uppercase tracking-[0.18em]',
+                  fieldErrors.has('location') ? 'text-red-400/90' : 'text-fg/70'
+                )}>
+                  Lokalizacja
+                  <span className={fieldErrors.has('location') ? 'text-red-400' : 'text-brand-bright'}> *</span>
+                </div>
 
-            {fieldErrors.has('location') ? (
-              <div className="text-[12px] text-red-400/90">Wybierz lokalizację działki z listy.</div>
-            ) : null}
+                <div className="mt-1">
+                  <LocationPicker
+                    value={location ?? undefined}
+                    onChange={(v: any) => { setLocation(v); clearFieldError('location'); }}
+                  />
+                </div>
+
+                {fieldErrors.has('location') ? (
+                  <div className="text-[12px] text-red-400/90">Wybierz lokalizację działki z listy.</div>
+                ) : null}
+
+                {mode === 'create' ? (
+                  <p className="border-t border-fg/10 pt-5 text-[14px] leading-6 text-fg/65">
+                    Masz jednak numer działki?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecznaLokalizacja(false);
+                        setLocation(null);
+                      }}
+                      className="font-semibold text-fg underline decoration-fg/30 underline-offset-4 transition hover:decoration-fg"
+                    >
+                      Wyszukaj ją w ewidencji
+                    </button>
+                    , a lokalizację, powierzchnię i plan uzupełnimy za Ciebie.
+                  </p>
+                ) : null}
+              </div>
+            )}
 
             <Hr className="mt-6" />
           </div>

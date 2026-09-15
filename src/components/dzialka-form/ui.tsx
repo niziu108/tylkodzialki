@@ -3,7 +3,7 @@
 // Czyste (bezstanowe) komponenty i helpery formularza dodawania działki.
 // Wydzielone z DzialkaForm.tsx, żeby odchudzić monolit; ZERO zmiany zachowania.
 
-import type { ReactNode, HTMLAttributes, ClipboardEvent } from 'react';
+import type { ReactNode, HTMLAttributes, ClipboardEvent, KeyboardEvent } from 'react';
 
 export function cx(...s: Array<string | false | null | undefined>) {
   return s.filter(Boolean).join(' ');
@@ -32,6 +32,7 @@ export function UnderlineField({
   required,
   error,
   multiline,
+  onKeyDown,
 }: {
   label: string;
   value: string;
@@ -46,6 +47,8 @@ export function UnderlineField({
   error?: boolean;
   // Pole rośnie i zawija tekst do kolejnych linii (zamiast chować go poza kadr na telefonie).
   multiline?: boolean;
+  // Np. Enter w wyszukiwarce działki: w kreatorze Enter domyślnie przechodzi do następnego kroku.
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }) {
   return (
     <label className="block" data-field-error={error ? 'true' : undefined}>
@@ -69,6 +72,7 @@ export function UnderlineField({
           rows={1}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
           // Auto-rozrost: wysokość dopasowana do treści, żeby całość była widoczna bez suwaka.
           ref={(el) => {
             if (!el) return;
@@ -91,6 +95,7 @@ export function UnderlineField({
       ) : (
         <input
           type={type}
+          onKeyDown={onKeyDown}
           inputMode={inputMode}
           autoComplete={autoComplete}
           value={value}
