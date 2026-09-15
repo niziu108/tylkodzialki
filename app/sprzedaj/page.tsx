@@ -4,7 +4,7 @@ import DzialkaForm from "@/components/DzialkaForm";
 export const metadata: Metadata = {
   title: "Dodaj ogłoszenie działki za darmo",
   description:
-    "Wystaw działkę na sprzedaż za darmo. Podaj numer działki, a lokalizację, powierzchnię i plan miejscowy uzupełnimy z ewidencji. Konto założysz dopiero przy publikacji.",
+    "Wystaw działkę na sprzedaż w kilka minut. Dodawanie ogłoszeń jest darmowe. Wypełnij formularz, a konto założysz dopiero przy publikacji.",
 };
 
 // Strona celowo PUBLICZNA — bez login-wall. Formularz wypełnia się bez konta,

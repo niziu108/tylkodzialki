@@ -20,6 +20,10 @@ export type LocationValue = {
 type Props = {
   value?: LocationValue;
   onChange: (val: LocationValue) => void;
+  // Kliknięcie albo przeciągnięcie pinezki na mapie w trybie dokładnym, czyli moment, w którym
+  // użytkownik sam wskazał swoją działkę. Kreator dociąga wtedy jej dane z ewidencji. Adres z
+  // podpowiedzi tego nie wyzwala: punkt adresu to jeszcze nie działka.
+  onDokladnyPunkt?: (punkt: { lat: number; lng: number }) => void;
 };
 
 const DEFAULT_CENTER = { lat: 52.2297, lng: 21.0122 };
@@ -53,7 +57,7 @@ function pickLocalityLabel(results: google.maps.GeocoderResult[]): string | null
   return null;
 }
 
-export default function LocationPicker({ value, onChange }: Props) {
+export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Props) {
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -64,6 +68,12 @@ export default function LocationPicker({ value, onChange }: Props) {
   const lastGeocodedRef = useRef<string | null>(null);
 
   const [mode, setMode] = useState<LocationMode>(value?.locationMode ?? 'EXACT');
+  // Nasłuchy mapy rejestrujemy raz, przy starcie. Tryb i callback czytamy więc z refów, inaczej
+  // kliknięcie po przełączeniu na „Przybliżona" nadal zgłaszałoby tryb z pierwszego renderu.
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const onDokladnyPunktRef = useRef(onDokladnyPunkt);
+  onDokladnyPunktRef.current = onDokladnyPunkt;
   // Mapa nie jest już zawsze na widoku (za duża na telefonie i desktopie). Otwiera się
   // pełnoekranowo z zielonego przycisku „Wskaż na mapie" — spójnie z „Sprawdź działkę".
   const [mapOpen, setMapOpen] = useState(false);
@@ -71,8 +81,8 @@ export default function LocationPicker({ value, onChange }: Props) {
   // są w overlayMapTypes, więc rysują się na wierzchu obu podkładów — po rozpoznaniu terenu
   // z satelity łatwiej zaznaczyć właściwą działkę.
   const [satellite, setSatellite] = useState(false);
-  // parcelText już się nie zmienia w UI (usunęliśmy autouzupełnianie), ale zostaje jako
-  // wartość początkowa z wartości/draftu i leci dalej w emit().
+  // parcelText nie zmienia się w UI, ale zostaje jako wartość początkowa z wartości/draftu i leci
+  // dalej w emit(). Działkę z ewidencji kreator dokleja sam przy zapisie ogłoszenia.
   const [parcelText] = useState(value?.parcelText ?? '');
 
   const center = useMemo(() => {
@@ -90,9 +100,13 @@ export default function LocationPicker({ value, onChange }: Props) {
 
     const label = incomingLabel || currentLabel || fallbackLabel(lat, lng, typed);
 
+    // Pole adresu po postawieniu pinezki pokazuje etykietę „Punkt: 51.2, 19.1", a to nie adres,
+    // więc takiego tekstu nie bierzemy do pełnej lokalizacji ogłoszenia.
+    const typedAddress = typed.trim().startsWith('Punkt:') ? '' : typed.trim();
     const incomingFull = (partial.locationFull ?? '').trim();
-    const currentFull = (value?.locationFull ?? '').trim();
-    const full = incomingFull || currentFull || (typed.trim() ? typed.trim() : '');
+    const currentFullRaw = (value?.locationFull ?? '').trim();
+    const currentFull = currentFullRaw.startsWith('Punkt:') ? '' : currentFullRaw;
+    const full = incomingFull || currentFull || typedAddress;
 
     onChange({
       placeId: partial.placeId ?? value?.placeId ?? null,
@@ -178,7 +192,8 @@ export default function LocationPicker({ value, onChange }: Props) {
         const lat = e.latLng.lat();
         const lng = e.latLng.lng();
 
-        emit({ lat, lng, locationMode: mode, parcelText });
+        emit({ lat, lng, locationMode: modeRef.current, parcelText });
+        if (modeRef.current === 'EXACT') onDokladnyPunktRef.current?.({ lat, lng });
       });
 
       marker.addListener('dragend', () => {
@@ -190,7 +205,8 @@ export default function LocationPicker({ value, onChange }: Props) {
         const lat = pos.lat();
         const lng = pos.lng();
 
-        emit({ lat, lng, locationMode: mode, parcelText });
+        emit({ lat, lng, locationMode: modeRef.current, parcelText });
+        if (modeRef.current === 'EXACT') onDokladnyPunktRef.current?.({ lat, lng });
       });
 
       if (inputRef.current) {
@@ -220,7 +236,7 @@ export default function LocationPicker({ value, onChange }: Props) {
             placeId: place.place_id ?? null,
             locationFull: place.formatted_address ?? null,
             locationLabel: label || fallbackLabel(lat, lng, inputRef.current?.value),
-            locationMode: mode,
+            locationMode: modeRef.current,
             parcelText,
           });
         });

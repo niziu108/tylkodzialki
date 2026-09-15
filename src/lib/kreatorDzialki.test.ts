@@ -10,8 +10,11 @@ import {
   podpowiedzCeny,
   porownanieCeny,
   przeznaczeniaZPlanu,
+  punktWDzialce,
   punktWewnatrzDzialki,
   tytulAutomatyczny,
+  zapisanaDzialka,
+  type DaneDzialki,
   type PodpowiedzCeny,
 } from './kreatorDzialki';
 
@@ -19,6 +22,19 @@ const plan = (functionSymbol: string | null, functionName: string | null = null)
   functionSymbol,
   functionName,
 });
+
+// Działka w kształcie litery L: ramię pionowe lng 0..1, ramię poziome lat 0..1.
+const litL = [
+  [
+    { lat: 0, lng: 0 },
+    { lat: 10, lng: 0 },
+    { lat: 10, lng: 1 },
+    { lat: 1, lng: 1 },
+    { lat: 1, lng: 10 },
+    { lat: 0, lng: 10 },
+    { lat: 0, lng: 0 },
+  ],
+];
 
 describe('przeznaczeniaZPlanu', () => {
   it('czyta symbol terenu z numerem i prefiksem obszaru', () => {
@@ -95,24 +111,21 @@ describe('nazwy z ewidencji', () => {
   });
 });
 
-describe('punktWewnatrzDzialki', () => {
-  it('działka w kształcie litery L: pinezka ląduje w działce, nie u sąsiada', () => {
-    const litL = [
-      [
-        { lat: 0, lng: 0 },
-        { lat: 10, lng: 0 },
-        { lat: 10, lng: 1 },
-        { lat: 1, lng: 1 },
-        { lat: 1, lng: 10 },
-        { lat: 0, lng: 10 },
-        { lat: 0, lng: 0 },
-      ],
-    ];
+describe('pinezka a działka', () => {
+  it('rozpoznaje, czy punkt stoi w działce w kształcie litery L', () => {
+    expect(punktWDzialce({ lat: 5, lng: 0.5 }, litL)).toBe(true);
+    expect(punktWDzialce({ lat: 0.5, lng: 5 }, litL)).toBe(true);
+    // Róg „wewnątrz" litery L to już sąsiad.
+    expect(punktWDzialce({ lat: 5, lng: 5 }, litL)).toBe(false);
+  });
+
+  it('działka w kształcie litery L: punkt ląduje w działce, nie u sąsiada', () => {
     const p = punktWewnatrzDzialki(litL);
     expect(p).not.toBeNull();
     // Średnia wierzchołków (ok. 3,14; 3,14) leży poza L. Punkt ma być w pionowym ramieniu.
     expect(p!.lng).toBeCloseTo(0.5);
     expect(p!.lat).toBeGreaterThan(1);
+    expect(punktWDzialce(p!, litL)).toBe(true);
   });
 
   it('prostokąt zostaje przy środku', () => {
@@ -223,5 +236,44 @@ describe('podpowiedź ceny', () => {
     expect(kwotaOrientacyjna(150, 1234)).toBe(185000);
     expect(kwotaOrientacyjna(30, 500)).toBe(15000);
     expect(kwotaOrientacyjna(33.33, 1000)).toBe(33300);
+  });
+});
+
+describe('zapisanaDzialka', () => {
+  it('składa działkę z ewidencji, planu i podpowiedzi ceny', () => {
+    const dane: DaneDzialki = {
+      parcel: {
+        id: '100102_2.0006.100',
+        parcelNumber: '100',
+        voivodeship: 'łódzkie',
+        county: 'bełchatowski',
+        commune: 'Bełchatów',
+        region: 'Domiechowice',
+        areaM2: 10122,
+        dims: null,
+        rings: litL,
+        center: { lat: 3, lng: 3 },
+      },
+      valuation: { radiusKm: 6 } as unknown as DaneDzialki['valuation'],
+      mpzp: {
+        planName: null,
+        functionName: 'tereny lasów',
+        functionSymbol: 'ZL',
+        maxHeight: null,
+        intensity: null,
+        effectiveFrom: null,
+        resolution: null,
+        status: null,
+      },
+      rcn: null,
+    };
+    const z = zapisanaDzialka(dane, { lead: null, value: null, mixed: false });
+    expect(z).toMatchObject({
+      id: '100102_2.0006.100',
+      areaM2: 10122,
+      plan: { symbol: 'ZL', nazwa: 'tereny lasów' },
+      przeznaczeniaZPlanu: ['LESNA'],
+      podpowiedz: null,
+    });
   });
 });

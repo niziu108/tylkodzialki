@@ -166,7 +166,14 @@ export function opisDzialkiEwidencyjnej(p: Pick<ParcelReport, 'region' | 'parcel
 
 // ── Pinezka ──────────────────────────────────────────────────────────────────
 
-// Parzystość przecięć po wszystkich pierścieniach, więc otwory w działce liczą się same.
+/**
+ * Czy punkt leży w działce. Parzystość przecięć po wszystkich pierścieniach, więc otwory w działce
+ * liczą się same. Kreator sprawdza tym, czy pinezka nadal stoi na działce, której dane uzupełnił.
+ */
+export function punktWDzialce(punkt: LatLng, rings: LatLng[][]): boolean {
+  return wDzialce(punkt, rings);
+}
+
 function wDzialce(punkt: LatLng, rings: LatLng[][]): boolean {
   let wewnatrz = false;
   for (const ring of rings) {
@@ -384,3 +391,24 @@ export type ZapisanaDzialka = {
   przeznaczeniaZPlanu: PrzeznaczenieKod[];
   podpowiedz: PodpowiedzCeny | null;
 };
+
+/**
+ * Działka do kreatora albo na stronę wyceny: dane z ewidencji, plan i podpowiedź ceny. Decyzję,
+ * którą pulą cen prowadzimy, liczy wołający (lib/raportCena), żeby ten moduł nie ciągnął bazy.
+ */
+export function zapisanaDzialka(dane: DaneDzialki, decyzja: CenaDecision): ZapisanaDzialka {
+  const p = dane.parcel;
+  return {
+    id: p.id,
+    parcelNumber: p.parcelNumber,
+    region: p.region,
+    commune: p.commune,
+    county: p.county,
+    voivodeship: p.voivodeship,
+    areaM2: p.areaM2,
+    rings: p.rings,
+    plan: dane.mpzp ? { symbol: dane.mpzp.functionSymbol, nazwa: dane.mpzp.functionName } : null,
+    przeznaczeniaZPlanu: przeznaczeniaZPlanu(dane.mpzp),
+    podpowiedz: podpowiedzCeny(decyzja, dane.valuation.radiusKm, dane.rcn),
+  };
+}
