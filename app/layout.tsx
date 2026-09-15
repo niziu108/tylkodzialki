@@ -101,6 +101,41 @@ export const metadata: Metadata = {
   },
 };
 
+// Zwykły <script>, nie next/script: next/script wstrzykuje JSON-LD dopiero po hydracji, więc
+// roboty bez JavaScriptu (Bing, ChatGPT, Perplexity) w ogóle nie widziały, kim jesteśmy.
+const brandAlternateNames = ['tylkodziałki.pl', 'Tylko Działki'];
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: siteName,
+  alternateName: brandAlternateNames,
+  url: siteUrl,
+};
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: siteName,
+  alternateName: brandAlternateNames,
+  legalName: 'Ultima Reality Sp. z o.o.',
+  url: siteUrl,
+  logo: `${siteUrl}/logo.png`,
+  description:
+    'Portal ogłoszeń wyłącznie z działkami na sprzedaż w całej Polsce: budowlane, rolne, rekreacyjne i inwestycyjne, od biur nieruchomości i właścicieli.',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'ul. Piotrkowska 44/10',
+    postalCode: '90-265',
+    addressLocality: 'Łódź',
+    addressCountry: 'PL',
+  },
+  sameAs: [
+    'https://www.instagram.com/tylkodzialki.pl/',
+    'https://www.facebook.com/profile.php?id=61573292127976',
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl" className={`${geist.variable} ${bebas.variable} ${jost.variable}`}>
@@ -114,29 +149,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <ConsentScripts />
 
-          <Script id="td-website-schema" type="application/ld+json" strategy="afterInteractive">
-            {JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'WebSite',
-              name: 'tylkodzialki.pl',
-              url: 'https://tylkodzialki.pl',
-              potentialAction: {
-                '@type': 'SearchAction',
-                target: 'https://tylkodzialki.pl/kup',
-                'query-input': 'required name=search_term_string',
-              },
-            })}
-          </Script>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(websiteJsonLd).replace(/</g, '\\u003c'),
+            }}
+          />
 
-          <Script id="td-organization-schema" type="application/ld+json" strategy="afterInteractive">
-            {JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Organization',
-              name: 'tylkodzialki.pl',
-              url: 'https://tylkodzialki.pl',
-              logo: 'https://tylkodzialki.pl/logo.png',
-            })}
-          </Script>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(organizationJsonLd).replace(/</g, '\\u003c'),
+            }}
+          />
 
           <Script id="td-meta-pixel" strategy="afterInteractive">
             {`
