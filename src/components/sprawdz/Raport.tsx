@@ -37,24 +37,24 @@ const NEXT_STEPS: { href: string; label: string }[] = [
   { href: '/blog/jak-sprawdzic-dzialke-przed-zakupem', label: 'Pełna checklista przed zakupem' },
 ];
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
+export function Eyebrow({ children }: { children: React.ReactNode }) {
   return <div className="text-[12px] uppercase tracking-[0.2em] text-brand-text">{children}</div>;
 }
 
-function plDate(iso: string | null): string | null {
+export function plDate(iso: string | null): string | null {
   if (!iso) return null;
   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[3]}.${m[2]}.${m[1]}` : iso;
 }
 
-function areaLabel(m2: number): string {
+export function areaLabel(m2: number): string {
   const base = `${formatIntPL(m2)} m²`;
   if (m2 >= 5000) return `${base} · ${(m2 / 10000).toLocaleString('pl-PL', { maximumFractionDigits: 2 })} ha`;
   if (m2 >= 1000) return `${base} · ${(m2 / 100).toLocaleString('pl-PL', { maximumFractionDigits: 0 })} ar`;
   return base;
 }
 
-function Row({ label, value }: { label: string; value: string | null }) {
+export function Row({ label, value }: { label: string; value: string | null }) {
   if (!value) return null;
   return (
     <div className="grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-b border-fg/10 py-3 md:grid-cols-[14rem_1fr]">

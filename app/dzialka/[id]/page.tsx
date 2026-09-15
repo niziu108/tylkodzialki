@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
+import { after } from 'next/server';
 import DzialkaClient from './DzialkaClient';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SimilarOffers from '@/components/SimilarOffers';
+import RaportOferty from '@/components/sprawdz/RaportOferty';
+import { odswiezRaportOferty, pobierzRaportOferty } from '@/lib/raportOferty';
+import { getRcnOkolica } from '@/lib/rcnStats';
+import { looksRolny } from '@/lib/raportCena';
 import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
 import { getWizytowkaSlugForOwner } from '@/lib/biuroWizytowka';
 import { getOfferPriceTrend } from '@/lib/dzialkaPriceHistory';
@@ -220,6 +225,27 @@ export default async function Page({ params }: PageProps) {
   // Wizytówka biura: link przy ofercie pojawia się TYLKO dla partnerów, którym ją włączyliśmy.
   const wizytowkaSlug = dzialka ? await getWizytowkaSlugForOwner(dzialka.ownerId) : null;
 
+  // Raport działki pod ofertą: tylko gdy wiemy, która to działka (dokładna pinezka albo numer
+  // z opisu potwierdzony w ULDK). Brakujący albo nieaktualny raport liczy się w tle, już po
+  // wysłaniu strony, bo GUGiK odpowiada po kilka sekund; pokaże się przy kolejnym odświeżeniu ISR.
+  // Tylko na Vercelu: lokalny `next dev` pisze do tej samej bazy, a GUGiK stąd nie odpowiada.
+  const { raport, doOdswiezenia } = dzialka
+    ? await pobierzRaportOferty(dzialka)
+    : { raport: null, doOdswiezenia: false };
+  if (dzialka && doOdswiezenia && dzialka.status === 'AKTYWNE' && process.env.VERCEL) {
+    const dzialkaId = dzialka.id;
+    after(() => odswiezRaportOferty(dzialkaId).then(() => undefined, () => undefined));
+  }
+
+  // Ceny z aktów notarialnych liczymy na żywo z naszej tabeli RCN (skan rejestru wciąż rośnie).
+  const rcnRaportu = raport
+    ? await getRcnOkolica(
+        raport.dane.parcel.center.lat,
+        raport.dane.parcel.center.lng,
+        looksRolny(raport.dane.mpzp) ? 'rolna' : 'budowlana'
+      ).catch(() => null)
+    : null;
+
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
   const isRent = dzialka?.transakcja === 'WYNAJEM';
@@ -359,7 +385,22 @@ export default async function Page({ params }: PageProps) {
         ]}
       />
 
-      <DzialkaClient key={id} initial={dzialka} priceTrend={priceTrend} wizytowkaSlug={wizytowkaSlug} />
+      <DzialkaClient
+        key={id}
+        initial={dzialka}
+        priceTrend={priceTrend}
+        wizytowkaSlug={wizytowkaSlug}
+        raportDzialki={raport ? { numer: raport.dane.parcel.parcelNumber } : null}
+      />
+
+      {raport ? (
+        <RaportOferty
+          dane={raport.dane}
+          zrodlo={raport.zrodlo}
+          sprawdzono={raport.sprawdzonoAt.toISOString()}
+          rcn={rcnRaportu}
+        />
+      ) : null}
 
       <SimilarOffers items={similar} />
     </>

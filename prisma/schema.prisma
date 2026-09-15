@@ -143,8 +143,9 @@ model Dzialka {
   // Powód: `locationFull` z CRM bywa niespójny („Łódzkie", „Dąbrowica, koniński"), przez co
   // ~11% ofert wypadało z hubów powiatowych. Punkt oferty jest przybliżony, ale przybliżenie
   // rzędu setek metrów nie zmienia gminy ani powiatu, więc ta precyzja jest uczciwa.
-  // ŚWIADOMIE nie zapisujemy pełnego identyfikatora działki ewidencyjnej — ten nadal podaje
-  // użytkownik w „Sprawdź działkę" (FILOZOFIA: precyzję działki podaje UŻYTKOWNIK).
+  // Z przybliżonego punktu NIE wyprowadzamy działki ewidencyjnej. Jej identyfikator trzyma osobna
+  // tabela DzialkaRaport i tylko wtedy, gdy wskazał ją ogłoszeniodawca: dokładną pinezką albo
+  // numerem w opisie potwierdzonym w ULDK (FILOZOFIA: precyzję działki podaje człowiek, nie punkt).
   // `adminTeryt` = 6-cyfrowy kod gminy (powiat = 4 pierwsze cyfry); klucz pod agregaty RCN.
   adminTeryt     String?
   adminWoj       String?
@@ -198,6 +199,7 @@ model Dzialka {
   perelkaUzyta   PerelkaUzyta?
   priceSnapshots DzialkaPriceSnapshot[]
   listingSpells  DzialkaListingSpell[]
+  raport         DzialkaRaport?
 
   @@index([lat, lng])
   @@index([ownerId])
@@ -384,6 +386,34 @@ model DzialkaListingSpell {
   @@index([endedAt])
   @@index([provider, endedAt])
   @@index([reliable, endedAt])
+}
+
+// Raport działki pod ofertą: to, co generuje „Sprawdź działkę" (ewidencja z ULDK, plan miejscowy,
+// plan ogólny gminy), policzone raz i zapisane, żeby kupujący widział je od razu pod ogłoszeniem,
+// a Google w HTML oferty. Osobna tabela, bo oferta zostaje nietknięta: nie ruszamy ani jej
+// lokalizacji, ani pól z feedu biura. Logika w src/lib/raportOferty.ts.
+//
+// `zrodlo` i `status` to String, nie enum: Restore Neona gubi wartości dopisane do enumów.
+model DzialkaRaport {
+  id           String   @id @default(cuid())
+  dzialkaId    String   @unique
+  // PINEZKA = dokładna lokalizacja od ogłoszeniodawcy; OPIS = numer działki z opisu biura,
+  // potwierdzony w ULDK (ta sama gmina, blisko pinezki, zgodna powierzchnia).
+  zrodlo       String
+  // Odcisk wejścia (numery z opisu albo punkt pinezki). Zmiana = działkę ustalamy od nowa.
+  klucz        String
+  // GOTOWY | BRAK (nie da się wskazać jednej działki) | BLAD (usługa GUGiK nie odpowiedziała)
+  status       String
+  parcelId     String?
+  dane         Json?
+  sprawdzonoAt DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  dzialka Dzialka @relation(fields: [dzialkaId], references: [id], onDelete: Cascade)
+
+  @@index([parcelId])
+  @@index([status])
 }
 
 model PasswordResetToken {

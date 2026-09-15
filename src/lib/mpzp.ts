@@ -94,7 +94,13 @@ function tag(xml: string, name: string): string | null {
  * Przeznaczenie MPZP w punkcie (środek działki). Zwraca `null`, gdy w tym miejscu nie ma planu w
  * KIMPZP (gmina niezintegrowana albo teren bez planu) albo usługa nie odpowie.
  */
-export async function getMpzpAtPoint(lat: number, lng: number): Promise<MpzpInfo | null> {
+// `rzucajBledy`: raport zapisywany na stałe przy ofercie (lib/raportOferty.ts) musi odróżnić „brak
+// planu" od „usługa nie odpowiedziała", inaczej chwilowa awaria zostałaby w bazie jako brak planu.
+export async function getMpzpAtPoint(
+  lat: number,
+  lng: number,
+  opts: { rzucajBledy?: boolean } = {}
+): Promise<MpzpInfo | null> {
   try {
     const { x, y } = to3857(lat, lng);
     const d = 100; // metry — mały prostokąt wokół punktu; środek piksela = nasz punkt
@@ -116,8 +122,14 @@ export async function getMpzpAtPoint(lat: number, lng: number): Promise<MpzpInfo
     };
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
-    const res = await fetch(url.toString(), { next: { revalidate: 60 * 60 * 24 * 7 } });
-    if (!res.ok) return null;
+    const res = await fetch(url.toString(), {
+      next: { revalidate: 60 * 60 * 24 * 7 },
+      ...(opts.rzucajBledy ? { signal: AbortSignal.timeout(20_000) } : {}),
+    });
+    if (!res.ok) {
+      if (opts.rzucajBledy) throw new Error(`MPZP HTTP ${res.status}`);
+      return null;
+    }
 
     const text = await res.text();
 
@@ -163,7 +175,8 @@ export async function getMpzpAtPoint(lat: number, lng: number): Promise<MpzpInfo
     // Gdyby usługa zwróciła treść bez planu/przeznaczenia — traktuj jak brak.
     if (!info.planName && !info.functionName && !info.functionSymbol) return null;
     return info;
-  } catch {
+  } catch (err) {
+    if (opts.rzucajBledy) throw err;
     return null;
   }
 }

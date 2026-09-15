@@ -111,7 +111,12 @@ function to3857(lat: number, lng: number): { x: number; y: number } {
  * Plan ogólny w punkcie (środek działki). `null`, gdy gmina nie ma jeszcze danych w usłudze
  * albo usługa nie odpowie — wtedy raport o planie ogólnym po prostu nie wspomina.
  */
-export async function getPogAtPoint(lat: number, lng: number): Promise<PogInfo | null> {
+// `rzucajBledy`: jak w getMpzpAtPoint, raport zapisany przy ofercie nie może wziąć awarii za brak planu.
+export async function getPogAtPoint(
+  lat: number,
+  lng: number,
+  opts: { rzucajBledy?: boolean } = {}
+): Promise<PogInfo | null> {
   try {
     const { x, y } = to3857(lat, lng);
     const d = 60; // metry — mały prostokąt wokół punktu, środek piksela = nasz punkt
@@ -134,10 +139,17 @@ export async function getPogAtPoint(lat: number, lng: number): Promise<PogInfo |
     };
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
-    const res = await fetch(url.toString(), { next: { revalidate: 60 * 60 * 24 * 7 } });
-    if (!res.ok) return null;
+    const res = await fetch(url.toString(), {
+      next: { revalidate: 60 * 60 * 24 * 7 },
+      ...(opts.rzucajBledy ? { signal: AbortSignal.timeout(20_000) } : {}),
+    });
+    if (!res.ok) {
+      if (opts.rzucajBledy) throw new Error(`POG HTTP ${res.status}`);
+      return null;
+    }
     return parsePogGml(await res.text());
-  } catch {
+  } catch (err) {
+    if (opts.rzucajBledy) throw err;
     return null;
   }
 }

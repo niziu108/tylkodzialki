@@ -237,6 +237,7 @@ export default function DzialkaPage({
   onPreviewBack,
   priceTrend = null,
   wizytowkaSlug = null,
+  raportDzialki = null,
 }: {
   initial?: Dzialka | null;
   // Tryb podglądu (z kreatora /sprzedaj): identyczny wygląd, ale BEZ skutków ubocznych —
@@ -250,6 +251,9 @@ export default function DzialkaPage({
   // Slug wizytówki biura — ustawiany tylko dla partnerów, którym ją włączyliśmy w adminie.
   // null = logo zostaje zwykłą grafiką, bez linku (zdecydowana większość kont).
   wizytowkaSlug?: string | null;
+  // Numer działki z raportu pod ofertą (DzialkaRaport). Jest tylko wtedy, gdy wiemy, która to
+  // działka; blok lokalizacji pokazuje wtedy skrót do raportu zamiast „Lokalizacja przybliżona".
+  raportDzialki?: { numer: string } | null;
 }) {
   const params = useParams();
   const router = useRouter();
@@ -1340,7 +1344,22 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     </Link>
                   ) : null}
 
-                  {isApproxLocation ? (
+                  {raportDzialki ? (
+                    <a
+                      href="#raport-dzialki"
+                      onClick={(e) => {
+                        // Płynny zjazd tylko przez scrollIntoView: globalny smooth psuł reset
+                        // scrolla przy nawigacji ([[project-scroll-smooth-gotcha]]).
+                        const cel = document.getElementById('raport-dzialki');
+                        if (!cel) return;
+                        e.preventDefault();
+                        cel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className="mt-3 flex w-fit text-[12px] uppercase tracking-[0.18em] text-brand-text underline decoration-brand/40 underline-offset-8 transition hover:text-brand-bright"
+                    >
+                      Raport działki nr {raportDzialki.numer} ↓
+                    </a>
+                  ) : isApproxLocation ? (
                     <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-fg/68">
                      Lokalizacja przybliżona
                    </div>
