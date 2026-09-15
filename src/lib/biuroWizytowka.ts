@@ -9,6 +9,7 @@ import type {
   SprzedajacyTyp,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { getObnizkiCen } from '@/lib/dzialkaPriceHistory';
 import { adminOf, powiatNom } from '@/lib/seoPowiaty';
 import { getSeoRegion } from '@/lib/seo-locations';
 import { normalizeText } from '@/lib/dzialkiSearch';
@@ -56,6 +57,8 @@ export type WizytowkaOferta = {
     biuroPartnerStrategiczny: boolean;
   } | null;
   zdjecia: { url: string; kolejnosc: number | null }[];
+  /** „Obniżka X%" z historii cen (lib/obnizka.ts); null = bez znaczka. */
+  obnizkaPct: number | null;
 };
 
 export type WizytowkaZasieg = {
@@ -230,6 +233,9 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
     }),
   ]);
 
+  // Znaczek „Obniżka X%" to fakt o ofercie, nie ocena cennika biura (patrz komentarz przy zakresie).
+  const obnizki = await getObnizkiCen(oferty.map((o) => o.id));
+
   return {
     slug: user.biuroSlug,
     nazwa: user.defaultBiuroNazwa?.trim() || user.biuroSlug,
@@ -278,6 +284,7 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
       biuroLogoUrl: o.biuroLogoUrl,
       owner: o.owner,
       zdjecia: o.zdjecia,
+      obnizkaPct: obnizki.get(o.id) ?? null,
     })),
     strona: page,
     stronLacznie: Math.max(1, Math.ceil(liczbaOfert / OFERTY_NA_STRONE)),

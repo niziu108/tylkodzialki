@@ -70,6 +70,8 @@ export type OfferData = {
   sprzedajacyTyp?: SprzedajacyTyp | null;
   biuroNazwa?: string | null;
   biuroLogoUrl?: string | null;
+  /** „Obniżka X%" z historii cen tej oferty (lib/obnizka.ts); null albo brak = bez znaczka. */
+  obnizkaPct?: number | null;
   /** Fallback logo/nazwy biura z konta właściciela (oferty CRM nie mają własnego logo). */
   owner?: {
     defaultBiuroLogoUrl?: string | null;
@@ -520,6 +522,7 @@ export function OfferCard({
           tytul={d.tytul}
           loc={loc}
           distanceKm={d.distanceKm ?? null}
+          obnizkaPct={isRent ? null : (d.obnizkaPct ?? null)}
           area={area}
           przezn={przezn}
           media={parcelMediaLabel(d)}

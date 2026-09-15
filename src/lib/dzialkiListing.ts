@@ -17,6 +17,7 @@ import { buildSearchContext, getSearchMatchInfo, computeGeoPrefilterBBox } from 
 import { listDzialkiPaginated, PAGE_INCLUDE, FEATURED_TOP_CAP, type ListSort } from '@/lib/dzialkiQuery';
 import { MEDIA_AVAILABLE } from '@/lib/media';
 import { DOJAZD_FILTR_KEYS, type DojazdKey } from '@/lib/dojazd';
+import { dolaczObnizki } from '@/lib/dzialkaPriceHistory';
 
 function isFeaturedActive(d: any) {
   return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
@@ -427,7 +428,7 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
       take,
     });
 
-    return { ok: true, total, count: total, items, meta: buildMeta(total) };
+    return { ok: true, total, count: total, items: await dolaczObnizki(items), meta: buildMeta(total) };
   }
 
   // ŚCIEŻKA Z WYSZUKIWANIEM (tekst/promień): dopasowanie geo/tekst jest w JS (wspólna logika
@@ -553,9 +554,9 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
     ? await prisma.dzialka.findMany({ where: { id: { in: pageIds } }, include: PAGE_INCLUDE })
     : [];
   const byId = new Map(hydrated.map((d) => [d.id, d]));
-  const items = pageIds.map((id) => byId.get(id)).filter(Boolean);
+  const items = pageIds.map((id) => byId.get(id)).filter((d): d is NonNullable<typeof d> => Boolean(d));
 
-  return { ok: true, total, count: total, items, meta: buildMeta(total) };
+  return { ok: true, total, count: total, items: await dolaczObnizki(items), meta: buildMeta(total) };
 }
 
 // Pierwsza strona wyników dla huba SEO, policzona na serwerze.

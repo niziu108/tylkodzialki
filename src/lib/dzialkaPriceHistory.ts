@@ -1,5 +1,7 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { warsawDateOnly } from '@/lib/biuroStats';
+import { obnizkaPct } from '@/lib/obnizka';
 
 // Historia cen KONKRETNEJ działki (fundament „land intelligence": trend ceny działki w czasie).
 // Odróżnia się od CityPriceDailyStat (mediana miasta) tym, że tu śledzimy pojedynczą ofertę.
@@ -90,6 +92,54 @@ export async function getOfferPriceTrend(dzialkaId: string): Promise<OfferPriceT
   } catch {
     return { points: [], changePct: null, firstDate: null };
   }
+}
+
+/**
+ * Obniżki do znaczka „Obniżka X%" na kartach: id oferty -> procent, tylko dla ofert, które przechodzą
+ * bramki z lib/obnizka.ts. Jedno zapytanie na stronę listy. Odporne na brak tabeli i błąd bazy:
+ * wtedy pusta mapa, karty bez znaczka, a lista działa dalej.
+ */
+export async function getObnizkiCen(ids: string[]): Promise<Map<string, number>> {
+  const wynik = new Map<string, number>();
+  if (ids.length === 0) return wynik;
+  try {
+    const rows = await prisma.$queryRaw<
+      { dzialkaId: string; cenaPierwsza: number; powPierwsza: number; cenaOstatnia: number; powOstatnia: number }[]
+    >`
+      SELECT p."dzialkaId", p."cenaPln" AS "cenaPierwsza", p."powierzchniaM2" AS "powPierwsza",
+             o."cenaPln" AS "cenaOstatnia", o."powierzchniaM2" AS "powOstatnia"
+      FROM (
+        SELECT DISTINCT ON ("dzialkaId") "dzialkaId", "cenaPln", "powierzchniaM2"
+        FROM "DzialkaPriceSnapshot"
+        WHERE "dzialkaId" IN (${Prisma.join(ids)})
+        ORDER BY "dzialkaId", "date" ASC
+      ) p
+      JOIN (
+        SELECT DISTINCT ON ("dzialkaId") "dzialkaId", "cenaPln", "powierzchniaM2"
+        FROM "DzialkaPriceSnapshot"
+        WHERE "dzialkaId" IN (${Prisma.join(ids)})
+        ORDER BY "dzialkaId", "date" DESC
+      ) o ON o."dzialkaId" = p."dzialkaId"
+    `;
+    for (const r of rows) {
+      const pct = obnizkaPct(
+        { cenaPln: r.cenaPierwsza, powierzchniaM2: r.powPierwsza },
+        { cenaPln: r.cenaOstatnia, powierzchniaM2: r.powOstatnia }
+      );
+      if (pct != null) wynik.set(r.dzialkaId, pct);
+    }
+  } catch {
+    // brak tabeli albo chwilowy błąd bazy: karty po prostu bez znaczka
+  }
+  return wynik;
+}
+
+/** Dokleja `obnizkaPct` do ofert, które idą na karty (lista /kup, huby, raile). */
+export async function dolaczObnizki<T extends { id: string }>(
+  items: T[]
+): Promise<(T & { obnizkaPct: number | null })[]> {
+  const obnizki = await getObnizkiCen(items.map((i) => i.id));
+  return items.map((i) => ({ ...i, obnizkaPct: obnizki.get(i.id) ?? null }));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ import ScrollFill from "@/components/ScrollFill";
 import type { OfferData } from "@/components/OfferCard";
 import { SEO_REGIONS } from "@/lib/seo-locations";
 import { getFeaturedListings } from "@/lib/dzialki";
+import { getObnizkiCen } from "@/lib/dzialkaPriceHistory";
 import { DEMO_MPZP, DEMO_PARCEL } from "@/components/sprawdz/demoRaport";
 import { getPointValuation } from "@/lib/seoHub";
 import { getRcnOkolica } from "@/lib/rcnStats";
@@ -155,8 +156,10 @@ export default async function HomePage() {
   // Mapujemy tylko bezpieczne pola (bez editToken/telefon itp.), bo lecą do
   // komponentu klienckiego FeaturedRail. Karta jest wspólna z /kup, więc dorzucamy
   // media (chipy) oraz sprzedawcę/logo (stopka), żeby wyróżnione wyglądały tak samo.
+  const obnizki = await getObnizkiCen(featuredListings.map((d) => d.id));
   const featuredCards: OfferData[] = featuredListings.map((d) => ({
     id: d.id,
+    obnizkaPct: obnizki.get(d.id) ?? null,
     tytul: d.tytul,
     cenaPln: d.cenaPln,
     powierzchniaM2: d.powierzchniaM2,

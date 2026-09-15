@@ -20,6 +20,7 @@ export function CardBody({
   tytul,
   loc,
   distanceKm = null,
+  obnizkaPct = null,
   area,
   przezn,
   media,
@@ -41,6 +42,8 @@ export function CardBody({
   loc: string;
   /** Odległość od punktu odniesienia (raport „Sprawdź działkę"); null = nie pokazujemy. */
   distanceKm?: number | null;
+  /** Obniżka ceny tej oferty w % (historia cen, lib/obnizka.ts); null = bez znaczka. */
+  obnizkaPct?: number | null;
   area: number;
   /** Gotowa etykieta przeznaczeń, np. „Budowlana, Rolna" lub „—". */
   przezn: string;
@@ -87,6 +90,17 @@ export function CardBody({
               </span>
             )}
             {zlM2 ? <span className="text-[13px] leading-none text-fg/68">· {formatIntPL(zlM2)} zł/m²</span> : null}
+            {/* Fakt o samej ofercie (cena spadła od pierwszej zapisanej u nas), nie porównanie
+                z okolicą. Bramki i próg 5% w lib/obnizka.ts. */}
+            {obnizkaPct ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-brand/15 px-2.5 py-1 text-[12px] font-medium leading-none text-brand-text"
+                title={`Cena niższa o ${obnizkaPct}% od pierwszej ceny zapisanej w naszym serwisie`}
+              >
+                <span aria-hidden>↓</span>
+                Obniżka {obnizkaPct}%
+              </span>
+            ) : null}
           </div>
           {heartSlot ? <div className="-mt-1 shrink-0">{heartSlot}</div> : null}
         </div>

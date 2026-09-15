@@ -19,6 +19,7 @@ const SELLER_OWNER_SELECT = {
   },
 } as const;
 import { prisma } from '@/lib/prisma';
+import { getObnizkiCen } from '@/lib/dzialkaPriceHistory';
 
 // Wyjątek per-konto: w miejscu „Opiekun" (domyślnie imię i nazwisko agenta z feedu)
 // pokazujemy nazwę biura. Prośba biura Grupa Vero — nie chcą personaliów w ofertach.
@@ -104,6 +105,8 @@ export type SimilarDzialka = {
   biuroPartner: boolean;
   /** Odległość od bieżącej oferty w km (null, gdy dobrane spoza geo). */
   distanceKm: number | null;
+  /** „Obniżka X%" z historii cen (lib/obnizka.ts); null = bez znaczka. */
+  obnizkaPct: number | null;
 };
 
 type SimilarSeed = {
@@ -177,6 +180,8 @@ function toSimilar(row: SimilarRow, distanceKm: number | null): SimilarDzialka {
     biuroLogoBg: row.owner?.defaultBiuroLogoBg ?? false,
     biuroPartner: row.owner?.biuroPartnerStrategiczny ?? false,
     distanceKm,
+    // Doklejane po wyborze ofert, jednym zapytaniem na cały rail (getSimilarDzialki).
+    obnizkaPct: null,
   };
 }
 
@@ -281,7 +286,9 @@ export async function getSimilarDzialki(
     }
   }
 
-  return result.slice(0, limit);
+  const wybrane = result.slice(0, limit);
+  const obnizki = await getObnizkiCen(wybrane.map((d) => d.id));
+  return wybrane.map((d) => ({ ...d, obnizkaPct: obnizki.get(d.id) ?? null }));
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

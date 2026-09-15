@@ -21,6 +21,7 @@ import {
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { PAGE_INCLUDE } from '@/lib/dzialkiQuery';
+import { dolaczObnizki } from '@/lib/dzialkaPriceHistory';
 import {
   type BBox,
   buildSearchContext,
@@ -625,9 +626,11 @@ export const getNearbyOffers = cache(async (lat: number, lng: number, km: number
   // Dystans jedzie razem z ofertą: w raporcie to on tłumaczy, czemu akurat ta działka tu jest.
   const order = new Map(near.map((n, i) => [n.id, i]));
   const dist = new Map(near.map((n) => [n.id, n.dist]));
-  return rows
-    .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
-    .map((r) => ({ ...r, distanceKm: dist.get(r.id) ?? null }));
+  return dolaczObnizki(
+    rows
+      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+      .map((r) => ({ ...r, distanceKm: dist.get(r.id) ?? null }))
+  );
 });
 
 // Wpisy huba do sitemapy: dla każdego miasta total + per typ (jeden odczyt całej bazy,

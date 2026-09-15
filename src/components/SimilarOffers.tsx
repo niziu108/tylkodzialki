@@ -81,6 +81,7 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
         biuroLogoUrl={d.biuroLogoUrl}
         biuroLogoBg={d.biuroLogoBg}
         partner={d.biuroPartner}
+        obnizkaPct={d.obnizkaPct}
       />
     </Link>
   );
