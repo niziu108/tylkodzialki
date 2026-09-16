@@ -120,11 +120,19 @@ async function main() {
       for (const dir of katalogi) {
         const nazwa = normPath(dir.name);
         if (!nazwa || nazwa === "." || nazwa === "..") continue;
-        if (znane.has(nazwa)) continue;
-        if (IGNOROWANE_KATALOGI.has(nazwa)) continue;
-        // Katalog o nazwie biura, które mamy już podpięte na INNYM koncie (np. dublet po
-        // przenosinach ze wspólnego konta na dedykowane) — nie jest nowym biurem.
-        if (wszystkieSciezki.has(nazwa) || kontaBezDomeny.has(nazwa)) continue;
+        // Silnik wchodzi w ścieżkę z konfiguracji po trim(), a panel admina zapisuje ją po trim(),
+        // więc katalog różniący się od podłączonego tylko białymi znakami (spacja wpisana w CRM
+        // biura) nigdy nie jest importowany. normPath też je obcina, przez co czujka uznawała go
+        // za podłączony: Arkadia Włocławek wysyłała paczki do „arkadiawloclawek " od 22.06 do
+        // 15.09.2026, a import czytał pusty już „arkadiawloclawek". Taki katalog zgłaszamy zawsze.
+        const bialeZnaki = dir.name !== dir.name.trim();
+        if (!bialeZnaki) {
+          if (znane.has(nazwa)) continue;
+          if (IGNOROWANE_KATALOGI.has(nazwa)) continue;
+          // Katalog o nazwie biura, które mamy już podpięte na INNYM koncie (np. dublet po
+          // przenosinach ze wspólnego konta na dedykowane) — nie jest nowym biurem.
+          if (wszystkieSciezki.has(nazwa) || kontaBezDomeny.has(nazwa)) continue;
+        }
 
         let plikow = 0;
         let bytes = 0;
@@ -145,7 +153,8 @@ async function main() {
 
         nowe.push({
           konto: acc.user,
-          katalog: dir.name,
+          // W cudzysłowie, żeby spacja na końcu nazwy była widoczna w raporcie i w mailu.
+          katalog: bialeZnaki ? JSON.stringify(dir.name) : dir.name,
           plikow,
           mb: Math.round((bytes / 1024 / 1024) * 10) / 10,
           najnowszyPlik: najnowszaNazwa,
@@ -186,6 +195,7 @@ async function main() {
       );
     }
     console.log("\n  (dni = ile dni temu wpadł ostatni plik; 0-2 = biuro wysyła TERAZ, pilne)");
+    console.log("  (nazwa w cudzysłowie = katalog z białym znakiem, np. spacją na końcu; silnik go nie czyta)");
   }
 
   if (puste.length > 0) {
