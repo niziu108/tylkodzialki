@@ -477,6 +477,15 @@ function getPropertyTypeText(
     if (value) return value;
   }
 
+  // Bez pliku definicji nazwy pól są nieznane, a eksport bez kodu OG w sygnaturze (NextNest:
+  // format ASARI wysyłany z innego CRM, same numery w sygnaturach, brak definictions.xml) odpadał
+  // w całości. W standardzie ASARI pole 36 to „nieruchomość" (DZIAŁKA, DOM, MIESZKANIE...). Skan
+  // 25 biur z 16.09.2026: 1253 z 1253 ofert z kodem OG ma tu „działka", a żadna oferta z sygnaturą
+  // ASARI bez kodu OG. Zapas działa wyłącznie bez definicji, więc biur z definicjami nie zmienia.
+  if (definitions.byId.size === 0) {
+    return toTextValue(params["36"]);
+  }
+
   return "";
 }
 
