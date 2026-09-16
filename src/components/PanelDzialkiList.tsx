@@ -9,6 +9,7 @@ import type {
   WodaStatus,
   KanalizacjaStatus,
   GazStatus,
+  DzialkaSourceType,
 } from '@prisma/client';
 import { CardBody } from './CardBody';
 import { IconCamera } from './CardIcons';
@@ -51,6 +52,7 @@ export type Dzialka = {
   endedAt?: string | Date | null;
   isFeatured?: boolean | null;
   featuredUntil?: string | Date | null;
+  sourceType?: DzialkaSourceType | null;
   viewsCount?: number | null;
   detailViewsCount?: number | null;
   favoritesCount?: number | null;
@@ -477,6 +479,9 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   const daysLeft = getDaysLeft(d.expiresAt);
   const isFeaturedActive = isFeaturedNow(d);
   const isIndefinite = effectiveStatus === 'AKTYWNE' && !d.expiresAt;
+  // Ofertą z importu CRM rządzi program biura, więc bez Przedłuż/Aktywuj, Zakończ i Usuń.
+  // Powody i blokada tych akcji po stronie serwera: app/panel/actions.ts.
+  const isCrm = d.sourceType === 'CRM';
 
   const viewsCount = d.viewsCount ?? 0;
   const detailViewsCount = d.detailViewsCount ?? 0;
@@ -633,7 +638,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           </div>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <ActionBtnAsLink
             href={`/panel/ogloszenia/${d.id}/edytuj`}
             label="Edytuj"
@@ -649,31 +654,33 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
             rel="noopener noreferrer"
           />
 
-          <ActionBtn
-            label={
-              isPending
-                ? 'Trwa...'
-                : effectiveStatus === 'AKTYWNE'
-                ? 'Przedłuż'
-                : 'Aktywuj'
-            }
-            title={
-              effectiveStatus === 'AKTYWNE'
-                ? 'Odśwież ważność, żeby ogłoszenie pozostało widoczne na portalu'
-                : 'Przywróć zakończone ogłoszenie na portal'
-            }
-            disabled={isPending}
-            onClick={() =>
-              runAction(
-                () => przedluzOgloszenieAction(d.id),
+          {!isCrm ? (
+            <ActionBtn
+              label={
+                isPending
+                  ? 'Trwa...'
+                  : effectiveStatus === 'AKTYWNE'
+                  ? 'Przedłuż'
+                  : 'Aktywuj'
+              }
+              title={
                 effectiveStatus === 'AKTYWNE'
-                  ? 'Nie udało się przedłużyć ogłoszenia.'
-                  : 'Nie udało się aktywować ogłoszenia.'
-              )
-            }
-          />
+                  ? 'Odśwież ważność, żeby ogłoszenie pozostało widoczne na portalu'
+                  : 'Przywróć zakończone ogłoszenie na portal'
+              }
+              disabled={isPending}
+              onClick={() =>
+                runAction(
+                  () => przedluzOgloszenieAction(d.id),
+                  effectiveStatus === 'AKTYWNE'
+                    ? 'Nie udało się przedłużyć ogłoszenia.'
+                    : 'Nie udało się aktywować ogłoszenia.'
+                )
+              }
+            />
+          ) : null}
 
-          {effectiveStatus === 'AKTYWNE' ? (
+          {!isCrm && effectiveStatus === 'AKTYWNE' ? (
             <ActionBtn
               label={isPending ? 'Trwa...' : 'Zakończ'}
               title="Zdejmij ogłoszenie z portalu (możesz je później aktywować)"
@@ -712,22 +719,30 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
             />
           )}
 
-          <ActionBtn
-            label={isPending ? 'Trwa...' : 'Usuń'}
-            title="Trwale usuń ogłoszenie i jego zdjęcia (bez możliwości cofnięcia)"
-            disabled={isPending}
-            onClick={() => {
-              const ok = window.confirm(
-                'Czy na pewno chcesz trwale usunąć to ogłoszenie? Tej operacji nie można cofnąć. Ogłoszenie i jego zdjęcia zostaną usunięte na zawsze.'
-              );
-              if (!ok) return;
+          {isCrm ? (
+            <p className="flex basis-full items-start gap-2 text-[12px] leading-5 text-fg/62 lg:basis-auto">
+              <IconSync className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+              Ofertą zarządzasz w swoim CRM. Tam ją zakończysz lub wznowisz, a portal
+              zaktualizuje się sam.
+            </p>
+          ) : (
+            <ActionBtn
+              label={isPending ? 'Trwa...' : 'Usuń'}
+              title="Trwale usuń ogłoszenie i jego zdjęcia (bez możliwości cofnięcia)"
+              disabled={isPending}
+              onClick={() => {
+                const ok = window.confirm(
+                  'Czy na pewno chcesz trwale usunąć to ogłoszenie? Tej operacji nie można cofnąć. Ogłoszenie i jego zdjęcia zostaną usunięte na zawsze.'
+                );
+                if (!ok) return;
 
-              runAction(
-                () => usunOgloszenieAction(d.id),
-                'Nie udało się usunąć ogłoszenia.'
-              );
-            }}
-          />
+                runAction(
+                  () => usunOgloszenieAction(d.id),
+                  'Nie udało się usunąć ogłoszenia.'
+                );
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -782,6 +797,28 @@ function Chevron({ className }: { className?: string }) {
       className={className}
     >
       <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+/** Import z CRM: strzałki synchronizacji (styl ikon kart, stroke 1.6). */
+function IconSync({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
     </svg>
   );
 }

@@ -6,7 +6,27 @@ import { redirect } from 'next/navigation';
 import { authOptions } from '@/auth-options';
 import { prisma } from '@/lib/prisma';
 import { deleteFromR2 } from '@/lib/r2';
-import { DzialkaStatus } from '@prisma/client';
+import { DzialkaSourceType, DzialkaStatus } from '@prisma/client';
+
+// Ofertą z importu CRM rządzi program biura, a nie panel, więc zakończenie, aktywacja,
+// przedłużenie i usunięcie są tu zablokowane (przyciski ukrywa też PanelDzialkiList).
+// - Zakończenie: ASARI i EstiCRM czytają pełny eksport przy każdym przebiegu i przywracają ofertę,
+//   a DOMY.PL (paczki różnicowe) trzyma ją ukrytą, dopóki nie przyjdzie w kolejnej paczce.
+// - Usunięcie: kaskada zabiera link z CRM, historię cen, epizody i raport, a oferta wraca z feedu
+//   jako nowy rekord pod nowym adresem (stary adres daje 404).
+// - Przedłużenie przy płatnościach ustawia `expiresAt`, którego silniki nie czyszczą, więc oferta po
+//   cichu znika z list. Bez płatności przestawia `publishedAt`, co rekoncyliator epizodów bierze za
+//   zejście i powrót oferty. Aktywacja oferty zakończonej przez CRM wskrzesza sprzedaną działkę,
+//   której wygaszanie po pełnym eksporcie i po `<oferta_usun>` już nie widzi (bierze tylko linki
+//   z `isActiveInSource`).
+// Wyróżnienie zostaje: to usługa portalu, której import nie nadpisuje.
+function assertNotCrmOffer(sourceType: DzialkaSourceType) {
+  if (sourceType === DzialkaSourceType.CRM) {
+    throw new Error(
+      'Tą ofertą zarządzasz w swoim CRM. Zakończ lub wznów ją tam, a portal zaktualizuje się sam.'
+    );
+  }
+}
 
 async function getCurrentUserId() {
   const session = await getServerSession(authOptions);
@@ -60,6 +80,7 @@ async function getOwnedDzialka(dzialkaId: string, ownerId: string) {
       status: true,
       isFeatured: true,
       featuredUntil: true,
+      sourceType: true,
     },
   });
 }
@@ -72,6 +93,8 @@ export async function zakonczOgloszenieAction(dzialkaId: string) {
   if (!dzialka) {
     throw new Error('Ogłoszenie nie istnieje lub nie należy do użytkownika.');
   }
+
+  assertNotCrmOffer(dzialka.sourceType);
 
   await prisma.dzialka.update({
     where: { id: dzialkaId },
@@ -93,6 +116,8 @@ export async function przedluzOgloszenieAction(dzialkaId: string) {
   if (!dzialka) {
     throw new Error('Ogłoszenie nie istnieje lub nie należy do użytkownika.');
   }
+
+  assertNotCrmOffer(dzialka.sourceType);
 
   const appConfig = await getAppConfig();
   const now = new Date();
@@ -200,6 +225,7 @@ export async function usunOgloszenieAction(dzialkaId: string) {
     },
     select: {
       id: true,
+      sourceType: true,
       zdjecia: {
         select: {
           publicId: true,
@@ -211,6 +237,8 @@ export async function usunOgloszenieAction(dzialkaId: string) {
   if (!dzialka) {
     throw new Error('Ogłoszenie nie istnieje lub nie należy do użytkownika.');
   }
+
+  assertNotCrmOffer(dzialka.sourceType);
 
   const photoKeys = dzialka.zdjecia
     .map((z) => z.publicId)

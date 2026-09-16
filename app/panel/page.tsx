@@ -129,6 +129,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             endedAt: true,
             isFeatured: true,
             featuredUntil: true,
+            sourceType: true,
             viewsCount: true,
             detailViewsCount: true,
             phoneClicksCount: true,
