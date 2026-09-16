@@ -144,6 +144,48 @@ Stan (kontrola 2026-08-17): tryb `full-anchor` działa dla **32 ze 100** integra
 nie ma ani jednego pliku oznaczonego `isFullExport`. Przykład skali z jednego biura: 748 paczek / 2,3 GB
 na FTP, z czego reguła `no-full-export` skasowałaby 511 plików / 1 GB, zostawiając 237.
 
+## EstiCRM: okno paczek, uszkodzone ZIP-y i sprzątanie
+
+Logika w `src/lib/crm/esticrm-feed-window.ts` (testy obok), wpięta w `esticrm-sync.ts`.
+
+**Jak EstiCRM wysyła dane** (pomiar 2026-09-16, wszystkie 11 integracji): pełny eksport
+(`export="full"`) tylko raz, w pierwszej paczce po podłączeniu biura, potem same paczki przyrostowe.
+Każda paczka przyrostowa ma komplet zdjęć swoich ofert (24 sprawdzone paczki z 4 biur, zero braków).
+
+**Problem:** silnik szedł od najnowszej paczki wstecz aż do pełnego eksportu, czyli w każdym przebiegu
+przez całą historię biura (em5: 433 paczki / 6 GB co 2 h, inne biuro 538 paczek / 6,5 GB). Sprzątanie
+nic nie kasowało, bo jedyny pełny eksport był najstarszym plikiem. Jedna urwana paczka (em5,
+`EstiCRM_22196_20260826095342.zip`) wywracała każdy przebieg błędem `FILE_ENDED` od 26.08 do 16.09.
+
+**Okno przebiegu.** Silnik czyta paczki nie starsze niż `lastSuccessAt` integracji minus zakładka
+(24 h). Starsze przeczytał już wcześniejszy udany przebieg. Przestój workera albo przywrócenie bazy
+cofa kotwicę, więc okno samo sięga po brakujące paczki. Jak dawniej, wstecz do pełnego eksportu, silnik
+czyta w pierwszym przebiegu biura (brak `lastSuccessAt`) i po przebiegu, który pominął oferty z braku
+publikacji (`lastSkippedCount > 0`), żeby „Synchronizuj teraz" po zakupie pakietu dalej je dociągało.
+
+**Uszkodzona paczka** (nie da się jej rozpakować) jest pomijana, a przebieg czyta dalej:
+- wpis `ERROR` w `CrmSyncLog` z nazwą pliku, nazwa trafia też do `lastErrorMessage` (panel biura),
+- przebieg z taką paczką nigdy nie liczy się jako pełny eksport, więc niczego nie wygasza,
+- paczka młodsza niż 30 min mogła się jeszcze wgrywać: bez wpisu ERROR, weźmie ją kolejny przebieg,
+- awaria środowiska (brak miejsca, uprawnienia) dalej wywraca przebieg, żeby kotwica się nie przesunęła.
+
+**Sprzątanie FTP**, zawsze od najstarszych paczek, bez dziur w czasie:
+- reguła pełnego eksportu (bez zmian): starsze od najnowszego pełnego przeczytanego w przebiegu,
+  starsze niż `CRM_FEED_RETENTION_DAYS` (14), poza `CRM_FEED_KEEP_MIN` (10) najświeższymi,
+- reguła okna (włącznik `CRM_ESTICRM_PRUNE`): starsze od początku okna przebiegu, starsze niż
+  `CRM_FEED_RETENTION_DAYS_NO_FULL` (30), poza `CRM_FEED_KEEP_MIN_NO_FULL` (20) najświeższymi. Kasuje
+  też jedyny pełny eksport biura, dlatego ma osobny włącznik od DOMY.PL.
+
+| Zmienna | Domyślnie | Do czego |
+|---------|-----------|----------|
+| `CRM_ESTICRM_OVERLAP_HOURS` | `24` | zakładka okna; `off` (albo liczba ujemna) przywraca czytanie wstecz do pełnego eksportu |
+| `CRM_ESTICRM_PRUNE` | brak = tylko podgląd w logu | `1` = sprzątanie u wszystkich biur EstiCRM, lista id po przecinku = kanarek |
+
+Bez włącznika silnik w każdym przebiegu pisze w logu workera, co by skasował:
+`[ESTICRM CLEANUP] Podgląd, nic nie kasuję ...`. Wdrożenie sprzątania: kanarek
+`CRM_ESTICRM_PRUNE=<id jednego biura>` + `pm2 restart crm-worker --update-env`, kontrola kolejnego
+przebiegu tego biura, potem `CRM_ESTICRM_PRUNE=1`.
+
 ## Bezpieczeństwo (mapowanie na ryzyka z audytu)
 
 | Ryzyko | Jak zaadresowane |

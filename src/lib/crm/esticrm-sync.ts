@@ -1,10 +1,8 @@
 import crypto from "crypto";
 import path from "path";
 import os from "os";
-import fs from "fs";
 import { promises as fsp } from "fs";
 import * as ftp from "basic-ftp";
-import unzipper from "unzipper";
 import { XMLParser } from "fast-xml-parser";
 import {
   DojazdStatus,
@@ -24,6 +22,20 @@ import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
 import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/crm/feed-signals";
 import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
+import { readPrunePolicyFromEnv } from "@/lib/crm/feed-pruning";
+import {
+  isEnvironmentError,
+  isEstiRunFullExport,
+  isEstiWindowPruneEnabled,
+  isFullEstiExportMode,
+  isPossiblyStillUploading,
+  planEstiWalkWindow,
+  planEstiZipPrune,
+  readEstiOverlapHours,
+  shouldWalkPastZip,
+  sortZipsNewestFirst,
+} from "@/lib/crm/esticrm-feed-window";
+import { extractZipToDir } from "@/lib/crm/zip-extract";
 
 type IntegrationForSync = {
   id: string;
@@ -40,6 +52,9 @@ type IntegrationForSync = {
   ftpRemotePath: string | null;
   ftpPassive: boolean;
   fullImportMode: boolean;
+  /** Kotwica okna paczek i wyjątek od okna: patrz esticrm-feed-window.ts. */
+  lastSuccessAt: Date | null;
+  lastSkippedCount: number;
 };
 
 type SyncSummary = {
@@ -105,9 +120,20 @@ type EstiOfferXmlFile = {
   modifiedAtMs: number;
 };
 
+/** Paczka, której nie dało się rozpakować (urwana albo jeszcze wgrywana). */
+type UnreadableEstiZip = {
+  name: string;
+  error: string;
+  /** Świeża paczka: najpewniej wgrywanie w toku, bez wpisu ERROR. */
+  possiblyUploading: boolean;
+};
+
 type DownloadedEstiFeed = {
   remoteFileName: string;
   tempDir: string;
+  /** Wszystkie paczki ZIP na FTP, także te za oknem przebiegu. */
+  zipCountOnFtp: number;
+  unreadableZips: UnreadableEstiZip[];
   offerXmlFiles: EstiOfferXmlFile[];
   localFileByBasename: Map<string, string>;
   imageRemotePathByBasename: Map<string, string>;
@@ -209,6 +235,10 @@ function getMimeTypeFromFileName(fileName: string) {
 
 function makeEditToken() {
   return crypto.randomBytes(24).toString("hex");
+}
+
+function formatMegabytes(bytes: number) {
+  return `${Math.round(bytes / 1024 / 1024)} MB`;
 }
 
 function emptyDefinitions(): EstiDefinitions {
@@ -626,21 +656,6 @@ async function listCurrentAndOneLevel(client: ftp.Client, remoteDir: string) {
   return result;
 }
 
-async function extractZip(localZipPath: string, outputDir: string) {
-  await fsp.mkdir(outputDir, { recursive: true });
-
-  // Strumień źródłowy MUSI być zamknięty także gdy rozpakowanie rzuci. Worker jest długo
-  // żyjącym procesem: niezamknięty deskryptor do pliku, który potem kasujemy razem z tempDir,
-  // trzyma jego rozmiar na dysku aż do końca procesu (plik "deleted", ale wciąż otwarty).
-  // Przy paczce psującej się w kółko to rosło o kilka GB na przebieg i zapchało VPS (ENOSPC).
-  const source = fs.createReadStream(localZipPath);
-  try {
-    await source.pipe(unzipper.Extract({ path: outputDir })).promise();
-  } finally {
-    source.destroy();
-  }
-}
-
 async function walkFiles(dir: string): Promise<string[]> {
   const entries = await fsp.readdir(dir, { withFileTypes: true });
   const files: string[] = [];
@@ -691,36 +706,83 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
 
     console.log("[ESTICRM DEBUG] Pliki na FTP:", files.map((item) => ({ name: item.name, remotePath: item.remotePath, size: item.size, modifiedAt: item.modifiedAt })));
 
-    const zipFiles = files
-      .filter((item) => item.name.toLowerCase().endsWith(".zip"))
-      .sort((a, b) => (b.modifiedAt?.getTime() ?? 0) - (a.modifiedAt?.getTime() ?? 0));
+    const allZips = sortZipsNewestFirst(
+      files
+        .filter((item) => item.name.toLowerCase().endsWith(".zip"))
+        .map((item) => ({
+          name: item.name,
+          remotePath: item.remotePath,
+          size: item.size ?? null,
+          modifiedAt: item.modifiedAt ?? null,
+        }))
+    );
+
+    if (allZips[0]) remoteFileName = allZips[0].name;
+
+    // Okno przebiegu: paczki od ostatniego udanego przebiegu minus zakładka. Wcześniej pętla szła
+    // wstecz aż do pełnego eksportu, a EstiCRM wysyła go tylko raz, na starcie, więc każdy przebieg
+    // pobierał całą historię biura. Pomiary i reguły: esticrm-feed-window.ts.
+    const walkWindow = planEstiWalkWindow(allZips, {
+      lastSuccessAt: integration.lastSuccessAt,
+      overlapHours: readEstiOverlapHours(),
+      skippedLastRun: integration.lastSkippedCount,
+    });
+    const windowAnchored = walkWindow.anchorMs !== null;
+    const zipFiles = walkWindow.candidates;
+    const nowMs = Date.now();
+    const unreadableZips: UnreadableEstiZip[] = [];
+
+    console.log(
+      `[ESTICRM DEBUG] Okno przebiegu: ${zipFiles.length} z ${allZips.length} paczek ZIP. ${walkWindow.reason}`
+    );
 
     const extractedRoot = path.join(tempDir, "extracted");
 
-    // Do auto-czyszczenia: zapamiętujemy datę najnowszego PEŁNEGO eksportu. Silnik i tak czyta
-    // tylko najnowszy pełny + przyrostowe nowsze od niego, więc ZIP-y starsze niż pełny nigdy
-    // już nie są potrzebne. 0 = nie znaleziono potwierdzonego pełnego (wtedy nic nie kasujemy).
+    // Do auto-czyszczenia: data najnowszego PEŁNEGO eksportu przeczytanego w tym przebiegu.
+    // 0 = nie trafiliśmy na pełny (reguła pełnego eksportu nic wtedy nie kasuje).
     let newestFullZipModifiedMs = 0;
 
     // Wybór plików (naprawa P-F): bierzemy najnowszy PEŁNY eksport (export="full")
-    // oraz wszystkie przyrostowe NOWSZE od niego. Idziemy od najnowszego pliku i
-    // zatrzymujemy się na pierwszym pełnym eksporcie. Wcześniej brany był tylko
+    // oraz wszystkie przyrostowe NOWSZE od niego, w obrębie okna. Idziemy od najnowszego
+    // pliku i zatrzymujemy się na pierwszym pełnym eksporcie. Wcześniej brany był tylko
     // najnowszy ZIP, więc świeży przyrostowy zasłaniał pełny eksport (biuro dawało
     // o 14:00 całość, o 16:00 zmiany i całość nigdy nie była czytana).
     //
-    // Bezpieczeństwo: dla biur publikujących tylko pełne eksporty najnowszy plik jest
-    // pełny, więc pętla kończy się na pierwszym (idx 0), zachowanie identyczne jak dotąd.
-    // Tryb nieznany (brak atrybutu export) też zatrzymuje pętlę konserwatywnie, żeby
-    // nie wciągać starych plików.
+    // Dla biur publikujących tylko pełne eksporty najnowszy plik jest pełny, więc pętla
+    // kończy się na pierwszym (idx 0), zachowanie identyczne jak dotąd. Tryb nieznany
+    // (brak atrybutu export): patrz shouldWalkPastZip.
     for (let idx = 0; idx < zipFiles.length; idx++) {
       const zip = zipFiles[idx];
-      if (idx === 0) remoteFileName = zip.name;
 
       const zipLocalPath = path.join(tempDir, zip.remotePath);
       await downloadFile(client, zip.remotePath, zipLocalPath);
 
       const zipExtractDir = path.join(extractedRoot, String(idx));
-      await extractZip(zipLocalPath, zipExtractDir);
+      try {
+        await extractZipToDir(zipLocalPath, zipExtractDir);
+      } catch (error) {
+        if (isEnvironmentError(error)) throw error;
+
+        // Urwana paczka zatrzymywała całe biuro: wyjątek przerywał przebieg, a kolejny przebieg
+        // trafiał na ten sam plik (em5 od 26.08.2026, FILE_ENDED). Teraz ją pomijamy i czytamy
+        // dalej. Częściowo rozpakowanych plików nie rejestrujemy, bo nie wiadomo, które są całe.
+        const message = error instanceof Error ? error.message : String(error);
+        unreadableZips.push({
+          name: zip.name,
+          error: message,
+          possiblyUploading: isPossiblyStillUploading(zip, nowMs),
+        });
+        console.warn("[ESTICRM DEBUG] Nieczytelna paczka ZIP, pomijam ją i czytam dalej:", zip.name, message);
+
+        // Sprzątanie od razu tylko dla miejsca na dysku. Nie może rzucić: zamykany zapis potrafi
+        // chwilę trzymać katalog (ENOTEMPTY), a resztę i tak usuwa cleanup na końcu przebiegu.
+        await fsp.rm(zipExtractDir, { recursive: true, force: true }).catch(() => {});
+        await fsp.rm(zipLocalPath, { force: true }).catch(() => {});
+        continue;
+      }
+
+      // Rozpakowany ZIP jest już zbędny, a przy nadrabianiu zaległości to setki MB na dysku VPS.
+      await fsp.rm(zipLocalPath, { force: true }).catch(() => {});
 
       let zipExportMode: string | null = null;
       for (const file of await walkFiles(zipExtractDir)) {
@@ -743,8 +805,8 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
         }
       }
 
-      const isFullZip = !!zipExportMode && /full|complete|calosc/.test(zipExportMode);
-      const isKnownIncremental = !!zipExportMode && !isFullZip;
+      const zipMode = !zipExportMode ? "unknown" : isFullEstiExportMode(zipExportMode) ? "full" : "incremental";
+      const walkPast = shouldWalkPastZip(zipMode, windowAnchored);
 
       console.log(
         "[ESTICRM DEBUG] Plik ZIP:",
@@ -752,21 +814,21 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
         "| export:",
         zipExportMode || "(nieznany)",
         "|",
-        isFullZip
+        zipMode === "full"
           ? "PEŁNY, kończę wybór"
-          : isKnownIncremental
-            ? "przyrostowy, szukam pełnego"
-            : "nieznany, kończę wybór"
+          : !walkPast
+            ? "nieznany, kończę wybór"
+            : zipMode === "incremental"
+              ? "przyrostowy, czytam dalej"
+              : "nieznany, czytam dalej w oknie"
       );
 
       // Pierwszy napotkany pełny (idziemy od najnowszego) = najnowszy pełny eksport.
-      if (isFullZip && zip.modifiedAt) {
+      if (zipMode === "full" && zip.modifiedAt) {
         newestFullZipModifiedMs = zip.modifiedAt.getTime();
       }
 
-      // Stop na pełnym eksporcie albo na nierozpoznanym trybie. Przyrostowe (nowsze
-      // od pełnego) zbieramy po drodze i lecimy dalej, aż trafimy na pełny.
-      if (isFullZip || !isKnownIncremental) break;
+      if (!walkPast) break;
     }
 
     const directXmlFiles = files.filter((item) => item.name.toLowerCase().endsWith(".xml"));
@@ -814,7 +876,7 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
           path.basename(a.localPath).localeCompare(path.basename(b.localPath))
       );
 
-    if (!zipFiles[0] && offerXmlFiles[0]) {
+    if (!allZips[0] && offerXmlFiles[0]) {
       remoteFileName = path.basename(offerXmlFiles[0].localPath);
     }
 
@@ -822,49 +884,46 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
     console.log("[ESTICRM DEBUG] Zdjęcia lokalne:", [...localFileByBasename.keys()].filter((name) => /\.(jpe?g|png|webp|avif)$/i.test(name)).length);
     console.log("[ESTICRM DEBUG] Zdjęcia na FTP do pobrania na żądanie:", imageRemotePathByBasename.size);
 
-    // Auto-czyszczenie drop-zone EstiCRM. Silnik czyta najnowszy pełny eksport + przyrostowe
-    // nowsze od niego; wszystko STARSZE od najnowszego pełnego nigdy już nie jest czytane, więc
-    // to bezpieczny balast (bywają pliki po 440 MB). Kasujemy WYŁĄCZNIE stare .zip starsze niż
-    // najnowszy pełny (z marginesem czasu i buforem najświeższych). NIGDY nie ruszamy luźnych
-    // zdjęć, definitions.xml ani plików XML. Jeśli nie potwierdzono pełnego eksportu — zero kasowań.
-    if (newestFullZipModifiedMs > 0) {
-      const retentionDays = Number(process.env.CRM_FEED_RETENTION_DAYS ?? "14");
-      const keepMinFiles = Number(process.env.CRM_FEED_KEEP_MIN ?? "10");
-      const ageCutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    // Auto-czyszczenie drop-zone EstiCRM (bywają pliki po 2,5 GB). Kasujemy WYŁĄCZNIE stare .zip,
+    // zawsze od najstarszych; obie reguły i ich uzasadnienie w planEstiZipPrune. NIGDY nie ruszamy
+    // luźnych zdjęć, definitions.xml ani plików XML.
+    const prunePolicy = readPrunePolicyFromEnv();
+    const prunePlan = planEstiZipPrune(allZips, {
+      newestFullMs: newestFullZipModifiedMs,
+      anchorMs: walkWindow.anchorMs,
+      windowRuleEnabled: isEstiWindowPruneEnabled(integration.id, process.env.CRM_ESTICRM_PRUNE),
+      policy: prunePolicy,
+      nowMs,
+    });
 
-      // zipFiles jest posortowane malejąco po czasie (najnowsze na początku).
-      const protectedNewest = new Set(
-        zipFiles.slice(0, Math.max(0, keepMinFiles)).map((z) => z.remotePath)
+    let prunedCount = 0;
+    let prunedBytes = 0;
+    for (const z of prunePlan.prunable) {
+      try {
+        await client.remove(z.remotePath);
+        prunedCount += 1;
+        prunedBytes += z.size ?? 0;
+      } catch (error) {
+        console.error("[ESTICRM CLEANUP] Nie udało się usunąć starego ZIP:", z.remotePath, error);
+      }
+    }
+
+    if (prunedCount > 0) {
+      console.log(`[ESTICRM CLEANUP] Usunięto ${prunedCount} starych ZIP-ów (${formatMegabytes(prunedBytes)}) z ${remoteDir}.`);
+    }
+
+    if (prunePlan.previewWhenDisabled.length > 0) {
+      const previewBytes = prunePlan.previewWhenDisabled.reduce((acc, z) => acc + (z.size ?? 0), 0);
+      console.log(
+        `[ESTICRM CLEANUP] Podgląd, nic nie kasuję (CRM_ESTICRM_PRUNE nie obejmuje tego biura): za oknem przebiegu i starszych niż ${prunePolicy.retentionDaysWithoutFull} dni jest ${prunePlan.previewWhenDisabled.length} ZIP-ów (${formatMegabytes(previewBytes)}).`
       );
-
-      const prunableZips = zipFiles.filter((z) => {
-        if (!z.modifiedAt) return false;
-        if (protectedNewest.has(z.remotePath)) return false;
-        if (z.modifiedAt.getTime() >= newestFullZipModifiedMs) return false; // pełny lub coś po nim
-        if (z.modifiedAt.getTime() >= ageCutoffMs) return false; // margines czasowy
-        return true;
-      });
-
-      let prunedCount = 0;
-      for (const z of prunableZips) {
-        try {
-          await client.remove(z.remotePath);
-          prunedCount += 1;
-        } catch (error) {
-          console.error("[ESTICRM CLEANUP] Nie udało się usunąć starego ZIP:", z.remotePath, error);
-        }
-      }
-
-      if (prunedCount > 0) {
-        console.log(
-          `[ESTICRM CLEANUP] Usunięto ${prunedCount} ZIP-ów starszych niż najnowszy pełny eksport (${new Date(newestFullZipModifiedMs).toISOString()}) z ${remoteDir}.`
-        );
-      }
     }
 
     const feed: DownloadedEstiFeed = {
       remoteFileName,
       tempDir,
+      zipCountOnFtp: allZips.length,
+      unreadableZips,
       offerXmlFiles,
       localFileByBasename,
       imageRemotePathByBasename,
@@ -1286,6 +1345,8 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       ftpRemotePath: true,
       ftpPassive: true,
       fullImportMode: true,
+      lastSuccessAt: true,
+      lastSkippedCount: true,
     },
   });
 
@@ -1317,6 +1378,27 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
     /** Sygnały DELETE dotyczące nieruchomości, których nie importujemy (mieszkania, domy, lokale). */
     let nieznaneDeleteCount = 0;
     let exportMode: string | null = null;
+
+    // Nieczytelne paczki pominięte przy pobieraniu. Każda trwale uszkodzona dostaje wpis ERROR,
+    // świeża mogła się jeszcze wgrywać i weźmie ją kolejny przebieg. Wygaszanie przy takim
+    // przebiegu blokuje isEstiRunFullExport, niezależnie od tego, czy paczka była świeża.
+    const damagedZipNames: string[] = [];
+
+    for (const zip of downloaded.unreadableZips) {
+      if (zip.possiblyUploading) {
+        console.log("[ESTICRM DEBUG] Świeża paczka nieczytelna, pewnie jeszcze się wgrywa. Weźmie ją kolejny przebieg:", zip.name);
+        continue;
+      }
+
+      errorCount += 1;
+      damagedZipNames.push(zip.name);
+
+      await logSync(integration.id, {
+        action: "ERROR",
+        status: "ERROR",
+        message: `Uszkodzona paczka EstiCRM na FTP: ${zip.name} (${zip.error}). Pominięta, pozostałe paczki zaimportowane, bez wygaszania ofert.`,
+      });
+    }
 
     if (downloaded.offerXmlFiles.length === 0) {
       console.log("[ESTICRM DEBUG] Brak plików XML ofert.");
@@ -1406,13 +1488,21 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       );
     }
 
-    const isFullExport = normalizeText(exportMode).includes("full") || normalizeText(exportMode).includes("complete") || normalizeText(exportMode).includes("calosc");
+    const isFullExport = isEstiRunFullExport(exportMode, downloaded.unreadableZips.length);
 
     if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
       deactivatedCount += await deactivateMissingOffers(integration.id, seenExternalIds);
     } else {
-      console.log("[ESTICRM DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy DELETE albo pełnym eksporcie.", { exportMode, seen: seenExternalIds.size });
+      console.log("[ESTICRM DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy DELETE albo pełnym eksporcie bez nieczytelnych paczek.", { exportMode, seen: seenExternalIds.size, unreadableZips: downloaded.unreadableZips.length });
     }
+
+    // Nazwa uszkodzonej paczki trafia do panelu biura: z nią biuro może zgłosić problem do EstiCRM.
+    const damagedZipsNote =
+      damagedZipNames.length === 0
+        ? ""
+        : ` ${damagedZipNames.length === 1 ? "Pominięto uszkodzoną paczkę" : "Pominięto uszkodzone paczki"} z CRM: ${damagedZipNames
+            .slice(0, 3)
+            .join(", ")}${damagedZipNames.length > 3 ? ", ..." : ""}.`;
 
     await prisma.crmIntegration.update({
       where: { id: integration.id },
@@ -1423,7 +1513,7 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
         lastErrorAt: errorCount > 0 ? now : null,
         lastErrorMessage:
           errorCount > 0
-            ? `Synchronizacja EstiCRM zakończona z błędami (${errorCount}).`
+            ? `Synchronizacja EstiCRM zakończona z błędami (${errorCount}).${damagedZipsNote}`
             : skippedCount > 0
               ? `Synchronizacja EstiCRM zakończona. Pominięto ${skippedCount} ofert z powodu braku kredytów.`
               : null,
