@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "./feed-signals";
+import { isStaleOfferVersion, resolveFeedSignals, type DeleteSignal, type OfferSignal } from "./feed-signals";
 
 type Offer = { externalId: string; updatedAt: number | null; wersja: string };
 
@@ -95,5 +95,59 @@ describe("resolveFeedSignals", () => {
 
     expect(result.offers).toHaveLength(2);
     expect(result.offers.map((o) => o.externalId).sort()).toEqual(["A", "B"]);
+  });
+});
+
+describe("resolveFeedSignals w silniku LocumNet (sekcja removed i mlssta > 2)", () => {
+  // LocumNet przysyła co tydzień paczkę z kompletem ofert i FullExport=False, więc silnik czyta
+  // wszystkie ZIP-y z FTP naraz. Wcześniej usunięcie z KTÓREGOKOLWIEK pliku wygrywało z ofertą.
+  const lipiec = Date.UTC(2026, 6, 23, 14, 27);
+  const sierpien = Date.UTC(2026, 7, 7, 14, 49);
+  const wrzesien = Date.UTC(2026, 8, 10, 16, 0);
+
+  it("działka wycofana w starszej paczce i wystawiona w nowszej wraca na portal", () => {
+    const result = resolve(
+      [offer("7930200", lipiec, 1), offer("7930200", wrzesien, 3)],
+      [del("7930200", sierpien)]
+    );
+
+    expect(result.offers.map((o) => o.externalId)).toEqual(["7930200"]);
+    expect(result.deletedExternalIds).toEqual([]);
+  });
+
+  it("działka sprzedana (mlssta 6) w najnowszej paczce znika mimo obecności w starszych", () => {
+    const result = resolve(
+      [offer("7930201", lipiec, 1), offer("7930201", sierpien, 2)],
+      [del("7930201", wrzesien)]
+    );
+
+    expect(result.offers).toEqual([]);
+    expect(result.deletedExternalIds).toEqual(["7930201"]);
+  });
+});
+
+describe("isStaleOfferVersion: starsza wersja nie nadpisuje nowszej", () => {
+  const now = Date.UTC(2026, 8, 17, 12, 0);
+  const d = (iso: string) => new Date(iso);
+
+  it("blokuje tylko wersję ściśle starszą od zapisanej", () => {
+    expect(isStaleOfferVersion(d("2026-09-10T10:00:00Z"), d("2026-09-12T10:00:00Z"), now)).toBe(true);
+    expect(isStaleOfferVersion(d("2026-09-12T10:00:00Z"), d("2026-09-12T10:00:00Z"), now)).toBe(false);
+    expect(isStaleOfferVersion(d("2026-09-15T10:00:00Z"), d("2026-09-12T10:00:00Z"), now)).toBe(false);
+  });
+
+  it("Galactica podaje samą datę: dwie zmiany jednego dnia nie blokują się nawzajem", () => {
+    expect(isStaleOfferVersion(d("2026-09-16"), d("2026-09-16"), now)).toBe(false);
+  });
+
+  it("brak daty po którejkolwiek stronie = zachowanie sprzed strażnika", () => {
+    expect(isStaleOfferVersion(null, d("2026-09-12T10:00:00Z"), now)).toBe(false);
+    expect(isStaleOfferVersion(d("2026-09-10T10:00:00Z"), null, now)).toBe(false);
+  });
+
+  it("zapisana data z przyszłości (błąd zegara CRM) nie zamraża oferty", () => {
+    expect(isStaleOfferVersion(d("2026-09-16T10:00:00Z"), d("2099-01-01T00:00:00Z"), now)).toBe(false);
+    // Tolerancja doby na strefy czasowe i zegary serwerów.
+    expect(isStaleOfferVersion(d("2026-09-16T10:00:00Z"), d("2026-09-17T20:00:00Z"), now)).toBe(true);
   });
 });

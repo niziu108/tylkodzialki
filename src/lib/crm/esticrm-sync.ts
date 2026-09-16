@@ -22,7 +22,12 @@ import { appendPhotoNote, planPhotoRefresh, refreshOfferPhotos, type UploadedPho
 import { deleteR2Photos, discardUnsavedPhotos, r2PhotoEffects, swapOfferPhotos } from "@/lib/crm/offer-photos";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
-import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/crm/feed-signals";
+import {
+  isStaleOfferVersion,
+  resolveFeedSignals,
+  type DeleteSignal,
+  type OfferSignal,
+} from "@/lib/crm/feed-signals";
 import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
 import { readPrunePolicyFromEnv } from "@/lib/crm/feed-pruning";
 import {
@@ -40,6 +45,7 @@ import {
   sortZipsNewestFirst,
 } from "@/lib/crm/esticrm-feed-window";
 import { extractZipToDir } from "@/lib/crm/zip-extract";
+import { xmlIntegrityProblem } from "@/lib/crm/xml-integrity";
 
 type IntegrationForSync = {
   id: string;
@@ -104,6 +110,14 @@ type EstiOffer = {
   payload: Prisma.InputJsonValue;
 };
 
+/**
+ * Oferta odrzucona przez parser (jak w asari-sync). NOT_LAND: nie działka albo nie sprzedaż.
+ * INVALID: działka, której chwilowo brakuje ceny, powierzchni albo lokalizacji. Przy pełnym
+ * eksporcie nadal JEST w eksporcie biura, więc nie może zniknąć jako „nieobecna": zostaje
+ * z ostatnią poprawną wersją.
+ */
+type EstiRejectedOffer = { rejected: "NOT_LAND" | "INVALID"; externalId: string };
+
 // Zwraca true, gdy `candidate` jest co najmniej tak świeży jak `current`. Preferujemy
 // wersję z największą datą modyfikacji; wersja z datą wygrywa z wersją bez daty; przy
 // remisie (lub obu bez daty) wygrywa późniejsza — pliki ofert iterujemy od najstarszego.
@@ -144,6 +158,8 @@ type DownloadedEstiFeed = {
   photoFtpClient: ftp.Client | null;
   definitions: EstiDefinitions;
   exportMode: string | null;
+  /** Uszkodzony definitions.xml. Przebieg importuje dalej, ale nie wygasza „brakujących". */
+  problems: string[];
   cleanup: () => Promise<void>;
 };
 
@@ -409,7 +425,7 @@ function parseEstiOffer(
   rawOffer: Record<string, unknown>,
   agencyName: string | null,
   definitions: EstiDefinitions
-): EstiOffer | null {
+): EstiOffer | EstiRejectedOffer | null {
   const externalId = toTextValue(rawOffer.id);
 
   if (!externalId) {
@@ -421,7 +437,7 @@ function parseEstiOffer(
 
   if (!isLandOffer(rawOffer, definitions)) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "to nie jest działka.");
-    return null;
+    return { rejected: "NOT_LAND", externalId };
   }
 
   const transaction = toTextValue(rawOffer.transaction);
@@ -429,7 +445,7 @@ function parseEstiOffer(
 
   if (transaction && transaction !== "131" && !normalizeText(transactionLabel).includes("sprzed")) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "transakcja nie jest sprzedażą.", transactionLabel || transaction);
-    return null;
+    return { rejected: "NOT_LAND", externalId };
   }
 
   const price = toNumber(rawOffer.price);
@@ -437,12 +453,12 @@ function parseEstiOffer(
 
   if (!price || price <= 0) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "brak ceny.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   if (!area || area < 1) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "brak powierzchni działki/powierzchni całkowitej.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   const city =
@@ -460,7 +476,7 @@ function parseEstiOffer(
 
   if (!city && !commune && !district && !province && !place) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "brak lokalizacji.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   const rawLat = toNumber(rawOffer.locationLatitude);
@@ -592,6 +608,8 @@ function parseOfferXmlFile(xml: string, agencyName: string | null, definitions: 
   const exportMode = toTextValue(root.export ?? root["@_export"]) || null;
 
   const deletedExternalIds: string[] = [];
+  /** Działki obecne w pliku, ale odrzucone za niekompletne dane (patrz EstiRejectedOffer). */
+  const invalidLandExternalIds: string[] = [];
   const offers: EstiOffer[] = [];
   let rawCount = 0;
 
@@ -608,10 +626,17 @@ function parseOfferXmlFile(xml: string, agencyName: string | null, definitions: 
     }
 
     const parsed = parseEstiOffer(rawOffer, agencyName, definitions);
-    if (parsed) offers.push(parsed);
+    if (!parsed) continue;
+
+    if ("rejected" in parsed) {
+      if (parsed.rejected === "INVALID") invalidLandExternalIds.push(parsed.externalId);
+      continue;
+    }
+
+    offers.push(parsed);
   }
 
-  return { offers, deletedExternalIds, exportMode, rawCount };
+  return { offers, deletedExternalIds, invalidLandExternalIds, exportMode, rawCount };
 }
 
 async function downloadFile(client: ftp.Client, remotePath: string, localPath: string) {
@@ -694,6 +719,7 @@ async function downloadEstiFeedFromFtp(
   let photoFtpClient: ftp.Client | null = null;
   let definitions = emptyDefinitions();
   let remoteFileName = "ESTICRM_FILES";
+  const problems: string[] = [];
 
   try {
     await client.access({
@@ -874,7 +900,15 @@ async function downloadEstiFeedFromFtp(
 
     if (definitionLocalPath) {
       const definitionsXml = await fsp.readFile(definitionLocalPath, "utf8");
-      definitions = parseDefinitionsXml(definitionsXml);
+      // Urwane słowniki parser przyjąłby po cichu jako krótsze. Bez etykiet część ofert mogłaby
+      // odpaść jako „nie sprzedaż", a przy pełnym eksporcie zniknąć, więc wtedy nic nie wygaszamy.
+      const definitionsProblem = xmlIntegrityProblem(definitionsXml);
+      if (definitionsProblem) {
+        console.warn(`[ESTICRM] Uszkodzony plik definitions.xml: ${definitionsProblem}`);
+        problems.push(`definitions.xml (${definitionsProblem})`);
+      } else {
+        definitions = parseDefinitionsXml(definitionsXml);
+      }
     } else {
       console.log("[ESTICRM DEBUG] Brak definitions.xml. Parser użyje surowych wartości pól.");
     }
@@ -951,6 +985,7 @@ async function downloadEstiFeedFromFtp(
       photoFtpClient,
       definitions,
       exportMode: null,
+      problems,
       cleanup: async () => {
         feed.photoFtpClient?.close();
         await fsp.rm(tempDir, { recursive: true, force: true });
@@ -1111,7 +1146,7 @@ async function processOffer(
   offer: EstiOffer,
   downloaded: DownloadedEstiFeed,
   paymentsEnabled: boolean
-): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS"> {
+): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS" | "SKIP_STALE"> {
   const now = new Date();
   const expiresAt = null;
 
@@ -1119,6 +1154,12 @@ async function processOffer(
     where: { integrationId_externalId: { integrationId: integration.id, externalId: offer.externalId } },
     include: { dzialka: true },
   });
+
+  // Wersja starsza niż zapisana (np. nowsza paczka pominięta jako uszkodzona) nie nadpisuje danych
+  // i nie reaktywuje oferty. Szczegóły w isStaleOfferVersion (feed-signals.ts).
+  if (existingLink && isStaleOfferVersion(offer.externalUpdatedAt, existingLink.externalUpdatedAt)) {
+    return "SKIP_STALE";
+  }
 
   if (!existingLink) {
     const user = await prisma.user.findUnique({ where: { id: integration.userId }, select: { id: true, listingCredits: true } });
@@ -1411,6 +1452,8 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
     /** Błędy zapisu ofert i wygaszeń (bez nieczytelnych paczek): blokują kotwicę okna. */
     let offerErrorCount = 0;
     let rawOffersCount = 0;
+    /** Oferty pominięte, bo przyszły w wersji starszej niż zapisana (isStaleOfferVersion). */
+    let staleCount = 0;
 
     const seenExternalIds = new Set<string>();
     const deletedExternalIds = new Set<string>();
@@ -1461,13 +1504,29 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
     // starej paczki nie może ubić oferty, którą biuro wystawiło ponownie w nowszej.
     const offerSignals: OfferSignal<EstiOffer>[] = [];
     const deleteSignals: DeleteSignal[] = [];
+    /** Pliki pominięte jako uszkodzone. Przy choćby jednym nie wygaszamy brakujących ofert. */
+    const brokenOfferFiles: string[] = [];
+    const invalidLandExternalIds = new Set<string>();
 
     for (const offerXmlFile of downloaded.offerXmlFiles) {
+      const fileName = path.basename(offerXmlFile.localPath);
       const xml = await fsp.readFile(offerXmlFile.localPath, "utf8");
+
+      // Plik urwany albo ucięty przez CRM wewnątrz poprawnego ZIP-a parser przyjąłby po cichu jako
+      // krótszy (xml-integrity.ts). Pomijamy go w całości: oferty i sekcja delete wejdą, gdy będzie kompletny.
+      const integrityProblem = xmlIntegrityProblem(xml);
+      if (integrityProblem) {
+        brokenOfferFiles.push(`${fileName} (${integrityProblem})`);
+        console.warn(`[ESTICRM] Pomijam uszkodzony plik ofert ${fileName}: ${integrityProblem}`);
+        continue;
+      }
+
       const result = parseOfferXmlFile(xml, integration.name, downloaded.definitions);
 
       if (result.exportMode) exportMode = result.exportMode;
       rawOffersCount += result.rawCount;
+
+      for (const externalId of result.invalidLandExternalIds) invalidLandExternalIds.add(externalId);
 
       for (const externalId of result.deletedExternalIds) {
         deleteSignals.push({ externalId, fileAt: offerXmlFile.modifiedAtMs });
@@ -1476,6 +1535,20 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       for (const offer of result.offers) {
         offerSignals.push({ externalId: offer.externalId, offer, fileAt: offerXmlFile.modifiedAtMs });
       }
+    }
+
+    /** Wszystko, czego przebieg nie przeczytał: uszkodzone definicje i pliki ofert. */
+    const feedProblems = [...downloaded.problems, ...brokenOfferFiles];
+
+    if (feedProblems.length > 0) {
+      errorCount += feedProblems.length;
+      await logSync(integration.id, {
+        action: "ERROR",
+        status: "ERROR",
+        message:
+          `Pominięto uszkodzone pliki EstiCRM: ${feedProblems.join("; ")}. ` +
+          "Dane z nich wejdą, gdy plik będzie kompletny. W tym przebiegu nie wygaszam ofert nieobecnych w pełnym eksporcie.",
+      });
     }
 
     const resolved = resolveFeedSignals(offerSignals, deleteSignals, isSameOrNewerEstiOffer);
@@ -1504,6 +1577,7 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
         if (action === "CREATE" || action === "REACTIVATE") createdCount += 1;
         else if (action === "UPDATE") updatedCount += 1;
         else if (action === "SKIP_NO_CREDITS") skippedCount += 1;
+        else if (action === "SKIP_STALE") staleCount += 1;
       } catch (error) {
         errorCount += 1;
         offerErrorCount += 1;
@@ -1539,13 +1613,22 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       );
     }
 
+    if (staleCount > 0) {
+      console.log(`[ESTICRM DEBUG] Pominięto ${staleCount} ofert w wersji starszej niż zapisana w bazie.`);
+    }
+
     // Niewylistowany podkatalog liczy się jak nieczytelna paczka: nie wiemy, co w nim leży.
     const isFullExport = isEstiRunFullExport(exportMode, downloaded.unreadableZips.length + downloaded.failedDirs.length);
 
-    if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
-      deactivatedCount += await deactivateMissingOffers(integration.id, seenExternalIds);
+    // Działka odrzucona za niekompletne dane jest w eksporcie, więc liczy się jako obecna. Nieprzeczytany
+    // plik = niepełna lista obecnych, więc wtedy nic nie gasimy (kolejny przebieg spróbuje znowu).
+    if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0 && feedProblems.length === 0) {
+      deactivatedCount += await deactivateMissingOffers(
+        integration.id,
+        new Set([...seenExternalIds, ...invalidLandExternalIds])
+      );
     } else {
-      console.log("[ESTICRM DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy DELETE albo pełnym eksporcie bez nieczytelnych paczek.", { exportMode, seen: seenExternalIds.size, unreadableZips: downloaded.unreadableZips.length, failedDirs: downloaded.failedDirs.length });
+      console.log("[ESTICRM DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy DELETE albo kompletnym pełnym eksporcie bez nieczytelnych paczek.", { exportMode, seen: seenExternalIds.size, problems: feedProblems.length, unreadableZips: downloaded.unreadableZips.length, failedDirs: downloaded.failedDirs.length });
     }
 
     const advancesAnchor = estiRunAdvancesAnchor({

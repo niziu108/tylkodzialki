@@ -23,14 +23,19 @@ import { deleteR2Photos, discardUnsavedPhotos, r2PhotoEffects, swapOfferPhotos }
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords, coordsMatchLocationText } from "@/lib/geo";
 import { beginGeocodeRun, geocodeAddressInPoland } from "@/lib/crm/geocode";
-import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/crm/feed-signals";
+import {
+  isStaleOfferVersion,
+  resolveFeedSignals,
+  type DeleteSignal,
+  type OfferSignal,
+} from "@/lib/crm/feed-signals";
 import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
 import {
   asariFilePrefix,
   isInAsariFullExportScope,
   resolveAsariFullExportScope,
-  xmlIntegrityProblem,
 } from "@/lib/crm/asari-full-export";
+import { xmlIntegrityProblem } from "@/lib/crm/xml-integrity";
 
 type IntegrationForSync = {
   id: string;
@@ -1301,7 +1306,7 @@ async function processOffer(
   offer: AsariOffer,
   downloaded: DownloadedAsariFeed,
   paymentsEnabled: boolean
-): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS"> {
+): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS" | "SKIP_STALE"> {
   const now = new Date();
   const expiresAt = null;
 
@@ -1316,6 +1321,12 @@ async function processOffer(
       dzialka: true,
     },
   });
+
+  // Wersja starsza niż zapisana (np. nowsza paczka pominięta jako uszkodzona) nie nadpisuje danych
+  // i nie reaktywuje oferty. Sprawdzamy przed geokodowaniem, żeby nie płacić za odrzuconą wersję.
+  if (existingLink && isStaleOfferVersion(offer.externalUpdatedAt, existingLink.externalUpdatedAt)) {
+    return "SKIP_STALE";
+  }
 
   // Fallback geokodowania: TYLKO gdy feed nie podał współrzędnych. Jeśli mamy je już
   // zapisane w bazie z wcześniejszej synchronizacji — reużyj gotowych zamiast wołać
@@ -1743,6 +1754,8 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
     let deactivatedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
+    /** Oferty pominięte, bo przyszły w wersji starszej niż zapisana (isStaleOfferVersion). */
+    let staleCount = 0;
 
     const seenExternalIds = new Set<string>();
     const deletedExternalIds = new Set<string>();
@@ -1834,6 +1847,8 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
           updatedCount += 1;
         } else if (action === "SKIP_NO_CREDITS") {
           skippedCount += 1;
+        } else if (action === "SKIP_STALE") {
+          staleCount += 1;
         }
       } catch (error) {
         errorCount += 1;
@@ -1873,6 +1888,10 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
       console.log(
         `[ASARI DEBUG] Sygnałów DELETE spoza naszej podaży (mieszkania/domy/lokale, nie mamy ich w bazie): ${nieznaneDeleteCount}`
       );
+    }
+
+    if (staleCount > 0) {
+      console.log(`[ASARI DEBUG] Pominięto ${staleCount} ofert w wersji starszej niż zapisana w bazie.`);
     }
 
     if (integration.fullImportMode && downloaded.cfg.emptyOffers && seenExternalIds.size > 0) {

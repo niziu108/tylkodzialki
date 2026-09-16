@@ -37,6 +37,9 @@ import {
 } from "@/lib/crm/feed-batching";
 import { planFeedPrune, readPrunePolicyFromEnv } from "@/lib/crm/feed-pruning";
 import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
+import { isStaleOfferVersion } from "@/lib/crm/feed-signals";
+import { xmlStreamIntegrityProblem } from "@/lib/crm/xml-integrity";
+import { baseExternalId, deletesToApply, versionTakeoverMatcher } from "@/lib/crm/domypl-versions";
 
 type IntegrationForSync = {
   id: string;
@@ -96,6 +99,13 @@ type SyncSummary = {
   errorCount: number;
   message: string;
 };
+
+/**
+ * Oferta odrzucona przez parser (jak w asari-sync). NOT_LAND: to nie działka. INVALID: działka,
+ * której chwilowo brakuje ceny, powierzchni albo lokalizacji. Nadal JEST w paczce biura, więc nie
+ * może zniknąć jako „nieobecna" w pełnym eksporcie ani przez <oferta_usun> starej wersji.
+ */
+type DomyRejectedOffer = { rejected: "NOT_LAND" | "INVALID"; externalId: string };
 
 type HeaderMeta = {
   headerDate: Date | null;
@@ -944,7 +954,7 @@ function parseOfferFragment(
   provider: CrmProvider,
   dzialTab: string,
   dzialTyp: string
-): ParsedDomyOffer | null {
+): ParsedDomyOffer | DomyRejectedOffer | null {
   try {
     const parser = new XMLParser({
       ignoreAttributes: false,
@@ -987,7 +997,7 @@ function parseOfferFragment(
 
     if (!isLandOffer) {
       console.log("[CRM DEBUG] Odrzucono:", externalId, "to nie jest działka", { plotTypeRaw });
-      return null;
+      return { rejected: "NOT_LAND", externalId };
     }
 
     const location = parseLocation(ofertaNode, params);
@@ -1016,7 +1026,7 @@ function parseOfferFragment(
         rawCena: ofertaNode.cena,
         price,
       });
-      return null;
+      return { rejected: "INVALID", externalId };
     }
 
     if (!area || area < 1) {
@@ -1026,12 +1036,12 @@ function parseOfferFragment(
         available_area: params.available_area,
         area,
       });
-      return null;
+      return { rejected: "INVALID", externalId };
     }
 
     if (!location.wojewodztwo || !location.miasto) {
       console.log("[CRM DEBUG] Odrzucono:", externalId, "brak lokalizacji", location);
-      return null;
+      return { rejected: "INVALID", externalId };
     }
 
     const title = sanitizeTitle(
@@ -1170,7 +1180,13 @@ async function streamParseDomyPlOffers(
   xmlStream: NodeJS.ReadableStream,
   provider: CrmProvider,
   onOffer: (offer: ParsedDomyOffer) => Promise<void>
-): Promise<{ importedOffers: number; headerMeta: HeaderMeta; deletedExternalIds: string[] }> {
+): Promise<{
+  importedOffers: number;
+  headerMeta: HeaderMeta;
+  deletedExternalIds: string[];
+  /** Działki obecne w pliku, ale odrzucone za niekompletne dane (patrz DomyRejectedOffer). */
+  invalidLandExternalIds: string[];
+}> {
   const saxStream = sax.createStream(true, {
     lowercase: true,
     trim: false,
@@ -1196,6 +1212,7 @@ async function streamParseDomyPlOffers(
   let deleteDepth = 0;
   let deleteXml = "";
   const deletedExternalIds: string[] = [];
+  const invalidLandExternalIds: string[] = [];
 
   // R-A/R-B: IMO grupuje oferty w kontenerze <dzial tab="..." typ="...">, który jest rodzicem
   // <oferta>. Zapamiętujemy bieżący dzial i przekazujemy do parsera oferty (tylko IMOX go używa).
@@ -1363,6 +1380,11 @@ async function streamParseDomyPlOffers(
             );
             if (!parsed) return;
 
+            if ("rejected" in parsed) {
+              if (parsed.rejected === "INVALID") invalidLandExternalIds.push(parsed.externalId);
+              return;
+            }
+
             importedOffers += 1;
             await onOffer(parsed);
           })
@@ -1375,7 +1397,12 @@ async function streamParseDomyPlOffers(
     }
   });
 
-  const finishedPromise = new Promise<{ importedOffers: number; headerMeta: HeaderMeta; deletedExternalIds: string[] }>((resolve, reject) => {
+  const finishedPromise = new Promise<{
+    importedOffers: number;
+    headerMeta: HeaderMeta;
+    deletedExternalIds: string[];
+    invalidLandExternalIds: string[];
+  }>((resolve, reject) => {
     saxStream.on("error", (error: unknown) => reject(error));
     xmlStream.on("error", (error: unknown) => reject(error));
 
@@ -1394,6 +1421,7 @@ async function streamParseDomyPlOffers(
             importedOffers,
             headerMeta,
             deletedExternalIds,
+            invalidLandExternalIds,
           });
         })
         .catch(reject);
@@ -1467,22 +1495,9 @@ async function logSync(
   });
 }
 
-// Galactica przy kolejnych zrzutach podbija licznik wersji w atrybucie `id` oferty:
-// AKM-GS-55571-18 → -19 → -20. Dla unikatu (integrationId, externalId) to był nowy byt,
-// więc zamiast aktualizacji powstawała kolejna kopia tej samej działki. Do 2026-08 uzbierało
-// się tak 1406 duplikatów w 17 biurach (patrz scripts/crm-dedup-galactica.ts).
+// Galactica przy kolejnych zrzutach podbija licznik wersji w atrybucie `id` oferty
+// (AKM-GS-55571-18 → -19 → -20), opis i wzorzec w domypl-versions.ts.
 //
-// Ucinamy wyłącznie sufiks wersji, nigdy numeru oferty — dlatego wzorzec wymaga, żeby po
-// obcięciu został pełny numer typu „…GS-<cyfry>”:
-//   GS-28954      → brak dopasowania (to już jest numer bazowy, nie wersja)
-//   GS-28954-1    → GS-28954
-//   AKM-GS-55571-18 → AKM-GS-55571
-const VERSIONED_EXTERNAL_ID = /^(.*G[SW]-\d+)-\d+$/i;
-
-function baseExternalId(externalId: string): string | null {
-  return externalId.match(VERSIONED_EXTERNAL_ID)?.[1] ?? null;
-}
-
 // Szuka wcześniejszej wersji tej samej oferty. Kandydatów zawęża myślnik na końcu prefiksu
 // (`GS-28954-`), więc sąsiedni numer GS-289541 nie wpadnie w wynik. Pierwszeństwo ma oferta
 // aktywna: po deduplikacji wygaszone kopie zostają w bazie i nie chcemy wskrzeszać akurat ich.
@@ -1520,7 +1535,7 @@ async function processOffer(
   offer: ParsedDomyOffer,
   feedReader: FeedReader,
   paymentsEnabled: boolean
-): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS"> {
+): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS" | "SKIP_STALE"> {
   const now = new Date();
   const expiresAt = null;
 
@@ -1540,6 +1555,12 @@ async function processOffer(
   // działka z podbitą wersją. Dopiero gdy i to nie trafi, tworzymy nową.
   const existingLink = exactLink ?? (await findLinkByVersionedId(integration.id, offer.externalId));
   const matchedByVersionBump = !exactLink && existingLink !== null;
+
+  // Paczka starsza niż zapisana wersja oferty (wgrana albo ponowiona po nowszej) nie nadpisuje danych
+  // i nie reaktywuje oferty. Sprawdzamy przed geokodowaniem, żeby nie płacić za odrzuconą wersję.
+  if (existingLink && isStaleOfferVersion(offer.externalUpdatedAt, existingLink.externalUpdatedAt)) {
+    return "SKIP_STALE";
+  }
 
   const offerForDb = await enrichOfferWithGeocoding(offer, existingLink?.dzialka);
 
@@ -1794,10 +1815,14 @@ async function processOffer(
 // Wygaszanie po pełnym eksporcie żyje we wspólnym module: ma hamulec udziału (urwany eksport nie
 // kasuje całej podaży biura), czyta podaż stronami zamiast `notIn` z tysiącami parametrów
 // i zapisuje partiami. Patrz deactivate-missing.ts i mass-deactivation.ts.
-async function deactivateMissingOffers(integrationId: string, seenExternalIds: Set<string>) {
+//
+// Link przejmowany przez nową wersję Galactiki z eksportu też jest obecny (domypl-versions.ts): gdy
+// zapis nowej wersji rzucił albo odpadła na walidacji, link ma jeszcze stare id, a działka jest w eksporcie.
+async function deactivateMissingOffers(integrationId: string, presentLandExternalIds: string[]) {
   const result = await deactivateOffersMissingFromFullExport({
     integrationId,
-    seenExternalIds,
+    seenExternalIds: new Set(presentLandExternalIds),
+    isAlsoPresent: versionTakeoverMatcher(presentLandExternalIds),
     message: "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie.",
     sourceLabel: "CRM",
   });
@@ -1926,6 +1951,8 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
   let deactivatedCount = 0;
   let skippedCount = 0;
   let errorCount = 0;
+  /** Oferty pominięte, bo przyszły w wersji starszej niż zapisana (isStaleOfferVersion). */
+  let staleCount = 0;
 
   const processedFileNames: string[] = [];
 
@@ -1973,6 +2000,16 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
 
       try {
         currentFeedReader = await openFeedReader(downloaded.localFilePath, downloaded.remoteFileName);
+
+        // Przebieg kontrolny bez zapisów (xml-integrity.ts). Parser poniżej zapisuje ofertę po ofercie,
+        // więc bez niego plik ucięty w trakcie wgrywania albo przez CRM był importowany do miejsca
+        // uszkodzenia, a błąd wychodził dopiero na końcu. Uszkodzony plik pomijamy w całości: trafia
+        // do CrmProcessedFile jako ERROR i wraca w kolejnym przebiegu, gdy będzie kompletny.
+        const integrityProblem = await xmlStreamIntegrityProblem(await currentFeedReader.createXmlReadStream());
+        if (integrityProblem) {
+          throw new Error(`Uszkodzony XML, plik pominięty w całości: ${integrityProblem}`);
+        }
+
         const xmlStream = await currentFeedReader.createXmlReadStream();
 
         const parseResult = await streamParseDomyPlOffers(xmlStream, integration.provider, async (offer) => {
@@ -1997,6 +2034,8 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
             } else if (action === "SKIP_NO_CREDITS") {
               skippedCount += 1;
               fileSkippedCount += 1;
+            } else if (action === "SKIP_STALE") {
+              staleCount += 1;
             }
           } catch (error) {
             errorCount += 1;
@@ -2025,8 +2064,12 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
           zawartoscPliku.includes("calosc") ||
           zawartoscPliku.includes("całość");
 
+        // Działki obecne w paczce: poprawne i odrzucone za niekompletne dane. Nie zależy od tego,
+        // czy zapis oferty do bazy się udał (seenExternalIds uzupełniamy przed processOffer).
+        const presentLandExternalIds = [...seenExternalIds, ...parseResult.invalidLandExternalIds];
+
         if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
-          const deactivated = await deactivateMissingOffers(integration.id, seenExternalIds);
+          const deactivated = await deactivateMissingOffers(integration.id, presentLandExternalIds);
           deactivatedCount += deactivated;
           fileDeactivatedCount += deactivated;
         }
@@ -2036,11 +2079,11 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
         // wisiały bez końca: bezpiecznik R1 wymaga pełnego eksportu (Galactica przysłała 6 takich
         // plików na 6828), a znaczniki usunięcia — które przysyła w każdej paczce — lądowały w koszu.
         // Sprawdzone na paczkach z 2026-08-17: każda paczka Galactiki niesie <oferta_usun>.
-        // Oferta obecna w TEJ SAMEJ paczce wygrywa z żądaniem usunięcia — inaczej wystarczyłoby,
+        // Działka obecna w TEJ SAMEJ paczce wygrywa z żądaniem usunięcia, inaczej wystarczyłoby,
         // żeby CRM w jednym pliku skasował i od razu wystawił tę samą ofertę, i zgasilibyśmy żywą.
-        const deletedExternalIds = parseResult.deletedExternalIds.filter(
-          (externalId) => !seenExternalIds.has(externalId)
-        );
+        // Tak samo nowa wersja Galactiki w paczce chroni starą przed usunięciem, nawet gdy zapis
+        // nowej rzucił albo odpadła na walidacji (szczegóły w domypl-versions.ts).
+        const deletedExternalIds = deletesToApply(parseResult.deletedExternalIds, presentLandExternalIds);
 
         if (deletedExternalIds.length > 0) {
           // Bez `feedModifiedAt`: paczki lecą chronologicznie (sort w downloadNewFeedsFromFtp),
@@ -2154,6 +2197,10 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
           currentFeedReader = null;
         }
       }
+    }
+
+    if (staleCount > 0) {
+      console.log(`[CRM DEBUG] Pominięto ${staleCount} ofert w wersji starszej niż zapisana w bazie.`);
     }
 
     await prisma.crmIntegration.update({

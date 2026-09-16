@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { XMLParser } from "fast-xml-parser";
 import {
   asariBranchOfSignature,
   asariFilePrefix,
   isInAsariFullExportScope,
   resolveAsariFullExportScope,
-  xmlIntegrityProblem,
   type AsariFullExportInput,
 } from "./asari-full-export";
 import { assessMassDeactivation, collectMissingCandidates } from "./mass-deactivation";
@@ -209,31 +207,5 @@ describe("rozpoznawanie oddziału", () => {
     expect(asariFilePrefix("openestatewarszawa/16470_20260903_142033_001.xml")).toBe("16470");
     expect(asariFilePrefix("definictions.xml")).toBeNull();
     expect(asariFilePrefix("_CFG.xml")).toBeNull();
-  });
-});
-
-describe("xmlIntegrityProblem: plik urwany w trakcie wgrywania", () => {
-  const offer = (n: number) =>
-    `<offer><signature>${n}/3877/OGS</signature><description><![CDATA[Działka & <b>opis</b>]]></description></offer>\n`;
-  const head = `<?xml version="1.0" encoding="UTF-8"?>\n<PACKAGE>\n`;
-  const complete = `${head}${offer(1)}${offer(2)}<DELETE><offers><signature>9/3877/OGS</signature></offers></DELETE></PACKAGE>\n`;
-
-  it("przepuszcza kompletny plik z CDATA i sekcją DELETE", () => {
-    expect(xmlIntegrityProblem(complete)).toBeNull();
-  });
-
-  it("odrzuca każde urwanie, także na granicy elementu", () => {
-    expect(xmlIntegrityProblem(`${head}${offer(1)}${offer(2)}`)).not.toBeNull(); // brak </PACKAGE>
-    expect(xmlIntegrityProblem(`${head}${offer(1)}<offer>`)).not.toBeNull();
-    expect(xmlIntegrityProblem(`${head}${offer(1)}<offer><signature>2/38`)).not.toBeNull();
-    expect(xmlIntegrityProblem(head)).not.toBeNull();
-    expect(xmlIntegrityProblem("")).not.toBeNull();
-  });
-
-  it("powód istnienia bramki: sam parser przyjmuje urwany plik bez błędu", () => {
-    const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "", parseTagValue: false });
-    const doc = parser.parse(`${head}${offer(1)}${offer(2)}`);
-
-    expect(doc.PACKAGE.offer).toHaveLength(2);
   });
 });
