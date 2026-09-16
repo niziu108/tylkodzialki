@@ -4,10 +4,12 @@ import path from "path";
 import { describe, expect, it } from "vitest";
 import { extractZipToDir } from "./zip-extract";
 import {
+  estiRunAdvancesAnchor,
   isEnvironmentError,
   isEstiRunFullExport,
   isEstiWindowPruneEnabled,
   isFullEstiExportMode,
+  isInsideEstiWindow,
   isPossiblyStillUploading,
   planEstiWalkWindow,
   planEstiZipPrune,
@@ -43,7 +45,7 @@ const names = (zips: EstiRemoteZip[]) => zips.map((z) => z.remotePath);
 describe("planEstiWalkWindow", () => {
   it("bez udanego przebiegu czyta wszystko od najnowszej, jak dawniej", () => {
     const zips = series(10, 12);
-    const window = planEstiWalkWindow([...zips].reverse(), { lastSuccessAt: null, overlapHours: 24, skippedLastRun: 0 });
+    const window = planEstiWalkWindow([...zips].reverse(), { lastSuccessAt: null, overlapHours: 24, hasImportedOffers: true });
 
     expect(window.anchorMs).toBeNull();
     expect(names(window.candidates)).toEqual(names(zips));
@@ -52,7 +54,7 @@ describe("planEstiWalkWindow", () => {
   it("czyta paczki od ostatniego udanego przebiegu minus zakładka", () => {
     const zips = series(40, 3); // 5 dni co 3 h
     const lastSuccessAt = new Date(NOW - 2 * HOUR);
-    const window = planEstiWalkWindow(zips, { lastSuccessAt, overlapHours: 24, skippedLastRun: 0 });
+    const window = planEstiWalkWindow(zips, { lastSuccessAt, overlapHours: 24, hasImportedOffers: true });
 
     expect(window.anchorMs).toBe(NOW - 26 * HOUR);
     for (const candidate of window.candidates) {
@@ -66,7 +68,7 @@ describe("planEstiWalkWindow", () => {
     // Przypadek em5: ostatni sukces 26.08, potem trzy tygodnie awarii.
     const zips = series(200, 3); // 25 dni
     const lastSuccessAt = new Date(NOW - 21 * DAY);
-    const window = planEstiWalkWindow(zips, { lastSuccessAt, overlapHours: 24, skippedLastRun: 0 });
+    const window = planEstiWalkWindow(zips, { lastSuccessAt, overlapHours: 24, hasImportedOffers: true });
 
     const oldest = window.candidates[window.candidates.length - 1];
     expect(oldest.modifiedAt!.getTime()).toBeGreaterThanOrEqual(NOW - 22 * DAY);
@@ -75,16 +77,16 @@ describe("planEstiWalkWindow", () => {
 
   it("paczka bez daty modyfikacji zostaje w oknie", () => {
     const zips = [...series(10, 12), zip("bez_daty.zip", null)];
-    const window = planEstiWalkWindow(zips, { lastSuccessAt: new Date(NOW - HOUR), overlapHours: 24, skippedLastRun: 0 });
+    const window = planEstiWalkWindow(zips, { lastSuccessAt: new Date(NOW - HOUR), overlapHours: 24, hasImportedOffers: true });
 
     expect(names(window.candidates)).toContain("bez_daty.zip");
   });
 
-  it("nieprawidłowa zakładka wyłącza okno zamiast gubić paczki", () => {
+  it("nieprawidłowa albo absurdalna zakładka wyłącza okno zamiast gubić paczki lub wywracać przebieg", () => {
     const zips = series(10, 12);
 
-    for (const overlap of [Number.NaN, -1, Number.POSITIVE_INFINITY]) {
-      const window = planEstiWalkWindow(zips, { lastSuccessAt: new Date(NOW - HOUR), overlapHours: overlap, skippedLastRun: 0 });
+    for (const overlap of [Number.NaN, -1, Number.POSITIVE_INFINITY, 1e10, 24 * 366]) {
+      const window = planEstiWalkWindow(zips, { lastSuccessAt: new Date(NOW - HOUR), overlapHours: overlap, hasImportedOffers: true });
       expect(window.anchorMs).toBeNull();
       expect(window.candidates).toHaveLength(10);
     }
@@ -92,18 +94,50 @@ describe("planEstiWalkWindow", () => {
 
   it("okno może być puste, gdy od dawna nie przyszła nowa paczka", () => {
     const zips = series(5, 24).map((z, i) => zip(z.remotePath, 72 + i * 24));
-    const window = planEstiWalkWindow(zips, { lastSuccessAt: new Date(NOW - HOUR), overlapHours: 24, skippedLastRun: 0 });
+    const window = planEstiWalkWindow(zips, { lastSuccessAt: new Date(NOW - HOUR), overlapHours: 24, hasImportedOffers: true });
 
     expect(window.candidates).toHaveLength(0);
     expect(window.olderThanWindow).toBe(5);
   });
 
-  it("po pominięciu ofert z braku publikacji czyta wstecz jak dawniej (dociągnięcie po zakupie pakietu)", () => {
+  it("integracja bez zaimportowanych ofert czyta wstecz do pełnego eksportu mimo lastSuccessAt", () => {
+    // Biuro podłączone z domyślnym providerem: przebiegi DOMY.PL kończyły się „sukcesem" na pustym,
+    // a pełny eksport EstiCRM leży na FTP od 3 dni. Po poprawce providera musi zostać przeczytany.
     const zips = series(40, 3);
-    const window = planEstiWalkWindow(zips, { lastSuccessAt: new Date(NOW - HOUR), overlapHours: 24, skippedLastRun: 3 });
+    const window = planEstiWalkWindow(zips, { lastSuccessAt: new Date(NOW - HOUR), overlapHours: 24, hasImportedOffers: false });
 
     expect(window.anchorMs).toBeNull();
     expect(window.candidates).toHaveLength(40);
+  });
+});
+
+describe("isInsideEstiWindow", () => {
+  it("bez okna mieści się wszystko, plik bez daty zawsze, reszta od początku okna", () => {
+    const anchorMs = NOW - 26 * HOUR;
+
+    expect(isInsideEstiWindow(new Date(NOW - 100 * DAY), null)).toBe(true);
+    expect(isInsideEstiWindow(null, anchorMs)).toBe(true);
+    expect(isInsideEstiWindow(undefined, anchorMs)).toBe(true);
+    expect(isInsideEstiWindow(new Date(anchorMs), anchorMs)).toBe(true);
+    expect(isInsideEstiWindow(new Date(anchorMs - 1), anchorMs)).toBe(false);
+  });
+});
+
+describe("estiRunAdvancesAnchor", () => {
+  it("kotwica rusza się tylko po przebiegu, który przetworzył wszystko", () => {
+    expect(estiRunAdvancesAnchor({ offerErrors: 0, skippedOffers: 0, listingProblems: 0 })).toBe(true);
+  });
+
+  it("błąd zapisu oferty trzyma kotwicę: paczka wraca w kolejnych przebiegach, także po dobie", () => {
+    expect(estiRunAdvancesAnchor({ offerErrors: 1, skippedOffers: 0, listingProblems: 0 })).toBe(false);
+  });
+
+  it("oferta pominięta z braku publikacji trzyma kotwicę, żeby weszła po zakupie pakietu", () => {
+    expect(estiRunAdvancesAnchor({ offerErrors: 0, skippedOffers: 2, listingProblems: 0 })).toBe(false);
+  });
+
+  it("niewylistowany podkatalog FTP trzyma kotwicę", () => {
+    expect(estiRunAdvancesAnchor({ offerErrors: 0, skippedOffers: 0, listingProblems: 1 })).toBe(false);
   });
 });
 
@@ -173,6 +207,16 @@ describe("isEnvironmentError", () => {
     expect(isEnvironmentError(Object.assign(new Error("invalid distance too far back"), { code: "Z_DATA_ERROR", errno: -3 }))).toBe(false);
     expect(isEnvironmentError("FILE_ENDED")).toBe(false);
     expect(isEnvironmentError(null)).toBe(false);
+  });
+
+  it("uprawnienia i limit deskryptorów to środowisko, konflikt ścieżek wpisów to wada paczki", () => {
+    for (const code of ["EACCES", "EMFILE", "EROFS", "EIO"]) {
+      expect(isEnvironmentError(Object.assign(new Error(code), { code, syscall: "open" })), code).toBe(true);
+    }
+    // Wpis „foto/1.jpg" i plik „foto" w tym samym ZIP-ie: błąd powtórzy się przy każdym przebiegu.
+    for (const code of ["EISDIR", "ENOTDIR", "EEXIST", "ENAMETOOLONG"]) {
+      expect(isEnvironmentError(Object.assign(new Error(code), { code, syscall: "open" })), code).toBe(false);
+    }
   });
 });
 
@@ -295,10 +339,8 @@ describe("isEstiWindowPruneEnabled", () => {
 });
 
 describe("planEstiZipPrune: reguła pełnego eksportu (bez zmian)", () => {
-  it("kasuje paczki starsze od najnowszego pełnego i od 14 dni, poza 10 najświeższymi", () => {
-    const zips = series(60, 12); // 30 dni co 12 h
-    const full = zips[4]; // 2 dni temu
-    const plan = planEstiZipPrune(zips, {
+  const fullRule = (zips: EstiRemoteZip[], full: EstiRemoteZip) =>
+    planEstiZipPrune(zips, {
       newestFullMs: full.modifiedAt!.getTime(),
       anchorMs: null,
       windowRuleEnabled: false,
@@ -306,12 +348,21 @@ describe("planEstiZipPrune: reguła pełnego eksportu (bez zmian)", () => {
       nowMs: NOW,
     });
 
-    expect(plan.prunable.length).toBeGreaterThan(0);
-    for (const file of plan.prunable) {
-      expect(file.modifiedAt!.getTime()).toBeLessThan(NOW - 14 * DAY);
-    }
-    expect(names(plan.prunable)).not.toContain(full.remotePath);
+  it("kasuje paczki starsze od 14 dni, ale tylko starsze od najnowszego pełnego eksportu", () => {
+    const zips = series(60, 12); // 30 dni co 12 h
+    const full = zips[40]; // 20 dni temu
+    const plan = fullRule(zips, full);
+
+    // Paczki z 14-20 dni temu są starsze niż margines, ale nowsze od pełnego: zostają.
+    expect(names(plan.prunable)).toEqual(names(zips.slice(41).reverse()));
     expect(plan.previewWhenDisabled).toHaveLength(0);
+  });
+
+  it("chroni 10 najświeższych paczek nawet starszych od pełnego i od marginesu", () => {
+    const zips = Array.from({ length: 12 }, (_, i) => zip(`stara_${String(i).padStart(2, "0")}.zip`, 30 * 24 + i));
+    const plan = fullRule(zips, zips[0]);
+
+    expect(names(plan.prunable)).toEqual(["stara_11.zip", "stara_10.zip"]);
   });
 
   it("bez przeczytanego pełnego eksportu nic nie kasuje", () => {

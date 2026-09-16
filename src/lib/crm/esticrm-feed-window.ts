@@ -18,9 +18,9 @@
  *  1. Okno przebiegu. Czytamy paczki nie starsze niż ostatni udany przebieg minus zakładka (24 h).
  *     Starsze przeczytał już któryś wcześniejszy udany przebieg. Kotwica (`lastSuccessAt`) leży w tej
  *     samej bazie co oferty, więc przywrócenie bazy z kopii cofa ją razem z danymi i okno samo sięga
- *     po brakujące paczki. Przestój workera działa tak samo: kotwica stoi, okno rośnie. Bez kotwicy
- *     (pierwszy przebieg biura), po pominięciu ofert z braku publikacji albo przy wyłączonym oknie
- *     zostaje dawne zachowanie.
+ *     po brakujące paczki. Przestój workera działa tak samo: kotwica stoi, okno rośnie. Kotwica rusza
+ *     się tylko po przebiegu bez błędów zapisu ofert i bez pominięć (estiRunAdvancesAnchor). Bez
+ *     kotwicy, bez zaimportowanych ofert albo przy wyłączonym oknie zostaje dawne zachowanie.
  *  2. Nieczytelna paczka nie zatrzymuje biura. Pomijamy ją z wpisem ERROR i czytamy dalej, a przebieg
  *     z taką paczką nigdy nie liczy się jako pełny eksport, więc niczego nie wygasza.
  *  3. Sprzątanie zawsze od najstarszych, czyli na FTP zostaje ciągły ogon czasu bez dziur (dlaczego
@@ -44,12 +44,15 @@ export type EstiZipMode = "full" | "incremental" | "unknown";
 /** Zakładka okna: ile godzin przed ostatnim udanym przebiegiem zaczynamy czytać. */
 export const DEFAULT_ESTI_OVERLAP_HOURS = 24;
 
+/** Większa zakładka to w praktyce wyłączenie okna (a np. `1e10` wywracałoby daty w logu). */
+export const MAX_ESTI_OVERLAP_HOURS = 24 * 365;
+
 /** Paczka młodsza niż tyle mogła się jeszcze wgrywać w chwili listowania FTP. */
 export const ESTI_UPLOAD_GRACE_MINUTES = 30;
 
 /**
- * `CRM_ESTICRM_OVERLAP_HOURS`: brak = 24. Wartość nieliczbowa (np. `off`) albo ujemna wyłącza okno,
- * czyli przywraca dawne czytanie wstecz do pełnego eksportu. Wyłącznik awaryjny bez deployu.
+ * `CRM_ESTICRM_OVERLAP_HOURS`: brak = 24. Wartość nieliczbowa (np. `off`), ujemna albo większa niż rok
+ * wyłącza okno, czyli przywraca dawne czytanie wstecz do pełnego eksportu. Wyłącznik bez deployu.
  */
 export function readEstiOverlapHours(env: Record<string, string | undefined> = process.env): number {
   const raw = env.CRM_ESTICRM_OVERLAP_HOURS?.trim();
@@ -82,45 +85,36 @@ export function planEstiWalkWindow<T extends EstiRemoteZip>(
   params: {
     lastSuccessAt: Date | null;
     overlapHours: number;
-    /** Ile ofert poprzedni przebieg pominął z braku publikacji (`lastSkippedCount`). */
-    skippedLastRun: number;
+    /** Czy integracja ma już jakąkolwiek zaimportowaną ofertę (CrmOfferLink). */
+    hasImportedOffers: boolean;
   }
 ): EstiWalkWindow<T> {
-  const { lastSuccessAt, overlapHours, skippedLastRun } = params;
+  const { lastSuccessAt, overlapHours, hasImportedOffers } = params;
   const sorted = sortZipsNewestFirst(zips);
+  const withoutWindow = (reason: string): EstiWalkWindow<T> => ({
+    candidates: sorted,
+    olderThanWindow: 0,
+    anchorMs: null,
+    reason,
+  });
 
   if (!lastSuccessAt) {
-    return {
-      candidates: sorted,
-      olderThanWindow: 0,
-      anchorMs: null,
-      reason: "Brak udanego przebiegu, czytam wstecz do pełnego eksportu.",
-    };
+    return withoutWindow("Brak udanego przebiegu, czytam wstecz do pełnego eksportu.");
   }
 
-  // Oferta pominięta z braku publikacji ma wejść po zakupie pakietu („Synchronizuj teraz" w panelu
-  // biura), a jej paczka mogła już wypaść z okna. Dopóki są pominięcia, czytamy jak dawniej.
-  if (skippedLastRun > 0) {
-    return {
-      candidates: sorted,
-      olderThanWindow: 0,
-      anchorMs: null,
-      reason: `Poprzedni przebieg pominął ${skippedLastRun} ofert z braku publikacji, czytam wstecz do pełnego eksportu.`,
-    };
+  // `lastSuccessAt` bywa ustawiony, zanim silnik EstiCRM cokolwiek przeczytał: integracja założona
+  // z domyślnym providerem albo złym katalogiem kończy przebiegi „sukcesem" na pustym. Po poprawce
+  // okno ominęłoby pełny eksport, który przyszedł na starcie i leży już dłużej niż zakładka.
+  if (!hasImportedOffers) {
+    return withoutWindow("Integracja nie ma jeszcze zaimportowanych ofert, czytam wstecz do pełnego eksportu.");
   }
 
-  if (!Number.isFinite(overlapHours) || overlapHours < 0) {
-    return {
-      candidates: sorted,
-      olderThanWindow: 0,
-      anchorMs: null,
-      reason: "Okno wyłączone (CRM_ESTICRM_OVERLAP_HOURS), czytam wstecz do pełnego eksportu.",
-    };
+  if (!Number.isFinite(overlapHours) || overlapHours < 0 || overlapHours > MAX_ESTI_OVERLAP_HOURS) {
+    return withoutWindow("Okno wyłączone (CRM_ESTICRM_OVERLAP_HOURS), czytam wstecz do pełnego eksportu.");
   }
 
   const anchorMs = lastSuccessAt.getTime() - overlapHours * HOUR_MS;
-  // Paczki bez daty nie da się uznać za przeczytaną, więc zostaje w oknie.
-  const candidates = sorted.filter((zip) => !zip.modifiedAt || zip.modifiedAt.getTime() >= anchorMs);
+  const candidates = sorted.filter((zip) => isInsideEstiWindow(zip.modifiedAt, anchorMs));
 
   return {
     candidates,
@@ -128,6 +122,35 @@ export function planEstiWalkWindow<T extends EstiRemoteZip>(
     anchorMs,
     reason: `Czytam paczki od ${new Date(anchorMs).toISOString()} (ostatni udany przebieg minus ${overlapHours} h).`,
   };
+}
+
+/**
+ * Czy plik (paczka ZIP albo luźny XML) mieści się w oknie przebiegu. Bez okna mieści się wszystko.
+ * Pliku bez daty nie da się uznać za przeczytany, więc zostaje w oknie.
+ */
+export function isInsideEstiWindow(modifiedAt: Date | null | undefined, anchorMs: number | null): boolean {
+  if (anchorMs === null || !modifiedAt) return true;
+  return modifiedAt.getTime() >= anchorMs;
+}
+
+/**
+ * Czy przebieg może przesunąć kotwicę okna, czyli zapisać `lastSuccessAt`.
+ *
+ * Kotwica znaczy „wszystko starsze przeczytał już udany przebieg", więc rusza się tylko po przebiegu,
+ * który przetworzył wszystko, co zobaczył. Oferta z błędem zapisu (awaria R2, błąd w kodzie) albo
+ * pominięta z braku publikacji ma wracać w kolejnych przebiegach, dopóki nie wejdzie, także gdy
+ * przyczyna trwa dłużej niż zakładka. Dawny silnik robił to przy okazji, bo co przebieg czytał całą
+ * historię. To samo dotyczy podkatalogu FTP, którego nie udało się wylistować.
+ *
+ * Nieczytelna paczka kotwicy NIE blokuje: ponowne czytanie jej nie naprawi, a blokada trzymałaby
+ * okno w miejscu na zawsze (tak stało em5).
+ */
+export function estiRunAdvancesAnchor(problems: {
+  offerErrors: number;
+  skippedOffers: number;
+  listingProblems: number;
+}): boolean {
+  return problems.offerErrors === 0 && problems.skippedOffers === 0 && problems.listingProblems === 0;
 }
 
 /**
@@ -149,7 +172,7 @@ export function isFullEstiExportMode(mode: string | null | undefined): boolean {
   const text = (mode ?? "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/ł/g, "l");
   return /full|complete|calosc/.test(text);
 }
@@ -167,20 +190,25 @@ export function isEstiRunFullExport(exportMode: string | null, unreadableZipCoun
 }
 
 /**
+ * Kody błędów systemowych, które przy rozpakowaniu wynikają z samej paczki: ścieżki wpisów
+ * (plik i katalog o tej samej nazwie, za długa albo niedozwolona nazwa).
+ */
+const PACKAGE_PATH_ERROR_CODES = new Set(["EISDIR", "ENOTDIR", "EEXIST", "ENAMETOOLONG", "EINVAL"]);
+
+/**
  * Błąd środowiska (brak miejsca, uprawnienia, limit deskryptorów), a nie wada samej paczki.
  *
  * Błędy systemowe Node mają pole `syscall`. Urwany ZIP daje w unzipperze `FILE_ENDED` bez `syscall`,
  * także przy cięciu dokładnie na granicy wpisów (sprawdzone), a zepsute dane deflate dają błąd zlib
- * z kodem `Z_*`, też bez `syscall`. Awaria środowiska ma wywrócić przebieg jak dotąd: kotwica okna
- * wtedy stoi i następny przebieg przeczyta te same paczki. Gdyby traktować ją jak uszkodzoną paczkę,
- * przebieg przy pełnym dysku przesunąłby kotwicę i paczki wypadłyby z okna nieprzeczytane.
+ * z kodem `Z_*`, też bez `syscall`. Wyjątek to błędy ścieżek z PACKAGE_PATH_ERROR_CODES: mają
+ * `syscall`, ale powtórzą się przy każdym przebiegu, więc to wada paczki. Awaria środowiska ma
+ * wywrócić przebieg jak dotąd, bo przebieg przy pełnym dysku nie może udawać, że paczka jest zła.
  */
 export function isEnvironmentError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    typeof (error as { syscall?: unknown }).syscall === "string"
-  );
+  if (typeof error !== "object" || error === null) return false;
+  const { syscall, code } = error as { syscall?: unknown; code?: unknown };
+  if (typeof syscall !== "string") return false;
+  return !(typeof code === "string" && PACKAGE_PATH_ERROR_CODES.has(code));
 }
 
 /** Nieczytelna i świeża paczka to najpewniej wgrywanie w toku: bez wpisu ERROR, weźmie ją kolejny przebieg. */

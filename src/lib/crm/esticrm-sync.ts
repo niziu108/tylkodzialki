@@ -24,10 +24,12 @@ import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/c
 import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
 import { readPrunePolicyFromEnv } from "@/lib/crm/feed-pruning";
 import {
+  estiRunAdvancesAnchor,
   isEnvironmentError,
   isEstiRunFullExport,
   isEstiWindowPruneEnabled,
   isFullEstiExportMode,
+  isInsideEstiWindow,
   isPossiblyStillUploading,
   planEstiWalkWindow,
   planEstiZipPrune,
@@ -52,9 +54,8 @@ type IntegrationForSync = {
   ftpRemotePath: string | null;
   ftpPassive: boolean;
   fullImportMode: boolean;
-  /** Kotwica okna paczek i wyjątek od okna: patrz esticrm-feed-window.ts. */
+  /** Kotwica okna paczek: patrz esticrm-feed-window.ts. */
   lastSuccessAt: Date | null;
-  lastSkippedCount: number;
 };
 
 type SyncSummary = {
@@ -131,8 +132,8 @@ type UnreadableEstiZip = {
 type DownloadedEstiFeed = {
   remoteFileName: string;
   tempDir: string;
-  /** Wszystkie paczki ZIP na FTP, także te za oknem przebiegu. */
-  zipCountOnFtp: number;
+  /** Podkatalogi FTP, których nie udało się wylistować. Blokują kotwicę okna i wygaszanie. */
+  failedDirs: string[];
   unreadableZips: UnreadableEstiZip[];
   offerXmlFiles: EstiOfferXmlFile[];
   localFileByBasename: Map<string, string>;
@@ -616,7 +617,8 @@ async function downloadFile(client: ftp.Client, remotePath: string, localPath: s
   await client.downloadTo(localPath, remotePath);
 }
 
-async function listCurrentAndOneLevel(client: ftp.Client, remoteDir: string) {
+/** `failedDirs` zbiera podkatalogi, których nie udało się wylistować: przebieg nie widzi ich paczek. */
+async function listCurrentAndOneLevel(client: ftp.Client, remoteDir: string, failedDirs: string[]) {
   const current = await client.list();
 
   const result: Array<{ name: string; remotePath: string; isFile: boolean; isDirectory: boolean; size: number; modifiedAt?: Date }> = current.map((item) => ({
@@ -649,6 +651,7 @@ async function listCurrentAndOneLevel(client: ftp.Client, remoteDir: string) {
       await client.cd("..");
     } catch (error) {
       console.warn("[ESTICRM DEBUG] Nie udało się wejść do podkatalogu:", item.name, error);
+      failedDirs.push(item.name);
       await client.cd(remoteDir).catch(() => {});
     }
   }
@@ -669,7 +672,10 @@ async function walkFiles(dir: string): Promise<string[]> {
   return files;
 }
 
-async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise<DownloadedEstiFeed> {
+async function downloadEstiFeedFromFtp(
+  integration: IntegrationForSync,
+  hasImportedOffers: boolean
+): Promise<DownloadedEstiFeed> {
   if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
     throw new Error("Integracja EstiCRM nie ma uzupełnionych danych FTP.");
   }
@@ -701,7 +707,8 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
 
     console.log("[ESTICRM DEBUG] FTP katalog:", remoteDir);
 
-    const list = await listCurrentAndOneLevel(client, remoteDir);
+    const failedDirs: string[] = [];
+    const list = await listCurrentAndOneLevel(client, remoteDir, failedDirs);
     const files = list.filter((item) => item.isFile);
 
     console.log("[ESTICRM DEBUG] Pliki na FTP:", files.map((item) => ({ name: item.name, remotePath: item.remotePath, size: item.size, modifiedAt: item.modifiedAt })));
@@ -725,7 +732,7 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
     const walkWindow = planEstiWalkWindow(allZips, {
       lastSuccessAt: integration.lastSuccessAt,
       overlapHours: readEstiOverlapHours(),
-      skippedLastRun: integration.lastSkippedCount,
+      hasImportedOffers,
     });
     const windowAnchored = walkWindow.anchorMs !== null;
     const zipFiles = walkWindow.candidates;
@@ -800,7 +807,8 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
           base.toLowerCase() !== "definitions.xml"
         ) {
           const head = (await fsp.readFile(file, "utf8")).slice(0, 4096);
-          const match = head.match(/<offers[^>]*\bexport\s*=\s*["']?\s*([a-zA-Z]+)/);
+          // Cała wartość atrybutu, z polskimi znakami: `[a-zA-Z]+` ucinał „całość" do „ca".
+          const match = head.match(/<offers[^>]*\bexport\s*=\s*["']?\s*([^"'\s>]+)/);
           zipExportMode = match ? match[1].toLowerCase() : "";
         }
       }
@@ -831,7 +839,14 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
       if (!walkPast) break;
     }
 
-    const directXmlFiles = files.filter((item) => item.name.toLowerCase().endsWith(".xml"));
+    // Luźne pliki XML (bez ZIP-a) podlegają temu samemu oknu co paczki. Inaczej stary luźny pełny
+    // eksport przy pustym oknie byłby jedynym plikiem przebiegu i wygasiłby oferty dodane po nim.
+    // definitions.xml to słowniki, a nie oferty, więc czytamy go zawsze.
+    const directXmlFiles = files.filter(
+      (item) =>
+        item.name.toLowerCase().endsWith(".xml") &&
+        (safeBasename(item.name) === "definitions.xml" || isInsideEstiWindow(item.modifiedAt, walkWindow.anchorMs))
+    );
     const directImageFiles = files.filter((item) => /\.(jpe?g|png|webp|avif)$/i.test(item.name));
 
     for (const file of directXmlFiles) {
@@ -904,7 +919,10 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
         prunedCount += 1;
         prunedBytes += z.size ?? 0;
       } catch (error) {
-        console.error("[ESTICRM CLEANUP] Nie udało się usunąć starego ZIP:", z.remotePath, error);
+        // Stop na pierwszym błędzie: plan tnie od najstarszej, a skasowanie nowszej paczki przy
+        // zostawionej starszej zrobiłoby dziurę w czasie. Kolejny przebieg spróbuje od tej samej.
+        console.error("[ESTICRM CLEANUP] Nie udało się usunąć starego ZIP, przerywam sprzątanie:", z.remotePath, error);
+        break;
       }
     }
 
@@ -922,7 +940,7 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
     const feed: DownloadedEstiFeed = {
       remoteFileName,
       tempDir,
-      zipCountOnFtp: allZips.length,
+      failedDirs,
       unreadableZips,
       offerXmlFiles,
       localFileByBasename,
@@ -1346,7 +1364,6 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       ftpPassive: true,
       fullImportMode: true,
       lastSuccessAt: true,
-      lastSkippedCount: true,
     },
   });
 
@@ -1360,7 +1377,11 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
   let downloaded: DownloadedEstiFeed | null = null;
 
   try {
-    downloaded = await downloadEstiFeedFromFtp(integration);
+    // Biuro bez żadnej oferty w bazie czyta wstecz do pełnego eksportu, bez okna (planEstiWalkWindow).
+    const hasImportedOffers =
+      (await prisma.crmOfferLink.findFirst({ where: { integrationId: integration.id }, select: { id: true } })) !== null;
+
+    downloaded = await downloadEstiFeedFromFtp(integration, hasImportedOffers);
 
     const appConfig = await prisma.appConfig.findFirst();
     const paymentsEnabled = appConfig?.paymentsEnabled ?? false;
@@ -1371,6 +1392,8 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
     let deactivatedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
+    /** Błędy zapisu ofert i wygaszeń (bez nieczytelnych paczek): blokują kotwicę okna. */
+    let offerErrorCount = 0;
     let rawOffersCount = 0;
 
     const seenExternalIds = new Set<string>();
@@ -1397,6 +1420,16 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
         action: "ERROR",
         status: "ERROR",
         message: `Uszkodzona paczka EstiCRM na FTP: ${zip.name} (${zip.error}). Pominięta, pozostałe paczki zaimportowane, bez wygaszania ofert.`,
+      });
+    }
+
+    if (downloaded.failedDirs.length > 0) {
+      errorCount += downloaded.failedDirs.length;
+
+      await logSync(integration.id, {
+        action: "ERROR",
+        status: "ERROR",
+        message: `Nie udało się wylistować podkatalogów FTP EstiCRM: ${downloaded.failedDirs.join(", ")}. Ich paczki weźmie kolejny przebieg, bez wygaszania ofert.`,
       });
     }
 
@@ -1457,6 +1490,7 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
         else if (action === "SKIP_NO_CREDITS") skippedCount += 1;
       } catch (error) {
         errorCount += 1;
+        offerErrorCount += 1;
         const message = error instanceof Error ? error.message : "Nieznany błąd podczas importu oferty EstiCRM.";
         console.error("[ESTICRM DEBUG] Błąd zapisu oferty:", offer.externalId, message, error);
 
@@ -1473,6 +1507,7 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
         else if (wynik === "NIEZNANA") nieznaneDeleteCount += 1;
       } catch (error) {
         errorCount += 1;
+        offerErrorCount += 1;
         await logSync(integration.id, {
           externalId,
           action: "ERROR",
@@ -1488,12 +1523,23 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       );
     }
 
-    const isFullExport = isEstiRunFullExport(exportMode, downloaded.unreadableZips.length);
+    // Niewylistowany podkatalog liczy się jak nieczytelna paczka: nie wiemy, co w nim leży.
+    const isFullExport = isEstiRunFullExport(exportMode, downloaded.unreadableZips.length + downloaded.failedDirs.length);
 
     if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
       deactivatedCount += await deactivateMissingOffers(integration.id, seenExternalIds);
     } else {
-      console.log("[ESTICRM DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy DELETE albo pełnym eksporcie bez nieczytelnych paczek.", { exportMode, seen: seenExternalIds.size, unreadableZips: downloaded.unreadableZips.length });
+      console.log("[ESTICRM DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy DELETE albo pełnym eksporcie bez nieczytelnych paczek.", { exportMode, seen: seenExternalIds.size, unreadableZips: downloaded.unreadableZips.length, failedDirs: downloaded.failedDirs.length });
+    }
+
+    const advancesAnchor = estiRunAdvancesAnchor({
+      offerErrors: offerErrorCount,
+      skippedOffers: skippedCount,
+      listingProblems: downloaded.failedDirs.length,
+    });
+
+    if (!advancesAnchor) {
+      console.log("[ESTICRM DEBUG] lastSuccessAt bez zmian: te same paczki wrócą w kolejnym przebiegu.", { offerErrorCount, skippedCount, failedDirs: downloaded.failedDirs.length });
     }
 
     // Nazwa uszkodzonej paczki trafia do panelu biura: z nią biuro może zgłosić problem do EstiCRM.
@@ -1509,7 +1555,8 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       data: {
         lastUsedAt: now,
         lastSyncAt: now,
-        lastSuccessAt: now,
+        // lastSuccessAt to kotwica okna paczek: patrz estiRunAdvancesAnchor.
+        ...(advancesAnchor ? { lastSuccessAt: now } : {}),
         lastErrorAt: errorCount > 0 ? now : null,
         lastErrorMessage:
           errorCount > 0
