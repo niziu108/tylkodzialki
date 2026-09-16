@@ -25,10 +25,13 @@
  * Oferta, której plików brakuje trwale, nie wgrywa więc zdjęć w każdym przebiegu. Wgranie na próżno
  * zdarza się tylko, gdy plik zniknie między listowaniem a pobraniem (obiekty od razu kasujemy).
  *
- * Data modyfikacji: `CrmOfferLink.externalUpdatedAt` czyta tylko strażnik z reguły 1, więc zapisujemy
- * ją wyłącznie wtedy, gdy galeria odpowiada wersji oferty z feedu (`syncedWithFeed`). Zostawiona
- * stara galeria z tą samą liczbą zdjęć co nowy feed inaczej wyglądałaby jak „bez zmian" i nowe
- * zdjęcia nie weszłyby nawet po dotarciu brakującego pliku.
+ * Data modyfikacji: `CrmOfferLink.externalUpdatedAt` zapisujemy wyłącznie wtedy, gdy galeria odpowiada
+ * wersji oferty z feedu (`syncedWithFeed`). Zostawiona stara galeria z tą samą liczbą zdjęć co nowy
+ * feed inaczej wyglądałaby dla strażnika z reguły 1 jak „bez zmian" i nowe zdjęcia nie weszłyby nawet
+ * po dotarciu brakującego pliku. Dla każdego innego czytelnika tej daty: może być starsza niż wersja
+ * zapisanych danych oferty (zostaje przy ostatniej zgodnej galerii), ale nigdy nowsza. Reguła
+ * „pomijaj wersje starsze od zapisanej" niczego więc fałszywie nie zablokuje, tylko przy niezgodnej
+ * galerii porównuje się ze starszą datą.
  *
  * Kolejność zapisu (refreshOfferPhotos): wgranie nowych, transakcja podmienia wiersze, dopiero po
  * commicie kasowanie starych obiektów. Błąd kasowania to wyciek pliku w R2, nigdy martwe zdjęcie.
