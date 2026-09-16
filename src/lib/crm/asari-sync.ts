@@ -23,6 +23,12 @@ import { sanitizePlCoords, coordsMatchLocationText } from "@/lib/geo";
 import { beginGeocodeRun, geocodeAddressInPoland } from "@/lib/crm/geocode";
 import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/crm/feed-signals";
 import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
+import {
+  asariFilePrefix,
+  isInAsariFullExportScope,
+  resolveAsariFullExportScope,
+  xmlIntegrityProblem,
+} from "@/lib/crm/asari-full-export";
 
 type IntegrationForSync = {
   id: string;
@@ -78,6 +84,14 @@ type AsariOffer = {
   wymiary: string | null;
   payload: Prisma.InputJsonValue;
 };
+
+/**
+ * Oferta odrzucona przez parser. NOT_LAND: to nie działka (mieszkanie, dom, lokal).
+ * INVALID: działka, której chwilowo brakuje ceny, powierzchni albo lokalizacji. Rozróżnienie jest
+ * potrzebne przy pełnym eksporcie: działka z niekompletnymi danymi nadal JEST w eksporcie biura,
+ * więc nie może zniknąć z portalu jako „nieobecna". Zostaje z ostatnią poprawną wersją.
+ */
+type AsariRejectedOffer = { rejected: "NOT_LAND" | "INVALID"; externalId: string };
 
 // Zwraca true, gdy `candidate` jest co najmniej tak świeży jak `current`. Preferujemy
 // wersję z największą datą modyfikacji; wersja z datą wygrywa z wersją bez daty; przy
@@ -214,6 +228,8 @@ function getTextByName(
 /** Plik ofert razem z datą modyfikacji z FTP — bez niej nie da się rozstrzygnąć DELETE vs oferta. */
 type AsariOfferXmlFile = {
   localPath: string;
+  /** Nazwa pliku na FTP, np. `3877_20260916_151353_001.xml`. */
+  fileName: string;
   /** Data modyfikacji pliku na FTP w ms. 0 = serwer jej nie podał. */
   modifiedAtMs: number;
 };
@@ -233,6 +249,10 @@ type DownloadedAsariFeed = {
     listedOfferFiles: string[];
     definitionsFileName: string | null;
   };
+  /** Prefiksy paczek leżących na FTP. Więcej niż jeden = kilka oddziałów sieci w jednym katalogu. */
+  prefixesOnFtp: string[];
+  /** Uszkodzony manifest albo definicje. Przebieg importuje dalej, ale nie wygasza „brakujących". */
+  problems: string[];
   cleanup: () => Promise<void>;
 };
 
@@ -483,7 +503,7 @@ function parseAsariOffer(
   rawOffer: Record<string, unknown>,
   agencyName: string | null,
   definitions: AsariDefinitions
-): AsariOffer | null {
+): AsariOffer | AsariRejectedOffer | null {
   const externalId = toTextValue(rawOffer.signature);
 
   if (!externalId) {
@@ -511,17 +531,18 @@ function parseAsariOffer(
 
   if (isTypedNonLand) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, `typ "${propertyType}" nie jest działką/gruntem.`);
-    return null;
+    return { rejected: "NOT_LAND", externalId };
   }
 
   if (!isLandByType && !isLandBySignature) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "brak pola typu i kod ASARI nie jest gruntem (OG).");
-    return null;
+    return { rejected: "NOT_LAND", externalId };
   }
 
+  // Kod OG mówi „grunt" wprost, więc słaby sygnał treściowy oznacza niekompletne dane, nie inny typ.
   if (!isLandByType && !isLikelyLandOffer(params, definitions)) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "to nie wygląda na działkę.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   const price =
@@ -544,12 +565,12 @@ function parseAsariOffer(
 
   if (!price || price <= 0) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "brak ceny.", { cena: params["10"] });
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   if (!area || area < 1) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "brak powierzchni.", { powierzchnia: params["61"] ?? params["128"] });
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   if (!miasto && !gmina && !powiat && !wojewodztwo) {
@@ -559,7 +580,7 @@ function parseAsariOffer(
       gmina,
       miasto,
     });
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   const plotTypeRaw =
@@ -810,6 +831,18 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
   const downloadedPhotoByBasename = new Map<string, string>();
   let photoFtpClient: ftp.Client | null = null;
   let definitions = emptyDefinitions();
+  const problems: string[] = [];
+
+  // Manifest i definicje czytamy tylko po walidacji: parser po cichu przyjmuje plik urwany w trakcie
+  // wgrywania, a z takiego manifestu mogłoby wyjść `empty_offers=1` bez listy plików.
+  async function readValidXml(localPath: string, fileName: string): Promise<string | null> {
+    const xml = await fsp.readFile(localPath, "utf8");
+    const problem = xmlIntegrityProblem(xml);
+    if (!problem) return xml;
+    console.warn(`[ASARI] Uszkodzony plik ${fileName}: ${problem}`);
+    problems.push(`uszkodzony plik ${fileName}: ${problem}`);
+    return null;
+  }
 
   try {
     await client.access({
@@ -854,18 +887,21 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       definitionsFileName: null as string | null,
     };
 
+    // Uszkodzony plik definicji nie może być sprawdzany i zgłaszany dwa razy (manifest + zapas niżej).
+    let attemptedDefinitionsPath: string | null = null;
+
     if (cfgFiles[0]) {
       const cfgLocalPath = path.join(tempDir, cfgFiles[0].remotePath);
       await downloadFile(client, cfgFiles[0].remotePath, cfgLocalPath);
       localFileByBasename.set(safeBasename(cfgFiles[0].name), cfgLocalPath);
 
-      const cfgXml = await fsp.readFile(cfgLocalPath, "utf8");
-      const parsedCfg = parseCfgXml(cfgXml);
+      const cfgXml = await readValidXml(cfgLocalPath, cfgFiles[0].name);
 
-      cfg = {
-        fileName: cfgFiles[0].name,
-        ...parsedCfg,
-      };
+      // Uszkodzony manifest = brak manifestu: bez `empty_offers` i bez listy plików. Import idzie
+      // dalej po wszystkich plikach ofert, wygaszanie po pełnym eksporcie nie ruszy.
+      cfg = cfgXml
+        ? { fileName: cfgFiles[0].name, ...parseCfgXml(cfgXml) }
+        : { ...cfg, fileName: cfgFiles[0].name };
 
       console.log("[ASARI DEBUG] Wybrany CFG:", cfg);
       if (cfg.definitionsFileName) {
@@ -876,9 +912,10 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
           const definitionLocalPath = path.join(tempDir, definitionFile.remotePath);
           await downloadFile(client, definitionFile.remotePath, definitionLocalPath);
           localFileByBasename.set(safeBasename(definitionFile.name), definitionLocalPath);
+          attemptedDefinitionsPath = definitionFile.remotePath;
 
-          const definitionsXml = await fsp.readFile(definitionLocalPath, "utf8");
-          definitions = parseDefinitionsXml(definitionsXml);
+          const definitionsXml = await readValidXml(definitionLocalPath, definitionFile.name);
+          if (definitionsXml) definitions = parseDefinitionsXml(definitionsXml);
         } else {
           console.log("[ASARI DEBUG] CFG wskazuje definicje, ale nie znaleziono pliku:", definitionRemoteName);
         }
@@ -893,13 +930,13 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
         ["definictions.xml", "definitions.xml"].includes(safeBasename(item.name))
       );
 
-      if (fallbackDefinitionFile) {
+      if (fallbackDefinitionFile && fallbackDefinitionFile.remotePath !== attemptedDefinitionsPath) {
         const definitionLocalPath = path.join(tempDir, fallbackDefinitionFile.remotePath);
         await downloadFile(client, fallbackDefinitionFile.remotePath, definitionLocalPath);
         localFileByBasename.set(safeBasename(fallbackDefinitionFile.name), definitionLocalPath);
 
-        const definitionsXml = await fsp.readFile(definitionLocalPath, "utf8");
-        definitions = parseDefinitionsXml(definitionsXml);
+        const definitionsXml = await readValidXml(definitionLocalPath, fallbackDefinitionFile.name);
+        if (definitionsXml) definitions = parseDefinitionsXml(definitionsXml);
       }
     }
 
@@ -942,7 +979,20 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       const localPath = path.join(tempDir, file.remotePath);
       await downloadFile(client, file.remotePath, localPath);
       localFileByBasename.set(safeBasename(file.name), localPath);
-      offerXmlFiles.push({ localPath, modifiedAtMs: file.modifiedAt?.getTime() ?? 0 });
+      offerXmlFiles.push({ localPath, fileName: file.name, modifiedAtMs: file.modifiedAt?.getTime() ?? 0 });
+    }
+
+    const prefixesOnFtp = [
+      ...new Set(
+        xmlFiles
+          .filter((item) => /_(\d{3}|cfg)\.xml$/i.test(item.name))
+          .map((item) => asariFilePrefix(item.name))
+          .filter((prefix): prefix is string => Boolean(prefix))
+      ),
+    ];
+
+    if (prefixesOnFtp.length > 1) {
+      console.log("[ASARI DEBUG] Kilka strumieni eksportu (oddziałów) w jednym katalogu:", prefixesOnFtp);
     }
 
     for (const file of imageFiles) {
@@ -1017,6 +1067,8 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
       photoFtpClient,
       definitions,
       cfg,
+      prefixesOnFtp,
+      problems: [...new Set(problems)],
       cleanup: async () => {
         feed.photoFtpClient?.close();
         await fsp.rm(tempDir, { recursive: true, force: true });
@@ -1044,18 +1096,36 @@ function parseOfferXmlFile(xml: string, agencyName: string | null, definitions: 
   const doc = parser.parse(xml) as Record<string, unknown>;
   const packageNode = (doc.PACKAGE ?? doc.package ?? doc) as Record<string, unknown>;
 
-  const offers = arrify(packageNode.offer)
-    .map((offerNode) => {
-      if (!offerNode || typeof offerNode !== "object") return null;
-      return parseAsariOffer(offerNode as Record<string, unknown>, agencyName, definitions);
-    })
-    .filter((offer): offer is AsariOffer => Boolean(offer));
+  const offers: AsariOffer[] = [];
+  /** Sygnatury wszystkich ofert pliku, także mieszkań i domów: po nich poznajemy oddział eksportu. */
+  const signatures: string[] = [];
+  /** Działki obecne w pliku, ale odrzucone za niekompletne dane (patrz AsariRejectedOffer). */
+  const invalidLandExternalIds: string[] = [];
+
+  for (const offerNode of arrify(packageNode.offer)) {
+    if (!offerNode || typeof offerNode !== "object") continue;
+
+    const signature = toTextValue((offerNode as Record<string, unknown>).signature);
+    if (signature) signatures.push(signature);
+
+    const parsed = parseAsariOffer(offerNode as Record<string, unknown>, agencyName, definitions);
+    if (!parsed) continue;
+
+    if ("rejected" in parsed) {
+      if (parsed.rejected === "INVALID") invalidLandExternalIds.push(parsed.externalId);
+      continue;
+    }
+
+    offers.push(parsed);
+  }
 
   const deletedExternalIds = parseDeleteSignatures(doc);
 
   return {
     offers,
     deletedExternalIds,
+    signatures,
+    invalidLandExternalIds,
   };
 }
 
@@ -1576,13 +1646,60 @@ async function deactivateExternalId(integrationId: string, externalId: string): 
   return "WYGASZONA";
 }
 
-// Wspólne wygaszanie z hamulcem udziału — szczegóły w deactivate-missing.ts.
-async function deactivateMissingOffers(integrationId: string, seenExternalIds: Set<string>) {
+// Wygaszanie ofert nieobecnych w pełnym eksporcie. Zakres (oddział sieci albo cała integracja)
+// ustala asari-full-export.ts, hamulec udziału siedzi w deactivate-missing.ts.
+async function deactivateMissingOffers(
+  integrationId: string,
+  downloaded: DownloadedAsariFeed,
+  run: {
+    /** Działki obecne w plikach tego przebiegu, także te z chwilowo niekompletnymi danymi. */
+    seenExternalIds: Set<string>;
+    /** Sygnatury wszystkich ofert z plików wskazanych przez manifest pełnego eksportu. */
+    fullExportSignatures: string[];
+    /** Pliki ofert przeczytane bez błędu. */
+    readableOfferFiles: string[];
+    /** Wszystko, czego przebieg nie przeczytał: uszkodzony manifest, definicje, pliki ofert. */
+    feedProblems: string[];
+  }
+) {
+  const cfgName = downloaded.cfg.fileName ?? "(brak manifestu)";
+
+  // Niepełny odczyt = niepełna lista obecnych ofert. Lepiej jeden przebieg z nieaktualną ofertą
+  // niż wygaszenie ofert z pliku, którego nie dało się przeczytać. Kolejny przebieg spróbuje znowu.
+  const scope = run.feedProblems.length > 0
+    ? ({
+        kind: "skip",
+        reason: `Przebieg nie przeczytał wszystkich plików (${run.feedProblems.join("; ")}).`,
+      } as const)
+    : resolveAsariFullExportScope({
+        cfgFileName: cfgName,
+        listedOfferFiles: downloaded.cfg.listedOfferFiles,
+        readableOfferFiles: run.readableOfferFiles,
+        fullExportSignatures: run.fullExportSignatures,
+        prefixesOnFtp: downloaded.prefixesOnFtp,
+      });
+
+  if (scope.kind === "skip") {
+    const message = `Pełny eksport ${cfgName}: nie wygaszam brakujących ofert. ${scope.reason}`;
+    console.warn(`[ASARI] ${message}`);
+    // Ślad w CrmSyncLog, bo tam patrzy panel /admin/crm.
+    await logSync(integrationId, { action: "ERROR", status: "ERROR", message });
+    return 0;
+  }
+
+  console.log(`[ASARI] ${scope.reason}`);
+
   const result = await deactivateOffersMissingFromFullExport({
     integrationId,
-    seenExternalIds,
+    seenExternalIds: run.seenExternalIds,
     message: "Oferta zakończona, ponieważ ASARI wysłało pełne czyszczenie eksportu.",
     sourceLabel: "ASARI",
+    ...(scope.kind === "branch"
+      ? {
+          isInScope: (externalId: string) => isInAsariFullExportScope(externalId, scope),
+          scopeLabel: `oddział ${scope.branch}`,
+        }
+      : {}),
   });
 
   return result.deactivated;
@@ -1651,9 +1768,35 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
     const offerSignals: OfferSignal<AsariOffer>[] = [];
     const deleteSignals: DeleteSignal[] = [];
 
+    // Na potrzeby wygaszania po pełnym eksporcie (patrz deactivateMissingOffers).
+    const brokenOfferFiles: string[] = [];
+    const readableOfferFiles: string[] = [];
+    const fullExportSignatures: string[] = [];
+    const invalidLandExternalIds = new Set<string>();
+    const fullExportFileNames = new Set(downloaded.cfg.listedOfferFiles.map(safeBasename));
+
     for (const offerXmlFile of downloaded.offerXmlFiles) {
       const xml = await fsp.readFile(offerXmlFile.localPath, "utf8");
+
+      // Plik urwany (np. pobrany w trakcie wgrywania) parser przyjąłby po cichu jako krótszy.
+      // Pomijamy go w całości: oferty i sekcja DELETE wejdą w kolejnym przebiegu, gdy będzie kompletny.
+      const integrityProblem = xmlIntegrityProblem(xml);
+      if (integrityProblem) {
+        brokenOfferFiles.push(offerXmlFile.fileName);
+        console.warn(`[ASARI] Pomijam uszkodzony plik ofert ${offerXmlFile.fileName}: ${integrityProblem}`);
+        continue;
+      }
+
+      readableOfferFiles.push(offerXmlFile.fileName);
       const result = parseOfferXmlFile(xml, integration.name, downloaded.definitions);
+
+      if (fullExportFileNames.has(safeBasename(offerXmlFile.fileName))) {
+        fullExportSignatures.push(...result.signatures);
+      }
+
+      for (const externalId of result.invalidLandExternalIds) {
+        invalidLandExternalIds.add(externalId);
+      }
 
       for (const externalId of result.deletedExternalIds) {
         deleteSignals.push({ externalId, fileAt: offerXmlFile.modifiedAtMs });
@@ -1737,7 +1880,15 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
     }
 
     if (integration.fullImportMode && downloaded.cfg.emptyOffers && seenExternalIds.size > 0) {
-      deactivatedCount += await deactivateMissingOffers(integration.id, seenExternalIds);
+      deactivatedCount += await deactivateMissingOffers(integration.id, downloaded, {
+        seenExternalIds: new Set([...seenExternalIds, ...invalidLandExternalIds]),
+        fullExportSignatures,
+        readableOfferFiles,
+        feedProblems: [
+          ...downloaded.problems,
+          ...brokenOfferFiles.map((fileName) => `uszkodzony plik ofert ${fileName}`),
+        ],
+      });
     } else {
       console.log("[ASARI DEBUG] Nie kończę brakujących ofert po samym braku w pliku. Używam DELETE albo empty_offers=1.");
     }

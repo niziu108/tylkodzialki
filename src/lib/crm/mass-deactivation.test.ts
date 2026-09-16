@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MASS_DEACTIVATION_DEFAULTS,
   assessMassDeactivation,
+  collectMissingCandidates,
   readMassDeactivationLimits,
 } from "./mass-deactivation";
 
@@ -40,6 +41,25 @@ describe("assessMassDeactivation", () => {
 
     expect(verdict.allowed).toBe(true);
     expect(verdict.share).toBe(0);
+  });
+});
+
+describe("collectMissingCandidates", () => {
+  const links = ["1/A/OGS", "2/A/OGS", "3/B/OGS", "4/B/OGS"].map((externalId) => ({ externalId }));
+  const seen = new Set(["1/A/OGS", "3/B/OGS"]);
+
+  it("bez zakresu liczy całą integrację, jak przed zmianą", () => {
+    const result = collectMissingCandidates(links, seen);
+
+    expect(result.inScopeCount).toBe(4);
+    expect(result.candidates.map((c) => c.externalId)).toEqual(["2/A/OGS", "4/B/OGS"]);
+  });
+
+  it("z zakresem pomija oferty spoza niego także w mianowniku hamulca", () => {
+    const result = collectMissingCandidates(links, seen, (id) => id.includes("/B/"));
+
+    expect(result.inScopeCount).toBe(2);
+    expect(result.candidates.map((c) => c.externalId)).toEqual(["4/B/OGS"]);
   });
 });
 

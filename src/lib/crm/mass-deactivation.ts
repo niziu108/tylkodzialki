@@ -63,6 +63,31 @@ export function readMassDeactivationLimits(
   };
 }
 
+/**
+ * Kandydaci do wygaszenia z jednej porcji aktywnych linków integracji.
+ *
+ * `isInScope` zawęża pełny eksport do części podaży (oddział sieci ASARI, patrz
+ * asari-full-export.ts). Oferty spoza zakresu nie są kandydatami i nie wchodzą do mianownika
+ * hamulca: eksport mówi tylko za swój zakres, więc udział liczymy względem niego. Bez `isInScope`
+ * zakresem jest cała integracja, czyli zachowanie sprzed zmiany.
+ */
+export function collectMissingCandidates<T extends { externalId: string }>(
+  links: T[],
+  seenExternalIds: ReadonlySet<string>,
+  isInScope?: (externalId: string) => boolean
+): { inScopeCount: number; candidates: T[] } {
+  let inScopeCount = 0;
+  const candidates: T[] = [];
+
+  for (const link of links) {
+    if (isInScope && !isInScope(link.externalId)) continue;
+    inScopeCount += 1;
+    if (!seenExternalIds.has(link.externalId)) candidates.push(link);
+  }
+
+  return { inScopeCount, candidates };
+}
+
 export function assessMassDeactivation(params: {
   activeCount: number;
   candidateCount: number;

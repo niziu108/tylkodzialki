@@ -20,6 +20,7 @@
 import { prisma } from "@/lib/prisma";
 import {
   assessMassDeactivation,
+  collectMissingCandidates,
   readMassDeactivationLimits,
   type MassDeactivationVerdict,
 } from "@/lib/crm/mass-deactivation";
@@ -47,8 +48,16 @@ export async function deactivateOffersMissingFromFullExport(params: {
   message: string;
   /** Etykieta do logów na stdout workera, np. "ASARI". */
   sourceLabel: string;
+  /**
+   * Zawężenie do części podaży integracji, za którą mówi eksport (np. jeden oddział sieci ASARI).
+   * Brak = cała integracja, jak przed zmianą. Hamulec liczy udział względem zakresu.
+   */
+  isInScope?: (externalId: string) => boolean;
+  /** Opis zakresu do logów, np. "oddział 3877". */
+  scopeLabel?: string;
 }): Promise<DeactivateMissingResult> {
-  const { integrationId, seenExternalIds, message, sourceLabel } = params;
+  const { integrationId, seenExternalIds, message, sourceLabel, isInScope, scopeLabel } = params;
+  const scopeSuffix = scopeLabel ? ` (${scopeLabel})` : "";
   const now = new Date();
 
   // 1. Skan aktywnej podaży integracji z kursorem. Bez `notIn`, bez ładowania relacji Dzialka:
@@ -68,10 +77,9 @@ export async function deactivateOffersMissingFromFullExport(params: {
 
     if (page.length === 0) break;
 
-    activeCount += page.length;
-    for (const link of page) {
-      if (!seenExternalIds.has(link.externalId)) candidates.push(link);
-    }
+    const part = collectMissingCandidates(page, seenExternalIds, isInScope);
+    activeCount += part.inScopeCount;
+    candidates.push(...part.candidates);
 
     if (page.length < READ_PAGE_SIZE) break;
     cursor = page[page.length - 1].id;
@@ -85,7 +93,7 @@ export async function deactivateOffersMissingFromFullExport(params: {
   });
 
   if (!verdict.allowed) {
-    console.warn(`[${sourceLabel}] BEZPIECZNIK: ${verdict.reason}`);
+    console.warn(`[${sourceLabel}] BEZPIECZNIK${scopeSuffix}: ${verdict.reason}`);
 
     // Ślad w CrmSyncLog, bo to jedyne miejsce, w które patrzy panel /admin/crm i raport ubytków.
     await prisma.crmSyncLog.create({
@@ -93,7 +101,7 @@ export async function deactivateOffersMissingFromFullExport(params: {
         integrationId,
         action: "ERROR",
         status: "ERROR",
-        message: `Wstrzymano masowe wygaszanie ofert. ${verdict.reason}`,
+        message: `Wstrzymano masowe wygaszanie ofert${scopeSuffix}. ${verdict.reason}`,
       },
     });
 
@@ -144,8 +152,8 @@ export async function deactivateOffersMissingFromFullExport(params: {
   }
 
   console.log(
-    `[${sourceLabel}] Wygaszono ${deactivated} ofert nieobecnych w pełnym eksporcie ` +
-      `(${verdict.share.toFixed(1)}% podaży integracji).`
+    `[${sourceLabel}] Wygaszono ${deactivated} ofert nieobecnych w pełnym eksporcie${scopeSuffix} ` +
+      `(${verdict.share.toFixed(1)}% podaży ${scopeLabel ? "zakresu eksportu" : "integracji"}).`
   );
 
   return { deactivated, blocked: false, verdict };
