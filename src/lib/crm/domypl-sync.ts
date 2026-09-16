@@ -24,7 +24,9 @@ import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
 import { payloadForLog } from "@/lib/crm/log-policy";
 import { mapDojazd } from "@/lib/dojazd";
-import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { uploadBufferToR2 } from "@/lib/r2";
+import { appendPhotoNote, planPhotoRefresh, refreshOfferPhotos, type UploadedPhoto } from "@/lib/crm/photo-refresh";
+import { deleteR2Photos, discardUnsavedPhotos, r2PhotoEffects, swapOfferPhotos } from "@/lib/crm/offer-photos";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
 import {
@@ -117,6 +119,8 @@ type MatchedRemoteFeed = {
 
 type FeedReader = {
   createXmlReadStream: () => Promise<NodeJS.ReadableStream>;
+  /** Czy paczka ma plik zdjęcia. Bez czytania pliku, patrz photo-refresh.ts. */
+  hasPhoto: (fileName: string) => boolean;
   getPhotoBuffer: (fileName: string) => Promise<Buffer | null>;
   close: () => Promise<void>;
 };
@@ -474,21 +478,9 @@ function buildWymiary(params: Record<string, unknown>): string | null {
   return null;
 }
 
-async function removeExistingR2Photos(dzialkaId: string) {
-  const currentPhotos = await prisma.zdjecie.findMany({
-    where: { dzialkaId },
-    select: { publicId: true },
-  });
-
-  for (const photo of currentPhotos) {
-    if (!photo.publicId) continue;
-
-    try {
-      await deleteFromR2(photo.publicId);
-    } catch (error) {
-      console.error("Nie udało się usunąć zdjęcia z R2:", photo.publicId, error);
-    }
-  }
+/** Zdjęcie podane adresem URL pobieramy dopiero przy wgrywaniu (skan 16.09.2026: żaden feed tak nie robi). */
+function isPhotoUrl(fileName: string) {
+  return /^https?:\/\//i.test(fileName);
 }
 
 async function uploadOfferPhotosToR2(
@@ -497,39 +489,45 @@ async function uploadOfferPhotosToR2(
   photoFileNames: string[],
   feedReader: FeedReader
 ) {
-  const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> = [];
+  const uploaded: UploadedPhoto[] = [];
 
-  for (let index = 0; index < photoFileNames.length; index += 1) {
-    const originalName = photoFileNames[index];
-    let fileBuffer = await feedReader.getPhotoBuffer(originalName);
+  try {
+    for (let index = 0; index < photoFileNames.length; index += 1) {
+      const originalName = photoFileNames[index];
+      let fileBuffer = await feedReader.getPhotoBuffer(originalName);
 
-    if (!fileBuffer && /^https?:\/\//i.test(originalName)) {
-      try {
-        const response = await fetch(originalName);
-        if (response.ok) {
-          fileBuffer = Buffer.from(await response.arrayBuffer());
+      if (!fileBuffer && isPhotoUrl(originalName)) {
+        try {
+          const response = await fetch(originalName);
+          if (response.ok) {
+            fileBuffer = Buffer.from(await response.arrayBuffer());
+          }
+        } catch (error) {
+          console.error("[CRM DEBUG] Nie udało się pobrać zdjęcia z URL:", originalName, error);
         }
-      } catch (error) {
-        console.error("[CRM DEBUG] Nie udało się pobrać zdjęcia z URL:", originalName, error);
       }
+
+      if (!fileBuffer) {
+        console.log("[CRM DEBUG] Pominięto zdjęcie, brak pliku/bufora:", originalName);
+        continue;
+      }
+
+      const upload = await uploadBufferToR2({
+        buffer: fileBuffer,
+        originalFileName: `${integrationId}-${externalId}-${safeUploadFileName(originalName)}`,
+        mimeType: getMimeTypeFromFileName(originalName),
+      });
+
+      uploaded.push({
+        url: upload.url,
+        publicId: upload.key,
+        kolejnosc: index,
+      });
     }
-
-    if (!fileBuffer) {
-      console.log("[CRM DEBUG] Pominięto zdjęcie, brak pliku/bufora:", originalName);
-      continue;
-    }
-
-    const upload = await uploadBufferToR2({
-      buffer: fileBuffer,
-      originalFileName: `${integrationId}-${externalId}-${safeUploadFileName(originalName)}`,
-      mimeType: getMimeTypeFromFileName(originalName),
-    });
-
-    uploaded.push({
-      url: upload.url,
-      publicId: upload.key,
-      kolejnosc: index,
-    });
+  } catch (error) {
+    // Wgrane w tym wywołaniu nie mają jeszcze wiersza w bazie, więc nic na portalu ich nie pokazuje.
+    await deleteR2Photos(uploaded.map((photo) => photo.publicId), "[CRM]");
+    throw error;
   }
 
   return uploaded;
@@ -739,6 +737,7 @@ async function openFeedReader(localFilePath: string, remoteFileName: string): Pr
     console.log("[CRM DEBUG] Otwieram XML bez ZIP:", remoteFileName);
     return {
       createXmlReadStream: async () => fs.createReadStream(localFilePath),
+      hasPhoto: () => false,
       getPhotoBuffer: async () => null,
       close: async () => {},
     };
@@ -773,14 +772,17 @@ async function openFeedReader(localFilePath: string, remoteFileName: string): Pr
     files.filter((entry) => entry.type === "File").map((entry) => [safeBasename(entry.path), entry])
   );
 
+  function findPhotoEntry(fileName: string) {
+    const targetName = safeBasename(fileName);
+    return entryMap.get(targetName) || [...entryMap.entries()].find(([key]) => key.endsWith(targetName))?.[1];
+  }
+
   return {
     createXmlReadStream: async () => xmlEntry.stream(),
+    hasPhoto: (fileName: string) => Boolean(findPhotoEntry(fileName)),
     getPhotoBuffer: async (fileName: string) => {
       const targetName = safeBasename(fileName);
-
-      const entry =
-        entryMap.get(targetName) ||
-        [...entryMap.entries()].find(([key]) => key.endsWith(targetName))?.[1];
+      const entry = findPhotoEntry(fileName);
 
       if (!entry) {
         console.log("[CRM DEBUG] Nie znaleziono zdjęcia w ZIP:", {
@@ -1576,72 +1578,79 @@ async function processOffer(
       feedReader
     );
 
-    await prisma.$transaction(async (tx) => {
-      const dzialka = await tx.dzialka.create({
-        data: {
-          ...buildDzialkaDataFromOffer(offerForDb),
-          ownerId: integration.userId,
-          editToken: makeEditToken(),
-          publishedAt: now,
-          expiresAt,
-          endedAt: null,
-          status: "AKTYWNE",
-          zdjecia: {
-            create: uploadedPhotos,
-          },
-        },
-      });
-
-      const link = await tx.crmOfferLink.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          externalId: offer.externalId,
-          externalUpdatedAt: offer.externalUpdatedAt,
-          lastImportedAt: now,
-          lastSeenAt: now,
-          lastPublishedAt: now,
-          isActiveInSource: true,
-        },
-      });
-
-      if (paymentsEnabled) {
-        const updatedUser = await tx.user.update({
-          where: { id: integration.userId },
+    try {
+      await prisma.$transaction(async (tx) => {
+        const dzialka = await tx.dzialka.create({
           data: {
-            listingCredits: {
-              decrement: 1,
+            ...buildDzialkaDataFromOffer(offerForDb),
+            ownerId: integration.userId,
+            editToken: makeEditToken(),
+            publishedAt: now,
+            expiresAt,
+            endedAt: null,
+            status: "AKTYWNE",
+            zdjecia: {
+              create: uploadedPhotos,
             },
           },
-          select: {
-            listingCredits: true,
-          },
         });
 
-        await tx.listingCreditTransaction.create({
+        const link = await tx.crmOfferLink.create({
           data: {
-            userId: integration.userId,
-            delta: -1,
-            balanceAfter: updatedUser.listingCredits,
-            sourceType: "CRM_PUBLICATION",
-            note: `CRM publikacja oferty ${offer.externalId}`,
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            externalId: offer.externalId,
+            externalUpdatedAt: offer.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: now,
+            isActiveInSource: true,
           },
         });
-      }
 
-      await tx.crmSyncLog.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          offerLinkId: link.id,
-          externalId: offer.externalId,
-          action: "CREATE",
-          status: "SUCCESS",
-          message: "Oferta utworzona poprawnie z importu FTP/XML.",
-          payload: offer.payload,
-        },
+        if (paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: {
+              listingCredits: {
+                decrement: 1,
+              },
+            },
+            select: {
+              listingCredits: true,
+            },
+          });
+
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `CRM publikacja oferty ${offer.externalId}`,
+            },
+          });
+        }
+
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: link.id,
+            externalId: offer.externalId,
+            action: "CREATE",
+            status: "SUCCESS",
+            message: "Oferta utworzona poprawnie z importu FTP/XML.",
+            payload: offer.payload,
+          },
+        });
       });
-    });
+    } catch (error) {
+      // Oferta nie powstała, więc do wgranych zdjęć nie prowadzi żaden wiersz. Bez sprzątania każdy
+      // kolejny nieudany przebieg dokładałby do R2 komplet tych samych plików.
+      await discardUnsavedPhotos(uploadedPhotos, "[CRM]");
+      throw error;
+    }
 
     return "CREATE";
   }
@@ -1679,118 +1688,104 @@ async function processOffer(
     }
   }
 
-  // Optymalizacja: pomiń re-upload zdjęć, gdy oferta się nie zmieniła (patrz asari-sync).
-  // DOMY.PL czyta zdjęcia z lokalnego ZIP (tanio), ale i tak re-uploadował do R2 co sync.
-  // Sygnał = externalUpdatedAt: przychodzące nie nowsze niż zapisane + zgodna liczba zdjęć
-  // w bazie ⇒ zostaw zdjęcia w R2. Zachowawczo: null-e i reaktywacja ⇒ pełny re-upload.
-  const storedUpdatedAt = existingLink.externalUpdatedAt;
-  const incomingUpdatedAt = offer.externalUpdatedAt;
-  const photosUnchanged =
-    !wasEnded &&
-    storedUpdatedAt != null &&
-    incomingUpdatedAt != null &&
-    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
-    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) === offer.photoFileNames.length;
+  // Zdjęcia: czy wymieniać galerię, rozstrzyga photo-refresh.ts (strażnik re-uploadu, brakujące
+  // pliki w ZIP-ie). refreshOfferPhotos pilnuje kolejności: wgranie nowych, ta transakcja, dopiero
+  // po commicie kasowanie starych obiektów R2.
+  const photoPlan = planPhotoRefresh({
+    wasEnded,
+    storedUpdatedAt: existingLink.externalUpdatedAt,
+    incomingUpdatedAt: offer.externalUpdatedAt,
+    existingPhotoCount: await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } }),
+    feedPhotoNames: offer.photoFileNames,
+    isAvailable: (photoName) => feedReader.hasPhoto(photoName) || isPhotoUrl(photoName),
+  });
 
-  const uploadedPhotos =
-    !photosUnchanged && offer.photoFileNames.length > 0
-      ? await uploadOfferPhotosToR2(
-          integration.id,
-          offer.externalId,
-          offer.photoFileNames,
-          feedReader
-        )
-      : [];
-
-  const shouldReplacePhotos = uploadedPhotos.length > 0;
-
-  if (shouldReplacePhotos) {
-    await removeExistingR2Photos(existingLink.dzialkaId);
-  }
-
-  await prisma.$transaction(async (tx) => {
-    if (shouldReplacePhotos) {
-      await tx.zdjecie.deleteMany({
-        where: { dzialkaId: existingLink.dzialkaId },
-      });
-    }
-
-    const dzialka = await tx.dzialka.update({
-      where: { id: existingLink.dzialkaId },
-      data: {
-        ...buildDzialkaDataFromOffer(offerForDb),
-        ...(wasEnded
-          ? {
-              publishedAt: now,
-              expiresAt,
-              endedAt: null,
-              status: "AKTYWNE" as const,
-            }
-          : {}),
-        ...(shouldReplacePhotos
-          ? {
-              zdjecia: {
-                create: uploadedPhotos,
-              },
-            }
-          : {}),
-      },
-    });
-
-    await tx.crmOfferLink.update({
-      where: { id: existingLink.id },
-      data: {
-        // Przy podbitej wersji przepinamy link na nowe id. Dzięki temu następny zrzut trafia
-        // już dokładnym dopasowaniem, a wygaszanie po `seenExternalIds` dalej się zgadza z feedem.
-        ...(matchedByVersionBump ? { externalId: offer.externalId } : {}),
-        externalUpdatedAt: offer.externalUpdatedAt,
-        lastImportedAt: now,
-        lastSeenAt: now,
-        lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
-        isActiveInSource: true,
-      },
-    });
-
-    if (wasEnded && paymentsEnabled) {
-      const updatedUser = await tx.user.update({
-        where: { id: integration.userId },
-        data: {
-          listingCredits: {
-            decrement: 1,
+  await refreshOfferPhotos({
+    plan: photoPlan,
+    label: `[CRM] Oferta ${offer.externalId}`,
+    upload: () => uploadOfferPhotosToR2(integration.id, offer.externalId, offer.photoFileNames, feedReader),
+    effects: r2PhotoEffects("[CRM]"),
+    save: (photos) =>
+      prisma.$transaction(async (tx) => {
+        // Wiersz działki pierwszy: jego blokada szereguje równoległe przebiegi (swapOfferPhotos).
+        const dzialka = await tx.dzialka.update({
+          where: { id: existingLink.dzialkaId },
+          data: {
+            ...buildDzialkaDataFromOffer(offerForDb),
+            ...(wasEnded
+              ? {
+                  publishedAt: now,
+                  expiresAt,
+                  endedAt: null,
+                  status: "AKTYWNE" as const,
+                }
+              : {}),
           },
-        },
-        select: {
-          listingCredits: true,
-        },
-      });
+        });
 
-      await tx.listingCreditTransaction.create({
-        data: {
-          userId: integration.userId,
-          delta: -1,
-          balanceAfter: updatedUser.listingCredits,
-          sourceType: "CRM_PUBLICATION",
-          note: `CRM reaktywacja oferty ${offer.externalId}`,
-        },
-      });
-    }
+        const replacedPhotoKeys = photos.replace ? await swapOfferPhotos(tx, dzialka.id, photos.photos) : [];
 
-    await tx.crmSyncLog.create({
-      data: {
-        integrationId: integration.id,
-        dzialkaId: dzialka.id,
-        offerLinkId: existingLink.id,
-        externalId: offer.externalId,
-        action: wasEnded ? "REACTIVATE" : "UPDATE",
-        status: "SUCCESS",
-        message: matchedByVersionBump
-          ? `Rozpoznano podbitą wersję oferty (${existingLink.externalId} → ${offer.externalId}), zaktualizowano zamiast tworzyć duplikat.`
-          : wasEnded
-            ? "Oferta reaktywowana poprawnie z importu FTP/XML."
-            : "Oferta zaktualizowana poprawnie z importu FTP/XML.",
-        payload: offer.payload,
-      },
-    });
+        await tx.crmOfferLink.update({
+          where: { id: existingLink.id },
+          data: {
+            // Przy podbitej wersji przepinamy link na nowe id. Dzięki temu następny zrzut trafia
+            // już dokładnym dopasowaniem, a wygaszanie po `seenExternalIds` dalej się zgadza z feedem.
+            ...(matchedByVersionBump ? { externalId: offer.externalId } : {}),
+            // Data wersji tylko przy galerii zgodnej z feedem, inaczej strażnik zamroziłby starą galerię.
+            externalUpdatedAt: photos.syncedWithFeed ? offer.externalUpdatedAt : existingLink.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
+            isActiveInSource: true,
+          },
+        });
+
+        if (wasEnded && paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: {
+              listingCredits: {
+                decrement: 1,
+              },
+            },
+            select: {
+              listingCredits: true,
+            },
+          });
+
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `CRM reaktywacja oferty ${offer.externalId}`,
+            },
+          });
+        }
+
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: existingLink.id,
+            externalId: offer.externalId,
+            action: wasEnded ? "REACTIVATE" : "UPDATE",
+            status: "SUCCESS",
+            message: appendPhotoNote(
+              matchedByVersionBump
+                ? `Rozpoznano podbitą wersję oferty (${existingLink.externalId} → ${offer.externalId}), zaktualizowano zamiast tworzyć duplikat.`
+                : wasEnded
+                  ? "Oferta reaktywowana poprawnie z importu FTP/XML."
+                  : "Oferta zaktualizowana poprawnie z importu FTP/XML.",
+              photos.note
+            ),
+            payload: offer.payload,
+          },
+        });
+
+        return replacedPhotoKeys;
+      }),
   });
 
   return wasEnded ? "REACTIVATE" : "UPDATE";

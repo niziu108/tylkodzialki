@@ -464,6 +464,17 @@ Zgłoszone podczas Sprintu 1. Nie naprawiamy ich teraz, czekają na decyzję o p
 - **Kolejność operacyjna:** backfill MUSI pójść przed włączeniem `CRM_FEED_PRUNE_WITHOUT_FULL=1` — sprzątanie drop-zone kasuje paczki, z których wyciągamy zaległe usunięcia.
 - **Dokumentacja:** [docs/CRM_WYGASZANIE_OFERT.md](docs/CRM_WYGASZANIE_OFERT.md).
 
+### P-O: Zdjęcia ofert kasowane przed zapisem, galeria wymieniana na uboższą [NAPRAWIONE 2026-09-16, czeka na VPS]
+- **Gdzie:** `processOffer` we wszystkich czterech silnikach. Reguły i kolejność zapisu: `src/lib/crm/photo-refresh.ts` (testy `photo-refresh.test.ts`), efekty w bazie i R2: `src/lib/crm/offer-photos.ts`.
+- **Co:** aktualizacja kasowała obiekty R2 przed wgraniem nowych zdjęć i przed transakcją. Wyjątek po drodze (FTP, R2, baza, restart workera) zostawiał wiersze `Zdjecie` bez plików, a ręczny `npm run crm:sync -- JOB_ID` obok pętli workera mógł skasować świeże zdjęcia drugiego przebiegu. Plik wskazany w feedzie, a nieobecny na FTP lub w ZIP-ie, był pomijany po cichu, więc galeria zmieniała się na uboższą albo pustą (ASARI, EstiCRM i LocumNet czyściły ją też przy pustej liście zdjęć w feedzie).
+- **Stan produkcji przed naprawą (16.09):** 1 martwy wiersz na 94 772 zdjęcia, 1 860 obiektów R2 bez wiersza (404 MB, głównie LocumNet z lipca). 121 aktywnych ofert CRM bez zdjęć: 61 ma feed bez zdjęć, 11 (Galactica) ma w feedzie nazwy plików, których nie ma w paczce, 49 bez payloadu w logach. Żadna nie straciła galerii przy aktualizacji: DOMY.PL nie czyścił galerii do zera, a 3 oferty ASARI mają pusty feed od utworzenia. Naprawa jest więc zapobiegawcza.
+- **Naprawa:**
+  1. Kolejność: wgranie nowych, transakcja podmienia wiersze (najpierw `dzialka.update`, którego blokada szereguje równoległe przebiegi), dopiero po commicie kasowanie starych obiektów. Błąd kasowania to wyciek pliku w R2 i ostrzeżenie, nigdy martwe zdjęcie. Po nieudanej transakcji kasujemy tylko wgrane pliki, do których nie prowadzi żaden wiersz.
+  2. Brakujące pliki: galerię wymieniamy na komplet z feedu albo na niepełny zestaw większy od obecnej. Oferta bez zdjęć dostaje to, co jest; oferta ze zdjęciami zostaje przy starej galerii z ostrzeżeniem w logu (stdout workera i komunikat wpisu UPDATE). Pusta lista zdjęć w feedzie nie kasuje galerii.
+  3. Bez pętli: decyzja zapada przed wgraniem, na liście plików z FTP albo ZIP-a, więc trwale brakujący plik nie powoduje wgrywania w każdym przebiegu. `CrmOfferLink.externalUpdatedAt` (czyta go tylko strażnik zdjęć) zapisujemy wyłącznie przy galerii zgodnej z feedem, żeby zostawiona galeria wymieniła się, gdy brakujący plik dotrze.
+- **Weryfikacja:** `npm test` (24 przypadki w `photo-refresh.test.ts`, w tym model w pamięci pokazujący martwe zdjęcia przy starej kolejności), `tsc --noEmit` czysty.
+- **Wdrożenie:** działa dopiero po aktualizacji **workera na VPS** (`crm-worker`), bez zmian w schemacie bazy.
+
 ---
 
 ## CEL KOŃCOWY

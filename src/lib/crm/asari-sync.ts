@@ -17,7 +17,9 @@ import {
 import { prisma } from "@/lib/prisma";
 import { payloadForLog } from "@/lib/crm/log-policy";
 import { mapDojazd } from "@/lib/dojazd";
-import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { uploadBufferToR2 } from "@/lib/r2";
+import { appendPhotoNote, planPhotoRefresh, refreshOfferPhotos, type UploadedPhoto } from "@/lib/crm/photo-refresh";
+import { deleteR2Photos, discardUnsavedPhotos, r2PhotoEffects, swapOfferPhotos } from "@/lib/crm/offer-photos";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords, coordsMatchLocationText } from "@/lib/geo";
 import { beginGeocodeRun, geocodeAddressInPoland } from "@/lib/crm/geocode";
@@ -1138,21 +1140,10 @@ function parseOfferXmlFile(xml: string, agencyName: string | null, definitions: 
   };
 }
 
-async function removeExistingR2Photos(dzialkaId: string) {
-  const currentPhotos = await prisma.zdjecie.findMany({
-    where: { dzialkaId },
-    select: { publicId: true },
-  });
-
-  for (const photo of currentPhotos) {
-    if (!photo.publicId) continue;
-
-    try {
-      await deleteFromR2(photo.publicId);
-    } catch (error) {
-      console.error("[ASARI DEBUG] Nie udało się usunąć zdjęcia z R2:", photo.publicId, error);
-    }
-  }
+/** Czy plik zdjęcia leży na FTP (albo już go pobraliśmy). Bez pobierania, patrz photo-refresh.ts. */
+function hasAsariPhoto(downloaded: DownloadedAsariFeed, originalName: string) {
+  const basename = safeBasename(originalName);
+  return downloaded.downloadedPhotoByBasename.has(basename) || downloaded.imageRemotePathByBasename.has(basename);
 }
 
 async function getAsariPhotoLocalPath(
@@ -1212,30 +1203,36 @@ async function uploadOfferPhotosToR2(
   externalId: string,
   photoFileNames: string[]
 ) {
-  const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> = [];
+  const uploaded: UploadedPhoto[] = [];
 
-  for (let index = 0; index < photoFileNames.length; index += 1) {
-    const originalName = photoFileNames[index];
+  try {
+    for (let index = 0; index < photoFileNames.length; index += 1) {
+      const originalName = photoFileNames[index];
 
-    const localPath = await getAsariPhotoLocalPath(integration, downloaded, originalName);
+      const localPath = await getAsariPhotoLocalPath(integration, downloaded, originalName);
 
-    if (!localPath) {
-      continue;
+      if (!localPath) {
+        continue;
+      }
+
+      const buffer = await fsp.readFile(localPath);
+
+      const upload = await uploadBufferToR2({
+        buffer,
+        originalFileName: `${integration.id}-${externalId}-${originalName}`,
+        mimeType: getMimeTypeFromFileName(originalName),
+      });
+
+      uploaded.push({
+        url: upload.url,
+        publicId: upload.key,
+        kolejnosc: index,
+      });
     }
-
-    const buffer = await fsp.readFile(localPath);
-
-    const upload = await uploadBufferToR2({
-      buffer,
-      originalFileName: `${integration.id}-${externalId}-${originalName}`,
-      mimeType: getMimeTypeFromFileName(originalName),
-    });
-
-    uploaded.push({
-      url: upload.url,
-      publicId: upload.key,
-      kolejnosc: index,
-    });
+  } catch (error) {
+    // Wgrane w tym wywołaniu nie mają jeszcze wiersza w bazie, więc nic na portalu ich nie pokazuje.
+    await deleteR2Photos(uploaded.map((photo) => photo.publicId), "[ASARI]");
+    throw error;
   }
 
   return uploaded;
@@ -1376,72 +1373,79 @@ async function processOffer(
       offer.photoFileNames
     );
 
-    await prisma.$transaction(async (tx) => {
-      const dzialka = await tx.dzialka.create({
-        data: {
-          ...buildDzialkaDataFromOffer(offer),
-          ownerId: integration.userId,
-          editToken: makeEditToken(),
-          publishedAt: now,
-          expiresAt,
-          endedAt: null,
-          status: "AKTYWNE",
-          zdjecia: {
-            create: uploadedPhotos,
-          },
-        },
-      });
-
-      const link = await tx.crmOfferLink.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          externalId: offer.externalId,
-          externalUpdatedAt: offer.externalUpdatedAt,
-          lastImportedAt: now,
-          lastSeenAt: now,
-          lastPublishedAt: now,
-          isActiveInSource: true,
-        },
-      });
-
-      if (paymentsEnabled) {
-        const updatedUser = await tx.user.update({
-          where: { id: integration.userId },
+    try {
+      await prisma.$transaction(async (tx) => {
+        const dzialka = await tx.dzialka.create({
           data: {
-            listingCredits: {
-              decrement: 1,
+            ...buildDzialkaDataFromOffer(offer),
+            ownerId: integration.userId,
+            editToken: makeEditToken(),
+            publishedAt: now,
+            expiresAt,
+            endedAt: null,
+            status: "AKTYWNE",
+            zdjecia: {
+              create: uploadedPhotos,
             },
           },
-          select: {
-            listingCredits: true,
-          },
         });
 
-        await tx.listingCreditTransaction.create({
+        const link = await tx.crmOfferLink.create({
           data: {
-            userId: integration.userId,
-            delta: -1,
-            balanceAfter: updatedUser.listingCredits,
-            sourceType: "CRM_PUBLICATION",
-            note: `ASARI publikacja oferty ${offer.externalId}`,
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            externalId: offer.externalId,
+            externalUpdatedAt: offer.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: now,
+            isActiveInSource: true,
           },
         });
-      }
 
-      await tx.crmSyncLog.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          offerLinkId: link.id,
-          externalId: offer.externalId,
-          action: "CREATE",
-          status: "SUCCESS",
-          message: "Oferta utworzona poprawnie z importu ASARI.",
-          payload: offer.payload,
-        },
+        if (paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: {
+              listingCredits: {
+                decrement: 1,
+              },
+            },
+            select: {
+              listingCredits: true,
+            },
+          });
+
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `ASARI publikacja oferty ${offer.externalId}`,
+            },
+          });
+        }
+
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: link.id,
+            externalId: offer.externalId,
+            action: "CREATE",
+            status: "SUCCESS",
+            message: "Oferta utworzona poprawnie z importu ASARI.",
+            payload: offer.payload,
+          },
+        });
       });
-    });
+    } catch (error) {
+      // Oferta nie powstała, więc do wgranych zdjęć nie prowadzi żaden wiersz. Bez sprzątania każdy
+      // kolejny nieudany przebieg dokładałby do R2 komplet tych samych plików.
+      await discardUnsavedPhotos(uploadedPhotos, "[ASARI]");
+      throw error;
+    }
 
     return "CREATE";
   }
@@ -1471,116 +1475,99 @@ async function processOffer(
     }
   }
 
-  // Optymalizacja: pomiń kosztowny re-upload zdjęć, gdy oferta się nie zmieniła.
-  // ASARI ściąga każde zdjęcie osobnym GET-em z FTP, więc bezwarunkowy re-upload
-  // przy każdym syncu topił kolejkę workera. Sygnał zmiany = externalUpdatedAt:
-  // gdy przychodzące nie jest nowsze niż zapisane ORAZ liczba zdjęć w bazie zgadza
-  // się z feedem, zostawiamy istniejące zdjęcia w R2 nietknięte. Zachowawczo: gdy
-  // którakolwiek data jest nieznana (null) lub oferta wraca z ZAKONCZONE
-  // (reaktywacja) — pełny re-upload jak dotąd, by nie zgubić realnej zmiany.
-  const storedUpdatedAt = existingLink.externalUpdatedAt;
-  const incomingUpdatedAt = offer.externalUpdatedAt;
-  const photosUnchanged =
-    !wasEnded &&
-    storedUpdatedAt != null &&
-    incomingUpdatedAt != null &&
-    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
-    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) ===
-      offer.photoFileNames.length;
+  // Zdjęcia: czy wymieniać galerię, rozstrzyga photo-refresh.ts (strażnik re-uploadu, bo ASARI
+  // ściąga każde zdjęcie osobnym GET-em z FTP, i brakujące pliki). refreshOfferPhotos pilnuje
+  // kolejności: wgranie nowych, ta transakcja, dopiero po commicie kasowanie starych obiektów R2.
+  const photoPlan = planPhotoRefresh({
+    wasEnded,
+    storedUpdatedAt: existingLink.externalUpdatedAt,
+    incomingUpdatedAt: offer.externalUpdatedAt,
+    existingPhotoCount: await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } }),
+    feedPhotoNames: offer.photoFileNames,
+    isAvailable: (photoName) => hasAsariPhoto(downloaded, photoName),
+  });
 
-  if (!photosUnchanged) {
-    await removeExistingR2Photos(existingLink.dzialkaId);
-  }
-
-  const uploadedPhotos = photosUnchanged
-    ? []
-    : await uploadOfferPhotosToR2(
-        integration,
-        downloaded,
-        offer.externalId,
-        offer.photoFileNames
-      );
-
-  await prisma.$transaction(async (tx) => {
-    if (!photosUnchanged) {
-      await tx.zdjecie.deleteMany({
-        where: { dzialkaId: existingLink.dzialkaId },
-      });
-    }
-
-    const dzialka = await tx.dzialka.update({
-      where: { id: existingLink.dzialkaId },
-      data: {
-        ...buildDzialkaDataFromOffer(offer),
-        ...(wasEnded
-          ? {
-              publishedAt: now,
-              expiresAt,
-              endedAt: null,
-              status: "AKTYWNE" as const,
-            }
-          : {}),
-        ...(photosUnchanged
-          ? {}
-          : {
-              zdjecia: {
-                create: uploadedPhotos,
-              },
-            }),
-      },
-    });
-
-    await tx.crmOfferLink.update({
-      where: { id: existingLink.id },
-      data: {
-        externalUpdatedAt: offer.externalUpdatedAt,
-        lastImportedAt: now,
-        lastSeenAt: now,
-        lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
-        isActiveInSource: true,
-      },
-    });
-
-    if (wasEnded && paymentsEnabled) {
-      const updatedUser = await tx.user.update({
-        where: { id: integration.userId },
-        data: {
-          listingCredits: {
-            decrement: 1,
+  await refreshOfferPhotos({
+    plan: photoPlan,
+    label: `[ASARI] Oferta ${offer.externalId}`,
+    upload: () => uploadOfferPhotosToR2(integration, downloaded, offer.externalId, offer.photoFileNames),
+    effects: r2PhotoEffects("[ASARI]"),
+    save: (photos) =>
+      prisma.$transaction(async (tx) => {
+        // Wiersz działki pierwszy: jego blokada szereguje równoległe przebiegi (swapOfferPhotos).
+        const dzialka = await tx.dzialka.update({
+          where: { id: existingLink.dzialkaId },
+          data: {
+            ...buildDzialkaDataFromOffer(offer),
+            ...(wasEnded
+              ? {
+                  publishedAt: now,
+                  expiresAt,
+                  endedAt: null,
+                  status: "AKTYWNE" as const,
+                }
+              : {}),
           },
-        },
-        select: {
-          listingCredits: true,
-        },
-      });
+        });
 
-      await tx.listingCreditTransaction.create({
-        data: {
-          userId: integration.userId,
-          delta: -1,
-          balanceAfter: updatedUser.listingCredits,
-          sourceType: "CRM_PUBLICATION",
-          note: `ASARI reaktywacja oferty ${offer.externalId}`,
-        },
-      });
-    }
+        const replacedPhotoKeys = photos.replace ? await swapOfferPhotos(tx, dzialka.id, photos.photos) : [];
 
-    await tx.crmSyncLog.create({
-      data: {
-        integrationId: integration.id,
-        dzialkaId: dzialka.id,
-        offerLinkId: existingLink.id,
-        externalId: offer.externalId,
-        action: wasEnded ? "REACTIVATE" : "UPDATE",
-        status: "SUCCESS",
-        message: wasEnded
-          ? "Oferta reaktywowana poprawnie z importu ASARI."
-          : photosUnchanged
-            ? "Oferta zaktualizowana z importu ASARI (zdjęcia bez zmian — pominięto re-upload)."
-            : "Oferta zaktualizowana poprawnie z importu ASARI.",
-        payload: offer.payload,
-      },
-    });
+        await tx.crmOfferLink.update({
+          where: { id: existingLink.id },
+          data: {
+            // Data wersji tylko przy galerii zgodnej z feedem, inaczej strażnik zamroziłby starą galerię.
+            externalUpdatedAt: photos.syncedWithFeed ? offer.externalUpdatedAt : existingLink.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
+            isActiveInSource: true,
+          },
+        });
+
+        if (wasEnded && paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: {
+              listingCredits: {
+                decrement: 1,
+              },
+            },
+            select: {
+              listingCredits: true,
+            },
+          });
+
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `ASARI reaktywacja oferty ${offer.externalId}`,
+            },
+          });
+        }
+
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: existingLink.id,
+            externalId: offer.externalId,
+            action: wasEnded ? "REACTIVATE" : "UPDATE",
+            status: "SUCCESS",
+            message: appendPhotoNote(
+              wasEnded
+                ? "Oferta reaktywowana poprawnie z importu ASARI."
+                : "Oferta zaktualizowana poprawnie z importu ASARI.",
+              photos.note
+            ),
+            payload: offer.payload,
+          },
+        });
+
+        return replacedPhotoKeys;
+      }),
   });
 
   return wasEnded ? "REACTIVATE" : "UPDATE";
@@ -1770,7 +1757,7 @@ export async function syncAsariIntegrationNow(integrationId: string): Promise<Sy
     // ta sama oferta pojawia się w wielu plikach (każdy z nowszą datą modyfikacji). Zamiast
     // przetwarzać ją raz na plik (co przy każdym wystąpieniu re-uploadowało zdjęcia, bo data
     // rosła), scalamy wszystkie pliki do NAJNOWSZEJ wersji per externalId i przetwarzamy raz.
-    // Dzięki temu guard photosUnchanged porównuje przebieg-do-przebiegu, a nie plik-do-pliku.
+    // Dzięki temu strażnik zdjęć (photo-refresh.ts) porównuje przebieg-do-przebiegu, a nie plik-do-pliku.
     //
     // Sekcję DELETE zbieramy razem z datą pliku i rozstrzygamy chronologicznie: DELETE ze
     // starej paczki nie może ubić oferty, którą biuro wystawiło ponownie w nowszej.
