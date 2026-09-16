@@ -330,9 +330,13 @@ export async function togglePaymentsAction() {
     });
 
     if (nextPaymentsEnabled) {
+      // Bez ofert z CRM. Ich życie wyznacza eksport biura, a silniki importu nie odnawiają
+      // expiresAt przy aktualizacji, więc termin nadany tutaj po 30 dniach ukryłby całą podaż
+      // z importu (listy, mapa, sitemapa, alerty filtrują po expiresAt), przy statusie AKTYWNE.
       await tx.dzialka.updateMany({
         where: {
           ownerId: { not: null },
+          sourceType: { not: "CRM" },
           status: "AKTYWNE",
           endedAt: null,
           expiresAt: null,
