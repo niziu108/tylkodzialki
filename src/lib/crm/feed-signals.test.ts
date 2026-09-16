@@ -136,6 +136,14 @@ describe("isStaleOfferVersion: starsza wersja nie nadpisuje nowszej", () => {
     expect(isStaleOfferVersion(d("2026-09-15T10:00:00Z"), d("2026-09-12T10:00:00Z"), now)).toBe(false);
   });
 
+  it("remis przepuszcza reaktywację: zgaszona oferta wraca z niezmienioną datą modyfikacji", () => {
+    // Oferta zgaszona brakiem w pełnym eksporcie, hamulcem albo ręcznie wraca w kolejnej paczce, a biuro
+    // jej nie ruszało. Wygaszanie nie zmienia externalUpdatedAt, więc przy `<=` zostałaby ZAKONCZONE na
+    // zawsze, bo data już nigdy nie wzrośnie.
+    const dataModyfikacji = d("2026-08-20T09:15:00Z");
+    expect(isStaleOfferVersion(new Date(dataModyfikacji), dataModyfikacji, now)).toBe(false);
+  });
+
   it("Galactica podaje samą datę: dwie zmiany jednego dnia nie blokują się nawzajem", () => {
     expect(isStaleOfferVersion(d("2026-09-16"), d("2026-09-16"), now)).toBe(false);
   });
