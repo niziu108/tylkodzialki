@@ -8,12 +8,31 @@
 // Dokument planu: link WWW z krajowej usługi jest u GUGiK za autoryzacją (401), a większość gmin
 // podaje tylko nazwę pliku bez adresu. Linkujemy wyłącznie PDF uchwały, który gmina podaje pełnym
 // publicznym adresem (np. hosting GISON: rastry.gison.pl), patrz `resolutionUrl`.
+//
+// Gminy na hostingu GISON (lib/mpzpGisonGminy.ts) pytamy najpierw wprost, z pominięciem krajowej
+// integracji, bo ta wisi na nich falami. Szczegóły i pomiar przy `getMpzpAtPoint`.
+
+import { GISON_GMINY } from './mpzpGisonGminy';
 
 export const MPZP_WMS =
   'https://mapy.geoportal.gov.pl/wss/ext/KrajowaIntegracjaMiejscowychPlanowZagospodarowaniaPrzestrzennego';
 
 // Warstwa rastrowa planów do nakładki na mapie (publiczna, GetMap 200).
 export const MPZP_LAYER = 'plany';
+
+// Serwer planów gminy na hostingu GISON, ten sam, który krajowa integracja odpytuje dla tych gmin
+// (adres z rejestru usług GUGiK). `maska` to obrys gminy: bez niej pusta odpowiedź nie odróżnia
+// „w gminie nie ma tu planu" od „ten profil nie obejmuje punktu". Zasięg planu z nazwą, uchwałą i PDF
+// to warstwa APP (te same pola, co GML z krajowej integracji). Przeznaczenia terenu (symbolu, opisu)
+// GISON nie wystawia w żadnej z ~600 gmin.
+const GISON_WMS = 'https://rastry.gison.pl/wms/';
+const GISON_WARSTWY = 'maska,app.AktPlanowaniaPrzestrzennego.MPZP';
+// Warstwa GISON z rastrami arkuszy rysunków planów. Mimo tytułu „Zasięgi obowiązujących miejscowych
+// planów" odpowiada w całym prostokącie arkusza, także poza granicą planu. Pomiar 2026-09-16 (107
+// losowych punktów w 107 gminach GISON): 33 trafienia samego arkusza, bez zasięgu APP, i w żadnym z
+// nich nie było w punkcie rysunku planu; 286 losowych punktów wewnątrz rysunków w 96 gminach miało
+// zasięg APP (jeden 10 m za krawędzią). Sam arkusz nie znaczy więc, że plan obejmuje punkt.
+const GISON_ARKUSZE = 'mpzp';
 
 export type MpzpInfo = {
   planName: string | null; // nazwa planu (NAZWA_PLAN / tytul / nazwa / nazwapelnaplanu / nazwa mpzp)
@@ -36,7 +55,9 @@ export type MpzpInfo = {
 // albo „nie wiemy", żeby raporty zapisane starszym odczytem (DzialkaRaport) sprawdzić od nowa.
 // 2 (2026-09-15): obiekty bez atrybutów (gminy GISON), format „@warstwa pola; wartości;" (Kraków,
 // Poznań), wyjątek serwera gminy i sam rysunek planu przestały dawać „brak planu".
-export const MPZP_WERSJA = 2;
+// 3 (2026-09-16): sam arkusz rysunku GISON (GISON_ARKUSZE, bez zasięgu APP) przestał być „planem bez
+// szczegółów". To „brak planu", gdy serwer GISON pytany wprost widzi obrys gminy, albo „nie wiemy".
+export const MPZP_WERSJA = 3;
 
 // KIMPZP to federacja usług gminnych: ta sama warstwa „plany" zwraca RÓŻNE formaty zależnie od
 // gminy. Rozumiemy: <ROW> (XML), „klucz = wartość" (INSPIRE app.AktPlanowaniaPrzestrzennego i
@@ -129,25 +150,29 @@ function collectGmlValues(xml: string): Record<string, string> {
 }
 
 const OBIEKT_RE = /^[ \t]*Feature[ \t]+\d+:?[ \t]*$/;
-const WARSTWA_RE = /^[ \t]*Layer[ \t]+'/;
+const WARSTWA_RE = /^[ \t]*Layer[ \t]+'([^']*)'/;
 const ATRYBUT_RE = /^[ \t]*[A-Za-z_][\w.]*[ \t]*=/;
 
-// Czy w text/plain jest trafiony obiekt bez żadnego atrybutu („Layer 'mpzp' / Feature 0:"). QGIS
-// też pisze „Feature 1450", ale z atrybutami pod spodem, i to zostaje zwykłym odczytem.
-function maObiektBezAtrybutow(text: string): boolean {
+// Warstwy, w których text/plain trafił obiekt bez żadnego atrybutu („Layer 'mpzp' / Feature 0:").
+// QGIS też pisze „Feature 1450", ale z atrybutami pod spodem, i to zostaje zwykłym odczytem.
+function warstwyObiektowBezAtrybutow(text: string): Set<string> {
+  const warstwy = new Set<string>();
+  let warstwa = '';
   let wObiekcie = false;
   let atrybuty = 0;
-  for (const linia of text.split(/\r?\n/)) {
+  for (const linia of [...text.split(/\r?\n/), "Layer ''"]) {
     const obiekt = OBIEKT_RE.test(linia);
-    if (obiekt || WARSTWA_RE.test(linia)) {
-      if (wObiekcie && atrybuty === 0) return true;
+    const nowaWarstwa = linia.match(WARSTWA_RE);
+    if (obiekt || nowaWarstwa) {
+      if (wObiekcie && atrybuty === 0) warstwy.add(warstwa);
+      if (nowaWarstwa) warstwa = nowaWarstwa[1];
       wObiekcie = obiekt;
       atrybuty = 0;
     } else if (wObiekcie && ATRYBUT_RE.test(linia)) {
       atrybuty++;
     }
   }
-  return wObiekcie && atrybuty === 0;
+  return warstwy;
 }
 
 // „Uchwała Nr XXXIX/773/17 Rady Miasta … z dnia 25 stycznia 2017 r. …" -> „Nr XXXIX/773/17 z 25
@@ -323,7 +348,11 @@ export function parseMpzpText(text: string): MpzpOdczyt {
 
   // Kolejność ma znaczenie: przy punkcie na granicy gmin jedna może odpowiedzieć „brak wyniku",
   // a druga obiektem planu. Liczy się to, co wiemy, a nie to, czego jedna z gmin nie znalazła.
-  if (maObiektBezAtrybutow(text)) return { wynik: 'bezAtrybutow' };
+  const bezAtrybutow = warstwyObiektowBezAtrybutow(text);
+  if ([...bezAtrybutow].some((w) => w !== GISON_ARKUSZE)) return { wynik: 'bezAtrybutow' };
+  // Sam arkusz rysunku GISON nie mówi, czy plan obejmuje punkt, a zasięgu planu (warstwy APP)
+  // integracja nie pyta dla każdej gminy GISON: w Kornowacu prawdziwy plan wyglądał dokładnie tak samo.
+  if (bezAtrybutow.size > 0) return { wynik: 'nieczytelny', powod: 'sam arkusz rysunku planu GISON, bez zasięgu planu' };
 
   // Wyjątek to awaria serwera gminy (np. zła konfiguracja warstw), a nie odpowiedź „tu nie ma planu".
   if (/ServiceException/i.test(text)) {
@@ -357,13 +386,35 @@ export function parseMpzpGml(text: string): MpzpOdczyt {
 }
 
 /**
+ * Odczyt GML wprost z serwera gminy na hostingu GISON (warstwy GISON_WARSTWY). Plan tylko z zasięgu
+ * APP; `brak`, gdy punkt leży w obrysie gminy, a żaden zasięg planu go nie obejmuje. Pusta odpowiedź
+ * bez obrysu to `nieczytelny`: profil nie obejmuje punktu (np. gmina zmieniła dostawcę po
+ * wygenerowaniu tabeli).
+ */
+export function parseGisonGml(text: string): MpzpOdczyt {
+  const odczyt = parseMpzpGml(text);
+  if (odczyt.wynik === 'nieczytelny') return odczyt;
+  if (!/<maska_feature>/.test(text)) {
+    return { wynik: 'nieczytelny', powod: 'punkt poza obrysem gminy w usłudze GISON' };
+  }
+  if (!/<app\.AktPlanowaniaPrzestrzennego\.MPZP_feature>/.test(text)) return { wynik: 'brak' };
+  return odczyt;
+}
+
+/**
  * Czy zapisany odczyt planu (raport pod ofertą) trzeba powtórzyć. „teraz": „brak planu" zapisany
- * starszą wersją odczytu, która brała plany GISON, format „@" i awarie serwerów gmin za brak planu.
+ * starszą wersją odczytu, która brała plany GISON, format „@" i awarie serwerów gmin za brak planu,
+ * albo plan bez żadnych danych z wersji 2, który bywał samym arkuszem rysunku GISON.
  * „pozniej": plan jest, ale jego szczegóły nie przyszły.
  */
 export function ponowOdczytMpzp(mpzp: MpzpInfo | null, wersja: number | undefined): 'teraz' | 'pozniej' | null {
-  if (mpzp) return mpzp.detailsUnavailable ? 'pozniej' : null;
-  return (wersja ?? 1) < MPZP_WERSJA ? 'teraz' : null;
+  const w = wersja ?? 1;
+  if (mpzp) {
+    const bezDanych = !mpzp.planName && !mpzp.functionName && !mpzp.functionSymbol && !mpzp.resolution;
+    if (w < 3 && bezDanych) return 'teraz';
+    return mpzp.detailsUnavailable ? 'pozniej' : null;
+  }
+  return w < MPZP_WERSJA ? 'teraz' : null;
 }
 
 // WGS84 (lat/lng) -> Web Mercator (EPSG:3857), którego używa WMS i kafle Google.
@@ -376,19 +427,32 @@ function to3857(lat: number, lng: number): { x: number; y: number } {
 }
 
 const CACHE_S = 60 * 60 * 24 * 7;
-// Przy `rzucajBledy` jeden limit na cały odczyt: text/plain i ewentualne dociągnięcie GML.
+// Przy `rzucajBledy` jeden limit na cały odczyt: serwer GISON, text/plain i ewentualne dociągnięcie GML.
 const LIMIT_MS = 20_000;
+// Własne limity kroków w gminach GISON (zawsze, także bez `rzucajBledy`). Serwer GISON wprost
+// odpowiadał w pomiarze w medianie po 0,16 s, najwolniej po 4,3 s; limit dłuższy niż potwierdzenie, bo
+// przy wolnym serwerze GISON integracja nie pomoże (pyta ten sam serwer). Integracja, gdy nie wisiała,
+// odpowiadała w medianie po 0,35 s, ale na krańcach fali po 10-16 s, a każda sekunda potwierdzenia to
+// sekunda czekania na „brak planu" w trakcie fali.
+const GISON_LIMIT_MS = 8_000;
+const POTWIERDZENIE_MS = 3_000;
 
-function adresZapytania(lat: number, lng: number, infoFormat: string): string {
+function adresZapytania(
+  lat: number,
+  lng: number,
+  infoFormat: string,
+  usluga = MPZP_WMS,
+  warstwy = MPZP_LAYER
+): string {
   const { x, y } = to3857(lat, lng);
   const d = 100; // metry — mały prostokąt wokół punktu; środek piksela = nasz punkt
-  const url = new URL(MPZP_WMS);
+  const url = new URL(usluga);
   const params: Record<string, string> = {
     SERVICE: 'WMS',
     VERSION: '1.3.0',
     REQUEST: 'GetFeatureInfo',
-    LAYERS: MPZP_LAYER,
-    QUERY_LAYERS: MPZP_LAYER,
+    LAYERS: warstwy,
+    QUERY_LAYERS: warstwy,
     STYLES: '',
     CRS: 'EPSG:3857',
     BBOX: `${x - d},${y - d},${x + d},${y + d}`,
@@ -415,6 +479,46 @@ async function odczytGml(lat: number, lng: number, limit: AbortSignal | undefine
   }
 }
 
+// Limit kroku, a przy `rzucajBledy` także limit całego odczytu, gdy ten skończy się wcześniej.
+function zLimitem(limit: AbortSignal | undefined, ms: number): AbortSignal {
+  return limit ? AbortSignal.any([limit, AbortSignal.timeout(ms)]) : AbortSignal.timeout(ms);
+}
+
+async function odczytGison(
+  profil: string,
+  lat: number,
+  lng: number,
+  limit: AbortSignal | undefined
+): Promise<MpzpOdczyt> {
+  try {
+    const res = await fetch(
+      adresZapytania(lat, lng, 'application/vnd.ogc.gml', GISON_WMS + profil, GISON_WARSTWY),
+      { next: { revalidate: CACHE_S }, signal: zLimitem(limit, GISON_LIMIT_MS) }
+    );
+    if (!res.ok) return { wynik: 'nieczytelny', powod: `HTTP ${res.status}` };
+    return parseGisonGml(await res.text());
+  } catch (err) {
+    return { wynik: 'nieczytelny', powod: err instanceof Error ? err.name : 'błąd zapytania' };
+  }
+}
+
+// Plan obejmuje punkt, ale bez nazwy i uchwały. `ponowic`: szczegóły nie przyszły przez chwilową
+// awarię (limit czasu, wyjątek), więc warto zapytać znowu; poprawny GML z samym zasięgiem to nie awaria.
+function planBezSzczegolow(ponowic: boolean): MpzpInfo {
+  return {
+    planName: null,
+    functionName: null,
+    functionSymbol: null,
+    maxHeight: null,
+    intensity: null,
+    effectiveFrom: null,
+    resolution: null,
+    status: null,
+    resolutionUrl: null,
+    ...(ponowic ? { detailsUnavailable: true } : {}),
+  };
+}
+
 /**
  * Przeznaczenie MPZP w punkcie (środek działki). Zwraca `null`, gdy w tym miejscu nie ma planu w
  * KIMPZP (gmina niezintegrowana albo teren bez planu) albo usługa nie odpowie.
@@ -422,16 +526,44 @@ async function odczytGml(lat: number, lng: number, limit: AbortSignal | undefine
 // `rzucajBledy`: raport zapisywany na stałe przy ofercie (lib/raportOferty.ts) i narzędzie muszą
 // odróżnić „brak planu" od „nie wiemy" (usługa nie odpowiedziała, wyjątek serwera gminy, sam
 // rysunek planu), inaczej awaria zostałaby pokazana albo zapisana jako brak planu.
+//
+// `teryt` (6 cyfr gminy, początek identyfikatora działki z ULDK): gminy GISON pytamy najpierw wprost.
+// Krajowa integracja bierze ich plany z tego samego serwera, ale ta droga wisi falami, wszystkie gminy
+// GISON naraz: integracja czeka ~60 s i odpowiada „<gmina>: brak wyniku", tak jak przy prawdziwym
+// braku planu. Pomiar 2026-09-16, 20:52-22:09, trzy fale po 20-30 min z kilkuminutowymi przerwami
+// (187 par zapytań w tej samej chwili, 12 punktów w planach 11 gmin): integracja wisiała w 156 parach
+// (83%), a serwer GISON wprost oddał plan we wszystkich 187. Gminy spoza GISON (Kraków, Poznań,
+// Wieliczka) nie zawisły w integracji ani razu.
+// Poza falą, w 107 losowych punktach 107 gmin GISON, serwer wprost rozstrzygnął każdy punkt (54 plany,
+// 53 braki). Integracja przepuszcza sam arkusz rysunku (GISON_ARKUSZE) i nie każdej gminie zadaje
+// pytanie o zasięg APP, więc przez nią 31 z tych punktów to „nie wiemy" (wersja 2 brała 30 z nich
+// za plan bez szczegółów).
+//  - plan z serwera GISON: gotowe, jedno zapytanie zamiast dwóch;
+//  - „brak planu" z serwera GISON: potwierdzamy w integracji, ale najwyżej POTWIERDZENIE_MS. Gdy
+//    integracja wisi albo odpowiada nieczytelnie, zostaje „brak planu" od serwera gminy. Gdy znajdzie
+//    plan (np. gmina zmieniła dostawcę po wygenerowaniu tabeli), wygrywa plan;
+//  - każda inna odpowiedź GISON (limit czasu, wyjątek, punkt poza obrysem gminy): jak dotąd, sama
+//    integracja, w pozostałym czasie odczytu.
 export async function getMpzpAtPoint(
   lat: number,
   lng: number,
-  opts: { rzucajBledy?: boolean } = {}
+  opts: { rzucajBledy?: boolean; teryt?: string | null } = {}
 ): Promise<MpzpInfo | null> {
   const limit = opts.rzucajBledy ? AbortSignal.timeout(LIMIT_MS) : undefined;
+
+  const profil = opts.teryt ? GISON_GMINY[opts.teryt.slice(0, 6)] : undefined;
+  const gison = profil ? await odczytGison(profil, lat, lng, limit) : null;
+  if (gison?.wynik === 'plan') return gison.info;
+  if (gison?.wynik === 'bezAtrybutow') return planBezSzczegolow(false);
+  // Do logu, bo to albo awaria GISON, albo nieaktualna tabela gmin, albo blokada naszych serwerów.
+  if (gison?.wynik === 'nieczytelny') console.warn('MPZP_GISON_NIECZYTELNY', profil, gison.powod);
+  const brakWGminie = gison?.wynik === 'brak';
+  const sygnal = brakWGminie ? zLimitem(limit, POTWIERDZENIE_MS) : limit;
+
   try {
     const res = await fetch(adresZapytania(lat, lng, 'text/plain'), {
       next: { revalidate: CACHE_S },
-      ...(limit ? { signal: limit } : {}),
+      ...(sygnal ? { signal: sygnal } : {}),
     });
     if (!res.ok) {
       if (opts.rzucajBledy) throw new Error(`MPZP HTTP ${res.status}`);
@@ -447,21 +579,11 @@ export async function getMpzpAtPoint(
     // nie przyjdzie, zostaje plan bez szczegółów, bo to, że plan obejmuje punkt, już wiemy.
     const gml = await odczytGml(lat, lng, limit);
     if (gml.wynik === 'plan') return gml.info;
-    return {
-      planName: null,
-      functionName: null,
-      functionSymbol: null,
-      maxHeight: null,
-      intensity: null,
-      effectiveFrom: null,
-      resolution: null,
-      status: null,
-      resolutionUrl: null,
-      // Poprawny GML z samym zasięgiem znaczy, że gmina szczegółów nie wystawia: ponawianie nic nie
-      // da. Limit czasu albo wyjątek to chwilowy brak, warto zapytać znowu.
-      ...(gml.wynik === 'nieczytelny' ? { detailsUnavailable: true } : {}),
-    };
+    return planBezSzczegolow(gml.wynik === 'nieczytelny');
   } catch (err) {
+    // Integracja nie potwierdziła w czasie (fala wiszenia GISON) albo odpowiedziała nieczytelnie, a
+    // serwer planów gminy sam odpowiedział, że w jej obrysie żaden plan nie obejmuje punktu.
+    if (brakWGminie) return null;
     if (opts.rzucajBledy) throw err;
     return null;
   }

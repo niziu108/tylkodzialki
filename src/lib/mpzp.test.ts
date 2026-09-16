@@ -6,12 +6,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MPZP_WERSJA,
   getMpzpAtPoint,
+  parseGisonGml,
   parseMpzpGml,
   parseMpzpText,
   ponowOdczytMpzp,
   type MpzpInfo,
   type MpzpOdczyt,
 } from './mpzp';
+import { GISON_GMINY } from './mpzpGisonGminy';
 
 // Lanckorona (hosting GISON): text/plain trafia obiekty planu, ale bez żadnego atrybutu.
 const GISON_TXT = `GetFeatureInfo results:
@@ -62,7 +64,8 @@ const GISON_GML = `<?xml version="1.0" encoding="UTF-8"?>
 </msGMLOutput>
 `;
 
-// Gmina GISON, która także w GML wystawia sam zasięg obowiązującego planu (51.1779, 17.0385).
+// Wisznia Mała (51.1779, 17.0385): GML z samym arkuszem rysunku (warstwa `mpzp`), bez zasięgu APP.
+// Brany kiedyś za „zasięg planu bez szczegółów"; w tym punkcie żadnego rysunku planu nie ma.
 const GISON_GML_ZASIEG = `<?xml version="1.0" encoding="UTF-8"?>
 
 <msGMLOutput
@@ -80,6 +83,139 @@ const GISON_GML_ZASIEG = `<?xml version="1.0" encoding="UTF-8"?>
 		</mpzp_feature>
 	</mpzp_layer>
 </msGMLOutput>
+`;
+
+// Serwer GISON pytany wprost (warstwy maska i app.AktPlanowaniaPrzestrzennego.MPZP), 2026-09-16.
+// Lanckorona, ten sam punkt co wyżej: obrys gminy, zasięg planu i dane planu w jednej odpowiedzi.
+const GISON_WPROST_PLAN = `<?xml version="1.0" encoding="UTF-8"?>
+
+<msGMLOutput
+	 xmlns:gml="http://www.opengis.net/gml"
+	 xmlns:xlink="http://www.w3.org/1999/xlink"
+	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<maska_layer>
+	<gml:name>maska</gml:name>
+		<maska_feature>
+			<gml:boundedBy>
+				<gml:Box srsName="EPSG:3857">
+					<gml:coordinates>2191187.293367,6412331.947996 2205417.110922,6429416.598445</gml:coordinates>
+				</gml:Box>
+			</gml:boundedBy>
+		</maska_feature>
+	</maska_layer>
+	<app.AktPlanowaniaPrzestrzennego.MPZP_layer>
+	<gml:name>app.AktPlanowaniaPrzestrzennego.MPZP</gml:name>
+		<app.AktPlanowaniaPrzestrzennego.MPZP_feature>
+			<gml:boundedBy>
+				<gml:Box srsName="EPSG:3857">
+					<gml:coordinates>2191187.293290,6412331.948028 2196540.843413,6417636.680083</gml:coordinates>
+				</gml:Box>
+			</gml:boundedBy>
+			<guid>f5283750-2954-439a-8f48-f97ac47fee37</guid>
+			<nazwaskroconaplanu>2026_148_XXXI</nazwaskroconaplanu>
+			<nazwapelnaplanu>Miejscowy plan zagospodarowania przestrzennego obrębu Skawinki na terenie gminy Lanckorona (uchwała nr XXXI/148/2026)</nazwapelnaplanu>
+			<numeruchwaly>XXXI/148/2026</numeruchwaly>
+			<datauchwalenia>2026-03-25</datauchwalenia>
+			<typ>MPZP</typ>
+			<legenda>https://rastry.gison.pl/mpzp-public/lanckorona/legendy/Z01_2026_148_XXXI_legenda.png</legenda>
+			<uchwala>https://rastry.gison.pl/mpzp-public/lanckorona/uchwaly/U_2026_148_XXXI.pdf</uchwala>
+			<profil>lanckorona</profil>
+		</app.AktPlanowaniaPrzestrzennego.MPZP_feature>
+	</app.AktPlanowaniaPrzestrzennego.MPZP_layer>
+</msGMLOutput>
+`;
+
+// Prószków (50.54248, 17.79533): punkt w obrysie gminy, ale żaden plan go nie obejmuje.
+const GISON_WPROST_BRAK = `<?xml version="1.0" encoding="UTF-8"?>
+
+<msGMLOutput
+	 xmlns:gml="http://www.opengis.net/gml"
+	 xmlns:xlink="http://www.w3.org/1999/xlink"
+	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<maska_layer>
+	<gml:name>maska</gml:name>
+		<maska_feature>
+			<gml:boundedBy>
+				<gml:Box srsName="EPSG:3857">
+					<gml:coordinates>1975713.030353,6533614.260211 2000679.252008,6558334.290594</gml:coordinates>
+				</gml:Box>
+			</gml:boundedBy>
+		</maska_feature>
+	</maska_layer>
+</msGMLOutput>
+`;
+
+// Wisznia Mała, punkt z GISON_GML_ZASIEG, zapytany wprost także o warstwę `mpzp`: obrys gminy i sam
+// arkusz rysunku, bez zasięgu APP. Na obrazie tej warstwy punkt jest przezroczysty.
+const GISON_WPROST_SAM_ARKUSZ = `<?xml version="1.0" encoding="UTF-8"?>
+
+<msGMLOutput
+	 xmlns:gml="http://www.opengis.net/gml"
+	 xmlns:xlink="http://www.w3.org/1999/xlink"
+	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<maska_layer>
+	<gml:name>maska</gml:name>
+		<maska_feature>
+			<gml:boundedBy>
+				<gml:Box srsName="EPSG:3857">
+					<gml:coordinates>1885475.833917,6650139.222651 1906174.711719,6672388.380638</gml:coordinates>
+				</gml:Box>
+			</gml:boundedBy>
+		</maska_feature>
+	</maska_layer>
+	<mpzp_layer>
+	<gml:name>Zasięgi obowiązujących miejscowych planów</gml:name>
+		<mpzp_feature>
+			<gml:boundedBy>
+				<gml:Box srsName="EPSG:3857">
+					<gml:coordinates>1896717.527714,6652822.324514 1896717.527714,6652822.324514</gml:coordinates>
+				</gml:Box>
+			</gml:boundedBy>
+		</mpzp_feature>
+	</mpzp_layer>
+</msGMLOutput>
+`;
+
+// Ten sam punkt w text/plain (warstwy jak w krajowej integracji, która ten tekst przekazuje bez zmian):
+// sam arkusz rysunku, bez obiektu w warstwie APP.
+const GISON_TXT_SAM_ARKUSZ = `GetFeatureInfo results:
+
+Layer 'mpzp'
+  Feature 0:
+`;
+
+// Profil Lanckorony zapytany o punkt w Krakowie: pusta odpowiedź, bez obrysu gminy.
+const GISON_WPROST_POZA_GMINA = `<?xml version="1.0" encoding="UTF-8"?>
+
+<msGMLOutput
+	 xmlns:gml="http://www.opengis.net/gml"
+	 xmlns:xlink="http://www.w3.org/1999/xlink"
+	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+</msGMLOutput>
+`;
+
+// Profil w starszym układzie, bez warstwy obrysu gminy (Szczecinek, gmina wiejska).
+const GISON_WPROST_BEZ_MASKI = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<ServiceExceptionReport version="1.3.0" xmlns="http://www.opengis.net/ogc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd">
+<ServiceException code="LayerNotDefined">
+msWMSLoadGetMapParams(): WMS server error. Invalid layer(s) given in the LAYERS parameter. A layer might be disabled for this request. Check wms/ows_enable_request settings.
+</ServiceException>
+</ServiceExceptionReport>
+`;
+
+// Profil, którego nie ma: MapServer odpowiada stroną HTML z kodem 200 (skrócony komentarz o wersji).
+const GISON_WPROST_BRAK_PROFILU = `<HTML>
+<HEAD><TITLE>MapServer Message</TITLE></HEAD>
+<!-- MapServer version 7.0.7 OUTPUT=PNG OUTPUT=JPEG SUPPORTS=WMS_SERVER -->
+<BODY BGCOLOR="#FFFFFF">
+msLoadMap(): Unable to access file. (/home/vboxuser/mpzp/tegoprofiluniema.map)
+</BODY></HTML>`;
+
+// Krajowa integracja w tym samym punkcie Prószkowa, bez fali (0,4 s): przekazuje komunikat serwera
+// gminy. W fali wiszenia ta sama integracja po 60 s odpowiada „Prószków: brak wyniku…".
+const GISON_KI_BRAK = `GetFeatureInfo results:
+
+  Search returned no results.
 `;
 
 // Kraków (Bronowice): jedna linia, sekcje „@warstwa pola; wartości;". Dwie z trzech skal.
@@ -198,6 +334,7 @@ Band 4 = '255'
 // Prawdziwe odpowiedzi „tu nie ma planu" z kilku typów serwerów.
 const BRAKI = [
   'm. Kraków: brak wyniku dla wskazanego obszaru',
+  GISON_KI_BRAK,
   'brak serwisu dla wskazanego obszaru',
   'no features were found',
   `<?xml version="1.0" encoding="UTF-8"?>
@@ -223,6 +360,12 @@ function plan(o: MpzpOdczyt): MpzpInfo {
 describe('parseMpzpText', () => {
   it('obiekty planu bez atrybutów (GISON) to nie brak planu', () => {
     expect(parseMpzpText(GISON_TXT)).toEqual({ wynik: 'bezAtrybutow' });
+  });
+
+  it('sam arkusz rysunku GISON, bez zasięgu planu, to „nie wiemy", a nie plan', () => {
+    const o = parseMpzpText(GISON_TXT_SAM_ARKUSZ);
+    expect(o.wynik).toBe('nieczytelny');
+    expect(o.wynik === 'nieczytelny' && o.powod).toContain('arkusz');
   });
 
   it('czyta format „@" Krakowa', () => {
@@ -318,7 +461,7 @@ describe('parseMpzpGml', () => {
     );
   });
 
-  it('sam zasięg planu w poprawnym GML to plan bez szczegółów', () => {
+  it('GML bez danych planu to „bezAtrybutow": czy plan jest, rozstrzyga text/plain', () => {
     expect(parseMpzpGml(GISON_GML_ZASIEG)).toEqual({ wynik: 'bezAtrybutow' });
   });
 
@@ -328,9 +471,50 @@ describe('parseMpzpGml', () => {
   });
 });
 
+describe('parseGisonGml', () => {
+  it('plan w obrysie gminy: te same dane co z krajowej integracji', () => {
+    expect(parseGisonGml(GISON_WPROST_PLAN)).toEqual(parseMpzpGml(GISON_GML));
+  });
+
+  it('obrys gminy bez planu to brak planu', () => {
+    expect(parseGisonGml(GISON_WPROST_BRAK)).toEqual({ wynik: 'brak' });
+  });
+
+  it('sam arkusz rysunku w obrysie gminy, bez zasięgu APP, to brak planu', () => {
+    expect(parseGisonGml(GISON_WPROST_SAM_ARKUSZ)).toEqual({ wynik: 'brak' });
+  });
+
+  it('pusta odpowiedź bez obrysu gminy to „nie wiemy", a nie brak planu', () => {
+    expect(parseGisonGml(GISON_WPROST_POZA_GMINA).wynik).toBe('nieczytelny');
+  });
+
+  it('wyjątek i strona błędu MapServera to „nie wiemy"', () => {
+    expect(parseGisonGml(GISON_WPROST_BEZ_MASKI).wynik).toBe('nieczytelny');
+    expect(parseGisonGml(GISON_WPROST_BRAK_PROFILU).wynik).toBe('nieczytelny');
+  });
+});
+
+describe('GISON_GMINY', () => {
+  it('TERYT z 6 cyfr i profil, który można bezpiecznie wstawić w adres', () => {
+    const wpisy = Object.entries(GISON_GMINY);
+    expect(wpisy.length).toBeGreaterThan(300);
+    for (const [teryt, profil] of wpisy) {
+      expect(teryt).toMatch(/^\d{6}$/);
+      expect(profil).toMatch(/^[a-z0-9_]+$/);
+    }
+    // Gminy z odpowiedzi w testach getMpzpAtPoint niżej.
+    expect(GISON_GMINY['121804']).toBe('lanckorona');
+    expect(GISON_GMINY['160910']).toBe('proszkow');
+    expect(GISON_GMINY['022004']).toBe('wiszniamala');
+    // Kalwaria Zebrzydowska ma w rejestrze GUGiK także drugą usługę planów: tylko krajowa integracja.
+    expect(GISON_GMINY['121803']).toBeUndefined();
+  });
+});
+
 describe('getMpzpAtPoint', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   // Kolejne odpowiedzi usługi; Error = zapytanie się nie udało (np. limit czasu).
@@ -365,12 +549,18 @@ describe('getMpzpAtPoint', () => {
     expect(ponowOdczytMpzp(info, MPZP_WERSJA)).toBe('pozniej');
   });
 
-  it('GML z samym zasięgiem: plan bez szczegółów, bez ponawiania', async () => {
+  it('text/plain trafił zasięg planu, a GML ma sam arkusz: plan bez szczegółów, bez ponawiania', async () => {
     odpowiedzi(GISON_TXT, GISON_GML_ZASIEG);
-    const info = await getMpzpAtPoint(51.1779, 17.0385, { rzucajBledy: true });
+    const info = await getMpzpAtPoint(49.81686, 19.71121, { rzucajBledy: true });
     expect(info).not.toBeNull();
     expect(info?.detailsUnavailable).toBeUndefined();
     expect(ponowOdczytMpzp(info, MPZP_WERSJA)).toBeNull();
+  });
+
+  it('sam arkusz rysunku GISON przez integrację: „nie wiemy", bez dociągania GML', async () => {
+    const fetchMock = odpowiedzi(GISON_TXT_SAM_ARKUSZ);
+    await expect(getMpzpAtPoint(51.1779, 17.0385, { rzucajBledy: true })).rejects.toThrow('arkusz');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('wyjątek serwera gminy: rzuca przy rzucajBledy, bez tego null', async () => {
@@ -384,6 +574,82 @@ describe('getMpzpAtPoint', () => {
     const fetchMock = odpowiedzi('m. Kraków: brak wyniku dla wskazanego obszaru');
     await expect(getMpzpAtPoint(50.0167, 19.9667, { rzucajBledy: true })).resolves.toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  describe('gmina na hostingu GISON', () => {
+    const LANCKORONA = { rzucajBledy: true, teryt: '121804' } as const;
+    const PROSZKOW = { rzucajBledy: true, teryt: '160910' } as const;
+    const adres = (fetchMock: ReturnType<typeof odpowiedzi>, i: number) => String(fetchMock.mock.calls[i][0]);
+    const cichyLog = () => vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    it('plan wprost z serwera gminy: jedno zapytanie, bez krajowej integracji', async () => {
+      const fetchMock = odpowiedzi(GISON_WPROST_PLAN);
+      const info = await getMpzpAtPoint(49.81686, 19.71121, LANCKORONA);
+      expect(info?.planName).toBe('obrębu Skawinki na terenie gminy Lanckorona');
+      expect(info?.resolutionUrl).toContain('U_2026_148_XXXI.pdf');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(adres(fetchMock, 0)).toMatch(/^https:\/\/rastry\.gison\.pl\/wms\/lanckorona\?/);
+      expect(adres(fetchMock, 0)).toContain('QUERY_LAYERS=maska%2Capp.AktPlanowaniaPrzestrzennego.MPZP');
+    });
+
+    it('sam arkusz rysunku to nie plan, nawet gdy integracja go przepuści', async () => {
+      const fetchMock = odpowiedzi(GISON_WPROST_SAM_ARKUSZ, GISON_TXT_SAM_ARKUSZ);
+      await expect(getMpzpAtPoint(51.1779, 17.0385, { rzucajBledy: true, teryt: '022004' })).resolves.toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('brak planu w obrysie gminy potwierdzony w krajowej integracji', async () => {
+      const fetchMock = odpowiedzi(GISON_WPROST_BRAK, GISON_KI_BRAK);
+      await expect(getMpzpAtPoint(50.54248, 17.79533, PROSZKOW)).resolves.toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(adres(fetchMock, 1)).toContain('KrajowaIntegracjaMiejscowychPlanow');
+    });
+
+    it('integracja wisi (fala GISON): brak planu od serwera gminy, a nie „nie wiemy"', async () => {
+      odpowiedzi(GISON_WPROST_BRAK, limitCzasu());
+      await expect(getMpzpAtPoint(50.54248, 17.79533, PROSZKOW)).resolves.toBeNull();
+    });
+
+    it('potwierdzenie ma własny limit czasu także bez rzucajBledy', async () => {
+      const fetchMock = odpowiedzi(GISON_WPROST_BRAK, GISON_KI_BRAK);
+      await getMpzpAtPoint(50.54248, 17.79533, { teryt: '160910' });
+      expect((fetchMock.mock.calls[1] as unknown[])[1]).toMatchObject({ signal: expect.any(AbortSignal) });
+    });
+
+    it('integracja zna plan, którego serwer GISON nie pokazał: wygrywa plan', async () => {
+      const fetchMock = odpowiedzi(GISON_WPROST_BRAK, GISON_TXT, GISON_GML);
+      const info = await getMpzpAtPoint(50.54248, 17.79533, PROSZKOW);
+      expect(info?.planName).toBe('obrębu Skawinki na terenie gminy Lanckorona');
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
+
+    it('serwer GISON nie odpowiada: jak dotąd krajowa integracja', async () => {
+      const log = cichyLog();
+      const fetchMock = odpowiedzi(limitCzasu(), GISON_TXT, GISON_GML);
+      const info = await getMpzpAtPoint(49.81686, 19.71121, LANCKORONA);
+      expect(info?.resolution).toBe('Nr XXXI/148/2026 z 25 marca 2026');
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(log).toHaveBeenCalledWith('MPZP_GISON_NIECZYTELNY', 'lanckorona', 'TimeoutError');
+    });
+
+    it('serwer GISON i integracja nie odpowiadają: „nie wiemy", nigdy brak planu', async () => {
+      cichyLog();
+      odpowiedzi(limitCzasu(), limitCzasu());
+      await expect(getMpzpAtPoint(49.81686, 19.71121, LANCKORONA)).rejects.toThrow();
+    });
+
+    it('punkt poza obrysem gminy w usłudze GISON: decyduje integracja, bez brak planu na zapas', async () => {
+      cichyLog();
+      odpowiedzi(GISON_WPROST_POZA_GMINA, limitCzasu());
+      await expect(getMpzpAtPoint(50.083, 19.883, LANCKORONA)).rejects.toThrow();
+    });
+
+    it('gmina spoza tabeli GISON: tylko krajowa integracja', async () => {
+      const fetchMock = odpowiedzi('m. Kraków: brak wyniku dla wskazanego obszaru');
+      await expect(getMpzpAtPoint(50.083, 19.883, { rzucajBledy: true, teryt: '126101' })).resolves.toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(adres(fetchMock, 0)).toContain('KrajowaIntegracjaMiejscowychPlanow');
+    });
   });
 });
 
@@ -407,5 +673,12 @@ describe('ponowOdczytMpzp', () => {
   it('plan z danymi zostaje, plan bez szczegółów ponawiamy później', () => {
     expect(ponowOdczytMpzp(pelny, undefined)).toBeNull();
     expect(ponowOdczytMpzp({ ...pelny, planName: null, detailsUnavailable: true }, MPZP_WERSJA)).toBe('pozniej');
+  });
+
+  it('plan bez żadnych danych z wersji 2 (bywał samym arkuszem rysunku GISON) sprawdzamy od razu', () => {
+    const bezDanych = { ...pelny, planName: null, functionName: null, functionSymbol: null, resolution: null };
+    expect(ponowOdczytMpzp(bezDanych, 2)).toBe('teraz');
+    expect(ponowOdczytMpzp({ ...bezDanych, detailsUnavailable: true }, 2)).toBe('teraz');
+    expect(ponowOdczytMpzp(bezDanych, MPZP_WERSJA)).toBeNull();
   });
 });

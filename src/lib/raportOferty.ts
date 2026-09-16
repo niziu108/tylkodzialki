@@ -103,8 +103,9 @@ export function wymagaOdswiezenia(row: WierszRaportu, klucz: string): boolean {
   const dane = row.status === 'GOTOWY' ? daneZBazy(row.dane) : null;
   if (!dane) return false;
   const niedostepne = dane.niedostepne ?? [];
-  // „Brak planu" ze starszego odczytu MPZP mógł być fałszywy (gminy GISON, Kraków): liczymy od razu.
-  // Plan bez szczegółów ponawiamy jak plan, którego serwer nie odpowiedział, czyli po tygodniu.
+  // „Brak planu" ze starszego odczytu MPZP mógł być fałszywy (gminy GISON, Kraków), a plan bez żadnych
+  // danych z wersji 2 bywał samym arkuszem rysunku GISON: liczymy od razu. Plan bez szczegółów
+  // z bieżącego odczytu ponawiamy jak plan, którego serwer nie odpowiedział, czyli po tygodniu.
   const mpzp = niedostepne.includes('mpzp') ? null : ponowOdczytMpzp(dane.mpzp, dane.wersjaMpzp);
   if (mpzp === 'teraz') return true;
   return (niedostepne.length > 0 || mpzp === 'pozniej') && wiek > PONOW_NIEPELNY_PO_MS;
@@ -188,7 +189,7 @@ export async function ustalDzialke(
 export async function zbudujDane(parcel: ParcelReport): Promise<RaportOfertyDane> {
   const { lat, lng } = parcel.center;
   const [mpzp, pog] = await Promise.allSettled([
-    getMpzpAtPoint(lat, lng, { rzucajBledy: true }),
+    getMpzpAtPoint(lat, lng, { rzucajBledy: true, teryt: parcel.id.slice(0, 6) }),
     getPogAtPoint(lat, lng, { rzucajBledy: true }),
   ]);
   const niedostepne: ('mpzp' | 'pog')[] = [];

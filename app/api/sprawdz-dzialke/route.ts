@@ -77,9 +77,13 @@ export async function POST(req: NextRequest) {
     // Plan miejscowy z `rzucajBledy`: gdy serwer gminy wisi, krajowa integracja po ~60 s odpowiada
     // „brak wyniku", tym samym tekstem co przy prawdziwym braku planu (ten przychodzi w ułamku
     // sekundy). Limit 20 s i osobna flaga pozwalają raportowi powiedzieć „gmina nie odpowiedziała".
+    // TERYT z identyfikatora działki: gminy na hostingu GISON lib pyta najpierw wprost.
     const [valuation, mpzpWynik, pog] = await Promise.all([
       getPointValuation(parcel.center.lat, parcel.center.lng, parcel.areaM2),
-      getMpzpAtPoint(parcel.center.lat, parcel.center.lng, { rzucajBledy: true }).then(
+      getMpzpAtPoint(parcel.center.lat, parcel.center.lng, {
+        rzucajBledy: true,
+        teryt: parcel.id.slice(0, 6),
+      }).then(
         (mpzp) => {
           // Plan jest, ale jego szczegóły z serwera gminy nie przyszły: do logu, żeby widzieć skalę.
           if (mpzp?.detailsUnavailable) console.warn('SPRAWDZ_DZIALKE_MPZP_BEZ_SZCZEGOLOW', parcel.id);
