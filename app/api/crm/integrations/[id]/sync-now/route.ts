@@ -2,10 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
-import { syncCrmIntegrationNow } from "@/lib/crm/domypl-sync";
-import { syncAsariIntegrationNow } from "@/lib/crm/asari-sync";
-import { syncEstiCrmIntegrationNow } from "@/lib/crm/esticrm-sync";
-import { syncLocumnetIntegrationNow } from "@/lib/crm/locumnet-sync";
 
 type RouteContext = {
   params: Promise<{
@@ -15,6 +11,11 @@ type RouteContext = {
 
 export const runtime = "nodejs";
 
+// „Synchronizuj teraz" z panelu biura tylko dodaje zadanie do kolejki workera (VPS), tak jak trasa
+// admina. Wcześniej uruchamiała silnik wprost na Vercelu, bez sprawdzenia, czy worker nie przerabia
+// tej samej integracji. Dwa równoległe przebiegi kasują sobie nawzajem świeżo wgrane zdjęcia z R2
+// (strażnik photosUnchanged potem ich nie odtworzy), wygaszają oferty utworzone przez drugi przebieg
+// i sprzątają FTP pod nogami drugiego. Do tego limit czasu funkcji Vercela przerywał import w połowie.
 export async function POST(_req: Request, context: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
@@ -52,8 +53,7 @@ export async function POST(_req: Request, context: RouteContext) {
       },
       select: {
         id: true,
-        provider: true,
-        feedFormat: true,
+        isActive: true,
       },
     });
 
@@ -64,18 +64,50 @@ export async function POST(_req: Request, context: RouteContext) {
       );
     }
 
-    const summary =
-      integration.provider === "LOCUMNET" || integration.feedFormat === "LOCUMNET_XML"
-        ? await syncLocumnetIntegrationNow(integration.id)
-        : integration.provider === "ESTI_CRM" || integration.feedFormat === "ESTICRM_XML"
-          ? await syncEstiCrmIntegrationNow(integration.id)
-          : integration.provider === "ASARI"
-            ? await syncAsariIntegrationNow(integration.id)
-            : await syncCrmIntegrationNow(integration.id);
+    if (!integration.isActive) {
+      return NextResponse.json(
+        { error: "Integracja jest nieaktywna." },
+        { status: 400 }
+      );
+    }
+
+    const existingJob = await prisma.crmImportJob.findFirst({
+      where: {
+        integrationId: integration.id,
+        status: { in: ["PENDING", "RUNNING"] },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+
+    if (existingJob) {
+      return NextResponse.json({
+        success: true,
+        jobId: existingJob.id,
+        message:
+          "Synchronizacja jest już w kolejce albo właśnie trwa. Wyniki pojawią się w logach poniżej.",
+      });
+    }
+
+    const job = await prisma.crmImportJob.create({
+      data: {
+        integrationId: integration.id,
+        status: "PENDING",
+        message: "Synchronizacja zlecona z panelu biura.",
+      },
+      select: { id: true },
+    });
+
+    await prisma.crmIntegration.update({
+      where: { id: integration.id },
+      data: { lastUsedAt: new Date() },
+    });
 
     return NextResponse.json({
       success: true,
-      summary,
+      jobId: job.id,
+      message:
+        "Synchronizacja dodana do kolejki. Wyniki pojawią się w logach poniżej po jej zakończeniu.",
     });
   } catch (error) {
     console.error("POST /api/crm/integrations/[id]/sync-now error:", error);

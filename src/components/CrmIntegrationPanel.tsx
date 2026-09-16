@@ -208,12 +208,8 @@ export default function CrmIntegrationPanel({
         return;
       }
 
-      const summary = data?.summary;
-      setResultSuccess(
-        summary
-          ? `Synchronizacja zakończona. Import: ${summary.importedOffers}, utworzone: ${summary.createdCount}, zaktualizowane: ${summary.updatedCount}, zakończone: ${summary.deactivatedCount}, pominięte: ${summary.skippedCount}, błędy: ${summary.errorCount}.`
-          : "Synchronizacja została uruchomiona."
-      );
+      // Trasa tylko dodaje zadanie do kolejki workera, więc wyniku jeszcze nie ma.
+      setResultSuccess(data?.message || "Synchronizacja dodana do kolejki.");
 
       router.refresh();
 
