@@ -34,13 +34,26 @@ function normPath(p: string | null | undefined): string {
   return cut.toLowerCase();
 }
 
+/**
+ * Nazwa katalogu z konfiguracji ze spacjami zachowanymi. Ścieżka „/arkadiawloclawek /." to świadomy
+ * sposób na katalog kończący się spacją: panel i silnik robią trim() całej ścieżki, a kropka na
+ * końcu chroni spację. Ucinamy więc tylko ukośniki i końcowe „/.".
+ */
+function rawDirName(p: string | null | undefined): string {
+  return (p ?? "")
+    .replace(/\\/g, "/")
+    .replace(/^\s*\/+/, "")
+    .replace(/(\/\.?)+\s*$/, "")
+    .toLowerCase();
+}
+
 type Account = {
   host: string;
   port: number;
   user: string;
   password: string;
   passive: boolean;
-  integrations: { id: string; name: string; provider: string; path: string; lastSuccessAt: Date | null }[];
+  integrations: { id: string; name: string; provider: string; path: string; rawPath: string; lastSuccessAt: Date | null }[];
 };
 
 type NewDir = {
@@ -72,7 +85,7 @@ async function main() {
     };
     acc.integrations.push({
       id: i.id, name: i.name, provider: i.provider,
-      path: normPath(i.ftpRemotePath), lastSuccessAt: i.lastSuccessAt,
+      path: normPath(i.ftpRemotePath), rawPath: rawDirName(i.ftpRemotePath), lastSuccessAt: i.lastSuccessAt,
     });
     accounts.set(key, acc);
   }
@@ -114,6 +127,7 @@ async function main() {
       }
 
       const znane = new Set(acc.integrations.map((i) => i.path).filter(Boolean));
+      const znaneSurowe = new Set(acc.integrations.map((i) => i.rawPath).filter(Boolean));
       const list = await client.list("/");
       const katalogi = list.filter((e) => e.isDirectory);
 
@@ -126,7 +140,10 @@ async function main() {
         // za podłączony: Arkadia Włocławek wysyłała paczki do „arkadiawloclawek " od 22.06 do
         // 15.09.2026, a import czytał pusty już „arkadiawloclawek". Taki katalog zgłaszamy zawsze.
         const bialeZnaki = dir.name !== dir.name.trim();
-        if (!bialeZnaki) {
+        if (bialeZnaki) {
+          // Podłączony świadomie ścieżką z „/." na końcu, np. „/arkadiawloclawek /.".
+          if (znaneSurowe.has(dir.name.toLowerCase())) continue;
+        } else {
           if (znane.has(nazwa)) continue;
           if (IGNOROWANE_KATALOGI.has(nazwa)) continue;
           // Katalog o nazwie biura, które mamy już podpięte na INNYM koncie (np. dublet po
@@ -164,8 +181,9 @@ async function main() {
 
       // Odwrotna kontrola: integracja wskazuje katalog, którego na FTP już nie ma.
       const naFtp = new Set(katalogi.map((d) => normPath(d.name)));
+      const naFtpSurowe = new Set(katalogi.map((d) => d.name.toLowerCase()));
       for (const i of acc.integrations) {
-        if (i.path && !naFtp.has(i.path)) {
+        if (i.path && !naFtp.has(i.path) && !naFtpSurowe.has(i.rawPath)) {
           puste.push({ konto: acc.user, biuro: i.name, katalog: i.path, powod: "katalog nie istnieje na FTP" });
         }
       }
