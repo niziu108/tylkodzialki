@@ -29,8 +29,13 @@ export type CrmLogAction =
 
 export type CrmLogStatus = "SUCCESS" | "ERROR";
 
-/** Sufit na pojedynczy zachowany payload. Jedna monstrualna oferta nie może ważyć jak tysiąc. */
-export const MAX_LOG_PAYLOAD_BYTES = 8192;
+/**
+ * Sufit na pojedynczy zachowany payload. Jedna monstrualna oferta nie może ważyć jak tysiąc.
+ * 32 kB, nie 8 kB: CREATE z EstiCRM (z surowym rawOffer na końcu) ma średnio 13,7 tys. znaków,
+ * najwięcej 20,3 tys. (pomiar 18.09.2026). Przy 8 kB każdy byłby przycięty i tracił właśnie
+ * surowe dane z feedu, dla których go trzymamy. CREATE to ok. 40 wpisów na dobę, koszt pomijalny.
+ */
+export const MAX_LOG_PAYLOAD_BYTES = 32768;
 
 export function shouldStoreLogPayload(action: CrmLogAction, status: CrmLogStatus): boolean {
   if (status === "ERROR") return true;

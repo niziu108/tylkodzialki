@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCrmRequest } from "@/lib/crm/authenticateCrmRequest";
+import { payloadForLog } from "@/lib/crm/log-policy";
 
 type CrmDeactivateBody = {
   externalId: string;
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
           action: "ERROR",
           status: "ERROR",
           message: `Nie znaleziono oferty do zakończenia: ${externalId}`,
-          payload: body,
+          payload: payloadForLog("ERROR", "ERROR", body),
         },
       });
 

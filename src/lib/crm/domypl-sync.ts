@@ -1662,7 +1662,7 @@ async function processOffer(
             action: "CREATE",
             status: "SUCCESS",
             message: "Oferta utworzona poprawnie z importu FTP/XML.",
-            payload: offer.payload,
+            payload: payloadForLog("CREATE", "SUCCESS", offer.payload),
           },
         });
       });
@@ -1785,13 +1785,17 @@ async function processOffer(
           });
         }
 
+        // Wpis w tej transakcji omija logSync, więc regułę payloadu (log-policy.ts) trzeba podać
+        // wprost. Bez niej każdy UPDATE odkładał pełny XML oferty (123 MB na dobę, 16.09.2026).
+        const logAction = wasEnded ? "REACTIVATE" : "UPDATE";
+
         await tx.crmSyncLog.create({
           data: {
             integrationId: integration.id,
             dzialkaId: dzialka.id,
             offerLinkId: existingLink.id,
             externalId: offer.externalId,
-            action: wasEnded ? "REACTIVATE" : "UPDATE",
+            action: logAction,
             status: "SUCCESS",
             message: appendPhotoNote(
               matchedByVersionBump
@@ -1801,7 +1805,7 @@ async function processOffer(
                   : "Oferta zaktualizowana poprawnie z importu FTP/XML.",
               photos.note
             ),
-            payload: offer.payload,
+            payload: payloadForLog(logAction, "SUCCESS", offer.payload),
           },
         });
 

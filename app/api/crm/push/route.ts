@@ -12,6 +12,7 @@ import type {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateCrmRequest } from "@/lib/crm/authenticateCrmRequest";
+import { payloadForLog } from "@/lib/crm/log-policy";
 
 type CrmPushPhoto = {
   url: string;
@@ -251,7 +252,7 @@ export async function POST(req: NextRequest) {
           action: "ERROR",
           status: "ERROR",
           message: validationError,
-          payload: body,
+          payload: payloadForLog("ERROR", "ERROR", body),
         },
       });
 
@@ -311,7 +312,7 @@ export async function POST(req: NextRequest) {
             action: "SKIP_NO_CREDITS",
             status: "ERROR",
             message: "Brak dostępnych publikacji do utworzenia oferty.",
-            payload: body,
+            payload: payloadForLog("SKIP_NO_CREDITS", "ERROR", body),
           },
         });
 
@@ -442,7 +443,7 @@ export async function POST(req: NextRequest) {
             action: "SKIP_NO_CREDITS",
             status: "ERROR",
             message: "Brak dostępnych publikacji do reaktywacji oferty.",
-            payload: body,
+            payload: payloadForLog("SKIP_NO_CREDITS", "ERROR", body),
           },
         });
 
