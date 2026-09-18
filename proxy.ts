@@ -8,8 +8,9 @@ import { getToken } from 'next-auth/jwt';
  * Sprawdza tylko, czy jest ważne ciasteczko sesji. O dostępie decydują strony i akcje serwerowe
  * (rola ADMIN z bazy, właściciel ogłoszenia) i tak ma zostać: proxy ich nie zastępuje.
  *
- * Plik musi leżeć w korzeniu repo, obok app/. Next szuka go w src/ tylko przy układzie src/app,
- * dlatego wcześniejszy src/middleware.ts nigdy się nie uruchomił. */
+ * Plik leży w korzeniu repo, obok app/, bo tylko tu widzą go i next dev, i build. Wcześniejszy
+ * src/middleware.ts build (Turbopack) wykrywał i na produkcji działał, a lokalny next dev nie,
+ * więc na localhost /panel zachowywał się inaczej niż na produkcji. */
 export async function proxy(req: NextRequest) {
   // Akcja serwerowa to POST na adres strony. Przekierowanie kazałoby przeglądarce powtórzyć POST
   // na /logowanie i zamiast komunikatu z akcji użytkownik dostałby ogólny błąd.
