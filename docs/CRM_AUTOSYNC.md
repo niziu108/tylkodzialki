@@ -196,6 +196,36 @@ Bez włącznika silnik w każdym przebiegu pisze w logu workera, co by skasował
 `CRM_ESTICRM_PRUNE=<id jednego biura>` + `pm2 restart crm-worker --update-env`, kontrola kolejnego
 przebiegu tego biura, potem `CRM_ESTICRM_PRUNE=1`.
 
+## Pusty katalog FTP: „Czeka na 1. paczkę”
+
+Biuro dostaje katalog na FTP, zanim włączy eksport w swoim CRM, więc do pierwszej paczki katalog
+jest pusty. Reguły w `src/lib/crm/integration-health.ts` (testy obok).
+
+**DOMY.PL (Galactica, IMOX, Propertly), od 2026-09-18.** Katalog bez żadnej paczki ZIP/XML u
+integracji bez śladu importu (zero `CrmProcessedFile` w dowolnym statusie, zero `CrmOfferLink`, puste
+`lastSuccessAt`) kończy przebieg bez błędu:
+- job `SUCCESS` z `remoteFileName = CZEKA_NA_PIERWSZA_PACZKE`, bez wpisu w `CrmSyncLog`,
+- w logu workera (stdout, nie log błędów): `[CRM DEBUG] Katalog ... czeka na pierwszą paczkę (to nie błąd)`,
+- przebieg zdejmuje błąd zostawiony przez dawne przebiegi, ale nie ustawia `lastSuccessAt`, bo pusta
+  data jest częścią śladu: z nią kolejny pusty przebieg byłby już alarmem.
+
+U integracji ze śladem importu pusty katalog zostaje błędem jak dotąd (`Nie znaleziono żadnego pliku
+ZIP/XML w katalogu ...`): biuro zmieniło katalog albo wyłączyło eksport (Arkadia Włocławek, 3 miesiące
+bez importu). Przed zmianą 7 integracji (5x IMOX, 2x Galactica) dawało 84 joby ERROR na dobę, a worker
+po każdym błędzie czeka 60 s, czyli każda seria stała 7 z ok. 22 minut.
+
+**ASARI, EstiCRM, LocumNet (bez zmian).** Katalog bez plików ofert zawsze kończy przebieg sukcesem
+i ustawia `lastSuccessAt`, bez względu na historię (joby `ASARI_MULTIPLE_FILES`, `ESTICRM_FILES`,
+`LOCUMNET_FILES`). Zero szumu, ale też zero alarmu, gdy biuro z ofertami zgubi katalog. Gdyby tam
+wpinać tę samą regułę, śladem mogą być tylko oferty: `lastSuccessAt` ustawiały już puste przebiegi,
+a `CrmProcessedFile` te silniki nie prowadzą.
+
+**Panel `/admin/crm`:**
+- **Czeka na 1. paczkę**: zero ofert i zero przetworzonych paczek, ostatni przebieg bez błędu. Obejmuje
+  wszystkie silniki, więc u ASARI, EstiCRM i LocumNet trafia tu też rzadki eksport bez żadnej działki.
+- **Brak danych**: zero ofert, ale paczki przetworzone (tylko DOMY.PL): przychodzą bez żadnej działki.
+- Kolejność „Problemy najpierw”: Błąd, Brak danych, Nieświeże, Czeka na 1. paczkę, OK, Wyłączona.
+
 ## Bezpieczeństwo (mapowanie na ryzyka z audytu)
 
 | Ryzyko | Jak zaadresowane |
