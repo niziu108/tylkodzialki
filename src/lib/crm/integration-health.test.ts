@@ -3,6 +3,7 @@ import {
   awaitingFirstFeedUpdate,
   integrationHealth,
   isAwaitingFirstFeed,
+  isEmptyDirectoryAlarm,
   type IntegrationHealthInput,
 } from "./integration-health";
 
@@ -47,6 +48,29 @@ describe("isAwaitingFirstFeed", () => {
 
   it("sam udany przebieg też jest śladem, np. po przepięciu integracji z innego silnika", () => {
     expect(isAwaitingFirstFeed({ hasProcessedFile: false, hasOfferLink: false, lastSuccessAt: at(24) })).toBe(false);
+  });
+});
+
+describe("isEmptyDirectoryAlarm (ASARI, EstiCRM, LocumNet)", () => {
+  it("biuro z ofertami opróżniło albo zmieniło katalog: błąd przebiegu", () => {
+    expect(isEmptyDirectoryAlarm({ offerFilesInDirectory: 0, hasOfferLink: true })).toBe(true);
+  });
+
+  it("7 integracji z 18.09 bez ofert: data sukcesu z pustych przebiegów nie jest śladem, dalej czekają", () => {
+    // 6x ASARI i 1x EstiCRM: każdy pusty przebieg ustawiał lastSuccessAt. W DOMY.PL to już byłby alarm.
+    expect(isAwaitingFirstFeed({ hasProcessedFile: false, hasOfferLink: false, lastSuccessAt: at(2) })).toBe(false);
+    expect(isEmptyDirectoryAlarm({ offerFilesInDirectory: 0, hasOfferLink: false })).toBe(false);
+  });
+
+  it("paczki bez żadnej działki to nie pusty katalog", () => {
+    // ASARI /emaczestochowa 18.09: 5 par CFG + *_001.xml, najnowsza z 08.09, każdy przebieg 0 ofert.
+    expect(isEmptyDirectoryAlarm({ offerFilesInDirectory: 5, hasOfferLink: true })).toBe(false);
+  });
+
+  it("EstiCRM: puste okno przebiegu przy paczkach w katalogu to nie pusty katalog", () => {
+    // /dsilodz 18.09: 15 ZIP-ów, najnowszy z 15.09, okno sięga doby przed ostatnim sukcesem. Liczba
+    // z okna (0) zapaliłaby Błąd u zdrowego biura, dlatego silnik podaje cały katalog.
+    expect(isEmptyDirectoryAlarm({ offerFilesInDirectory: 15, hasOfferLink: true })).toBe(false);
   });
 });
 

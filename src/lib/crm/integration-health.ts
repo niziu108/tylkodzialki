@@ -8,7 +8,8 @@
  *
  * Pusty katalog u integracji, która już coś importowała, zostaje błędem: biuro zmieniło katalog albo
  * wyłączyło eksport, a my po cichu tracimy podaż (Arkadia Włocławek, katalog ze spacją na końcu,
- * 3 miesiące bez importu).
+ * 3 miesiące bez importu). ASARI, EstiCRM i LocumNet mają tę regułę w wersji z samymi ofertami jako
+ * śladem (isEmptyDirectoryAlarm).
  */
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -40,6 +41,32 @@ export function awaitingFirstFeedUpdate(now: Date) {
     lastErrorMessage: null,
     lastErrorCount: 0,
   };
+}
+
+/**
+ * ASARI, EstiCRM i LocumNet: katalog bez żadnego pliku ofert u integracji, która ma oferty w bazie, to
+ * błąd przebiegu, jak w DOMY.PL. Wcześniej taki przebieg kończył się sukcesem, panel pokazywał „OK”,
+ * a oferty wisiały na portalu bez aktualizacji i bez sygnałów usunięcia. Nasze sprzątanie FTP zawsze
+ * zostawia najświeższe paczki, więc pusty katalog po imporcie to anomalia: opróżniony albo zmieniony
+ * katalog, zła ścieżka w integracji, eksport wyłączony w CRM.
+ *
+ * Śladem importu są tu TYLKO oferty, inaczej niż w isAwaitingFirstFeed. Te silniki zawsze kończyły pusty
+ * przebieg sukcesem z lastSuccessAt, więc datę sukcesu mają też biura, które nic jeszcze nie przysłały
+ * (18.09.2026: 6x ASARI i 1x EstiCRM), a CrmProcessedFile prowadzi tylko DOMY.PL. Bez oferty pusty
+ * katalog dalej znaczy czekanie na pierwszy eksport.
+ */
+export function isEmptyDirectoryAlarm(dir: {
+  /**
+   * Pliki ofert w katalogu i jeden poziom niżej, jak widzi je lista FTP silnika: ASARI `*_NNN.xml`,
+   * EstiCRM i LocumNet paczki ZIP i luźne XML ofert. Zawsze cały katalog, NIE okno przebiegu EstiCRM:
+   * okno bywa puste u biura, które od doby nic nie wysłało, a katalog nie (18.09.2026: 3 z 9 biur
+   * EstiCRM z ofertami).
+   */
+  offerFilesInDirectory: number;
+  /** Choć jeden CrmOfferLink, także wygaszony. */
+  hasOfferLink: boolean;
+}): boolean {
+  return dir.offerFilesInDirectory === 0 && dir.hasOfferLink;
 }
 
 export type IntegrationHealth = "ERROR" | "NO_DATA" | "STALE" | "WAITING" | "OK" | "DISABLED";

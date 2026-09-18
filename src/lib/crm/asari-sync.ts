@@ -36,6 +36,7 @@ import {
   resolveAsariFullExportScope,
 } from "@/lib/crm/asari-full-export";
 import { xmlIntegrityProblem } from "@/lib/crm/xml-integrity";
+import { isEmptyDirectoryAlarm } from "@/lib/crm/integration-health";
 
 type IntegrationForSync = {
   id: string;
@@ -963,6 +964,21 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
         !/^definictions\.xml$/i.test(item.name) &&
         !/^definitions\.xml$/i.test(item.name)
     );
+
+    // Pusty katalog to alarm tylko u integracji, która ma już oferty (isEmptyDirectoryAlarm). Nowe
+    // biuro dostaje katalog przed pierwszym eksportem i do tego czasu czeka bez błędu.
+    if (allOfferXmlCandidates.length === 0) {
+      const offerLink = await prisma.crmOfferLink.findFirst({
+        where: { integrationId: integration.id },
+        select: { id: true },
+      });
+
+      if (isEmptyDirectoryAlarm({ offerFilesInDirectory: allOfferXmlCandidates.length, hasOfferLink: offerLink !== null })) {
+        throw new Error(
+          `Nie znaleziono żadnego pliku ofert ASARI (*_NNN.xml) w katalogu ${remoteDir}, a integracja ma już oferty w bazie. Bez paczek z CRM te oferty nie są aktualizowane.`
+        );
+      }
+    }
 
     const listedOfferBasenames = new Set(cfg.listedOfferFiles.map(safeBasename));
 

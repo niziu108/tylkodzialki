@@ -46,6 +46,7 @@ import {
 } from "@/lib/crm/esticrm-feed-window";
 import { extractZipToDir } from "@/lib/crm/zip-extract";
 import { xmlIntegrityProblem } from "@/lib/crm/xml-integrity";
+import { isEmptyDirectoryAlarm } from "@/lib/crm/integration-health";
 
 type IntegrationForSync = {
   id: string;
@@ -753,6 +754,20 @@ async function downloadEstiFeedFromFtp(
     );
 
     if (allZips[0]) remoteFileName = allZips[0].name;
+
+    // Pusty katalog to alarm tylko u integracji, która ma już oferty (isEmptyDirectoryAlarm). Liczymy
+    // CAŁY katalog, nie okno przebiegu niżej: okno bywa puste u biura, które od doby nic nie wysłało.
+    // Przy niewylistowanym podkatalogu pustki nie da się stwierdzić, ten błąd przebieg zgłasza osobno.
+    const offerFilesInDirectory =
+      allZips.length +
+      files.filter((item) => item.name.toLowerCase().endsWith(".xml") && safeBasename(item.name) !== "definitions.xml")
+        .length;
+
+    if (failedDirs.length === 0 && isEmptyDirectoryAlarm({ offerFilesInDirectory, hasOfferLink: hasImportedOffers })) {
+      throw new Error(
+        `Nie znaleziono żadnego pliku ZIP/XML w katalogu ${remoteDir}, a integracja ma już oferty w bazie. Bez paczek z CRM te oferty nie są aktualizowane.`
+      );
+    }
 
     // Okno przebiegu: paczki od ostatniego udanego przebiegu minus zakładka. Wcześniej pętla szła
     // wstecz aż do pełnego eksportu, a EstiCRM wysyła go tylko raz, na starcie, więc każdy przebieg
