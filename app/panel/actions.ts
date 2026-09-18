@@ -3,9 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
+import Stripe from 'stripe';
 import { authOptions } from '@/auth-options';
+import { zaksiegujZakupWyroznien } from '@/lib/invoices';
 import { prisma } from '@/lib/prisma';
 import { deleteFromR2 } from '@/lib/r2';
+import { stripe } from '@/lib/stripe';
+import { ocenPowrotZeStripe } from '@/lib/zakupWyroznien';
 import { DzialkaSourceType, DzialkaStatus } from '@prisma/client';
 
 // Odmowę, którą ma zobaczyć użytkownik (brak publikacji, reguła 30 dni, oferta z CRM...),
@@ -275,32 +279,25 @@ export async function usunOgloszenieAction(dzialkaId: string): Promise<PanelActi
   revalidatePath('/kup');
 }
 
-export async function wyroznijOgloszenieAction(
-  dzialkaId: string
-): Promise<PanelActionResult> {
-  const ownerId = await getCurrentUserId();
+// Wyróżnienie oferty za jeden punkt: przycisk „Wyróżnij" i powrót ze Stripe po zakupie.
+type Wyroznienie = 'wyrozniono' | 'juz-wyroznione' | 'brak-punktow' | 'brak-oferty';
 
-  if (!ownerId) {
-    return { error: SESJA_WYGASLA };
-  }
+const BRAK_PUNKTOW = 'BRAK_PUNKTOW';
 
-  const user = await prisma.user.findUnique({
-    where: { id: ownerId },
-    select: {
-      id: true,
-      featuredCredits: true,
-      featuredCreditsExpiresAt: true,
-    },
-  });
-
-  if (!user) {
-    return { error: SESJA_WYGASLA };
-  }
-
-  const dzialka = await getOwnedDzialka(dzialkaId, ownerId);
+async function wyroznZaPunkt(ownerId: string, dzialkaId: string): Promise<Wyroznienie> {
+  const [user, dzialka] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: ownerId },
+      select: {
+        featuredCredits: true,
+        featuredCreditsExpiresAt: true,
+      },
+    }),
+    getOwnedDzialka(dzialkaId, ownerId),
+  ]);
 
   if (!dzialka) {
-    return { error: 'Ogłoszenie nie istnieje lub nie należy do użytkownika.' };
+    return 'brak-oferty';
   }
 
   const now = new Date();
@@ -310,58 +307,195 @@ export async function wyroznijOgloszenieAction(
     dzialka.featuredUntil &&
     new Date(dzialka.featuredUntil).getTime() > now.getTime()
   ) {
-    return { error: 'To ogłoszenie jest już aktualnie wyróżnione.' };
+    return 'juz-wyroznione';
   }
 
   // Data ważności pakietu jest wiążąca, nie ozdobna. Panel od zawsze pokazywał
   // „ważne do ...", ale nic tego nie pilnowało — punkty z wygasłego pakietu dawały się
   // wydać bez końca. Przy pakietach przyznawanych partnerom z ręki (na kwartał)
-  // to różnica między obietnicą a jej dotrzymaniem.
+  // to różnica między obietnicą a jej dotrzymaniem. Zakup zdejmuje tę datę
+  // (zaksiegujZakupWyroznien), więc kupionych punktów ona nie blokuje.
   const pakietWygasl =
-    !!user.featuredCreditsExpiresAt &&
+    !!user?.featuredCreditsExpiresAt &&
     new Date(user.featuredCreditsExpiresAt).getTime() <= now.getTime();
 
-  if ((user.featuredCredits ?? 0) <= 0 || pakietWygasl) {
-    redirect(`/panel/wyroznienia?dzialkaId=${dzialkaId}`);
+  if (!user || (user.featuredCredits ?? 0) <= 0 || pakietWygasl) {
+    return 'brak-punktow';
   }
 
-  const wyrozniono = await prisma.$transaction(async (tx) => {
-    const updatedUser = await tx.user.updateMany({
-      where: {
-        id: ownerId,
-        featuredCredits: {
-          gt: 0,
+  // Najpierw oferta, i to warunkowo (tylko gdy nie jest wyróżniona), potem punkt. Dwa
+  // równoległe wyróżnienia tej samej oferty (dwie karty, powrót ze Stripe i przycisk) zdejmą
+  // wtedy jeden punkt: drugie czeka na zapis pierwszego i nie spełnia już warunku.
+  try {
+    return await prisma.$transaction(async (tx): Promise<Wyroznienie> => {
+      const oferta = await tx.dzialka.updateMany({
+        where: {
+          id: dzialkaId,
+          ownerId,
+          OR: [
+            { isFeatured: false },
+            { featuredUntil: null },
+            { featuredUntil: { lte: now } },
+          ],
         },
-      },
-      data: {
-        featuredCredits: {
-          decrement: 1,
+        data: {
+          isFeatured: true,
+          featuredUntil: addDays(now, 7),
         },
-      },
-    });
+      });
 
-    if (updatedUser.count === 0) {
-      return false;
+      if (oferta.count === 0) {
+        return 'juz-wyroznione';
+      }
+
+      const punkt = await tx.user.updateMany({
+        where: {
+          id: ownerId,
+          featuredCredits: {
+            gt: 0,
+          },
+        },
+        data: {
+          featuredCredits: {
+            decrement: 1,
+          },
+        },
+      });
+
+      // Ostatni punkt zszedł między sprawdzeniem a transakcją (np. wyróżnienie drugiej oferty
+      // w tej samej chwili). Wyjątek cofa też wyróżnienie oferty.
+      if (punkt.count === 0) {
+        throw new Error(BRAK_PUNKTOW);
+      }
+
+      return 'wyrozniono';
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === BRAK_PUNKTOW) {
+      return 'brak-punktow';
     }
 
-    await tx.dzialka.update({
-      where: { id: dzialkaId },
-      data: {
-        isFeatured: true,
-        featuredUntil: addDays(now, 7),
-      },
-    });
+    throw e;
+  }
+}
 
-    return true;
-  });
+export async function wyroznijOgloszenieAction(
+  dzialkaId: string
+): Promise<PanelActionResult> {
+  const ownerId = await getCurrentUserId();
 
-  // Ostatni punkt zszedł między sprawdzeniem a transakcją (np. wyróżnienie drugiej oferty
-  // w tej samej chwili). Tak samo jak przy braku punktów: do zakupu wyróżnienia.
-  if (!wyrozniono) {
+  if (!ownerId) {
+    return { error: SESJA_WYGASLA };
+  }
+
+  const wynik = await wyroznZaPunkt(ownerId, dzialkaId);
+
+  if (wynik === 'brak-oferty') {
+    return { error: 'Ogłoszenie nie istnieje lub nie należy do użytkownika.' };
+  }
+
+  if (wynik === 'juz-wyroznione') {
+    return { error: 'To ogłoszenie jest już aktualnie wyróżnione.' };
+  }
+
+  // Brak punktów albo wygasły pakiet, także gdy ostatni punkt zszedł w tej samej chwili
+  // na inną ofertę: do zakupu wyróżnienia.
+  if (wynik === 'brak-punktow') {
     redirect(`/panel/wyroznienia?dzialkaId=${dzialkaId}`);
   }
 
   revalidatePath('/panel');
   revalidatePath('/kup');
   revalidatePath(`/dzialka/${dzialkaId}`);
+}
+
+// Powrót ze Stripe po zakupie wyróżnienia (AutoFeaturedAfterPurchase). „w-toku" to płatność
+// jeszcze niepotwierdzona albo chwilowa awaria: panel zapyta ponownie za chwilę.
+export type ZakupWyroznieniaResult =
+  | { stan: 'wyrozniono' | 'zaksiegowano' | 'w-toku' }
+  | { error: string };
+
+const PLATNOSC_NIEZNANA = 'Nie znaleźliśmy tej płatności na Twoim koncie.';
+
+// Tyle po zaksięgowaniu zakupu powrót ze Stripe może sam wyróżnić ofertę.
+const AUTO_WYROZNIENIE_MS = 24 * 60 * 60 * 1000;
+
+// Panel wracał ze Stripe i od razu klikał „Wyróżnij". Punkty dopisywał tylko webhook, więc gdy
+// przyszedł później niż przeglądarka, świeżo płacący klient lądował z powrotem na stronie
+// zakupu (i mógł zapłacić drugi raz). Teraz powrót sam sprawdza płatność u Stripe i ją
+// księguje, tą samą funkcją co webhook, a do zakupu stąd nie odsyłamy nigdy.
+export async function dokonczZakupWyroznieniaAction(
+  sessionId: string
+): Promise<ZakupWyroznieniaResult> {
+  const ownerId = await getCurrentUserId();
+
+  if (!ownerId) {
+    return { error: SESJA_WYGASLA };
+  }
+
+  if (!/^cs_\w{1,250}$/.test(sessionId)) {
+    return { error: PLATNOSC_NIEZNANA };
+  }
+
+  let session: Stripe.Checkout.Session;
+
+  try {
+    session = await stripe.checkout.sessions.retrieve(sessionId);
+  } catch (e) {
+    // Nieznana sesja (np. adres sklejony ręcznie) to odmowa. Sieć albo chwilowa awaria Stripe
+    // to „jeszcze księgujemy", a punkty i tak dopisze webhook.
+    if (e instanceof Stripe.errors.StripeInvalidRequestError) {
+      return { error: PLATNOSC_NIEZNANA };
+    }
+
+    console.error('[ZAKUP WYROZNIENIA] Stripe:', e);
+    return { stan: 'w-toku' };
+  }
+
+  const ocena = ocenPowrotZeStripe(session, ownerId);
+
+  if (ocena.stan === 'odrzucona') {
+    return {
+      error:
+        ocena.powod === 'obca'
+          ? PLATNOSC_NIEZNANA
+          : 'Ta płatność nie została dokończona.',
+    };
+  }
+
+  if (ocena.stan === 'w-toku') {
+    return { stan: 'w-toku' };
+  }
+
+  let zaksiegowanoAt: Date;
+
+  try {
+    ({ zaksiegowanoAt } = await zaksiegujZakupWyroznien(session, ocena.zakup));
+  } catch (e) {
+    console.error('[ZAKUP WYROZNIENIA] księgowanie:', e);
+    return { stan: 'w-toku' };
+  }
+
+  revalidatePath('/panel');
+
+  const { dzialkaId } = ocena.zakup;
+
+  // Ofertę wybraną przed zakupem wyróżniamy tylko świeżo po płatności. Ten sam adres otwarty
+  // po tygodniu (np. z historii przeglądarki) nie może po cichu wydać kolejnego punktu.
+  if (!dzialkaId || Date.now() - zaksiegowanoAt.getTime() > AUTO_WYROZNIENIE_MS) {
+    return { stan: 'zaksiegowano' };
+  }
+
+  const wynik = await wyroznZaPunkt(ownerId, dzialkaId);
+
+  if (wynik === 'wyrozniono') {
+    revalidatePath('/kup');
+    revalidatePath(`/dzialka/${dzialkaId}`);
+  }
+
+  // Oferta mogła zniknąć albo punkt pójść w tej samej chwili na inną ofertę. Zakup i tak
+  // jest na koncie, więc to nadal sukces, tylko bez wyróżnienia tej oferty.
+  return wynik === 'wyrozniono' || wynik === 'juz-wyroznione'
+    ? { stan: 'wyrozniono' }
+    : { stan: 'zaksiegowano' };
 }

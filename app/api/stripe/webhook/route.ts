@@ -5,82 +5,16 @@ import { InvoiceBuyerType, KsefStatus } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
-import { generateInvoiceNumber } from '@/lib/invoices';
+import {
+  generateInvoiceNumber,
+  getItemName,
+  resolveBuyerFromMetadata,
+  zaksiegujZakupWyroznien,
+} from '@/lib/invoices';
+import { zakupWyroznienZSesji } from '@/lib/zakupWyroznien';
 
 function addDays(date: Date, days: number) {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
-}
-
-function getItemName(params: {
-  type?: string;
-  credits?: number;
-  featuredCredits?: number;
-  packageType?: string;
-}) {
-  const { type, credits = 0, featuredCredits = 0, packageType } = params;
-
-  if (type === 'featured') {
-    if (featuredCredits === 1) return 'Pakiet 1 wyróżnienia';
-    if (featuredCredits === 3) return 'Pakiet 3 wyróżnień';
-    return `Pakiet wyróżnień (${featuredCredits})`;
-  }
-
-  if (packageType === 'SINGLE' || credits === 1) {
-    return 'Pakiet 1 publikacji';
-  }
-
-  if (packageType === 'PACK_10' || credits === 10) {
-    return 'Pakiet 10 publikacji';
-  }
-
-  if (packageType === 'PACK_40' || credits === 40) {
-    return 'Pakiet 40 publikacji';
-  }
-
-  return `Pakiet publikacji (${credits})`;
-}
-
-type ResolvedBuyer = {
-  buyerType: InvoiceBuyerType;
-  buyerName: string | null;
-  companyName: string | null;
-  nip: string | null;
-  addressLine1: string | null;
-  addressLine2: string | null;
-  postalCode: string | null;
-  city: string | null;
-  country: string;
-  invoiceEmail: string | null;
-};
-
-function resolveBuyerFromMetadata(metadata: Record<string, string>): ResolvedBuyer {
-  const buyerType: InvoiceBuyerType =
-    metadata.buyerType === 'company'
-      ? InvoiceBuyerType.COMPANY
-      : InvoiceBuyerType.PRIVATE;
-
-  const buyerName = (metadata.buyerName || '').trim() || null;
-  const companyName = (metadata.companyName || '').trim() || null;
-  const nip = (metadata.nip || '').trim() || null;
-  const addressLine1 = (metadata.addressLine1 || '').trim() || null;
-  const addressLine2 = (metadata.addressLine2 || '').trim() || null;
-  const postalCode = (metadata.postalCode || '').trim() || null;
-  const city = (metadata.city || '').trim() || null;
-  const country = (metadata.country || '').trim() || 'PL';
-  const invoiceEmail = (metadata.invoiceEmail || '').trim() || null;
-
-  return {
-    buyerType,
-    buyerName,
-    companyName,
-    nip,
-    addressLine1,
-    addressLine2,
-    postalCode,
-    city,
-    country,
-    invoiceEmail,
-  };
 }
 
 export async function POST(req: Request) {
@@ -130,105 +64,18 @@ export async function POST(req: Request) {
     const currency = (session.currency || 'pln').toUpperCase();
 
     try {
-      if (type === 'featured' && userId && featuredCredits > 0) {
-        console.log('[STRIPE WEBHOOK] featured branch', {
-          userId,
-          featuredCredits,
-          buyer,
-        });
+      // Zakup wyróżnień księguje też powrót klienta ze Stripe (panel), więc tu może już być
+      // zaksięgowany. Oba wejścia idą przez jedną funkcję, która nie dopisze punktów dwa razy.
+      const zakupWyroznien = zakupWyroznienZSesji(session);
 
-        const existingInvoice = await prisma.invoice.findUnique({
-          where: { stripeSessionId: session.id },
-          select: { id: true },
-        });
+      if (zakupWyroznien) {
+        const { nowy } = await zaksiegujZakupWyroznien(session, zakupWyroznien);
 
-        if (existingInvoice) {
-          console.log(
-            '[STRIPE WEBHOOK] featured invoice already exists, pomijam'
-          );
-          return NextResponse.json({ received: true });
-        }
-
-        const now = new Date();
-        const invoiceNumber = await generateInvoiceNumber(now);
-
-        await prisma.$transaction(async (tx) => {
-          await tx.user.update({
-            where: { id: userId },
-            data: {
-              featuredCredits: {
-                increment: featuredCredits,
-              },
-            },
-          });
-
-          await tx.invoice.create({
-            data: {
-              userId,
-              stripeSessionId: session.id,
-              stripePaymentIntentId:
-                typeof session.payment_intent === 'string'
-                  ? session.payment_intent
-                  : null,
-              stripeCheckoutUrl: session.url ?? null,
-
-              invoiceNumber,
-              type: 'FEATURED_PACKAGE',
-              status: 'PAID',
-              source: 'INTERNAL',
-
-              amountGross,
-              currency,
-
-              buyerType: buyer.buyerType,
-              buyerName:
-                buyer.buyerType === InvoiceBuyerType.PRIVATE
-                  ? buyer.buyerName
-                  : null,
-              companyName:
-                buyer.buyerType === InvoiceBuyerType.COMPANY
-                  ? buyer.companyName
-                  : null,
-              nip:
-                buyer.buyerType === InvoiceBuyerType.COMPANY
-                  ? buyer.nip
-                  : null,
-              addressLine1:
-                buyer.buyerType === InvoiceBuyerType.COMPANY
-                  ? buyer.addressLine1
-                  : null,
-              addressLine2:
-                buyer.buyerType === InvoiceBuyerType.COMPANY
-                  ? buyer.addressLine2
-                  : null,
-              postalCode:
-                buyer.buyerType === InvoiceBuyerType.COMPANY
-                  ? buyer.postalCode
-                  : null,
-              city:
-                buyer.buyerType === InvoiceBuyerType.COMPANY
-                  ? buyer.city
-                  : null,
-              country: buyer.country,
-              invoiceEmail:
-                buyer.invoiceEmail || session.customer_details?.email || null,
-
-              itemName: getItemName({
-                type,
-                featuredCredits,
-              }),
-              quantity: 1,
-
-              issuedAt: now,
-              paidAt: now,
-
-              ksefRequired: true,
-              ksefStatus: KsefStatus.READY,
-            },
-          });
-        });
-
-        console.log('[STRIPE WEBHOOK] featuredCredits + invoice dodane pomyślnie');
+        console.log(
+          nowy
+            ? '[STRIPE WEBHOOK] featuredCredits + invoice dodane pomyślnie'
+            : '[STRIPE WEBHOOK] featured invoice already exists, pomijam'
+        );
         return NextResponse.json({ received: true });
       }
 
