@@ -140,13 +140,11 @@ export async function POST(req: Request) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    const successUrl = new URL('/panel', appUrl);
-    successUrl.searchParams.set('success', 'featured');
-
-    if (dzialkaId) {
-      successUrl.searchParams.set('autoFeatured', '1');
-      successUrl.searchParams.set('dzialkaId', dzialkaId);
-    }
+    // Powrót niesie tylko identyfikator sesji: panel sprawdza płatność u Stripe, księguje ją,
+    // jeśli webhook jeszcze nie zdążył, i wyróżnia ofertę zapisaną w metadanych (dzialkaId).
+    // {CHECKOUT_SESSION_ID} podstawia Stripe, więc musi zostać dosłownie
+    // (URL.searchParams zakodowałby klamry).
+    const successUrl = `${new URL('/panel?success=featured', appUrl)}&session_id={CHECKOUT_SESSION_ID}`;
 
     const cancelUrl = new URL('/panel/wyroznienia', appUrl);
     if (dzialkaId) {
@@ -196,7 +194,7 @@ export async function POST(req: Request) {
             : (user.email || ''),
       },
 
-      success_url: successUrl.toString(),
+      success_url: successUrl,
       cancel_url: cancelUrl.toString(),
     });
 

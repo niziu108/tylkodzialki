@@ -50,6 +50,12 @@ export default async function EdytujOgloszeniePage({ params }: Props) {
     notFound();
   }
 
+  // Ofertę z CRM zmienia się w programie biura (import nadpisałby edycję), a panel pokazuje przy
+  // niej notkę zamiast „Edytuj”. Tu trafia już tylko ze starego linku albo zakładki.
+  if (dzialka.sourceType === 'CRM') {
+    redirect('/panel');
+  }
+
   return (
     <DzialkaForm
       mode="edit"

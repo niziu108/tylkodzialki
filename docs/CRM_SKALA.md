@@ -53,7 +53,8 @@ Pomiar z 2026-09-09: `CrmSyncLog` ważył 9 975 MB przy 170 MB całej reszty baz
 payloady wpisów UPDATE/SUCCESS: 1,55 mln kopii XML-a oferty po ~5,4 kB, odkładanych codziennie dla
 każdej ruszonej oferty. Przy 50 tys. ofert ten sam mechanizm dokłada ~270 MB dziennie.
 
-- **Zapis**: payload zostaje tylko przy ERROR, CREATE i SKIP_NO_CREDITS, i jest przycinany do 8 kB.
+- **Zapis**: payload zostaje tylko przy ERROR, CREATE i SKIP_NO_CREDITS, i jest przycinany do 32 kB
+  (do 18.09 było 8 kB, patrz niżej).
 - **Sprzątanie**: `npm run crm:logi` (raport) i `npm run crm:logi -- --apply`. Faza A zdejmuje
   payload z wpisów starszych niż 14 dni, zachowując całą historię zdarzeń. Faza B kasuje rutynowe
   wiersze starsze niż 120 dni. ERROR i DEACTIVATE zostają bezterminowo.
@@ -82,6 +83,21 @@ sprowadził tabelę z 10 172 MB do 2 567 MB.
 Pozostałe ~1,9 GB to payloady z ostatnich 14 dni, czyli okno diagnostyczne, którego retencja nie
 rusza. Wpadną pod próg za dwa tygodnie — wtedy warto powtórzyć `npm run crm:logi -- --apply`
 (albo włączyć automat). Docelowy rozmiar tabeli to okolice 600–700 MB.
+
+## Poprawka 2026-09-18: UPDATE omijał regułę zapisu
+
+Reguła z `log-policy.ts` działała tylko w `logSync`. Wpisy CREATE i UPDATE/REACTIVATE powstają
+w transakcji `processOffer` (`tx.crmSyncLog.create`) i szły z pełnym payloadem, więc od 09.09
+każdy UPDATE dalej odkładał XML oferty: ok. 23,5 tys. wpisów i 123 MB na dobę. Dlatego tabela
+zamiast zejść do 600–700 MB urosła do 3 900 MB (18.09: heap 488 MB, TOAST 3 094 MB, indeksy 278 MB).
+
+- Każdy zapis CrmSyncLog z payloadem idzie przez `payloadForLog`: 4 silniki oraz trasy
+  `/api/crm/push` i `/api/crm/deactivate`. Pilnuje tego test w `log-policy.test.ts`, który skanuje
+  `src` i `app` (nowy silnik z zapisem wprost w transakcji nie przejdzie testów).
+- Sufit podniesiony z 8 do 32 kB: 8 kB przycinał każdy CREATE z EstiCRM (30 na 30 w 14 dni,
+  surowy `rawOffer` do 20,3 tys. znaków), a CREATE to ok. 40 wpisów na dobę.
+- Automat retencji nie jest włączony: od 09.09 nie zszedł żaden payload (najstarszy z 26.08,
+  zero martwych krotek w tabeli). Punkt 2 z „Czeka na decyzję" nadal otwarty.
 
 ## Czeka na decyzję
 

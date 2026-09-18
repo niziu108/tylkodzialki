@@ -20,6 +20,7 @@ import {
   usunOgloszenieAction,
   wyroznijOgloszenieAction,
 } from '../../app/panel/actions';
+import type { PanelActionResult } from '../../app/panel/actions';
 
 type Photo = { url: string; publicId?: string; kolejnosc?: number };
 type DzialkaStatus = 'AKTYWNE' | 'ZAKONCZONE';
@@ -479,8 +480,9 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   const daysLeft = getDaysLeft(d.expiresAt);
   const isFeaturedActive = isFeaturedNow(d);
   const isIndefinite = effectiveStatus === 'AKTYWNE' && !d.expiresAt;
-  // Ofertą z importu CRM rządzi program biura, więc bez Przedłuż/Aktywuj, Zakończ i Usuń.
-  // Powody i blokada tych akcji po stronie serwera: app/panel/actions.ts.
+  // Ofertą z importu CRM rządzi program biura, więc bez Edytuj, Przedłuż/Aktywuj, Zakończ i Usuń.
+  // Powody i blokada tych akcji po stronie serwera: app/panel/actions.ts, a dla edycji
+  // app/api/panel/dzialki/[id]/route.ts.
   const isCrm = d.sourceType === 'CRM';
 
   const viewsCount = d.viewsCount ?? 0;
@@ -538,20 +540,26 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
     };
   }, [d.id]);
 
-  async function runAction(action: () => Promise<void>, errorText: string) {
+  function runAction(action: () => Promise<PanelActionResult>, errorText: string) {
     startTransition(async () => {
       setActionError(null);
 
       try {
-        await action();
-      } catch (e: any) {
-        const msg = String(e?.message || '');
+        const result = await action();
 
-        if (msg.includes('NEXT_REDIRECT')) {
+        if (result?.error) {
+          setActionError(result.error);
+        }
+      } catch (e) {
+        // Brak punktów na wyróżnienie: akcja robi redirect() do zakupu. Obietnica kończy się
+        // wtedy błędem NEXT_REDIRECT, a przejście na stronę zakupu wykonuje już router.
+        if (e instanceof Error && e.message === 'NEXT_REDIRECT') {
           return;
         }
 
-        setActionError(msg || errorText);
+        // Treść nieoczekiwanego wyjątku na produkcji nie dociera (sam digest), a na devie
+        // byłaby techniczna, więc użytkownik dostaje ogólny tekst tej akcji.
+        setActionError(errorText);
       }
     });
   }
@@ -639,12 +647,14 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
         ) : null}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <ActionBtnAsLink
-            href={`/panel/ogloszenia/${d.id}/edytuj`}
-            label="Edytuj"
-            title="Zmień zdjęcia, cenę, opis i dane ogłoszenia"
-            disabled={isPending}
-          />
+          {!isCrm ? (
+            <ActionBtnAsLink
+              href={`/panel/ogloszenia/${d.id}/edytuj`}
+              label="Edytuj"
+              title="Zmień zdjęcia, cenę, opis i dane ogłoszenia"
+              disabled={isPending}
+            />
+          ) : null}
 
           <ActionBtnAsLink
             href={`/dzialka/${d.id}`}
@@ -722,8 +732,8 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           {isCrm ? (
             <p className="flex basis-full items-start gap-2 text-[12px] leading-5 text-fg/62 lg:basis-auto">
               <IconSync className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-              Ofertą zarządzasz w swoim CRM. Tam ją zakończysz lub wznowisz, a portal
-              zaktualizuje się sam.
+              Ofertą zarządzasz w swoim CRM. Tam ją edytujesz, zakończysz lub wznowisz,
+              a portal zaktualizuje się sam.
             </p>
           ) : (
             <ActionBtn

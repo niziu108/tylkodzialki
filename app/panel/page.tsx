@@ -15,8 +15,7 @@ type PanelPageProps = {
   searchParams?: Promise<{
     tab?: string;
     success?: string;
-    autoFeatured?: string;
-    dzialkaId?: string;
+    session_id?: string;
   }>;
 };
 
@@ -44,15 +43,12 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
       ? "ulubione"
       : "ogloszenia";
 
-  const shouldAutoFeature =
-    params?.success === "featured" &&
-    params?.autoFeatured === "1" &&
-    typeof params?.dzialkaId === "string" &&
-    params.dzialkaId.trim().length > 0;
-
-  const autoFeaturedDzialkaId = shouldAutoFeature
-    ? params!.dzialkaId!.trim()
-    : null;
+  // Powrót ze Stripe po zakupie wyróżnienia (app/api/stripe/checkout-featured). Samo
+  // session_id niczego nie przesądza: akcja sprawdza sesję u Stripe i jej właściciela.
+  const zakupSessionId =
+    params?.success === "featured" && typeof params?.session_id === "string"
+      ? params.session_id.trim() || null
+      : null;
 
   if (!email) {
     return (
@@ -353,8 +349,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           </div>
         </div>
 
-        {autoFeaturedDzialkaId ? (
-          <AutoFeaturedAfterPurchase dzialkaId={autoFeaturedDzialkaId} />
+        {zakupSessionId ? (
+          <AutoFeaturedAfterPurchase sessionId={zakupSessionId} />
         ) : null}
 
         <div className="mb-8 border-b border-fg/12">
