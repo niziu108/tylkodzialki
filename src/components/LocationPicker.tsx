@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { createParcelOverlay } from '@/lib/parcelOverlay';
 
@@ -74,6 +74,11 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
   modeRef.current = mode;
   const onDokladnyPunktRef = useRef(onDokladnyPunkt);
   onDokladnyPunktRef.current = onDokladnyPunkt;
+  // Bieżąca wartość z zewnątrz. Mapa wczytuje się asynchronicznie, więc przy jej tworzeniu bierzemy
+  // aktualną pinezkę, a nie tę z pierwszego renderu (działka z linku /sprzedaj?d=… albo z wersji
+  // roboczej potrafi przyjść już po starcie komponentu).
+  const valueRef = useRef(value);
+  valueRef.current = value;
   // Mapa nie jest już zawsze na widoku (za duża na telefonie i desktopie). Otwiera się
   // pełnoekranowo z zielonego przycisku „Wskaż na mapie" — spójnie z „Sprawdź działkę".
   const [mapOpen, setMapOpen] = useState(false);
@@ -84,11 +89,6 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
   // parcelText nie zmienia się w UI, ale zostaje jako wartość początkowa z wartości/draftu i leci
   // dalej w emit(). Działkę z ewidencji kreator dokleja sam przy zapisie ogłoszenia.
   const [parcelText] = useState(value?.parcelText ?? '');
-
-  const center = useMemo(() => {
-    if (value?.lat != null && value?.lng != null) return { lat: value.lat, lng: value.lng };
-    return DEFAULT_CENTER;
-  }, [value?.lat, value?.lng]);
 
   function emit(partial: Partial<LocationValue> & { lat: number; lng: number }) {
     const lat = partial.lat;
@@ -144,9 +144,14 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
 
       geocoderRef.current = new google.maps.Geocoder();
 
+      const startValue = valueRef.current;
+      const maPinezke = startValue?.lat != null && startValue?.lng != null;
+      const center = maPinezke ? { lat: startValue!.lat, lng: startValue!.lng } : DEFAULT_CENTER;
+
       const map = new google.maps.Map(mapDivRef.current, {
         center,
-        zoom: value?.lat ? 15 : 6,
+        // Z pinezką od razu tak blisko, żeby było widać granice działek (rysują się od zoomu ~16).
+        zoom: maPinezke ? 16 : 6,
         backgroundColor: 'var(--surface)',
         clickableIcons: false,
         mapTypeControl: false,
@@ -179,7 +184,7 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         strokeColor: '#7aa333',
         strokeOpacity: 0.4,
         strokeWeight: 1,
-        visible: false,
+        visible: modeRef.current === 'APPROX',
       });
       circleRef.current = circle;
 
@@ -249,6 +254,23 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Pinezka ustawiona z zewnątrz (działka z linku /sprzedaj?d=…): przesuwamy znacznik i mapę.
+  // Zmiany z samej mapy (kliknięcie, przeciągnięcie, adres z podpowiedzi) wracają tu z pozycją,
+  // na której znacznik już stoi, więc nic nie robią.
+  useEffect(() => {
+    const lat = value?.lat;
+    const lng = value?.lng;
+    const map = mapRef.current;
+    const marker = markerRef.current;
+    if (lat == null || lng == null || !map || !marker || !window.google?.maps) return;
+    const pos = marker.getPosition();
+    if (pos && Math.abs(pos.lat() - lat) < 1e-7 && Math.abs(pos.lng() - lng) < 1e-7) return;
+    marker.setPosition({ lat, lng });
+    circleRef.current?.setCenter({ lat, lng });
+    map.setCenter({ lat, lng });
+    if ((map.getZoom() ?? 0) < 16) map.setZoom(16);
+  }, [value?.lat, value?.lng]);
 
   // Mapa startuje ukryta (opacity-0), więc przy otwarciu wymuszamy przerysowanie i wracamy
   // na aktualną pinezkę — inaczej kafelki bywają szare do pierwszego ruchu.

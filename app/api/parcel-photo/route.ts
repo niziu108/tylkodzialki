@@ -4,8 +4,13 @@ import { NextResponse } from 'next/server';
 // Geoportal WYMAGA nagłówka User-Agent (bez niego zwraca 404) i nie ma CORS, dlatego
 // robimy to serwerowo i oddajemy klientowi gotowy obraz do wgrania w pipeline zdjęć.
 export const runtime = 'nodejs';
+// Usługa składa kadr 1280 px w ok. 10 s (pomiar 18.09.2026), więc funkcja potrzebuje zapasu.
+export const maxDuration = 30;
 
-const ORTHO_WMS = 'https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution';
+// Stary adres `WMS/StandardResolution` od września 2026 zwraca 404 (sprawdzone 18.09). Ta sama
+// warstwa `Raster` jest pod `StandardResolutionTime` i przyjmuje EPSG:3857, choć nie wymienia go w
+// GetCapabilities. `HighResolution` odpada: na wsi oddaje pusty kadr (brak pokrycia).
+const ORTHO_WMS = 'https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolutionTime';
 const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -63,7 +68,7 @@ export async function GET(req: Request) {
   try {
     const res = await fetch(`${ORTHO_WMS}?${params.toString()}`, {
       headers: { 'User-Agent': BROWSER_UA },
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(20000),
     });
 
     const ct = res.headers.get('content-type') ?? '';

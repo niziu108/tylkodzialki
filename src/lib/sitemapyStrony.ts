@@ -98,6 +98,8 @@ export async function getPageSitemapEntries(): Promise<SitemapEntry[]> {
       changeFrequency: 'monthly',
       priority: 0.85,
     },
+    // Wejście dla właściciela (fraza „wycena działki"), prowadzi do formularza z wskazaną działką.
+    { url: `${baseUrl}/wycena-dzialki`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/dla-biur`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/blog`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
 

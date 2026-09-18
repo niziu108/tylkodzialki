@@ -28,6 +28,8 @@ export type DaneDzialki = {
   parcel: ParcelReport;
   valuation: PointValuation;
   mpzp: MpzpInfo | null;
+  // serwer planów gminy nie odpowiedział: mpzp jest wtedy null, ale to „nie wiemy", nie „brak planu"
+  mpzpNiedostepny?: boolean;
   rcn: RcnOkolica | null;
 };
 
@@ -390,6 +392,8 @@ export type ZapisanaDzialka = {
   plan: { symbol: string | null; nazwa: string | null } | null;
   przeznaczeniaZPlanu: PrzeznaczenieKod[];
   podpowiedz: PodpowiedzCeny | null;
+  // serwer planów gminy nie odpowiedział: planu nie znamy, co NIE znaczy, że go nie ma
+  planNiedostepny?: boolean;
 };
 
 /**
@@ -410,5 +414,6 @@ export function zapisanaDzialka(dane: DaneDzialki, decyzja: CenaDecision): Zapis
     plan: dane.mpzp ? { symbol: dane.mpzp.functionSymbol, nazwa: dane.mpzp.functionName } : null,
     przeznaczeniaZPlanu: przeznaczeniaZPlanu(dane.mpzp),
     podpowiedz: podpowiedzCeny(decyzja, dane.valuation.radiusKm, dane.rcn),
+    planNiedostepny: !dane.mpzp && !!dane.mpzpNiedostepny,
   };
 }

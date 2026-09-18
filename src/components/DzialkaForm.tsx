@@ -27,6 +27,7 @@ import {
   nazwaMiejscowosci,
   opisDzialkiEwidencyjnej,
   punktWDzialce,
+  punktWewnatrzDzialki,
   tytulAutomatyczny,
   zapisanaDzialka,
   type DaneDzialki,
@@ -1414,6 +1415,21 @@ export default function DzialkaForm({
   function zastosujDaneDzialki(dane: DaneDzialki, punkt: { lat: number; lng: number }) {
     const nowa = zapisanaDzialka(dane, decydujCene(dane.valuation, dane.mpzp));
     const auto = autoRef.current;
+    // Po przeładowaniu strony autoRef jest pusty, ale poprzednia działka siedzi w wersji roboczej:
+    // jej wartości też uznajemy za nasze, żeby nowa działka mogła je nadpisać.
+    const poprzednia = dzialka;
+    if (poprzednia) {
+      auto.areaM2 ??= poprzednia.areaM2;
+      if (!auto.przeznaczenia && poprzednia.przeznaczeniaZPlanu.length > 0) {
+        auto.przeznaczenia = poprzednia.przeznaczeniaZPlanu;
+      }
+      auto.mpzp ??= poprzednia.plan != null;
+      auto.tytul ??= tytulAutomatyczny({
+        przeznaczenia: poprzednia.przeznaczeniaZPlanu,
+        powierzchniaM2: poprzednia.areaM2,
+        miejscowosc: nazwaMiejscowosci(poprzednia),
+      });
+    }
 
     const pm2 = parseFormattedNumber(powierzchniaM2);
     if (nowa.areaM2 > 0 && (!(pm2 > 0) || pm2 === auto.areaM2)) {
@@ -1460,6 +1476,70 @@ export default function DzialkaForm({
     setDzialka(nowa);
     void pullAerialPhoto({ lat: punkt.lat, lng: punkt.lng, rings: dane.parcel.rings });
   }
+
+  // Wejście z linku „/sprzedaj?d=<identyfikator>" (np. ze strony wyceny): działka od razu wskazana,
+  // dane uzupełnione tak samo jak po dokładnym kliknięciu na mapie.
+  async function wczytajDzialkeZLinku(parcelId: string) {
+    const nr = ++daneDzialkiZapytanieRef.current;
+    setDaneDzialkiStan('ladowanie');
+    try {
+      const res = await fetch('/api/sprawdz-dzialke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parcelId }),
+      });
+      const json = (await res.json().catch(() => null)) as (Partial<DaneDzialki> & { error?: string }) | null;
+      if (nr !== daneDzialkiZapytanieRef.current) return;
+      if (!res.ok || !json?.parcel || !json.valuation) {
+        setDaneDzialkiStan(res.status === 404 ? 'brak' : 'blad');
+        return;
+      }
+
+      const p = json.parcel;
+      // Pinezka na punkcie na pewno w działce: średnia wierzchołków działki w kształcie litery L
+      // wypada u sąsiada, a z pinezki ustalamy potem działkę do raportu pod ofertą.
+      const punkt = punktWewnatrzDzialki(p.rings) ?? p.center;
+      setLocation({
+        placeId: null,
+        locationFull: lokalizacjaPelna(p),
+        locationLabel: nazwaMiejscowosci(p),
+        lat: punkt.lat,
+        lng: punkt.lng,
+        mapsUrl: `https://www.google.com/maps?q=${punkt.lat},${punkt.lng}`,
+        locationMode: 'EXACT',
+        parcelText: null,
+      });
+      clearFieldError('location');
+      zastosujDaneDzialki(
+        {
+          parcel: p,
+          valuation: json.valuation,
+          mpzp: json.mpzp ?? null,
+          mpzpNiedostepny: Boolean(json.mpzpNiedostepny),
+          rcn: json.rcn ?? null,
+        },
+        punkt
+      );
+      setDaneDzialkiStan('idle');
+    } catch {
+      if (nr === daneDzialkiZapytanieRef.current) setDaneDzialkiStan('blad');
+    }
+  }
+
+  // Parametr `d` czytamy z window po odtworzeniu wersji roboczej (nie przez useSearchParams, bo ten
+  // hak wywala stronę w renderowanie po stronie klienta, [[project-csr-bailout-prerender]]) i od razu
+  // zdejmujemy z adresu: po przeładowaniu działka jest już w wersji roboczej.
+  useEffect(() => {
+    if (mode !== 'create' || !draftHydrated) return;
+    const url = new URL(window.location.href);
+    const d = url.searchParams.get('d');
+    if (!d) return;
+    url.searchParams.delete('d');
+    window.history.replaceState(null, '', url.toString());
+    if (!/^\d{6}_\d\.\d{4}\./.test(d) || dzialka?.id === d) return;
+    void wczytajDzialkeZLinku(d);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, draftHydrated]);
 
   // Pinezka zeszła z działki, której dane uzupełniliśmy (nowy adres, przeciągnięcie, kliknięcie
   // obok): zdjęcie z lotu ptaka i ceny dotyczą już innej działki, więc znikają. Wpisanych pól nie

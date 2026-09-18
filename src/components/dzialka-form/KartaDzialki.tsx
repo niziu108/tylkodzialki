@@ -4,9 +4,9 @@ import { czystaNazwaGminy, ladnaNazwa, type ZapisanaDzialka } from '@/lib/kreato
 import type { LatLng } from '@/lib/uldk';
 import { powiatLabelFromUldk } from '@/lib/uldkQuery';
 
-// Potwierdzenie „to ta działka": zdjęcie z lotu ptaka z obrysem (to samo, które trafia do ogłoszenia)
-// i to, co mówi o niej ewidencja. Właściciel zna obręb i powierzchnię z dokumentów, więc od razu
-// widzi, czy trafiliśmy.
+// Potwierdzenie „to ta działka": zdjęcie z lotu ptaka z obrysem (w kreatorze to samo, które trafia
+// do ogłoszenia) albo sam obrys i to, co mówi o działce ewidencja. Właściciel zna obręb i
+// powierzchnię z dokumentów, więc od razu widzi, czy trafiliśmy.
 
 function liczba(n: number): string {
   return Math.round(n)
@@ -17,16 +17,19 @@ function liczba(n: number): string {
 export default function KartaDzialki({
   dzialka,
   miejscowosc,
-  zdjecieUrl,
-  zdjecieLadowanie,
+  zdjecieUrl = null,
+  zdjecieLadowanie = false,
   onZmien,
+  wariant = 'kreator',
 }: {
   dzialka: ZapisanaDzialka;
   miejscowosc: string;
-  // nasze zdjęcie z lotu ptaka, gdy już się wgrało
-  zdjecieUrl: string | null;
-  zdjecieLadowanie: boolean;
+  // nasze zdjęcie z lotu ptaka, gdy już się wgrało (strona wyceny go nie robi: pokazuje sam obrys)
+  zdjecieUrl?: string | null;
+  zdjecieLadowanie?: boolean;
   onZmien: () => void;
+  // kreator mówi, co uzupełnił; strona wyceny tylko pokazuje działkę
+  wariant?: 'kreator' | 'wycena';
 }) {
   const gmina = ladnaNazwa(czystaNazwaGminy(dzialka.commune));
   const obreb = ladnaNazwa(dzialka.region);
@@ -70,23 +73,32 @@ export default function KartaDzialki({
 
         <dl className="mt-5 divide-y divide-fg/10 border-y border-fg/10 text-[14px]">
           <Wiersz etykieta="Powierzchnia z ewidencji" wartosc={`ok. ${liczba(dzialka.areaM2)} m²`} />
-          <Wiersz etykieta="Plan miejscowy" wartosc={plan || 'nie znaleźliśmy planu dla tej działki'} />
+          <Wiersz
+            etykieta="Plan miejscowy"
+            wartosc={
+              plan ||
+              // Serwer gminy nie odpowiedział: nie wiemy, a to nie to samo co „brak planu".
+              (dzialka.planNiedostepny ? 'serwer gminy nie odpowiedział' : 'nie znaleźliśmy planu dla tej działki')
+            }
+          />
           <Wiersz etykieta="Identyfikator" wartosc={dzialka.id} />
         </dl>
 
-        <p className="mt-4 text-[13px] leading-6 text-fg/65">
-          Uzupełniliśmy za Ciebie lokalizację, powierzchnię
-          {dzialka.przeznaczeniaZPlanu.length > 0 ? ', przeznaczenie' : ''} i tytuł
-          {zdjecieUrl ? ', a jako pierwsze zdjęcie dodaliśmy widok z lotu ptaka' : ''}. Wszystko możesz
-          poprawić w kolejnych krokach.
-        </p>
+        {wariant === 'kreator' ? (
+          <p className="mt-4 text-[13px] leading-6 text-fg/65">
+            Uzupełniliśmy za Ciebie lokalizację, powierzchnię
+            {dzialka.przeznaczeniaZPlanu.length > 0 ? ', przeznaczenie' : ''} i tytuł
+            {zdjecieUrl ? ', a jako pierwsze zdjęcie dodaliśmy widok z lotu ptaka' : ''}. Wszystko możesz
+            poprawić w kolejnych krokach.
+          </p>
+        ) : null}
 
         <button
           type="button"
           onClick={onZmien}
           className="mt-4 text-[14px] font-semibold text-fg/75 underline decoration-fg/30 underline-offset-4 transition hover:text-fg hover:decoration-fg"
         >
-          To nie ta działka? Wybierz inną
+          {wariant === 'kreator' ? 'To nie ta działka? Wybierz inną' : 'Sprawdź inną działkę'}
         </button>
       </div>
     </div>

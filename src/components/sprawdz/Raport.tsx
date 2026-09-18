@@ -132,6 +132,16 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
           <p className="mt-2 text-[15px] text-fg/65">
             {[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(' · ')}
           </p>
+          {/* Część sprawdzających to właściciele: jedno kliknięcie do formularza z tą działką (dane
+              z ewidencji uzupełnią się same). Nie przy przykładzie i nie na wydruku. */}
+          {przyklad ? null : (
+            <Link
+              href={`/sprzedaj?d=${encodeURIComponent(parcel.id)}`}
+              className="no-print mt-3 inline-block text-[14px] font-medium text-brand-text underline decoration-brand/40 underline-offset-4 transition hover:decoration-brand"
+            >
+              To Twoja działka? Wystaw ją za darmo
+            </Link>
+          )}
         </div>
 
         <div className="no-print flex flex-wrap items-center gap-3">

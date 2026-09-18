@@ -9,16 +9,18 @@ import { powiatLabelFromUldk } from '@/lib/uldkQuery';
 import { plural } from '@/lib/plural';
 import { SectionTitle, UnderlineField } from './ui';
 
-// Pierwszy krok kreatora: sprzedający wskazuje SWOJĄ działkę numerem z dokumentów albo kliknięciem
-// na mapie z granicami. Silnik ten sam co w „Sprawdź działkę" (ULDK, plan miejscowy, ceny w
-// okolicy), więc po wyborze formularz dostaje komplet danych z jednego zapytania.
+// Wskazanie działki numerem z dokumentów albo kliknięciem na mapie z granicami (strona „Sprawdź
+// wartość swojej działki"). Silnik ten sam co w „Sprawdź działkę" (ULDK, plan miejscowy, ceny w
+// okolicy), więc po wyborze dostajemy komplet danych z jednego zapytania. Tekstu celowo mało:
+// długie objaśnienia przy polach zniechęcają (feedback Daniela 2026-09-15).
 //
 // Nie zgadujemy, o którą działkę chodzi: ta sama para obręb i numer powtarza się w wielu powiatach,
 // więc przy kilku trafieniach wybiera człowiek ([[feedback-filtry-twarde]]).
 
 type Punkt = { lat: number; lng: number };
 
-async function pobierzDaneDzialki(body: { parcelId: string } | Punkt): Promise<DaneDzialki> {
+/** Pełne dane działki z POST /api/sprawdz-dzialke. Błąd wraca jako wyjątek z komunikatem dla ludzi. */
+export async function pobierzDaneDzialki(body: { parcelId: string } | Punkt): Promise<DaneDzialki> {
   const res = await fetch('/api/sprawdz-dzialke', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -32,6 +34,7 @@ async function pobierzDaneDzialki(body: { parcelId: string } | Punkt): Promise<D
     parcel: json.parcel,
     valuation: json.valuation,
     mpzp: json.mpzp ?? null,
+    mpzpNiedostepny: Boolean(json.mpzpNiedostepny),
     rcn: json.rcn ?? null,
   };
 }
@@ -40,12 +43,16 @@ export default function ParcelFinder({
   onFound,
   onFallback,
   error,
+  oznaczWymagane = true,
 }: {
   onFound: (dane: DaneDzialki) => void;
-  // „nie mam numeru i nie znajdę działki na mapie": zwykła lokalizacja bez danych z ewidencji
-  onFallback: () => void;
+  // „nie mam numeru i nie znajdę działki na mapie": zwykła lokalizacja bez danych z ewidencji.
+  // Bez tej funkcji wyjścia awaryjnego nie pokazujemy.
+  onFallback?: () => void;
   // podświetlenie po próbie przejścia dalej bez wskazanej działki
   error?: boolean;
+  // gwiazdka przy nagłówku: tam, gdzie działka jest wymagana
+  oznaczWymagane?: boolean;
 }) {
   const [obreb, setObreb] = useState('');
   const [numer, setNumer] = useState('');
@@ -103,9 +110,7 @@ export default function ParcelFinder({
       }
 
       if (json.items.length === 0) {
-        setBlad(
-          'Nie ma takiej działki w rejestrze. Sprawdź pisownię obrębu i numer albo wskaż działkę na mapie.'
-        );
+        setBlad('Nie ma takiej działki w rejestrze. Sprawdź obręb i numer albo wskaż działkę na mapie.');
         return;
       }
       if (json.items.length === 1) {
@@ -120,7 +125,7 @@ export default function ParcelFinder({
     }
   }
 
-  // Enter w kreatorze przechodzi do następnego kroku (onSubmit formularza), a tu ma szukać.
+  // Enter w formularzu przeszedłby dalej (onSubmit), a tu ma szukać.
   function naEnter(e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) {
     if (e.key !== 'Enter') return;
     e.preventDefault();
@@ -139,12 +144,9 @@ export default function ParcelFinder({
     <div className="space-y-6" data-field-error={error ? 'true' : undefined}>
       <div>
         <SectionTitle>
-          Numer działki <span className="text-brand-bright">*</span>
+          Numer działki {oznaczWymagane ? <span className="text-brand-bright">*</span> : null}
         </SectionTitle>
-        <p className="mt-2 max-w-[42rem] text-[14px] leading-6 text-fg/65">
-          Obręb i numer znajdziesz w akcie notarialnym, w wypisie z ewidencji gruntów albo w księdze
-          wieczystej. Możesz też wkleić cały identyfikator, np. 100102_2.0006.100.
-        </p>
+        <p className="mt-2 text-[14px] leading-6 text-fg/65">Znajdziesz go w akcie notarialnym.</p>
       </div>
 
       <div className="grid gap-8 md:grid-cols-[1.4fr_1fr]">
@@ -194,10 +196,9 @@ export default function ParcelFinder({
         <div className="rounded-2xl border border-fg/12 bg-fg/[0.03] p-4">
           <p className="text-[14px] leading-6 text-fg/75">
             <span className="font-semibold text-fg">
-              Taki numer w takim obrębie ma {kandydaci.length}{' '}
-              {plural(kandydaci.length, 'działka', 'działki', 'działek')}
+              {kandydaci.length} {plural(kandydaci.length, 'działka', 'działki', 'działek')} o tym numerze.
             </span>{' '}
-            w różnych miejscach Polski. Wskaż swoją gminę:
+            Wskaż swoją gminę:
           </p>
 
           {kandydaci.length > 8 ? (
@@ -232,19 +233,12 @@ export default function ParcelFinder({
           </ul>
 
           {widoczni.length === 0 ? (
-            <p className="mt-3 text-[13px] leading-6 text-fg/55">
-              Żadna z {kandydaci.length} znalezionych działek nie pasuje do tego zawężenia. Wpisz samą
-              nazwę gminy albo powiatu.
-            </p>
+            <p className="mt-3 text-[13px] leading-6 text-fg/55">Żadna nie pasuje. Wpisz samą nazwę gminy.</p>
           ) : null}
         </div>
       ) : null}
 
-      {ladowanie ? (
-        <p className="text-[14px] leading-6 text-fg/65">
-          Sprawdzamy działkę w ewidencji gruntów i w planie miejscowym. To potrwa kilka sekund.
-        </p>
-      ) : null}
+      {ladowanie ? <p className="text-[14px] leading-6 text-fg/65">Sprawdzamy działkę…</p> : null}
 
       {blad && !mapaOtwarta ? (
         <p className="rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">{blad}</p>
@@ -254,17 +248,18 @@ export default function ParcelFinder({
         <p className="text-[12px] text-red-400/90">Wskaż swoją działkę, żeby przejść dalej.</p>
       ) : null}
 
-      <p className="border-t border-fg/10 pt-5 text-[14px] leading-6 text-fg/65">
-        Nie możesz znaleźć działki albo nie chcesz pokazywać jej dokładnie?{' '}
-        <button
-          type="button"
-          onClick={onFallback}
-          className="font-semibold text-fg underline decoration-fg/30 underline-offset-4 transition hover:decoration-fg"
-        >
-          Podaj samą miejscowość
-        </button>
-        . Wtedy dane z ewidencji nie uzupełnią się same.
-      </p>
+      {onFallback ? (
+        <p className="border-t border-fg/10 pt-5 text-[14px] leading-6 text-fg/65">
+          Nie znasz numeru?{' '}
+          <button
+            type="button"
+            onClick={onFallback}
+            className="font-semibold text-fg underline decoration-fg/30 underline-offset-4 transition hover:decoration-fg"
+          >
+            Podaj samą miejscowość
+          </button>
+        </p>
+      ) : null}
 
       {mapaOtwarta ? (
         <MapaDzialek
@@ -385,7 +380,7 @@ function MapaDzialek({
           <input
             ref={szukajRef}
             onKeyDown={(e) => {
-              // Pole siedzi w formularzu kreatora: Enter nie może przeskoczyć do kolejnego kroku.
+              // Pole bywa w formularzu: Enter nie może go wysłać.
               if (e.key === 'Enter') e.preventDefault();
             }}
             placeholder="Wpisz miejscowość albo adres"
@@ -393,8 +388,7 @@ function MapaDzialek({
             className="pointer-events-auto w-full rounded-xl bg-surface/95 px-4 py-3 text-[16px] text-fg shadow-lg outline-none backdrop-blur placeholder:text-fg/55"
           />
           <div className="pointer-events-auto rounded-xl bg-surface/95 px-4 py-2.5 text-[13px] leading-snug text-fg/80 shadow-lg backdrop-blur">
-            Przybliż mapę, pokażą się granice działek z numerami. Kliknij swoją działkę i zatwierdź na
-            dole.
+            Przybliż mapę i kliknij swoją działkę.
           </div>
           <div className="pointer-events-auto flex w-44 overflow-hidden rounded-xl bg-surface/95 text-[12px] font-medium uppercase tracking-[0.14em] shadow-lg backdrop-blur">
             {([false, true] as const).map((sat) => {
