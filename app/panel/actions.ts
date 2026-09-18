@@ -8,6 +8,15 @@ import { prisma } from '@/lib/prisma';
 import { deleteFromR2 } from '@/lib/r2';
 import { DzialkaSourceType, DzialkaStatus } from '@prisma/client';
 
+// Odmowę, którą ma zobaczyć użytkownik (brak publikacji, reguła 30 dni, oferta z CRM...),
+// akcja ZWRACA, a `throw` zostaje na sytuacje nieoczekiwane. Treść błędu rzuconego z server
+// action nie dociera na produkcji do przeglądarki: React Flight wysyła sam digest, a klient
+// dostaje ogólny angielski komunikat. Na devie treść dochodzi, więc lokalnie tego nie widać.
+export type PanelActionResult = { error: string } | undefined;
+
+// Brak sesji albo konta: np. wylogowanie w innej karcie przy otwartym panelu.
+const SESJA_WYGASLA = 'Sesja wygasła. Zaloguj się ponownie.';
+
 // Ofertą z importu CRM rządzi program biura, a nie panel, więc zakończenie, aktywacja,
 // przedłużenie i usunięcie są tu zablokowane (przyciski ukrywa też PanelDzialkiList).
 // - Zakończenie: ASARI i EstiCRM czytają pełny eksport przy każdym przebiegu i przywracają ofertę,
@@ -20,20 +29,15 @@ import { DzialkaSourceType, DzialkaStatus } from '@prisma/client';
 //   której wygaszanie po pełnym eksporcie i po `<oferta_usun>` już nie widzi (bierze tylko linki
 //   z `isActiveInSource`).
 // Wyróżnienie zostaje: to usługa portalu, której import nie nadpisuje.
-function assertNotCrmOffer(sourceType: DzialkaSourceType) {
-  if (sourceType === DzialkaSourceType.CRM) {
-    throw new Error(
-      'Tą ofertą zarządzasz w swoim CRM. Zakończ lub wznów ją tam, a portal zaktualizuje się sam.'
-    );
-  }
-}
+const OFERTA_Z_CRM =
+  'Tą ofertą zarządzasz w swoim CRM. Zakończ lub wznów ją tam, a portal zaktualizuje się sam.';
 
 async function getCurrentUserId() {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email?.toLowerCase().trim();
 
   if (!email) {
-    throw new Error('Brak autoryzacji.');
+    return null;
   }
 
   const user = await prisma.user.findUnique({
@@ -41,11 +45,7 @@ async function getCurrentUserId() {
     select: { id: true },
   });
 
-  if (!user?.id) {
-    throw new Error('Nie znaleziono użytkownika.');
-  }
-
-  return user.id;
+  return user?.id ?? null;
 }
 
 async function getAppConfig() {
@@ -85,16 +85,24 @@ async function getOwnedDzialka(dzialkaId: string, ownerId: string) {
   });
 }
 
-export async function zakonczOgloszenieAction(dzialkaId: string) {
+export async function zakonczOgloszenieAction(
+  dzialkaId: string
+): Promise<PanelActionResult> {
   const ownerId = await getCurrentUserId();
+
+  if (!ownerId) {
+    return { error: SESJA_WYGASLA };
+  }
 
   const dzialka = await getOwnedDzialka(dzialkaId, ownerId);
 
   if (!dzialka) {
-    throw new Error('Ogłoszenie nie istnieje lub nie należy do użytkownika.');
+    return { error: 'Ogłoszenie nie istnieje lub nie należy do użytkownika.' };
   }
 
-  assertNotCrmOffer(dzialka.sourceType);
+  if (dzialka.sourceType === DzialkaSourceType.CRM) {
+    return { error: OFERTA_Z_CRM };
+  }
 
   await prisma.dzialka.update({
     where: { id: dzialkaId },
@@ -108,89 +116,39 @@ export async function zakonczOgloszenieAction(dzialkaId: string) {
   revalidatePath('/kup');
 }
 
-export async function przedluzOgloszenieAction(dzialkaId: string) {
+export async function przedluzOgloszenieAction(
+  dzialkaId: string
+): Promise<PanelActionResult> {
   const ownerId = await getCurrentUserId();
+
+  if (!ownerId) {
+    return { error: SESJA_WYGASLA };
+  }
 
   const dzialka = await getOwnedDzialka(dzialkaId, ownerId);
 
   if (!dzialka) {
-    throw new Error('Ogłoszenie nie istnieje lub nie należy do użytkownika.');
+    return { error: 'Ogłoszenie nie istnieje lub nie należy do użytkownika.' };
   }
 
-  assertNotCrmOffer(dzialka.sourceType);
+  if (dzialka.sourceType === DzialkaSourceType.CRM) {
+    return { error: OFERTA_Z_CRM };
+  }
 
   const appConfig = await getAppConfig();
   const now = new Date();
   const currentExpiresAt = dzialka.expiresAt ? new Date(dzialka.expiresAt) : null;
 
-  try {
-    await prisma.$transaction(async (tx) => {
-      if (!appConfig.paymentsEnabled) {
-        await tx.dzialka.update({
-          where: { id: dzialkaId },
-          data: {
-            status: DzialkaStatus.AKTYWNE,
-            endedAt: null,
-            expiresAt: null,
-            publishedAt:
-              dzialka.status === DzialkaStatus.ZAKONCZONE ||
-              !currentExpiresAt ||
-              currentExpiresAt.getTime() <= now.getTime()
-                ? now
-                : undefined,
-          },
-        });
-
-        return;
-      }
-
-      const isStillActive =
-        dzialka.status !== DzialkaStatus.ZAKONCZONE &&
-        !!currentExpiresAt &&
-        currentExpiresAt.getTime() > now.getTime();
-
-      let newExpiresAt: Date;
-
-      if (isStillActive && currentExpiresAt) {
-        const daysLeft = Math.ceil(
-          (currentExpiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        if (daysLeft > 30) {
-          throw new Error(
-            'To ogłoszenie można przedłużyć dopiero wtedy, gdy do końca zostanie 30 dni lub mniej.'
-          );
-        }
-
-        newExpiresAt = addDays(currentExpiresAt, 30);
-      } else {
-        newExpiresAt = addDays(now, 30);
-      }
-
-      const updatedUser = await tx.user.updateMany({
-        where: {
-          id: ownerId,
-          listingCredits: {
-            gt: 0,
-          },
-        },
-        data: {
-          listingCredits: {
-            decrement: 1,
-          },
-        },
-      });
-
-      if (updatedUser.count === 0) {
-        throw new Error('NO_LISTING_CREDITS');
-      }
-
+  // Odmowa wychodzi z transakcji jako jej wynik. Przed odmową nic się nie zapisuje
+  // (updateMany bez trafienia niczego nie zmienia), więc zatwierdzenie transakcji jest puste.
+  const odmowa = await prisma.$transaction(async (tx): Promise<PanelActionResult> => {
+    if (!appConfig.paymentsEnabled) {
       await tx.dzialka.update({
         where: { id: dzialkaId },
         data: {
           status: DzialkaStatus.AKTYWNE,
           endedAt: null,
-          expiresAt: newExpiresAt,
+          expiresAt: null,
           publishedAt:
             dzialka.status === DzialkaStatus.ZAKONCZONE ||
             !currentExpiresAt ||
@@ -199,15 +157,72 @@ export async function przedluzOgloszenieAction(dzialkaId: string) {
               : undefined,
         },
       });
-    });
-  } catch (e: any) {
-    if (e?.message === 'NO_LISTING_CREDITS') {
-      throw new Error(
-        'Brak dostępnych publikacji. Kup pakiet, aby przedłużyć lub aktywować ogłoszenie.'
-      );
+
+      return;
     }
 
-    throw e;
+    const isStillActive =
+      dzialka.status !== DzialkaStatus.ZAKONCZONE &&
+      !!currentExpiresAt &&
+      currentExpiresAt.getTime() > now.getTime();
+
+    let newExpiresAt: Date;
+
+    if (isStillActive && currentExpiresAt) {
+      const daysLeft = Math.ceil(
+        (currentExpiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysLeft > 30) {
+        return {
+          error:
+            'To ogłoszenie można przedłużyć dopiero wtedy, gdy do końca zostanie 30 dni lub mniej.',
+        };
+      }
+
+      newExpiresAt = addDays(currentExpiresAt, 30);
+    } else {
+      newExpiresAt = addDays(now, 30);
+    }
+
+    const updatedUser = await tx.user.updateMany({
+      where: {
+        id: ownerId,
+        listingCredits: {
+          gt: 0,
+        },
+      },
+      data: {
+        listingCredits: {
+          decrement: 1,
+        },
+      },
+    });
+
+    if (updatedUser.count === 0) {
+      return {
+        error: 'Brak dostępnych publikacji. Kup pakiet, aby przedłużyć lub aktywować ogłoszenie.',
+      };
+    }
+
+    await tx.dzialka.update({
+      where: { id: dzialkaId },
+      data: {
+        status: DzialkaStatus.AKTYWNE,
+        endedAt: null,
+        expiresAt: newExpiresAt,
+        publishedAt:
+          dzialka.status === DzialkaStatus.ZAKONCZONE ||
+          !currentExpiresAt ||
+          currentExpiresAt.getTime() <= now.getTime()
+            ? now
+            : undefined,
+      },
+    });
+  });
+
+  if (odmowa) {
+    return odmowa;
   }
 
   revalidatePath('/panel');
@@ -215,8 +230,12 @@ export async function przedluzOgloszenieAction(dzialkaId: string) {
   revalidatePath('/panel/pakiety');
 }
 
-export async function usunOgloszenieAction(dzialkaId: string) {
+export async function usunOgloszenieAction(dzialkaId: string): Promise<PanelActionResult> {
   const ownerId = await getCurrentUserId();
+
+  if (!ownerId) {
+    return { error: SESJA_WYGASLA };
+  }
 
   const dzialka = await prisma.dzialka.findFirst({
     where: {
@@ -235,10 +254,12 @@ export async function usunOgloszenieAction(dzialkaId: string) {
   });
 
   if (!dzialka) {
-    throw new Error('Ogłoszenie nie istnieje lub nie należy do użytkownika.');
+    return { error: 'Ogłoszenie nie istnieje lub nie należy do użytkownika.' };
   }
 
-  assertNotCrmOffer(dzialka.sourceType);
+  if (dzialka.sourceType === DzialkaSourceType.CRM) {
+    return { error: OFERTA_Z_CRM };
+  }
 
   const photoKeys = dzialka.zdjecia
     .map((z) => z.publicId)
@@ -254,8 +275,14 @@ export async function usunOgloszenieAction(dzialkaId: string) {
   revalidatePath('/kup');
 }
 
-export async function wyroznijOgloszenieAction(dzialkaId: string) {
+export async function wyroznijOgloszenieAction(
+  dzialkaId: string
+): Promise<PanelActionResult> {
   const ownerId = await getCurrentUserId();
+
+  if (!ownerId) {
+    return { error: SESJA_WYGASLA };
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: ownerId },
@@ -267,13 +294,13 @@ export async function wyroznijOgloszenieAction(dzialkaId: string) {
   });
 
   if (!user) {
-    throw new Error('Nie znaleziono użytkownika.');
+    return { error: SESJA_WYGASLA };
   }
 
   const dzialka = await getOwnedDzialka(dzialkaId, ownerId);
 
   if (!dzialka) {
-    throw new Error('Ogłoszenie nie istnieje lub nie należy do użytkownika.');
+    return { error: 'Ogłoszenie nie istnieje lub nie należy do użytkownika.' };
   }
 
   const now = new Date();
@@ -283,7 +310,7 @@ export async function wyroznijOgloszenieAction(dzialkaId: string) {
     dzialka.featuredUntil &&
     new Date(dzialka.featuredUntil).getTime() > now.getTime()
   ) {
-    throw new Error('To ogłoszenie jest już aktualnie wyróżnione.');
+    return { error: 'To ogłoszenie jest już aktualnie wyróżnione.' };
   }
 
   // Data ważności pakietu jest wiążąca, nie ozdobna. Panel od zawsze pokazywał
@@ -298,7 +325,7 @@ export async function wyroznijOgloszenieAction(dzialkaId: string) {
     redirect(`/panel/wyroznienia?dzialkaId=${dzialkaId}`);
   }
 
-  await prisma.$transaction(async (tx) => {
+  const wyrozniono = await prisma.$transaction(async (tx) => {
     const updatedUser = await tx.user.updateMany({
       where: {
         id: ownerId,
@@ -314,7 +341,7 @@ export async function wyroznijOgloszenieAction(dzialkaId: string) {
     });
 
     if (updatedUser.count === 0) {
-      throw new Error('NO_FEATURED_CREDITS');
+      return false;
     }
 
     await tx.dzialka.update({
@@ -324,7 +351,15 @@ export async function wyroznijOgloszenieAction(dzialkaId: string) {
         featuredUntil: addDays(now, 7),
       },
     });
+
+    return true;
   });
+
+  // Ostatni punkt zszedł między sprawdzeniem a transakcją (np. wyróżnienie drugiej oferty
+  // w tej samej chwili). Tak samo jak przy braku punktów: do zakupu wyróżnienia.
+  if (!wyrozniono) {
+    redirect(`/panel/wyroznienia?dzialkaId=${dzialkaId}`);
+  }
 
   revalidatePath('/panel');
   revalidatePath('/kup');

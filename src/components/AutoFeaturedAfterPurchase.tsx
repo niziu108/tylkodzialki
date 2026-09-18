@@ -31,7 +31,13 @@ export default function AutoFeaturedAfterPurchase({
 
     (async () => {
       try {
-        await wyroznijOgloszenieAction(dzialkaId);
+        const result = await wyroznijOgloszenieAction(dzialkaId);
+
+        if (result?.error) {
+          setStatus('error');
+          setMessage(result.error);
+          return;
+        }
 
         sessionStorage.setItem(storageKey, '1');
         setStatus('success');
@@ -41,10 +47,17 @@ export default function AutoFeaturedAfterPurchase({
           router.replace('/panel');
           router.refresh();
         }, 1200);
-      } catch (e: any) {
+      } catch (e) {
+        // Brak punktów (np. płatność jeszcze nie zaksięgowana): akcja robi redirect() do zakupu,
+        // a przejście wykonuje już router. Bez tego mignąłby tu komunikat „NEXT_REDIRECT".
+        if (e instanceof Error && e.message === 'NEXT_REDIRECT') {
+          return;
+        }
+
+        // Treść nieoczekiwanego wyjątku na produkcji nie dociera (sam digest).
         setStatus('error');
         setMessage(
-          e?.message || 'Zakup zakończył się sukcesem, ale nie udało się automatycznie wyróżnić ogłoszenia.'
+          'Zakup zakończył się sukcesem, ale nie udało się automatycznie wyróżnić ogłoszenia.'
         );
       }
     })();

@@ -20,6 +20,7 @@ import {
   usunOgloszenieAction,
   wyroznijOgloszenieAction,
 } from '../../app/panel/actions';
+import type { PanelActionResult } from '../../app/panel/actions';
 
 type Photo = { url: string; publicId?: string; kolejnosc?: number };
 type DzialkaStatus = 'AKTYWNE' | 'ZAKONCZONE';
@@ -538,20 +539,26 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
     };
   }, [d.id]);
 
-  async function runAction(action: () => Promise<void>, errorText: string) {
+  function runAction(action: () => Promise<PanelActionResult>, errorText: string) {
     startTransition(async () => {
       setActionError(null);
 
       try {
-        await action();
-      } catch (e: any) {
-        const msg = String(e?.message || '');
+        const result = await action();
 
-        if (msg.includes('NEXT_REDIRECT')) {
+        if (result?.error) {
+          setActionError(result.error);
+        }
+      } catch (e) {
+        // Brak punktów na wyróżnienie: akcja robi redirect() do zakupu. Obietnica kończy się
+        // wtedy błędem NEXT_REDIRECT, a przejście na stronę zakupu wykonuje już router.
+        if (e instanceof Error && e.message === 'NEXT_REDIRECT') {
           return;
         }
 
-        setActionError(msg || errorText);
+        // Treść nieoczekiwanego wyjątku na produkcji nie dociera (sam digest), a na devie
+        // byłaby techniczna, więc użytkownik dostaje ogólny tekst tej akcji.
+        setActionError(errorText);
       }
     });
   }
