@@ -1,7 +1,9 @@
 'use client';
 
 import Script from 'next/script';
+import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { isProductionHost } from '@/lib/isProductionRequest';
 
 type ConsentState = {
   necessary: true;
@@ -43,8 +45,13 @@ declare global {
 
 export default function GoogleAnalyticsConsent() {
   const [enabled, setEnabled] = useState(false);
+  const { status, data: session } = useSession();
 
   useEffect(() => {
+    // Poza produkcyjną domeną (localhost, podgląd Vercela) GA nie startuje wcale,
+    // żeby nasze testy nie mieszały się w raportach z ruchem kupujących.
+    if (!isProductionHost(window.location.hostname)) return;
+
     const existing = readConsent();
     setEnabled(existing?.analytics === true);
 
@@ -58,7 +65,9 @@ export default function GoogleAnalyticsConsent() {
     return () => window.removeEventListener('cookie-consent-updated', onUpdate);
   }, []);
 
-  if (!enabled) return null;
+  // Zalogowanego admina też nie mierzymy. Czekamy na sesję, bo inaczej gtag zdążyłby
+  // wysłać odsłonę, zanim wiadomo, kto przegląda stronę.
+  if (!enabled || status === 'loading' || session?.user?.role === 'ADMIN') return null;
 
   return (
     <>

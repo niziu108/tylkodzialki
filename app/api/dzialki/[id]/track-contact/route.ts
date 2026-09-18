@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isBotRequest } from "@/lib/isBotRequest";
+import { isProductionRequest } from "@/lib/isProductionRequest";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -13,6 +14,11 @@ export async function POST(req: Request, { params }: RouteContext) {
     // Roboty renderujace JS podbijaly statystyki biur, wiec nie liczymy ich wcale.
     if (isBotRequest(req)) {
       return NextResponse.json({ ok: true, skipped: "bot" });
+    }
+
+    // Lokalny dev pisze do zywej bazy, wiec liczymy tylko produkcje (bez localhost i podgladu).
+    if (!isProductionRequest(req)) {
+      return NextResponse.json({ ok: true, skipped: "not-production" });
     }
 
     const body = await req.json().catch(() => null);
