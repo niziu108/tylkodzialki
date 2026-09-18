@@ -10,6 +10,7 @@ import {
   DojazdStatus,
   SwiatlowodStatus,
   TransakcjaTyp,
+  DzialkaSourceType,
 } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
@@ -82,6 +83,7 @@ export async function PATCH(req: Request, { params }: Props) {
     },
     select: {
       id: true,
+      sourceType: true,
       zdjecia: {
         select: {
           id: true,
@@ -95,6 +97,15 @@ export async function PATCH(req: Request, { params }: Props) {
 
   if (!existing) {
     return NextResponse.json({ ok: false, message: 'Nie znaleziono ogłoszenia.' }, { status: 404 });
+  }
+
+  // Ofertę z CRM nadpisuje najbliższy import, który ją czyta, więc zmiana z panelu i tak by wróciła.
+  // Źródłem treści jest program biura (panel ukrywa przy niej „Edytuj”).
+  if (existing.sourceType === DzialkaSourceType.CRM) {
+    return NextResponse.json(
+      { ok: false, message: 'Tą ofertą zarządzasz w swoim CRM. Zmień ją tam, a portal zaktualizuje się sam.' },
+      { status: 403 }
+    );
   }
 
   let body: any;
