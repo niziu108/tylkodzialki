@@ -70,6 +70,13 @@ export default function RaportOferty({
       ? `${mpzp.functionName} (${mpzp.functionSymbol})`
       : mpzp.functionName
     : (mpzp?.functionSymbol ?? null);
+  // Serwer gminy potwierdził plan, ale nie podał o nim nic (gminy GISON): zamiast pustej tabelki
+  // mówimy wprost, że plan obejmuje działkę.
+  const planBezSzczegolow =
+    !!mpzp &&
+    ![przeznaczenie, mpzp.maxHeight, mpzp.intensity, mpzp.planName, mpzp.resolution, mpzp.effectiveFrom, mpzp.resolutionUrl].some(
+      Boolean
+    );
   const strefa = pog
     ? pog.strefa.nazwa
       ? `${pog.strefa.nazwa}${pog.strefa.oznaczenie ? ` (${pog.strefa.oznaczenie})` : ''}`
@@ -173,19 +180,48 @@ export default function RaportOferty({
         <div className="mt-8 grid gap-x-12 gap-y-10 border-t border-fg/12 pt-8 lg:grid-cols-2">
           <div className="min-w-0">
             <Eyebrow>Plan miejscowy (MPZP)</Eyebrow>
-            {mpzp ? (
-              <div className="mt-4 border-t border-fg/10">
-                <Row label="Przeznaczenie" value={przeznaczenie} />
-                <Row label="Maks. wysokość" value={mpzp.maxHeight ? `${mpzp.maxHeight} m` : null} />
-                <Row label="Intensywność" value={mpzp.intensity} />
-                <Row label="Plan" value={mpzp.planName} />
-                <Row label="Uchwała" value={mpzp.resolution} />
-                <Row label="Obowiązuje od" value={plDate(mpzp.effectiveFrom)} />
-              </div>
+            {mpzp && !planBezSzczegolow ? (
+              <>
+                <div className="mt-4 border-t border-fg/10">
+                  <Row label="Przeznaczenie" value={przeznaczenie} />
+                  <Row label="Maks. wysokość" value={mpzp.maxHeight ? `${mpzp.maxHeight} m` : null} />
+                  <Row label="Intensywność" value={mpzp.intensity} />
+                  <Row label="Plan" value={mpzp.planName} />
+                  <Row label="Uchwała" value={mpzp.resolution} />
+                  <Row label="Obowiązuje od" value={plDate(mpzp.effectiveFrom)} />
+                </div>
+                {!przeznaczenie ? (
+                  <p className="mt-3 text-sm leading-6 text-fg/60">
+                    Przeznaczenia terenu gmina nie przesyła do krajowej integracji planów. Sprawdzisz je na
+                    rysunku planu albo w gminie {parcel.commune}.
+                  </p>
+                ) : null}
+                {mpzp.resolutionUrl ? (
+                  <p className="mt-3 text-sm leading-6">
+                    <a
+                      href={mpzp.resolutionUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                    >
+                      Tekst uchwały (PDF)
+                    </a>
+                  </p>
+                ) : null}
+              </>
+            ) : mpzp ? (
+              <p className="mt-3 text-[15px] leading-7 text-fg/70">
+                Działkę obejmuje plan miejscowy, ale serwer planów gminy nie podał jego szczegółów.{' '}
+                {mpzp.detailsUnavailable
+                  ? 'Sprawdzimy ponownie, a do tego czasu o zapisy planu zapytaj w gminie'
+                  : 'O zapisy planu zapytaj w gminie'}{' '}
+                {parcel.commune}.
+              </p>
             ) : mpzpNieznany ? (
               <p className="mt-3 text-[15px] leading-7 text-fg/70">
-                Serwer planów tej gminy nie odpowiedział, gdy sprawdzaliśmy działkę. Sprawdzimy ponownie,
-                a do tego czasu o plan miejscowy zapytaj w gminie {parcel.commune}.
+                Serwer planów tej gminy nie odpowiedział albo nie podał czytelnych danych, gdy sprawdzaliśmy
+                działkę. Sprawdzimy ponownie, a do tego czasu o plan miejscowy zapytaj w gminie{' '}
+                {parcel.commune}.
               </p>
             ) : (
               <p className="mt-3 text-[15px] leading-7 text-fg/70">

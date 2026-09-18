@@ -5,6 +5,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import type { PogInfo } from '@/lib/pog';
 import type { PointValuation } from '@/lib/seoHub';
 import Raport, { type RaportData } from './Raport';
 
@@ -182,5 +183,99 @@ describe('sekcja ceny', () => {
     const html = render(wycenaZeSrednia());
     expect(html).not.toContain('w tej okolicy wzrosły');
     expect(html).not.toContain('stoją w miejscu');
+  });
+});
+
+// Plan miejscowy: gdy serwer gminy wisi, krajowa integracja odpowiada tym samym „brak wyniku" co przy
+// terenie bez planu, tylko po minucie. Trasa oznacza to flagą mpzpNiedostepny, a raport nie może
+// wtedy twierdzić, że planu nie ma, ani opierać na tym zdań o warunkach zabudowy.
+describe('sekcja planu miejscowego', () => {
+  const planOgolny = (ouz: boolean): PogInfo => ({
+    strefa: {
+      symbol: 'SW',
+      nazwa: 'strefa wielofunkcyjna z zabudową mieszkaniową jednorodzinną',
+      oznaczenie: '12SW',
+      mieszkaniowa: true,
+      obowiazujeOd: '2026-01-01',
+      maksWysokoscZabudowy: '12',
+      maksUdzialPowierzchniZabudowy: '40',
+      minUdzialPowierzchniBiologicznieCzynnej: '30',
+      maksNadziemnaIntensywnoscZabudowy: null,
+    },
+    ouz,
+    srodmiejska: false,
+  });
+
+  it('gdy serwer planów gminy nie odpowiedział, nie twierdzi, że planu nie ma', () => {
+    const html = render(wycenaZeSrednia(), { mpzpNiedostepny: true });
+    expect(html).toContain('nie odpowiedział');
+    expect(html).toContain('w gminie Bełchatów');
+    expect(html).not.toContain('nie ma planu miejscowego w krajowej integracji');
+    expect(html).not.toContain('warunki zabudowy (WZ)');
+  });
+
+  it('prawdziwy brak planu nadal prowadzi do warunków zabudowy', () => {
+    const html = render(wycenaZeSrednia());
+    expect(html).toContain('nie ma planu miejscowego w krajowej integracji');
+    expect(html).not.toContain('nie odpowiedział');
+  });
+
+  it('plan ogólny przy nieznanym planie miejscowym mówi „jeśli", a nie „bez planu"', () => {
+    const wObszarze = render(wycenaZeSrednia(), { mpzpNiedostepny: true, pog: planOgolny(true) });
+    expect(wObszarze).toContain('Jeśli działki nie obejmuje plan miejscowy');
+    expect(wObszarze).not.toContain('Gdy nie ma planu miejscowego');
+
+    const pozaObszarem = render(wycenaZeSrednia(), { mpzpNiedostepny: true, pog: planOgolny(false) });
+    expect(pozaObszarem).toContain('Jeśli działki nie obejmuje plan miejscowy');
+    expect(pozaObszarem).not.toContain('Bez planu miejscowego gmina');
+  });
+
+  // Gminy GISON: krajowa integracja podaje nazwę planu, numer i datę uchwały oraz publiczny PDF, ale nie
+  // przeznaczenie. Albo nie podaje nic poza tym, że plan obejmuje punkt.
+  const planGison = {
+    planName: 'obrębu Skawinki na terenie gminy Lanckorona',
+    functionName: null,
+    functionSymbol: null,
+    maxHeight: null,
+    intensity: null,
+    effectiveFrom: null,
+    resolution: 'Nr XXXI/148/2026 z 25 marca 2026',
+    status: null,
+    resolutionUrl: 'https://rastry.gison.pl/mpzp-public/lanckorona/uchwaly/U_2026_148_XXXI.pdf',
+  };
+
+  it('plan bez szczegółów: mówi, że plan jest, i nie udaje przeznaczenia ani uchwały', () => {
+    const bezSzczegolow = { ...planGison, planName: null, resolution: null, resolutionUrl: null, detailsUnavailable: true };
+    const html = render(wycenaZeSrednia(), { mpzp: bezSzczegolow, pog: planOgolny(false) });
+    expect(html).toContain('Dla tej działki obowiązuje miejscowy plan zagospodarowania.');
+    expect(html).toContain('nie podał jego szczegółów');
+    expect(html).toContain('Sprawdź działkę ponownie');
+    expect(html).not.toContain('nie ma planu miejscowego w krajowej integracji');
+    expect(html).not.toContain('podaje dla tego terenu');
+    // Plan jest, więc plan ogólny nie odsyła do warunków zabudowy.
+    expect(html).toContain('rozstrzyga jednak plan miejscowy');
+  });
+
+  it('plan z PDF uchwały: link wprost zamiast wyszukiwarki i bez obietnicy przeznaczenia', () => {
+    const html = render(wycenaZeSrednia(), { mpzp: planGison });
+    expect(html).toContain('href="https://rastry.gison.pl/mpzp-public/lanckorona/uchwaly/U_2026_148_XXXI.pdf"');
+    expect(html).toContain('Otwórz tekst uchwały (PDF)');
+    expect(html).not.toContain('google.com/search');
+    expect(html).toContain('podaje dla tego terenu numer uchwały, ale nie parametry zabudowy');
+    expect(html).not.toContain('przeznaczenie i numer uchwały');
+  });
+
+  it('plan z przeznaczeniem i uchwałą, ale bez PDF: wyszukiwarka jak dotąd', () => {
+    const html = render(wycenaZeSrednia(), {
+      mpzp: {
+        ...planGison,
+        functionName: 'Tereny zabudowy mieszkaniowej jednorodzinnej',
+        functionSymbol: '4MN',
+        resolutionUrl: null,
+      },
+    });
+    expect(html).toContain('podaje dla tego terenu przeznaczenie i numer uchwały');
+    expect(html).toContain('google.com/search');
+    expect(html).not.toContain('Otwórz tekst uchwały');
   });
 });
