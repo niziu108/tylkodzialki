@@ -47,15 +47,21 @@ export type PrunePlan = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** Pusta zmienna (`CRM_FEED_KEEP_MIN_NO_FULL=`) to wartość domyślna, a nie zero: `Number("")` = 0 zdjąłby bufor i margines. */
+function numberFromEnv(raw: string | undefined, fallback: number) {
+  if (raw === undefined || raw.trim() === "") return fallback;
+  return Number(raw);
+}
+
 export function readPrunePolicyFromEnv(env: Record<string, string | undefined> = process.env): PrunePolicy {
   return {
-    retentionDays: Number(env.CRM_FEED_RETENTION_DAYS ?? "14"),
-    keepMinFiles: Number(env.CRM_FEED_KEEP_MIN ?? "10"),
+    retentionDays: numberFromEnv(env.CRM_FEED_RETENTION_DAYS, 14),
+    keepMinFiles: numberFromEnv(env.CRM_FEED_KEEP_MIN, 10),
     // Domyślnie WYŁĄCZONE. Włączenie to świadoma decyzja (zmienna na VPS, bez deployu), podjęta
     // po obejrzeniu raportu `npm run crm:prune:report`.
     allowWithoutFullExport: env.CRM_FEED_PRUNE_WITHOUT_FULL === "1",
-    retentionDaysWithoutFull: Number(env.CRM_FEED_RETENTION_DAYS_NO_FULL ?? "30"),
-    keepMinFilesWithoutFull: Number(env.CRM_FEED_KEEP_MIN_NO_FULL ?? "20"),
+    retentionDaysWithoutFull: numberFromEnv(env.CRM_FEED_RETENTION_DAYS_NO_FULL, 30),
+    keepMinFilesWithoutFull: numberFromEnv(env.CRM_FEED_KEEP_MIN_NO_FULL, 20),
   };
 }
 

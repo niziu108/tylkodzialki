@@ -109,3 +109,30 @@ export function resolveFeedSignals<T>(
 
   return { offers, deletedExternalIds, ignoredDeletes };
 }
+
+const STORED_DATE_FUTURE_TOLERANCE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Czy oferta z feedu jest STARSZĄ wersją niż ta zapisana w CrmOfferLink.
+ *
+ * Taka wersja nie może nadpisać danych ani reaktywować oferty. Skąd się bierze: najnowsza paczka
+ * pominięta jako uszkodzona (xml-integrity.ts), a silnik czyta starszą z tą samą ofertą; paczka
+ * DOMY.PL wgrana albo ponowiona po nowszej; skrypt nadrabiający zaległości. Bez strażnika cena
+ * skakała na starą i z powrotem, a każdy skok zostawiał fałszywy wpis w historii cen (znaczek
+ * „Obniżka") i fałszywą reaktywację wycofanej oferty.
+ *
+ * Tylko ściśle starsza: ta sama data to zwykła, niezmieniona oferta przysyłana co przebieg. Brak
+ * daty po którejkolwiek stronie = zachowanie sprzed strażnika. Zapisana data z przyszłości (błąd
+ * zegara w CRM) nie blokuje, inaczej oferta zamarzłaby do tej daty. Źródło daty jest w każdym CRM
+ * stałe: w 64 prawdziwych paczkach (EstiCRM, LocumNet, DOMY.PL, 17.09.2026) każda oferta ma główne
+ * pole daty, żadna nie spada na pole zapasowe, więc porównanie nie miesza różnych pól.
+ */
+export function isStaleOfferVersion(
+  incomingUpdatedAt: Date | null,
+  storedUpdatedAt: Date | null,
+  nowMs: number = Date.now()
+): boolean {
+  if (!incomingUpdatedAt || !storedUpdatedAt) return false;
+  if (storedUpdatedAt.getTime() > nowMs + STORED_DATE_FUTURE_TOLERANCE_MS) return false;
+  return incomingUpdatedAt.getTime() < storedUpdatedAt.getTime();
+}

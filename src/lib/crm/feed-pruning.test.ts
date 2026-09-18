@@ -229,4 +229,20 @@ describe("readPrunePolicyFromEnv", () => {
       keepMinFilesWithoutFull: 25,
     });
   });
+
+  it("pusta zmienna daje wartość domyślną, a nie zero (zero zdjęłoby bufor i margines)", () => {
+    const policy = readPrunePolicyFromEnv({
+      CRM_FEED_RETENTION_DAYS: "",
+      CRM_FEED_KEEP_MIN: " ",
+      CRM_FEED_RETENTION_DAYS_NO_FULL: "",
+      CRM_FEED_KEEP_MIN_NO_FULL: "",
+    });
+
+    expect(policy).toMatchObject({
+      retentionDays: 14,
+      keepMinFiles: 10,
+      retentionDaysWithoutFull: 30,
+      keepMinFilesWithoutFull: 20,
+    });
+  });
 });

@@ -70,11 +70,16 @@ export function readMassDeactivationLimits(
  * asari-full-export.ts). Oferty spoza zakresu nie są kandydatami i nie wchodzą do mianownika
  * hamulca: eksport mówi tylko za swój zakres, więc udział liczymy względem niego. Bez `isInScope`
  * zakresem jest cała integracja, czyli zachowanie sprzed zmiany.
+ *
+ * `isAlsoPresent` to dodatkowa reguła obecności obok dokładnego id. DOMY.PL uznaje za obecną
+ * działkę, którą przejmuje nowa wersja Galactiki z eksportu (AKM-GS-55571-18 przy -19 w pliku,
+ * patrz domypl-versions.ts), bo link przepina się na nowe id dopiero po udanym zapisie oferty.
  */
 export function collectMissingCandidates<T extends { externalId: string }>(
   links: T[],
   seenExternalIds: ReadonlySet<string>,
-  isInScope?: (externalId: string) => boolean
+  isInScope?: (externalId: string) => boolean,
+  isAlsoPresent?: (externalId: string) => boolean
 ): { inScopeCount: number; candidates: T[] } {
   let inScopeCount = 0;
   const candidates: T[] = [];
@@ -82,7 +87,8 @@ export function collectMissingCandidates<T extends { externalId: string }>(
   for (const link of links) {
     if (isInScope && !isInScope(link.externalId)) continue;
     inScopeCount += 1;
-    if (!seenExternalIds.has(link.externalId)) candidates.push(link);
+    if (seenExternalIds.has(link.externalId) || isAlsoPresent?.(link.externalId)) continue;
+    candidates.push(link);
   }
 
   return { inScopeCount, candidates };

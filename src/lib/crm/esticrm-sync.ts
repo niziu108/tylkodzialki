@@ -1,10 +1,8 @@
 import crypto from "crypto";
 import path from "path";
 import os from "os";
-import fs from "fs";
 import { promises as fsp } from "fs";
 import * as ftp from "basic-ftp";
-import unzipper from "unzipper";
 import { XMLParser } from "fast-xml-parser";
 import {
   DojazdStatus,
@@ -19,11 +17,35 @@ import {
 import { prisma } from "@/lib/prisma";
 import { payloadForLog } from "@/lib/crm/log-policy";
 import { mapDojazd } from "@/lib/dojazd";
-import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { uploadBufferToR2 } from "@/lib/r2";
+import { appendPhotoNote, planPhotoRefresh, refreshOfferPhotos, type UploadedPhoto } from "@/lib/crm/photo-refresh";
+import { deleteR2Photos, discardUnsavedPhotos, r2PhotoEffects, swapOfferPhotos } from "@/lib/crm/offer-photos";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
-import { resolveFeedSignals, type DeleteSignal, type OfferSignal } from "@/lib/crm/feed-signals";
+import {
+  isStaleOfferVersion,
+  resolveFeedSignals,
+  type DeleteSignal,
+  type OfferSignal,
+} from "@/lib/crm/feed-signals";
 import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
+import { readPrunePolicyFromEnv } from "@/lib/crm/feed-pruning";
+import {
+  estiRunAdvancesAnchor,
+  isEnvironmentError,
+  isEstiRunFullExport,
+  isEstiWindowPruneEnabled,
+  isFullEstiExportMode,
+  isInsideEstiWindow,
+  isPossiblyStillUploading,
+  planEstiWalkWindow,
+  planEstiZipPrune,
+  readEstiOverlapHours,
+  shouldWalkPastZip,
+  sortZipsNewestFirst,
+} from "@/lib/crm/esticrm-feed-window";
+import { extractZipToDir } from "@/lib/crm/zip-extract";
+import { xmlIntegrityProblem } from "@/lib/crm/xml-integrity";
 
 type IntegrationForSync = {
   id: string;
@@ -40,6 +62,8 @@ type IntegrationForSync = {
   ftpRemotePath: string | null;
   ftpPassive: boolean;
   fullImportMode: boolean;
+  /** Kotwica okna paczek: patrz esticrm-feed-window.ts. */
+  lastSuccessAt: Date | null;
 };
 
 type SyncSummary = {
@@ -86,6 +110,14 @@ type EstiOffer = {
   payload: Prisma.InputJsonValue;
 };
 
+/**
+ * Oferta odrzucona przez parser (jak w asari-sync). NOT_LAND: nie działka albo nie sprzedaż.
+ * INVALID: działka, której chwilowo brakuje ceny, powierzchni albo lokalizacji. Przy pełnym
+ * eksporcie nadal JEST w eksporcie biura, więc nie może zniknąć jako „nieobecna": zostaje
+ * z ostatnią poprawną wersją.
+ */
+type EstiRejectedOffer = { rejected: "NOT_LAND" | "INVALID"; externalId: string };
+
 // Zwraca true, gdy `candidate` jest co najmniej tak świeży jak `current`. Preferujemy
 // wersję z największą datą modyfikacji; wersja z datą wygrywa z wersją bez daty; przy
 // remisie (lub obu bez daty) wygrywa późniejsza — pliki ofert iterujemy od najstarszego.
@@ -105,9 +137,20 @@ type EstiOfferXmlFile = {
   modifiedAtMs: number;
 };
 
+/** Paczka, której nie dało się rozpakować (urwana albo jeszcze wgrywana). */
+type UnreadableEstiZip = {
+  name: string;
+  error: string;
+  /** Świeża paczka: najpewniej wgrywanie w toku, bez wpisu ERROR. */
+  possiblyUploading: boolean;
+};
+
 type DownloadedEstiFeed = {
   remoteFileName: string;
   tempDir: string;
+  /** Podkatalogi FTP, których nie udało się wylistować. Blokują kotwicę okna i wygaszanie. */
+  failedDirs: string[];
+  unreadableZips: UnreadableEstiZip[];
   offerXmlFiles: EstiOfferXmlFile[];
   localFileByBasename: Map<string, string>;
   imageRemotePathByBasename: Map<string, string>;
@@ -115,6 +158,8 @@ type DownloadedEstiFeed = {
   photoFtpClient: ftp.Client | null;
   definitions: EstiDefinitions;
   exportMode: string | null;
+  /** Uszkodzony definitions.xml. Przebieg importuje dalej, ale nie wygasza „brakujących". */
+  problems: string[];
   cleanup: () => Promise<void>;
 };
 
@@ -209,6 +254,10 @@ function getMimeTypeFromFileName(fileName: string) {
 
 function makeEditToken() {
   return crypto.randomBytes(24).toString("hex");
+}
+
+function formatMegabytes(bytes: number) {
+  return `${Math.round(bytes / 1024 / 1024)} MB`;
 }
 
 function emptyDefinitions(): EstiDefinitions {
@@ -376,7 +425,7 @@ function parseEstiOffer(
   rawOffer: Record<string, unknown>,
   agencyName: string | null,
   definitions: EstiDefinitions
-): EstiOffer | null {
+): EstiOffer | EstiRejectedOffer | null {
   const externalId = toTextValue(rawOffer.id);
 
   if (!externalId) {
@@ -388,7 +437,7 @@ function parseEstiOffer(
 
   if (!isLandOffer(rawOffer, definitions)) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "to nie jest działka.");
-    return null;
+    return { rejected: "NOT_LAND", externalId };
   }
 
   const transaction = toTextValue(rawOffer.transaction);
@@ -396,7 +445,7 @@ function parseEstiOffer(
 
   if (transaction && transaction !== "131" && !normalizeText(transactionLabel).includes("sprzed")) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "transakcja nie jest sprzedażą.", transactionLabel || transaction);
-    return null;
+    return { rejected: "NOT_LAND", externalId };
   }
 
   const price = toNumber(rawOffer.price);
@@ -404,12 +453,12 @@ function parseEstiOffer(
 
   if (!price || price <= 0) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "brak ceny.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   if (!area || area < 1) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "brak powierzchni działki/powierzchni całkowitej.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   const city =
@@ -427,7 +476,7 @@ function parseEstiOffer(
 
   if (!city && !commune && !district && !province && !place) {
     console.log("[ESTICRM DEBUG] Odrzucono:", externalId, "brak lokalizacji.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   const rawLat = toNumber(rawOffer.locationLatitude);
@@ -559,6 +608,8 @@ function parseOfferXmlFile(xml: string, agencyName: string | null, definitions: 
   const exportMode = toTextValue(root.export ?? root["@_export"]) || null;
 
   const deletedExternalIds: string[] = [];
+  /** Działki obecne w pliku, ale odrzucone za niekompletne dane (patrz EstiRejectedOffer). */
+  const invalidLandExternalIds: string[] = [];
   const offers: EstiOffer[] = [];
   let rawCount = 0;
 
@@ -575,10 +626,17 @@ function parseOfferXmlFile(xml: string, agencyName: string | null, definitions: 
     }
 
     const parsed = parseEstiOffer(rawOffer, agencyName, definitions);
-    if (parsed) offers.push(parsed);
+    if (!parsed) continue;
+
+    if ("rejected" in parsed) {
+      if (parsed.rejected === "INVALID") invalidLandExternalIds.push(parsed.externalId);
+      continue;
+    }
+
+    offers.push(parsed);
   }
 
-  return { offers, deletedExternalIds, exportMode, rawCount };
+  return { offers, deletedExternalIds, invalidLandExternalIds, exportMode, rawCount };
 }
 
 async function downloadFile(client: ftp.Client, remotePath: string, localPath: string) {
@@ -586,7 +644,8 @@ async function downloadFile(client: ftp.Client, remotePath: string, localPath: s
   await client.downloadTo(localPath, remotePath);
 }
 
-async function listCurrentAndOneLevel(client: ftp.Client, remoteDir: string) {
+/** `failedDirs` zbiera podkatalogi, których nie udało się wylistować: przebieg nie widzi ich paczek. */
+async function listCurrentAndOneLevel(client: ftp.Client, remoteDir: string, failedDirs: string[]) {
   const current = await client.list();
 
   const result: Array<{ name: string; remotePath: string; isFile: boolean; isDirectory: boolean; size: number; modifiedAt?: Date }> = current.map((item) => ({
@@ -619,26 +678,12 @@ async function listCurrentAndOneLevel(client: ftp.Client, remoteDir: string) {
       await client.cd("..");
     } catch (error) {
       console.warn("[ESTICRM DEBUG] Nie udało się wejść do podkatalogu:", item.name, error);
+      failedDirs.push(item.name);
       await client.cd(remoteDir).catch(() => {});
     }
   }
 
   return result;
-}
-
-async function extractZip(localZipPath: string, outputDir: string) {
-  await fsp.mkdir(outputDir, { recursive: true });
-
-  // Strumień źródłowy MUSI być zamknięty także gdy rozpakowanie rzuci. Worker jest długo
-  // żyjącym procesem: niezamknięty deskryptor do pliku, który potem kasujemy razem z tempDir,
-  // trzyma jego rozmiar na dysku aż do końca procesu (plik "deleted", ale wciąż otwarty).
-  // Przy paczce psującej się w kółko to rosło o kilka GB na przebieg i zapchało VPS (ENOSPC).
-  const source = fs.createReadStream(localZipPath);
-  try {
-    await source.pipe(unzipper.Extract({ path: outputDir })).promise();
-  } finally {
-    source.destroy();
-  }
 }
 
 async function walkFiles(dir: string): Promise<string[]> {
@@ -654,7 +699,10 @@ async function walkFiles(dir: string): Promise<string[]> {
   return files;
 }
 
-async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise<DownloadedEstiFeed> {
+async function downloadEstiFeedFromFtp(
+  integration: IntegrationForSync,
+  hasImportedOffers: boolean
+): Promise<DownloadedEstiFeed> {
   if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
     throw new Error("Integracja EstiCRM nie ma uzupełnionych danych FTP.");
   }
@@ -671,6 +719,7 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
   let photoFtpClient: ftp.Client | null = null;
   let definitions = emptyDefinitions();
   let remoteFileName = "ESTICRM_FILES";
+  const problems: string[] = [];
 
   try {
     await client.access({
@@ -686,41 +735,89 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
 
     console.log("[ESTICRM DEBUG] FTP katalog:", remoteDir);
 
-    const list = await listCurrentAndOneLevel(client, remoteDir);
+    const failedDirs: string[] = [];
+    const list = await listCurrentAndOneLevel(client, remoteDir, failedDirs);
     const files = list.filter((item) => item.isFile);
 
     console.log("[ESTICRM DEBUG] Pliki na FTP:", files.map((item) => ({ name: item.name, remotePath: item.remotePath, size: item.size, modifiedAt: item.modifiedAt })));
 
-    const zipFiles = files
-      .filter((item) => item.name.toLowerCase().endsWith(".zip"))
-      .sort((a, b) => (b.modifiedAt?.getTime() ?? 0) - (a.modifiedAt?.getTime() ?? 0));
+    const allZips = sortZipsNewestFirst(
+      files
+        .filter((item) => item.name.toLowerCase().endsWith(".zip"))
+        .map((item) => ({
+          name: item.name,
+          remotePath: item.remotePath,
+          size: item.size ?? null,
+          modifiedAt: item.modifiedAt ?? null,
+        }))
+    );
+
+    if (allZips[0]) remoteFileName = allZips[0].name;
+
+    // Okno przebiegu: paczki od ostatniego udanego przebiegu minus zakładka. Wcześniej pętla szła
+    // wstecz aż do pełnego eksportu, a EstiCRM wysyła go tylko raz, na starcie, więc każdy przebieg
+    // pobierał całą historię biura. Pomiary i reguły: esticrm-feed-window.ts.
+    const walkWindow = planEstiWalkWindow(allZips, {
+      lastSuccessAt: integration.lastSuccessAt,
+      overlapHours: readEstiOverlapHours(),
+      hasImportedOffers,
+    });
+    const windowAnchored = walkWindow.anchorMs !== null;
+    const zipFiles = walkWindow.candidates;
+    const nowMs = Date.now();
+    const unreadableZips: UnreadableEstiZip[] = [];
+
+    console.log(
+      `[ESTICRM DEBUG] Okno przebiegu: ${zipFiles.length} z ${allZips.length} paczek ZIP. ${walkWindow.reason}`
+    );
 
     const extractedRoot = path.join(tempDir, "extracted");
 
-    // Do auto-czyszczenia: zapamiętujemy datę najnowszego PEŁNEGO eksportu. Silnik i tak czyta
-    // tylko najnowszy pełny + przyrostowe nowsze od niego, więc ZIP-y starsze niż pełny nigdy
-    // już nie są potrzebne. 0 = nie znaleziono potwierdzonego pełnego (wtedy nic nie kasujemy).
+    // Do auto-czyszczenia: data najnowszego PEŁNEGO eksportu przeczytanego w tym przebiegu.
+    // 0 = nie trafiliśmy na pełny (reguła pełnego eksportu nic wtedy nie kasuje).
     let newestFullZipModifiedMs = 0;
 
     // Wybór plików (naprawa P-F): bierzemy najnowszy PEŁNY eksport (export="full")
-    // oraz wszystkie przyrostowe NOWSZE od niego. Idziemy od najnowszego pliku i
-    // zatrzymujemy się na pierwszym pełnym eksporcie. Wcześniej brany był tylko
+    // oraz wszystkie przyrostowe NOWSZE od niego, w obrębie okna. Idziemy od najnowszego
+    // pliku i zatrzymujemy się na pierwszym pełnym eksporcie. Wcześniej brany był tylko
     // najnowszy ZIP, więc świeży przyrostowy zasłaniał pełny eksport (biuro dawało
     // o 14:00 całość, o 16:00 zmiany i całość nigdy nie była czytana).
     //
-    // Bezpieczeństwo: dla biur publikujących tylko pełne eksporty najnowszy plik jest
-    // pełny, więc pętla kończy się na pierwszym (idx 0), zachowanie identyczne jak dotąd.
-    // Tryb nieznany (brak atrybutu export) też zatrzymuje pętlę konserwatywnie, żeby
-    // nie wciągać starych plików.
+    // Dla biur publikujących tylko pełne eksporty najnowszy plik jest pełny, więc pętla
+    // kończy się na pierwszym (idx 0), zachowanie identyczne jak dotąd. Tryb nieznany
+    // (brak atrybutu export): patrz shouldWalkPastZip.
     for (let idx = 0; idx < zipFiles.length; idx++) {
       const zip = zipFiles[idx];
-      if (idx === 0) remoteFileName = zip.name;
 
       const zipLocalPath = path.join(tempDir, zip.remotePath);
       await downloadFile(client, zip.remotePath, zipLocalPath);
 
       const zipExtractDir = path.join(extractedRoot, String(idx));
-      await extractZip(zipLocalPath, zipExtractDir);
+      try {
+        await extractZipToDir(zipLocalPath, zipExtractDir);
+      } catch (error) {
+        if (isEnvironmentError(error)) throw error;
+
+        // Urwana paczka zatrzymywała całe biuro: wyjątek przerywał przebieg, a kolejny przebieg
+        // trafiał na ten sam plik (em5 od 26.08.2026, FILE_ENDED). Teraz ją pomijamy i czytamy
+        // dalej. Częściowo rozpakowanych plików nie rejestrujemy, bo nie wiadomo, które są całe.
+        const message = error instanceof Error ? error.message : String(error);
+        unreadableZips.push({
+          name: zip.name,
+          error: message,
+          possiblyUploading: isPossiblyStillUploading(zip, nowMs),
+        });
+        console.warn("[ESTICRM DEBUG] Nieczytelna paczka ZIP, pomijam ją i czytam dalej:", zip.name, message);
+
+        // Sprzątanie od razu tylko dla miejsca na dysku. Nie może rzucić: zamykany zapis potrafi
+        // chwilę trzymać katalog (ENOTEMPTY), a resztę i tak usuwa cleanup na końcu przebiegu.
+        await fsp.rm(zipExtractDir, { recursive: true, force: true }).catch(() => {});
+        await fsp.rm(zipLocalPath, { force: true }).catch(() => {});
+        continue;
+      }
+
+      // Rozpakowany ZIP jest już zbędny, a przy nadrabianiu zaległości to setki MB na dysku VPS.
+      await fsp.rm(zipLocalPath, { force: true }).catch(() => {});
 
       let zipExportMode: string | null = null;
       for (const file of await walkFiles(zipExtractDir)) {
@@ -738,13 +835,14 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
           base.toLowerCase() !== "definitions.xml"
         ) {
           const head = (await fsp.readFile(file, "utf8")).slice(0, 4096);
-          const match = head.match(/<offers[^>]*\bexport\s*=\s*["']?\s*([a-zA-Z]+)/);
+          // Cała wartość atrybutu, z polskimi znakami: `[a-zA-Z]+` ucinał „całość" do „ca".
+          const match = head.match(/<offers[^>]*\bexport\s*=\s*["']?\s*([^"'\s>]+)/);
           zipExportMode = match ? match[1].toLowerCase() : "";
         }
       }
 
-      const isFullZip = !!zipExportMode && /full|complete|calosc/.test(zipExportMode);
-      const isKnownIncremental = !!zipExportMode && !isFullZip;
+      const zipMode = !zipExportMode ? "unknown" : isFullEstiExportMode(zipExportMode) ? "full" : "incremental";
+      const walkPast = shouldWalkPastZip(zipMode, windowAnchored);
 
       console.log(
         "[ESTICRM DEBUG] Plik ZIP:",
@@ -752,24 +850,31 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
         "| export:",
         zipExportMode || "(nieznany)",
         "|",
-        isFullZip
+        zipMode === "full"
           ? "PEŁNY, kończę wybór"
-          : isKnownIncremental
-            ? "przyrostowy, szukam pełnego"
-            : "nieznany, kończę wybór"
+          : !walkPast
+            ? "nieznany, kończę wybór"
+            : zipMode === "incremental"
+              ? "przyrostowy, czytam dalej"
+              : "nieznany, czytam dalej w oknie"
       );
 
       // Pierwszy napotkany pełny (idziemy od najnowszego) = najnowszy pełny eksport.
-      if (isFullZip && zip.modifiedAt) {
+      if (zipMode === "full" && zip.modifiedAt) {
         newestFullZipModifiedMs = zip.modifiedAt.getTime();
       }
 
-      // Stop na pełnym eksporcie albo na nierozpoznanym trybie. Przyrostowe (nowsze
-      // od pełnego) zbieramy po drodze i lecimy dalej, aż trafimy na pełny.
-      if (isFullZip || !isKnownIncremental) break;
+      if (!walkPast) break;
     }
 
-    const directXmlFiles = files.filter((item) => item.name.toLowerCase().endsWith(".xml"));
+    // Luźne pliki XML (bez ZIP-a) podlegają temu samemu oknu co paczki. Inaczej stary luźny pełny
+    // eksport przy pustym oknie byłby jedynym plikiem przebiegu i wygasiłby oferty dodane po nim.
+    // definitions.xml to słowniki, a nie oferty, więc czytamy go zawsze.
+    const directXmlFiles = files.filter(
+      (item) =>
+        item.name.toLowerCase().endsWith(".xml") &&
+        (safeBasename(item.name) === "definitions.xml" || isInsideEstiWindow(item.modifiedAt, walkWindow.anchorMs))
+    );
     const directImageFiles = files.filter((item) => /\.(jpe?g|png|webp|avif)$/i.test(item.name));
 
     for (const file of directXmlFiles) {
@@ -795,7 +900,15 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
 
     if (definitionLocalPath) {
       const definitionsXml = await fsp.readFile(definitionLocalPath, "utf8");
-      definitions = parseDefinitionsXml(definitionsXml);
+      // Urwane słowniki parser przyjąłby po cichu jako krótsze. Bez etykiet część ofert mogłaby
+      // odpaść jako „nie sprzedaż", a przy pełnym eksporcie zniknąć, więc wtedy nic nie wygaszamy.
+      const definitionsProblem = xmlIntegrityProblem(definitionsXml);
+      if (definitionsProblem) {
+        console.warn(`[ESTICRM] Uszkodzony plik definitions.xml: ${definitionsProblem}`);
+        problems.push(`definitions.xml (${definitionsProblem})`);
+      } else {
+        definitions = parseDefinitionsXml(definitionsXml);
+      }
     } else {
       console.log("[ESTICRM DEBUG] Brak definitions.xml. Parser użyje surowych wartości pól.");
     }
@@ -814,7 +927,7 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
           path.basename(a.localPath).localeCompare(path.basename(b.localPath))
       );
 
-    if (!zipFiles[0] && offerXmlFiles[0]) {
+    if (!allZips[0] && offerXmlFiles[0]) {
       remoteFileName = path.basename(offerXmlFiles[0].localPath);
     }
 
@@ -822,49 +935,49 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
     console.log("[ESTICRM DEBUG] Zdjęcia lokalne:", [...localFileByBasename.keys()].filter((name) => /\.(jpe?g|png|webp|avif)$/i.test(name)).length);
     console.log("[ESTICRM DEBUG] Zdjęcia na FTP do pobrania na żądanie:", imageRemotePathByBasename.size);
 
-    // Auto-czyszczenie drop-zone EstiCRM. Silnik czyta najnowszy pełny eksport + przyrostowe
-    // nowsze od niego; wszystko STARSZE od najnowszego pełnego nigdy już nie jest czytane, więc
-    // to bezpieczny balast (bywają pliki po 440 MB). Kasujemy WYŁĄCZNIE stare .zip starsze niż
-    // najnowszy pełny (z marginesem czasu i buforem najświeższych). NIGDY nie ruszamy luźnych
-    // zdjęć, definitions.xml ani plików XML. Jeśli nie potwierdzono pełnego eksportu — zero kasowań.
-    if (newestFullZipModifiedMs > 0) {
-      const retentionDays = Number(process.env.CRM_FEED_RETENTION_DAYS ?? "14");
-      const keepMinFiles = Number(process.env.CRM_FEED_KEEP_MIN ?? "10");
-      const ageCutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    // Auto-czyszczenie drop-zone EstiCRM (bywają pliki po 2,5 GB). Kasujemy WYŁĄCZNIE stare .zip,
+    // zawsze od najstarszych; obie reguły i ich uzasadnienie w planEstiZipPrune. NIGDY nie ruszamy
+    // luźnych zdjęć, definitions.xml ani plików XML.
+    const prunePolicy = readPrunePolicyFromEnv();
+    const prunePlan = planEstiZipPrune(allZips, {
+      newestFullMs: newestFullZipModifiedMs,
+      anchorMs: walkWindow.anchorMs,
+      windowRuleEnabled: isEstiWindowPruneEnabled(integration.id, process.env.CRM_ESTICRM_PRUNE),
+      policy: prunePolicy,
+      nowMs,
+    });
 
-      // zipFiles jest posortowane malejąco po czasie (najnowsze na początku).
-      const protectedNewest = new Set(
-        zipFiles.slice(0, Math.max(0, keepMinFiles)).map((z) => z.remotePath)
+    let prunedCount = 0;
+    let prunedBytes = 0;
+    for (const z of prunePlan.prunable) {
+      try {
+        await client.remove(z.remotePath);
+        prunedCount += 1;
+        prunedBytes += z.size ?? 0;
+      } catch (error) {
+        // Stop na pierwszym błędzie: plan tnie od najstarszej, a skasowanie nowszej paczki przy
+        // zostawionej starszej zrobiłoby dziurę w czasie. Kolejny przebieg spróbuje od tej samej.
+        console.error("[ESTICRM CLEANUP] Nie udało się usunąć starego ZIP, przerywam sprzątanie:", z.remotePath, error);
+        break;
+      }
+    }
+
+    if (prunedCount > 0) {
+      console.log(`[ESTICRM CLEANUP] Usunięto ${prunedCount} starych ZIP-ów (${formatMegabytes(prunedBytes)}) z ${remoteDir}.`);
+    }
+
+    if (prunePlan.previewWhenDisabled.length > 0) {
+      const previewBytes = prunePlan.previewWhenDisabled.reduce((acc, z) => acc + (z.size ?? 0), 0);
+      console.log(
+        `[ESTICRM CLEANUP] Podgląd, nic nie kasuję (CRM_ESTICRM_PRUNE nie obejmuje tego biura): za oknem przebiegu i starszych niż ${prunePolicy.retentionDaysWithoutFull} dni jest ${prunePlan.previewWhenDisabled.length} ZIP-ów (${formatMegabytes(previewBytes)}).`
       );
-
-      const prunableZips = zipFiles.filter((z) => {
-        if (!z.modifiedAt) return false;
-        if (protectedNewest.has(z.remotePath)) return false;
-        if (z.modifiedAt.getTime() >= newestFullZipModifiedMs) return false; // pełny lub coś po nim
-        if (z.modifiedAt.getTime() >= ageCutoffMs) return false; // margines czasowy
-        return true;
-      });
-
-      let prunedCount = 0;
-      for (const z of prunableZips) {
-        try {
-          await client.remove(z.remotePath);
-          prunedCount += 1;
-        } catch (error) {
-          console.error("[ESTICRM CLEANUP] Nie udało się usunąć starego ZIP:", z.remotePath, error);
-        }
-      }
-
-      if (prunedCount > 0) {
-        console.log(
-          `[ESTICRM CLEANUP] Usunięto ${prunedCount} ZIP-ów starszych niż najnowszy pełny eksport (${new Date(newestFullZipModifiedMs).toISOString()}) z ${remoteDir}.`
-        );
-      }
     }
 
     const feed: DownloadedEstiFeed = {
       remoteFileName,
       tempDir,
+      failedDirs,
+      unreadableZips,
       offerXmlFiles,
       localFileByBasename,
       imageRemotePathByBasename,
@@ -872,6 +985,7 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
       photoFtpClient,
       definitions,
       exportMode: null,
+      problems,
       cleanup: async () => {
         feed.photoFtpClient?.close();
         await fsp.rm(tempDir, { recursive: true, force: true });
@@ -885,6 +999,16 @@ async function downloadEstiFeedFromFtp(integration: IntegrationForSync): Promise
   } finally {
     client.close();
   }
+}
+
+/** Czy plik zdjęcia jest w paczce albo na FTP. Bez pobierania, patrz photo-refresh.ts. */
+function hasEstiPhoto(downloaded: DownloadedEstiFeed, originalName: string) {
+  const basename = safeBasename(originalName);
+  return (
+    downloaded.localFileByBasename.has(basename) ||
+    downloaded.downloadedPhotoByBasename.has(basename) ||
+    downloaded.imageRemotePathByBasename.has(basename)
+  );
 }
 
 async function getEstiPhotoLocalPath(integration: IntegrationForSync, downloaded: DownloadedEstiFeed, originalName: string) {
@@ -933,37 +1057,30 @@ async function getEstiPhotoLocalPath(integration: IntegrationForSync, downloaded
 }
 
 async function uploadOfferPhotosToR2(integration: IntegrationForSync, downloaded: DownloadedEstiFeed, externalId: string, photoFileNames: string[]) {
-  const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> = [];
+  const uploaded: UploadedPhoto[] = [];
 
-  for (let index = 0; index < photoFileNames.length; index += 1) {
-    const originalName = photoFileNames[index];
-    const localPath = await getEstiPhotoLocalPath(integration, downloaded, originalName);
-    if (!localPath) continue;
+  try {
+    for (let index = 0; index < photoFileNames.length; index += 1) {
+      const originalName = photoFileNames[index];
+      const localPath = await getEstiPhotoLocalPath(integration, downloaded, originalName);
+      if (!localPath) continue;
 
-    const buffer = await fsp.readFile(localPath);
-    const upload = await uploadBufferToR2({
-      buffer,
-      originalFileName: `${integration.id}-${externalId}-${originalName}`,
-      mimeType: getMimeTypeFromFileName(originalName),
-    });
+      const buffer = await fsp.readFile(localPath);
+      const upload = await uploadBufferToR2({
+        buffer,
+        originalFileName: `${integration.id}-${externalId}-${originalName}`,
+        mimeType: getMimeTypeFromFileName(originalName),
+      });
 
-    uploaded.push({ url: upload.url, publicId: upload.key, kolejnosc: index });
+      uploaded.push({ url: upload.url, publicId: upload.key, kolejnosc: index });
+    }
+  } catch (error) {
+    // Wgrane w tym wywołaniu nie mają jeszcze wiersza w bazie, więc nic na portalu ich nie pokazuje.
+    await deleteR2Photos(uploaded.map((photo) => photo.publicId), "[ESTICRM]");
+    throw error;
   }
 
   return uploaded;
-}
-
-async function removeExistingR2Photos(dzialkaId: string) {
-  const currentPhotos = await prisma.zdjecie.findMany({ where: { dzialkaId }, select: { publicId: true } });
-
-  for (const photo of currentPhotos) {
-    if (!photo.publicId) continue;
-    try {
-      await deleteFromR2(photo.publicId);
-    } catch (error) {
-      console.error("[ESTICRM DEBUG] Nie udało się usunąć zdjęcia z R2:", photo.publicId, error);
-    }
-  }
 }
 
 function buildDzialkaDataFromOffer(offer: EstiOffer) {
@@ -1029,7 +1146,7 @@ async function processOffer(
   offer: EstiOffer,
   downloaded: DownloadedEstiFeed,
   paymentsEnabled: boolean
-): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS"> {
+): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS" | "SKIP_STALE"> {
   const now = new Date();
   const expiresAt = null;
 
@@ -1037,6 +1154,12 @@ async function processOffer(
     where: { integrationId_externalId: { integrationId: integration.id, externalId: offer.externalId } },
     include: { dzialka: true },
   });
+
+  // Wersja starsza niż zapisana (np. nowsza paczka pominięta jako uszkodzona) nie nadpisuje danych
+  // i nie reaktywuje oferty. Szczegóły w isStaleOfferVersion (feed-signals.ts).
+  if (existingLink && isStaleOfferVersion(offer.externalUpdatedAt, existingLink.externalUpdatedAt)) {
+    return "SKIP_STALE";
+  }
 
   if (!existingLink) {
     const user = await prisma.user.findUnique({ where: { id: integration.userId }, select: { id: true, listingCredits: true } });
@@ -1055,64 +1178,71 @@ async function processOffer(
 
     const uploadedPhotos = await uploadOfferPhotosToR2(integration, downloaded, offer.externalId, offer.photoFileNames);
 
-    await prisma.$transaction(async (tx) => {
-      const dzialka = await tx.dzialka.create({
-        data: {
-          ...buildDzialkaDataFromOffer(offer),
-          ownerId: integration.userId,
-          editToken: makeEditToken(),
-          publishedAt: now,
-          expiresAt,
-          endedAt: null,
-          status: "AKTYWNE",
-          zdjecia: { create: uploadedPhotos },
-        },
-      });
-
-      const link = await tx.crmOfferLink.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          externalId: offer.externalId,
-          externalUpdatedAt: offer.externalUpdatedAt,
-          lastImportedAt: now,
-          lastSeenAt: now,
-          lastPublishedAt: now,
-          isActiveInSource: true,
-        },
-      });
-
-      if (paymentsEnabled) {
-        const updatedUser = await tx.user.update({
-          where: { id: integration.userId },
-          data: { listingCredits: { decrement: 1 } },
-          select: { listingCredits: true },
-        });
-
-        await tx.listingCreditTransaction.create({
+    try {
+      await prisma.$transaction(async (tx) => {
+        const dzialka = await tx.dzialka.create({
           data: {
-            userId: integration.userId,
-            delta: -1,
-            balanceAfter: updatedUser.listingCredits,
-            sourceType: "CRM_PUBLICATION",
-            note: `EstiCRM publikacja oferty ${offer.externalId}`,
+            ...buildDzialkaDataFromOffer(offer),
+            ownerId: integration.userId,
+            editToken: makeEditToken(),
+            publishedAt: now,
+            expiresAt,
+            endedAt: null,
+            status: "AKTYWNE",
+            zdjecia: { create: uploadedPhotos },
           },
         });
-      }
 
-      await tx.crmSyncLog.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          offerLinkId: link.id,
-          externalId: offer.externalId,
-          action: "CREATE",
-          status: "SUCCESS",
-          message: "Oferta utworzona poprawnie z importu EstiCRM.",
-          payload: offer.payload,
-        },
+        const link = await tx.crmOfferLink.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            externalId: offer.externalId,
+            externalUpdatedAt: offer.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: now,
+            isActiveInSource: true,
+          },
+        });
+
+        if (paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: { listingCredits: { decrement: 1 } },
+            select: { listingCredits: true },
+          });
+
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `EstiCRM publikacja oferty ${offer.externalId}`,
+            },
+          });
+        }
+
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: link.id,
+            externalId: offer.externalId,
+            action: "CREATE",
+            status: "SUCCESS",
+            message: "Oferta utworzona poprawnie z importu EstiCRM.",
+            payload: offer.payload,
+          },
+        });
       });
-    });
+    } catch (error) {
+      // Oferta nie powstała, więc do wgranych zdjęć nie prowadzi żaden wiersz. Bez sprzątania każdy
+      // kolejny nieudany przebieg dokładałby do R2 komplet tych samych plików.
+      await discardUnsavedPhotos(uploadedPhotos, "[ESTICRM]");
+      throw error;
+    }
 
     return "CREATE";
   }
@@ -1137,80 +1267,84 @@ async function processOffer(
     }
   }
 
-  // Optymalizacja: pomiń re-upload zdjęć, gdy oferta się nie zmieniła (patrz asari-sync).
-  // Sygnał = externalUpdatedAt: przychodzące nie nowsze niż zapisane + zgodna liczba zdjęć
-  // w bazie ⇒ zostaw zdjęcia w R2. Zachowawczo: null-e i reaktywacja ⇒ pełny re-upload.
-  const storedUpdatedAt = existingLink.externalUpdatedAt;
-  const incomingUpdatedAt = offer.externalUpdatedAt;
-  const photosUnchanged =
-    !wasEnded &&
-    storedUpdatedAt != null &&
-    incomingUpdatedAt != null &&
-    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
-    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) === offer.photoFileNames.length;
+  // Zdjęcia: czy wymieniać galerię, rozstrzyga photo-refresh.ts (strażnik re-uploadu, brakujące
+  // pliki). refreshOfferPhotos pilnuje kolejności: wgranie nowych, ta transakcja, dopiero po commicie
+  // kasowanie starych obiektów R2.
+  const photoPlan = planPhotoRefresh({
+    wasEnded,
+    storedUpdatedAt: existingLink.externalUpdatedAt,
+    incomingUpdatedAt: offer.externalUpdatedAt,
+    existingPhotoCount: await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } }),
+    feedPhotoNames: offer.photoFileNames,
+    isAvailable: (photoName) => hasEstiPhoto(downloaded, photoName),
+  });
 
-  if (!photosUnchanged) {
-    await removeExistingR2Photos(existingLink.dzialkaId);
-  }
-  const uploadedPhotos = photosUnchanged
-    ? []
-    : await uploadOfferPhotosToR2(integration, downloaded, offer.externalId, offer.photoFileNames);
+  await refreshOfferPhotos({
+    plan: photoPlan,
+    label: `[ESTICRM] Oferta ${offer.externalId}`,
+    upload: () => uploadOfferPhotosToR2(integration, downloaded, offer.externalId, offer.photoFileNames),
+    effects: r2PhotoEffects("[ESTICRM]"),
+    save: (photos) =>
+      prisma.$transaction(async (tx) => {
+        // Wiersz działki pierwszy: jego blokada szereguje równoległe przebiegi (swapOfferPhotos).
+        const dzialka = await tx.dzialka.update({
+          where: { id: existingLink.dzialkaId },
+          data: {
+            ...buildDzialkaDataFromOffer(offer),
+            ...(wasEnded ? { publishedAt: now, expiresAt, endedAt: null, status: "AKTYWNE" as const } : {}),
+          },
+        });
 
-  await prisma.$transaction(async (tx) => {
-    if (!photosUnchanged) {
-      await tx.zdjecie.deleteMany({ where: { dzialkaId: existingLink.dzialkaId } });
-    }
+        const replacedPhotoKeys = photos.replace ? await swapOfferPhotos(tx, dzialka.id, photos.photos) : [];
 
-    const dzialka = await tx.dzialka.update({
-      where: { id: existingLink.dzialkaId },
-      data: {
-        ...buildDzialkaDataFromOffer(offer),
-        ...(wasEnded ? { publishedAt: now, expiresAt, endedAt: null, status: "AKTYWNE" as const } : {}),
-        ...(photosUnchanged ? {} : { zdjecia: { create: uploadedPhotos } }),
-      },
-    });
+        await tx.crmOfferLink.update({
+          where: { id: existingLink.id },
+          data: {
+            // Data wersji tylko przy galerii zgodnej z feedem, inaczej strażnik zamroziłby starą galerię.
+            externalUpdatedAt: photos.syncedWithFeed ? offer.externalUpdatedAt : existingLink.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
+            isActiveInSource: true,
+          },
+        });
 
-    await tx.crmOfferLink.update({
-      where: { id: existingLink.id },
-      data: {
-        externalUpdatedAt: offer.externalUpdatedAt,
-        lastImportedAt: now,
-        lastSeenAt: now,
-        lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
-        isActiveInSource: true,
-      },
-    });
+        if (wasEnded && paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: { listingCredits: { decrement: 1 } },
+            select: { listingCredits: true },
+          });
 
-    if (wasEnded && paymentsEnabled) {
-      const updatedUser = await tx.user.update({
-        where: { id: integration.userId },
-        data: { listingCredits: { decrement: 1 } },
-        select: { listingCredits: true },
-      });
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `EstiCRM reaktywacja oferty ${offer.externalId}`,
+            },
+          });
+        }
 
-      await tx.listingCreditTransaction.create({
-        data: {
-          userId: integration.userId,
-          delta: -1,
-          balanceAfter: updatedUser.listingCredits,
-          sourceType: "CRM_PUBLICATION",
-          note: `EstiCRM reaktywacja oferty ${offer.externalId}`,
-        },
-      });
-    }
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: existingLink.id,
+            externalId: offer.externalId,
+            action: wasEnded ? "REACTIVATE" : "UPDATE",
+            status: "SUCCESS",
+            message: appendPhotoNote(
+              wasEnded ? "Oferta reaktywowana poprawnie z importu EstiCRM." : "Oferta zaktualizowana poprawnie z importu EstiCRM.",
+              photos.note
+            ),
+            payload: offer.payload,
+          },
+        });
 
-    await tx.crmSyncLog.create({
-      data: {
-        integrationId: integration.id,
-        dzialkaId: dzialka.id,
-        offerLinkId: existingLink.id,
-        externalId: offer.externalId,
-        action: wasEnded ? "REACTIVATE" : "UPDATE",
-        status: "SUCCESS",
-        message: wasEnded ? "Oferta reaktywowana poprawnie z importu EstiCRM." : "Oferta zaktualizowana poprawnie z importu EstiCRM.",
-        payload: offer.payload,
-      },
-    });
+        return replacedPhotoKeys;
+      }),
   });
 
   return wasEnded ? "REACTIVATE" : "UPDATE";
@@ -1286,6 +1420,7 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       ftpRemotePath: true,
       ftpPassive: true,
       fullImportMode: true,
+      lastSuccessAt: true,
     },
   });
 
@@ -1299,7 +1434,11 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
   let downloaded: DownloadedEstiFeed | null = null;
 
   try {
-    downloaded = await downloadEstiFeedFromFtp(integration);
+    // Biuro bez żadnej oferty w bazie czyta wstecz do pełnego eksportu, bez okna (planEstiWalkWindow).
+    const hasImportedOffers =
+      (await prisma.crmOfferLink.findFirst({ where: { integrationId: integration.id }, select: { id: true } })) !== null;
+
+    downloaded = await downloadEstiFeedFromFtp(integration, hasImportedOffers);
 
     const appConfig = await prisma.appConfig.findFirst();
     const paymentsEnabled = appConfig?.paymentsEnabled ?? false;
@@ -1310,13 +1449,48 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
     let deactivatedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
+    /** Błędy zapisu ofert i wygaszeń (bez nieczytelnych paczek): blokują kotwicę okna. */
+    let offerErrorCount = 0;
     let rawOffersCount = 0;
+    /** Oferty pominięte, bo przyszły w wersji starszej niż zapisana (isStaleOfferVersion). */
+    let staleCount = 0;
 
     const seenExternalIds = new Set<string>();
     const deletedExternalIds = new Set<string>();
     /** Sygnały DELETE dotyczące nieruchomości, których nie importujemy (mieszkania, domy, lokale). */
     let nieznaneDeleteCount = 0;
     let exportMode: string | null = null;
+
+    // Nieczytelne paczki pominięte przy pobieraniu. Każda trwale uszkodzona dostaje wpis ERROR,
+    // świeża mogła się jeszcze wgrywać i weźmie ją kolejny przebieg. Wygaszanie przy takim
+    // przebiegu blokuje isEstiRunFullExport, niezależnie od tego, czy paczka była świeża.
+    const damagedZipNames: string[] = [];
+
+    for (const zip of downloaded.unreadableZips) {
+      if (zip.possiblyUploading) {
+        console.log("[ESTICRM DEBUG] Świeża paczka nieczytelna, pewnie jeszcze się wgrywa. Weźmie ją kolejny przebieg:", zip.name);
+        continue;
+      }
+
+      errorCount += 1;
+      damagedZipNames.push(zip.name);
+
+      await logSync(integration.id, {
+        action: "ERROR",
+        status: "ERROR",
+        message: `Uszkodzona paczka EstiCRM na FTP: ${zip.name} (${zip.error}). Pominięta, pozostałe paczki zaimportowane, bez wygaszania ofert.`,
+      });
+    }
+
+    if (downloaded.failedDirs.length > 0) {
+      errorCount += downloaded.failedDirs.length;
+
+      await logSync(integration.id, {
+        action: "ERROR",
+        status: "ERROR",
+        message: `Nie udało się wylistować podkatalogów FTP EstiCRM: ${downloaded.failedDirs.join(", ")}. Ich paczki weźmie kolejny przebieg, bez wygaszania ofert.`,
+      });
+    }
 
     if (downloaded.offerXmlFiles.length === 0) {
       console.log("[ESTICRM DEBUG] Brak plików XML ofert.");
@@ -1330,13 +1504,29 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
     // starej paczki nie może ubić oferty, którą biuro wystawiło ponownie w nowszej.
     const offerSignals: OfferSignal<EstiOffer>[] = [];
     const deleteSignals: DeleteSignal[] = [];
+    /** Pliki pominięte jako uszkodzone. Przy choćby jednym nie wygaszamy brakujących ofert. */
+    const brokenOfferFiles: string[] = [];
+    const invalidLandExternalIds = new Set<string>();
 
     for (const offerXmlFile of downloaded.offerXmlFiles) {
+      const fileName = path.basename(offerXmlFile.localPath);
       const xml = await fsp.readFile(offerXmlFile.localPath, "utf8");
+
+      // Plik urwany albo ucięty przez CRM wewnątrz poprawnego ZIP-a parser przyjąłby po cichu jako
+      // krótszy (xml-integrity.ts). Pomijamy go w całości: oferty i sekcja delete wejdą, gdy będzie kompletny.
+      const integrityProblem = xmlIntegrityProblem(xml);
+      if (integrityProblem) {
+        brokenOfferFiles.push(`${fileName} (${integrityProblem})`);
+        console.warn(`[ESTICRM] Pomijam uszkodzony plik ofert ${fileName}: ${integrityProblem}`);
+        continue;
+      }
+
       const result = parseOfferXmlFile(xml, integration.name, downloaded.definitions);
 
       if (result.exportMode) exportMode = result.exportMode;
       rawOffersCount += result.rawCount;
+
+      for (const externalId of result.invalidLandExternalIds) invalidLandExternalIds.add(externalId);
 
       for (const externalId of result.deletedExternalIds) {
         deleteSignals.push({ externalId, fileAt: offerXmlFile.modifiedAtMs });
@@ -1345,6 +1535,20 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       for (const offer of result.offers) {
         offerSignals.push({ externalId: offer.externalId, offer, fileAt: offerXmlFile.modifiedAtMs });
       }
+    }
+
+    /** Wszystko, czego przebieg nie przeczytał: uszkodzone definicje i pliki ofert. */
+    const feedProblems = [...downloaded.problems, ...brokenOfferFiles];
+
+    if (feedProblems.length > 0) {
+      errorCount += feedProblems.length;
+      await logSync(integration.id, {
+        action: "ERROR",
+        status: "ERROR",
+        message:
+          `Pominięto uszkodzone pliki EstiCRM: ${feedProblems.join("; ")}. ` +
+          "Dane z nich wejdą, gdy plik będzie kompletny. W tym przebiegu nie wygaszam ofert nieobecnych w pełnym eksporcie.",
+      });
     }
 
     const resolved = resolveFeedSignals(offerSignals, deleteSignals, isSameOrNewerEstiOffer);
@@ -1373,8 +1577,10 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
         if (action === "CREATE" || action === "REACTIVATE") createdCount += 1;
         else if (action === "UPDATE") updatedCount += 1;
         else if (action === "SKIP_NO_CREDITS") skippedCount += 1;
+        else if (action === "SKIP_STALE") staleCount += 1;
       } catch (error) {
         errorCount += 1;
+        offerErrorCount += 1;
         const message = error instanceof Error ? error.message : "Nieznany błąd podczas importu oferty EstiCRM.";
         console.error("[ESTICRM DEBUG] Błąd zapisu oferty:", offer.externalId, message, error);
 
@@ -1391,6 +1597,7 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
         else if (wynik === "NIEZNANA") nieznaneDeleteCount += 1;
       } catch (error) {
         errorCount += 1;
+        offerErrorCount += 1;
         await logSync(integration.id, {
           externalId,
           action: "ERROR",
@@ -1406,24 +1613,53 @@ export async function syncEstiCrmIntegrationNow(integrationId: string): Promise<
       );
     }
 
-    const isFullExport = normalizeText(exportMode).includes("full") || normalizeText(exportMode).includes("complete") || normalizeText(exportMode).includes("calosc");
-
-    if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
-      deactivatedCount += await deactivateMissingOffers(integration.id, seenExternalIds);
-    } else {
-      console.log("[ESTICRM DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy DELETE albo pełnym eksporcie.", { exportMode, seen: seenExternalIds.size });
+    if (staleCount > 0) {
+      console.log(`[ESTICRM DEBUG] Pominięto ${staleCount} ofert w wersji starszej niż zapisana w bazie.`);
     }
+
+    // Niewylistowany podkatalog liczy się jak nieczytelna paczka: nie wiemy, co w nim leży.
+    const isFullExport = isEstiRunFullExport(exportMode, downloaded.unreadableZips.length + downloaded.failedDirs.length);
+
+    // Działka odrzucona za niekompletne dane jest w eksporcie, więc liczy się jako obecna. Nieprzeczytany
+    // plik = niepełna lista obecnych, więc wtedy nic nie gasimy (kolejny przebieg spróbuje znowu).
+    if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0 && feedProblems.length === 0) {
+      deactivatedCount += await deactivateMissingOffers(
+        integration.id,
+        new Set([...seenExternalIds, ...invalidLandExternalIds])
+      );
+    } else {
+      console.log("[ESTICRM DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy DELETE albo kompletnym pełnym eksporcie bez nieczytelnych paczek.", { exportMode, seen: seenExternalIds.size, problems: feedProblems.length, unreadableZips: downloaded.unreadableZips.length, failedDirs: downloaded.failedDirs.length });
+    }
+
+    const advancesAnchor = estiRunAdvancesAnchor({
+      offerErrors: offerErrorCount,
+      skippedOffers: skippedCount,
+      listingProblems: downloaded.failedDirs.length,
+    });
+
+    if (!advancesAnchor) {
+      console.log("[ESTICRM DEBUG] lastSuccessAt bez zmian: te same paczki wrócą w kolejnym przebiegu.", { offerErrorCount, skippedCount, failedDirs: downloaded.failedDirs.length });
+    }
+
+    // Nazwa uszkodzonej paczki trafia do panelu biura: z nią biuro może zgłosić problem do EstiCRM.
+    const damagedZipsNote =
+      damagedZipNames.length === 0
+        ? ""
+        : ` ${damagedZipNames.length === 1 ? "Pominięto uszkodzoną paczkę" : "Pominięto uszkodzone paczki"} z CRM: ${damagedZipNames
+            .slice(0, 3)
+            .join(", ")}${damagedZipNames.length > 3 ? ", ..." : ""}.`;
 
     await prisma.crmIntegration.update({
       where: { id: integration.id },
       data: {
         lastUsedAt: now,
         lastSyncAt: now,
-        lastSuccessAt: now,
+        // lastSuccessAt to kotwica okna paczek: patrz estiRunAdvancesAnchor.
+        ...(advancesAnchor ? { lastSuccessAt: now } : {}),
         lastErrorAt: errorCount > 0 ? now : null,
         lastErrorMessage:
           errorCount > 0
-            ? `Synchronizacja EstiCRM zakończona z błędami (${errorCount}).`
+            ? `Synchronizacja EstiCRM zakończona z błędami (${errorCount}).${damagedZipsNote}`
             : skippedCount > 0
               ? `Synchronizacja EstiCRM zakończona. Pominięto ${skippedCount} ofert z powodu braku kredytów.`
               : null,

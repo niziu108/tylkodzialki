@@ -55,8 +55,13 @@ export async function deactivateOffersMissingFromFullExport(params: {
   isInScope?: (externalId: string) => boolean;
   /** Opis zakresu do logów, np. "oddział 3877". */
   scopeLabel?: string;
+  /**
+   * Dodatkowa reguła obecności obok dokładnego id (np. działka przejmowana przez nową wersję
+   * Galactiki w DOMY.PL). Brak = samo `seenExternalIds`, jak przed zmianą.
+   */
+  isAlsoPresent?: (externalId: string) => boolean;
 }): Promise<DeactivateMissingResult> {
-  const { integrationId, seenExternalIds, message, sourceLabel, isInScope, scopeLabel } = params;
+  const { integrationId, seenExternalIds, message, sourceLabel, isInScope, scopeLabel, isAlsoPresent } = params;
   const scopeSuffix = scopeLabel ? ` (${scopeLabel})` : "";
   const now = new Date();
 
@@ -77,7 +82,7 @@ export async function deactivateOffersMissingFromFullExport(params: {
 
     if (page.length === 0) break;
 
-    const part = collectMissingCandidates(page, seenExternalIds, isInScope);
+    const part = collectMissingCandidates(page, seenExternalIds, isInScope, isAlsoPresent);
     activeCount += part.inScopeCount;
     candidates.push(...part.candidates);
 

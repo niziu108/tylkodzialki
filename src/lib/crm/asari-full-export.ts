@@ -25,9 +25,9 @@
  * Trzymanie starego pełnego eksportu przy kasowaniu nowszych paczek robi dziurę: oferta sprzedana
  * sekcją DELETE w skasowanej paczce wraca ze starego pliku jako REACTIVATE, a nowsza cena zostaje
  * nadpisana starszą. Przy zakresie per oddział skasowanie cudzego pełnego eksportu jest nieszkodliwe.
+ *
+ * Bramka na urwane pliki XML (xmlIntegrityProblem) jest wspólna dla silników: xml-integrity.ts.
  */
-
-import { XMLValidator } from "fast-xml-parser";
 
 export type AsariFullExportScope =
   /** Nie wygaszamy nic: eksport niekompletny albo nie wiadomo, za kogo mówi. */
@@ -121,19 +121,4 @@ export function isInAsariFullExportScope(externalId: string, scope: AsariFullExp
   if (scope.kind === "integration") return true;
   if (scope.kind === "branch") return asariBranchOfSignature(externalId) === scope.branch;
   return false;
-}
-
-/**
- * Null dla poprawnego XML, opis błędu dla uszkodzonego.
- *
- * Parser fast-xml-parser nie rzuca, gdy plik urywa się na granicy elementu: brak `</PACKAGE>`,
- * pusty plik albo sam nagłówek dają po cichu niepełną listę ofert. Plik złapany w trakcie
- * wgrywania wyglądałby jak eksport z mniejszą liczbą ofert, a przy pełnym eksporcie reszta
- * poszłaby do wygaszenia. Walidator łapie wszystkie te przypadki (sprawdzone na 1498 prawdziwych
- * plikach ASARI z 16.09.2026: zero fałszywych odrzuceń, około 1 ms na 50 KB).
- */
-export function xmlIntegrityProblem(xml: string): string | null {
-  const result = XMLValidator.validate(xml);
-  if (result === true) return null;
-  return `${result.err.msg} (linia ${result.err.line})`;
 }

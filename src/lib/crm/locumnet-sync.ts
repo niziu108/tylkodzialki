@@ -19,10 +19,19 @@ import {
 import { prisma } from "@/lib/prisma";
 import { payloadForLog } from "@/lib/crm/log-policy";
 import { mapDojazd } from "@/lib/dojazd";
-import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { uploadBufferToR2 } from "@/lib/r2";
+import { appendPhotoNote, planPhotoRefresh, refreshOfferPhotos, type UploadedPhoto } from "@/lib/crm/photo-refresh";
+import { deleteR2Photos, discardUnsavedPhotos, r2PhotoEffects, swapOfferPhotos } from "@/lib/crm/offer-photos";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
 import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
+import {
+  isStaleOfferVersion,
+  resolveFeedSignals,
+  type DeleteSignal,
+  type OfferSignal,
+} from "@/lib/crm/feed-signals";
+import { xmlIntegrityProblem } from "@/lib/crm/xml-integrity";
 
 // Silnik importu LocumNet Online (format XML "LOCUMNET-ONLINE").
 // Mechanika jak esticrm-sync: biuro wrzuca ZIP-y (lno_*.zip) na nasze FTP drop-zone,
@@ -89,6 +98,14 @@ type LocumnetOffer = {
   payload: Prisma.InputJsonValue;
 };
 
+/**
+ * Oferta odrzucona przez parser (jak w asari-sync). NOT_LAND: nie działka albo nie sprzedaż.
+ * INVALID: działka, której chwilowo brakuje ceny, powierzchni albo lokalizacji. Przy pełnym
+ * eksporcie nadal JEST w eksporcie biura, więc nie może zniknąć jako „nieobecna": zostaje
+ * z ostatnią poprawną wersją.
+ */
+type LocumnetRejectedOffer = { rejected: "NOT_LAND" | "INVALID"; externalId: string };
+
 // Zwraca true, gdy `candidate` jest co najmniej tak świeży jak `current` (po daom).
 // Wersja z datą wygrywa z wersją bez daty; przy remisie wygrywa późniejszy plik —
 // pliki XML iterujemy od najstarszego.
@@ -101,10 +118,17 @@ function isSameOrNewerOffer(candidate: LocumnetOffer, current: LocumnetOffer): b
   return true;
 }
 
+/** Plik ofert razem z datą źródłowej paczki: bez niej nie da się rozstrzygnąć removed/mlssta vs oferta. */
+type LocumnetOfferXmlFile = {
+  localPath: string;
+  /** Data modyfikacji ZIP-a (albo luźnego XML-a) na FTP w ms. 0 = serwer jej nie podał. */
+  modifiedAtMs: number;
+};
+
 type DownloadedLocumnetFeed = {
   remoteFileName: string;
   tempDir: string;
-  offerXmlFiles: string[];
+  offerXmlFiles: LocumnetOfferXmlFile[];
   localFileByBasename: Map<string, string>;
   imageRemotePathByBasename: Map<string, string>;
   downloadedPhotoByBasename: Map<string, string>;
@@ -326,6 +350,8 @@ function isLandOffer(typnieCode: string, typnieLabel: string) {
 type ParsedXmlFile = {
   offers: LocumnetOffer[];
   deletedExternalIds: string[];
+  /** Działki obecne w pliku, ale odrzucone za niekompletne dane (patrz LocumnetRejectedOffer). */
+  invalidLandExternalIds: string[];
   isFullExport: boolean;
   rawCount: number;
 };
@@ -334,7 +360,7 @@ function parseLocumnetOffer(
   rawOffer: Record<string, unknown>,
   agencyName: string | null,
   photoFileNamesByExternalId: Map<string, string[]>
-): LocumnetOffer | null {
+): LocumnetOffer | LocumnetRejectedOffer | null {
   const externalId = toTextValue(rawOffer.idof);
 
   if (!externalId) {
@@ -347,13 +373,13 @@ function parseLocumnetOffer(
 
   if (!isLandOffer(typnieCode, typnieLabel)) {
     console.log("[LOCUMNET DEBUG] Odrzucono:", externalId, "to nie jest działka.", typnieLabel || typnieCode);
-    return null;
+    return { rejected: "NOT_LAND", externalId };
   }
 
   const typof = normalizeText(toTextValue(rawOffer.typof));
   if (typof && !typof.includes("sprzed")) {
     console.log("[LOCUMNET DEBUG] Odrzucono:", externalId, "transakcja nie jest sprzedażą.", typof);
-    return null;
+    return { rejected: "NOT_LAND", externalId };
   }
 
   const price = toNumber(rawOffer.cmin);
@@ -361,12 +387,12 @@ function parseLocumnetOffer(
 
   if (!price || price <= 0) {
     console.log("[LOCUMNET DEBUG] Odrzucono:", externalId, "brak ceny.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   if (!area || area < 1) {
     console.log("[LOCUMNET DEBUG] Odrzucono:", externalId, "brak powierzchni.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   const city = toTextValue(rawOffer.lokmie) || null;
@@ -379,7 +405,7 @@ function parseLocumnetOffer(
 
   if (!city && !commune && !county && !province) {
     console.log("[LOCUMNET DEBUG] Odrzucono:", externalId, "brak lokalizacji.");
-    return null;
+    return { rejected: "INVALID", externalId };
   }
 
   const rawLat = toNumber(rawOffer.geoszer);
@@ -550,6 +576,7 @@ export function parseOfferXmlFile(xml: string, agencyName: string | null): Parse
   const feedAgencyName = toTextValue((arrify(agencyNode)[0] as Record<string, unknown> | undefined)?.nazwapelna) || agencyName;
 
   const deletedExternalIds: string[] = [];
+  const invalidLandExternalIds: string[] = [];
   const offers: LocumnetOffer[] = [];
   let rawCount = 0;
 
@@ -571,7 +598,14 @@ export function parseOfferXmlFile(xml: string, agencyName: string | null): Parse
     }
 
     const parsed = parseLocumnetOffer(rawOffer, feedAgencyName, photoFileNamesByExternalId);
-    if (parsed) offers.push(parsed);
+    if (!parsed) continue;
+
+    if ("rejected" in parsed) {
+      if (parsed.rejected === "INVALID") invalidLandExternalIds.push(parsed.externalId);
+      continue;
+    }
+
+    offers.push(parsed);
   }
 
   // Sekcja <removed>: oferty zdjęte od poprzedniego eksportu. Placeholder "0" pomijamy.
@@ -581,7 +615,7 @@ export function parseOfferXmlFile(xml: string, agencyName: string | null): Parse
     if (removedId && removedId !== "0") deletedExternalIds.push(removedId);
   }
 
-  return { offers, deletedExternalIds, isFullExport, rawCount };
+  return { offers, deletedExternalIds, invalidLandExternalIds, isFullExport, rawCount };
 }
 
 async function downloadFile(client: ftp.Client, remotePath: string, localPath: string) {
@@ -677,6 +711,8 @@ async function downloadLocumnetFeedFromFtp(integration: IntegrationForSync): Pro
 
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "td-locumnet-"));
   const localFileByBasename = new Map<string, string>();
+  /** Data paczki, z której pochodzi dany plik XML (ms). Ustala chronologię removed/mlssta vs oferta. */
+  const xmlModifiedMsByBasename = new Map<string, number>();
   const imageRemotePathByBasename = new Map<string, string>();
   const downloadedPhotoByBasename = new Map<string, string>();
   const photoFtpClient: ftp.Client | null = null;
@@ -729,7 +765,11 @@ async function downloadLocumnetFeedFromFtp(integration: IntegrationForSync): Pro
       for (const file of await walkFiles(zipExtractDir)) {
         const base = safeBasename(file);
         // Najnowszy wygrywa: starszy plik nie nadpisuje nowszego o tej samej nazwie.
-        if (!localFileByBasename.has(base)) localFileByBasename.set(base, file);
+        if (!localFileByBasename.has(base)) {
+          localFileByBasename.set(base, file);
+          // Plik XML dziedziczy datę swojej paczki: to ona ustawia chronologię sygnałów.
+          if (isOfferXmlBasename(base)) xmlModifiedMsByBasename.set(base, zip.modifiedAt?.getTime() ?? 0);
+        }
 
         if (zipFullExport === null && isOfferXmlBasename(base)) {
           const head = (await fsp.readFile(file, "utf8")).slice(0, 4096);
@@ -764,24 +804,33 @@ async function downloadLocumnetFeedFromFtp(integration: IntegrationForSync): Pro
       const localPath = path.join(tempDir, "direct", file.remotePath);
       await downloadFile(client, file.remotePath, localPath);
       localFileByBasename.set(safeBasename(file.name), localPath);
+      xmlModifiedMsByBasename.set(safeBasename(file.name), file.modifiedAt?.getTime() ?? 0);
     }
 
     for (const file of directImageFiles) {
       imageRemotePathByBasename.set(safeBasename(file.name), file.remotePath);
     }
 
-    const offerXmlFiles = [...localFileByBasename.entries()]
+    // Rosnąco po dacie paczki, jak w esticrm-sync: przy sprzecznych sygnałach (oferta w jednej paczce,
+    // removed/mlssta w drugiej) decyduje nowsza, patrz resolveFeedSignals. Nazwy mają timestamp
+    // (export2026-07-23-14-27-01.xml), więc przy remisie dat kolejność po nazwie dalej jest chronologiczna.
+    const offerXmlFiles: LocumnetOfferXmlFile[] = [...localFileByBasename.entries()]
       .filter(([basename]) => isOfferXmlBasename(basename))
-      .map(([, localPath]) => localPath)
-      // Nazwy mają timestamp (export2026-07-23-14-27-01.xml), więc sort alfabetyczny =
-      // chronologiczny od najstarszego. Dedup ofert liczy na tę kolejność.
-      .sort((a, b) => path.basename(a).localeCompare(path.basename(b)));
+      .map(([basename, localPath]) => ({
+        localPath,
+        modifiedAtMs: xmlModifiedMsByBasename.get(basename) ?? 0,
+      }))
+      .sort(
+        (a, b) =>
+          a.modifiedAtMs - b.modifiedAtMs ||
+          path.basename(a.localPath).localeCompare(path.basename(b.localPath))
+      );
 
     if (!zipFiles[0] && offerXmlFiles[0]) {
-      remoteFileName = path.basename(offerXmlFiles[0]);
+      remoteFileName = path.basename(offerXmlFiles[0].localPath);
     }
 
-    console.log("[LOCUMNET DEBUG] Pobrane pliki XML ofert:", offerXmlFiles.map((file) => path.basename(file)));
+    console.log("[LOCUMNET DEBUG] Pobrane pliki XML ofert (od najstarszej paczki):", offerXmlFiles.map((file) => path.basename(file.localPath)));
     console.log("[LOCUMNET DEBUG] Zdjęcia lokalne:", [...localFileByBasename.keys()].filter((name) => /\.(jpe?g|png|webp|avif)$/i.test(name)).length);
 
     // Auto-czyszczenie drop-zone (jak esticrm/asari): kasujemy WYŁĄCZNIE stare .zip starsze
@@ -843,6 +892,16 @@ async function downloadLocumnetFeedFromFtp(integration: IntegrationForSync): Pro
   }
 }
 
+/** Czy plik zdjęcia jest w paczce albo na FTP. Bez pobierania, patrz photo-refresh.ts. */
+function hasLocumnetPhoto(downloaded: DownloadedLocumnetFeed, originalName: string) {
+  const basename = safeBasename(originalName);
+  return (
+    downloaded.localFileByBasename.has(basename) ||
+    downloaded.downloadedPhotoByBasename.has(basename) ||
+    downloaded.imageRemotePathByBasename.has(basename)
+  );
+}
+
 async function getLocumnetPhotoLocalPath(integration: IntegrationForSync, downloaded: DownloadedLocumnetFeed, originalName: string) {
   const basename = safeBasename(originalName);
 
@@ -889,37 +948,30 @@ async function getLocumnetPhotoLocalPath(integration: IntegrationForSync, downlo
 }
 
 async function uploadOfferPhotosToR2(integration: IntegrationForSync, downloaded: DownloadedLocumnetFeed, externalId: string, photoFileNames: string[]) {
-  const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> = [];
+  const uploaded: UploadedPhoto[] = [];
 
-  for (let index = 0; index < photoFileNames.length; index += 1) {
-    const originalName = photoFileNames[index];
-    const localPath = await getLocumnetPhotoLocalPath(integration, downloaded, originalName);
-    if (!localPath) continue;
+  try {
+    for (let index = 0; index < photoFileNames.length; index += 1) {
+      const originalName = photoFileNames[index];
+      const localPath = await getLocumnetPhotoLocalPath(integration, downloaded, originalName);
+      if (!localPath) continue;
 
-    const buffer = await fsp.readFile(localPath);
-    const upload = await uploadBufferToR2({
-      buffer,
-      originalFileName: `${integration.id}-${externalId}-${originalName}`,
-      mimeType: getMimeTypeFromFileName(originalName),
-    });
+      const buffer = await fsp.readFile(localPath);
+      const upload = await uploadBufferToR2({
+        buffer,
+        originalFileName: `${integration.id}-${externalId}-${originalName}`,
+        mimeType: getMimeTypeFromFileName(originalName),
+      });
 
-    uploaded.push({ url: upload.url, publicId: upload.key, kolejnosc: index });
+      uploaded.push({ url: upload.url, publicId: upload.key, kolejnosc: index });
+    }
+  } catch (error) {
+    // Wgrane w tym wywołaniu nie mają jeszcze wiersza w bazie, więc nic na portalu ich nie pokazuje.
+    await deleteR2Photos(uploaded.map((photo) => photo.publicId), "[LOCUMNET]");
+    throw error;
   }
 
   return uploaded;
-}
-
-async function removeExistingR2Photos(dzialkaId: string) {
-  const currentPhotos = await prisma.zdjecie.findMany({ where: { dzialkaId }, select: { publicId: true } });
-
-  for (const photo of currentPhotos) {
-    if (!photo.publicId) continue;
-    try {
-      await deleteFromR2(photo.publicId);
-    } catch (error) {
-      console.error("[LOCUMNET DEBUG] Nie udało się usunąć zdjęcia z R2:", photo.publicId, error);
-    }
-  }
 }
 
 function buildDzialkaDataFromOffer(offer: LocumnetOffer) {
@@ -988,7 +1040,7 @@ async function processOffer(
   offer: LocumnetOffer,
   downloaded: DownloadedLocumnetFeed,
   paymentsEnabled: boolean
-): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS"> {
+): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS" | "SKIP_STALE"> {
   const now = new Date();
   const expiresAt = null;
 
@@ -996,6 +1048,12 @@ async function processOffer(
     where: { integrationId_externalId: { integrationId: integration.id, externalId: offer.externalId } },
     include: { dzialka: true },
   });
+
+  // Wersja starsza niż zapisana (np. nowsza paczka pominięta jako uszkodzona) nie nadpisuje danych
+  // i nie reaktywuje oferty. Szczegóły w isStaleOfferVersion (feed-signals.ts).
+  if (existingLink && isStaleOfferVersion(offer.externalUpdatedAt, existingLink.externalUpdatedAt)) {
+    return "SKIP_STALE";
+  }
 
   if (!existingLink) {
     const user = await prisma.user.findUnique({ where: { id: integration.userId }, select: { id: true, listingCredits: true } });
@@ -1014,64 +1072,71 @@ async function processOffer(
 
     const uploadedPhotos = await uploadOfferPhotosToR2(integration, downloaded, offer.externalId, offer.photoFileNames);
 
-    await prisma.$transaction(async (tx) => {
-      const dzialka = await tx.dzialka.create({
-        data: {
-          ...buildDzialkaDataFromOffer(offer),
-          ownerId: integration.userId,
-          editToken: makeEditToken(),
-          publishedAt: now,
-          expiresAt,
-          endedAt: null,
-          status: "AKTYWNE",
-          zdjecia: { create: uploadedPhotos },
-        },
-      });
-
-      const link = await tx.crmOfferLink.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          externalId: offer.externalId,
-          externalUpdatedAt: offer.externalUpdatedAt,
-          lastImportedAt: now,
-          lastSeenAt: now,
-          lastPublishedAt: now,
-          isActiveInSource: true,
-        },
-      });
-
-      if (paymentsEnabled) {
-        const updatedUser = await tx.user.update({
-          where: { id: integration.userId },
-          data: { listingCredits: { decrement: 1 } },
-          select: { listingCredits: true },
-        });
-
-        await tx.listingCreditTransaction.create({
+    try {
+      await prisma.$transaction(async (tx) => {
+        const dzialka = await tx.dzialka.create({
           data: {
-            userId: integration.userId,
-            delta: -1,
-            balanceAfter: updatedUser.listingCredits,
-            sourceType: "CRM_PUBLICATION",
-            note: `LocumNet publikacja oferty ${offer.externalId}`,
+            ...buildDzialkaDataFromOffer(offer),
+            ownerId: integration.userId,
+            editToken: makeEditToken(),
+            publishedAt: now,
+            expiresAt,
+            endedAt: null,
+            status: "AKTYWNE",
+            zdjecia: { create: uploadedPhotos },
           },
         });
-      }
 
-      await tx.crmSyncLog.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          offerLinkId: link.id,
-          externalId: offer.externalId,
-          action: "CREATE",
-          status: "SUCCESS",
-          message: "Oferta utworzona poprawnie z importu LocumNet.",
-          payload: offer.payload,
-        },
+        const link = await tx.crmOfferLink.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            externalId: offer.externalId,
+            externalUpdatedAt: offer.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: now,
+            isActiveInSource: true,
+          },
+        });
+
+        if (paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: { listingCredits: { decrement: 1 } },
+            select: { listingCredits: true },
+          });
+
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `LocumNet publikacja oferty ${offer.externalId}`,
+            },
+          });
+        }
+
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: link.id,
+            externalId: offer.externalId,
+            action: "CREATE",
+            status: "SUCCESS",
+            message: "Oferta utworzona poprawnie z importu LocumNet.",
+            payload: offer.payload,
+          },
+        });
       });
-    });
+    } catch (error) {
+      // Oferta nie powstała, więc do wgranych zdjęć nie prowadzi żaden wiersz. Bez sprzątania każdy
+      // kolejny nieudany przebieg dokładałby do R2 komplet tych samych plików.
+      await discardUnsavedPhotos(uploadedPhotos, "[LOCUMNET]");
+      throw error;
+    }
 
     return "CREATE";
   }
@@ -1096,79 +1161,84 @@ async function processOffer(
     }
   }
 
-  // Guard zdjęć (jak esticrm/asari): przychodząca wersja nie nowsza niż zapisana + zgodna
-  // liczba zdjęć w bazie ⇒ pomijamy delete+re-upload do R2. Null-e i reaktywacja ⇒ pełny re-upload.
-  const storedUpdatedAt = existingLink.externalUpdatedAt;
-  const incomingUpdatedAt = offer.externalUpdatedAt;
-  const photosUnchanged =
-    !wasEnded &&
-    storedUpdatedAt != null &&
-    incomingUpdatedAt != null &&
-    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
-    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) === offer.photoFileNames.length;
+  // Zdjęcia: czy wymieniać galerię, rozstrzyga photo-refresh.ts (strażnik re-uploadu, brakujące
+  // pliki). refreshOfferPhotos pilnuje kolejności: wgranie nowych, ta transakcja, dopiero po commicie
+  // kasowanie starych obiektów R2.
+  const photoPlan = planPhotoRefresh({
+    wasEnded,
+    storedUpdatedAt: existingLink.externalUpdatedAt,
+    incomingUpdatedAt: offer.externalUpdatedAt,
+    existingPhotoCount: await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } }),
+    feedPhotoNames: offer.photoFileNames,
+    isAvailable: (photoName) => hasLocumnetPhoto(downloaded, photoName),
+  });
 
-  if (!photosUnchanged) {
-    await removeExistingR2Photos(existingLink.dzialkaId);
-  }
-  const uploadedPhotos = photosUnchanged
-    ? []
-    : await uploadOfferPhotosToR2(integration, downloaded, offer.externalId, offer.photoFileNames);
+  await refreshOfferPhotos({
+    plan: photoPlan,
+    label: `[LOCUMNET] Oferta ${offer.externalId}`,
+    upload: () => uploadOfferPhotosToR2(integration, downloaded, offer.externalId, offer.photoFileNames),
+    effects: r2PhotoEffects("[LOCUMNET]"),
+    save: (photos) =>
+      prisma.$transaction(async (tx) => {
+        // Wiersz działki pierwszy: jego blokada szereguje równoległe przebiegi (swapOfferPhotos).
+        const dzialka = await tx.dzialka.update({
+          where: { id: existingLink.dzialkaId },
+          data: {
+            ...buildDzialkaDataFromOffer(offer),
+            ...(wasEnded ? { publishedAt: now, expiresAt, endedAt: null, status: "AKTYWNE" as const } : {}),
+          },
+        });
 
-  await prisma.$transaction(async (tx) => {
-    if (!photosUnchanged) {
-      await tx.zdjecie.deleteMany({ where: { dzialkaId: existingLink.dzialkaId } });
-    }
+        const replacedPhotoKeys = photos.replace ? await swapOfferPhotos(tx, dzialka.id, photos.photos) : [];
 
-    const dzialka = await tx.dzialka.update({
-      where: { id: existingLink.dzialkaId },
-      data: {
-        ...buildDzialkaDataFromOffer(offer),
-        ...(wasEnded ? { publishedAt: now, expiresAt, endedAt: null, status: "AKTYWNE" as const } : {}),
-        ...(photosUnchanged ? {} : { zdjecia: { create: uploadedPhotos } }),
-      },
-    });
+        await tx.crmOfferLink.update({
+          where: { id: existingLink.id },
+          data: {
+            // Data wersji tylko przy galerii zgodnej z feedem, inaczej strażnik zamroziłby starą galerię.
+            externalUpdatedAt: photos.syncedWithFeed ? offer.externalUpdatedAt : existingLink.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
+            isActiveInSource: true,
+          },
+        });
 
-    await tx.crmOfferLink.update({
-      where: { id: existingLink.id },
-      data: {
-        externalUpdatedAt: offer.externalUpdatedAt,
-        lastImportedAt: now,
-        lastSeenAt: now,
-        lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
-        isActiveInSource: true,
-      },
-    });
+        if (wasEnded && paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: { listingCredits: { decrement: 1 } },
+            select: { listingCredits: true },
+          });
 
-    if (wasEnded && paymentsEnabled) {
-      const updatedUser = await tx.user.update({
-        where: { id: integration.userId },
-        data: { listingCredits: { decrement: 1 } },
-        select: { listingCredits: true },
-      });
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `LocumNet reaktywacja oferty ${offer.externalId}`,
+            },
+          });
+        }
 
-      await tx.listingCreditTransaction.create({
-        data: {
-          userId: integration.userId,
-          delta: -1,
-          balanceAfter: updatedUser.listingCredits,
-          sourceType: "CRM_PUBLICATION",
-          note: `LocumNet reaktywacja oferty ${offer.externalId}`,
-        },
-      });
-    }
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: existingLink.id,
+            externalId: offer.externalId,
+            action: wasEnded ? "REACTIVATE" : "UPDATE",
+            status: "SUCCESS",
+            message: appendPhotoNote(
+              wasEnded ? "Oferta reaktywowana poprawnie z importu LocumNet." : "Oferta zaktualizowana poprawnie z importu LocumNet.",
+              photos.note
+            ),
+            payload: offer.payload,
+          },
+        });
 
-    await tx.crmSyncLog.create({
-      data: {
-        integrationId: integration.id,
-        dzialkaId: dzialka.id,
-        offerLinkId: existingLink.id,
-        externalId: offer.externalId,
-        action: wasEnded ? "REACTIVATE" : "UPDATE",
-        status: "SUCCESS",
-        message: wasEnded ? "Oferta reaktywowana poprawnie z importu LocumNet." : "Oferta zaktualizowana poprawnie z importu LocumNet.",
-        payload: offer.payload,
-      },
-    });
+        return replacedPhotoKeys;
+      }),
   });
 
   return wasEnded ? "REACTIVATE" : "UPDATE";
@@ -1268,6 +1338,8 @@ export async function syncLocumnetIntegrationNow(integrationId: string): Promise
     let skippedCount = 0;
     let errorCount = 0;
     let rawOffersCount = 0;
+    /** Oferty pominięte, bo przyszły w wersji starszej niż zapisana (isStaleOfferVersion). */
+    let staleCount = 0;
 
     const seenExternalIds = new Set<string>();
     const deletedExternalIds = new Set<string>();
@@ -1279,37 +1351,72 @@ export async function syncLocumnetIntegrationNow(integrationId: string): Promise
       console.log("[LOCUMNET DEBUG] Brak plików XML ofert.");
     }
 
-    // Pełny + przyrostowe pliki zawierają tę samą ofertę wielokrotnie. Scalamy do
-    // NAJNOWSZEJ wersji per externalId (po daom) i przetwarzamy raz.
-    const latestOfferByExternalId = new Map<string, LocumnetOffer>();
+    // Biuro LocumNet przysyła paczki z kompletem ofert, ale z FullExport=False (lno_200 z 23.07.2026),
+    // więc pętla wyboru bierze wszystkie ZIP-y leżące na FTP i ta sama oferta pojawia się w wielu
+    // plikach. Scalamy do NAJNOWSZEJ wersji per externalId (po daom) i przetwarzamy raz.
+    //
+    // Usunięcia (sekcja removed i mlssta > 2) zbieramy razem z datą paczki i rozstrzygamy
+    // chronologicznie, jak w asari/esticrm: usunięcie ze starej paczki nie może ubić działki,
+    // którą biuro wystawiło ponownie w nowszej. Wcześniej wygrywało każde usunięcie z dowolnego pliku.
+    const offerSignals: OfferSignal<LocumnetOffer>[] = [];
+    const deleteSignals: DeleteSignal[] = [];
+    /** Pliki pominięte jako uszkodzone. Przy choćby jednym nie wygaszamy brakujących ofert. */
+    const brokenOfferFiles: string[] = [];
+    const invalidLandExternalIds = new Set<string>();
 
     for (const offerXmlFile of downloaded.offerXmlFiles) {
-      const xml = await fsp.readFile(offerXmlFile, "utf8");
+      const fileName = path.basename(offerXmlFile.localPath);
+      const xml = await fsp.readFile(offerXmlFile.localPath, "utf8");
+
+      // Plik urwany albo ucięty przez CRM parser przyjąłby po cichu jako krótszy (xml-integrity.ts).
+      // Pomijamy go w całości: oferty i usunięcia z niego wejdą, gdy będzie kompletny.
+      const integrityProblem = xmlIntegrityProblem(xml);
+      if (integrityProblem) {
+        brokenOfferFiles.push(`${fileName} (${integrityProblem})`);
+        console.warn(`[LOCUMNET] Pomijam uszkodzony plik ofert ${fileName}: ${integrityProblem}`);
+        continue;
+      }
+
       const result = parseOfferXmlFile(xml, integration.name);
 
       if (result.isFullExport) sawFullExport = true;
       rawOffersCount += result.rawCount;
 
-      for (const externalId of result.deletedExternalIds) deletedExternalIds.add(externalId);
+      for (const externalId of result.invalidLandExternalIds) invalidLandExternalIds.add(externalId);
+
+      for (const externalId of result.deletedExternalIds) {
+        deleteSignals.push({ externalId, fileAt: offerXmlFile.modifiedAtMs });
+      }
 
       for (const offer of result.offers) {
-        const prev = latestOfferByExternalId.get(offer.externalId);
-        if (!prev || isSameOrNewerOffer(offer, prev)) {
-          latestOfferByExternalId.set(offer.externalId, offer);
-        }
+        offerSignals.push({ externalId: offer.externalId, offer, fileAt: offerXmlFile.modifiedAtMs });
       }
     }
 
-    // Oferta obecna w nowszym pliku unieważnia wcześniejsze zgłoszenie usunięcia — ale
-    // usunięcie z sekcji removed/mlssta jest per plik, a my nie śledzimy z którego pliku
-    // pochodzi. Konserwatywnie: usunięcie wygrywa (biuro i tak przyśle ofertę ponownie
-    // w kolejnym eksporcie, jeśli wróciła).
-    for (const externalId of deletedExternalIds) {
-      latestOfferByExternalId.delete(externalId);
+    if (brokenOfferFiles.length > 0) {
+      errorCount += brokenOfferFiles.length;
+      await logSync(integration.id, {
+        action: "ERROR",
+        status: "ERROR",
+        message:
+          `Pominięto uszkodzone pliki ofert LocumNet: ${brokenOfferFiles.join("; ")}. ` +
+          "Oferty i usunięcia z nich wejdą, gdy plik będzie kompletny. W tym przebiegu nie wygaszam ofert nieobecnych w pełnym eksporcie.",
+      });
     }
 
-    const dedupedOffers = [...latestOfferByExternalId.values()];
+    const resolved = resolveFeedSignals(offerSignals, deleteSignals, isSameOrNewerOffer);
+    const dedupedOffers = resolved.offers;
+
+    for (const externalId of resolved.deletedExternalIds) deletedExternalIds.add(externalId);
+
     console.log(`[LOCUMNET DEBUG] Oferty po deduplikacji (najnowsza wersja per externalId): ${dedupedOffers.length}`);
+
+    if (resolved.ignoredDeletes.length > 0) {
+      console.log(
+        `[LOCUMNET DEBUG] Pominięto ${resolved.ignoredDeletes.length} nieaktualnych usunięć (działka wróciła w nowszej paczce):`,
+        resolved.ignoredDeletes.slice(0, 20)
+      );
+    }
 
     for (const offer of dedupedOffers) {
       importedOffers += 1;
@@ -1321,6 +1428,7 @@ export async function syncLocumnetIntegrationNow(integrationId: string): Promise
         if (action === "CREATE" || action === "REACTIVATE") createdCount += 1;
         else if (action === "UPDATE") updatedCount += 1;
         else if (action === "SKIP_NO_CREDITS") skippedCount += 1;
+        else if (action === "SKIP_STALE") staleCount += 1;
       } catch (error) {
         errorCount += 1;
         const message = error instanceof Error ? error.message : "Nieznany błąd podczas importu oferty LocumNet.";
@@ -1352,12 +1460,21 @@ export async function syncLocumnetIntegrationNow(integrationId: string): Promise
       );
     }
 
+    if (staleCount > 0) {
+      console.log(`[LOCUMNET DEBUG] Pominięto ${staleCount} ofert w wersji starszej niż zapisana w bazie.`);
+    }
+
     // Deaktywacja brakujących tylko, gdy w zestawie był PEŁNY eksport — wtedy seenExternalIds
-    // pokrywa komplet aktywnych ofert biura (pełny + nowsze przyrostowe zmiany).
-    if (integration.fullImportMode && sawFullExport && seenExternalIds.size > 0) {
-      deactivatedCount += await deactivateMissingOffers(integration.id, seenExternalIds);
+    // pokrywa komplet aktywnych ofert biura (pełny + nowsze przyrostowe zmiany). Działka odrzucona
+    // za niekompletne dane jest w eksporcie, więc liczy się jako obecna. Uszkodzony plik = niepełna
+    // lista obecnych, więc wtedy nic nie gasimy (kolejny przebieg spróbuje znowu).
+    if (integration.fullImportMode && sawFullExport && seenExternalIds.size > 0 && brokenOfferFiles.length === 0) {
+      deactivatedCount += await deactivateMissingOffers(
+        integration.id,
+        new Set([...seenExternalIds, ...invalidLandExternalIds])
+      );
     } else {
-      console.log("[LOCUMNET DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy removed/mlssta albo pełnym eksporcie.", { sawFullExport, seen: seenExternalIds.size });
+      console.log("[LOCUMNET DEBUG] Nie kończę brakujących ofert. Dezaktywacja tylko przy removed/mlssta albo kompletnym pełnym eksporcie.", { sawFullExport, seen: seenExternalIds.size, broken: brokenOfferFiles.length });
     }
 
     await prisma.crmIntegration.update({

@@ -24,7 +24,9 @@ import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
 import { payloadForLog } from "@/lib/crm/log-policy";
 import { mapDojazd } from "@/lib/dojazd";
-import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2";
+import { uploadBufferToR2 } from "@/lib/r2";
+import { appendPhotoNote, planPhotoRefresh, refreshOfferPhotos, type UploadedPhoto } from "@/lib/crm/photo-refresh";
+import { deleteR2Photos, discardUnsavedPhotos, r2PhotoEffects, swapOfferPhotos } from "@/lib/crm/offer-photos";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
 import { sanitizePlCoords } from "@/lib/geo";
 import {
@@ -35,6 +37,9 @@ import {
 } from "@/lib/crm/feed-batching";
 import { planFeedPrune, readPrunePolicyFromEnv } from "@/lib/crm/feed-pruning";
 import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-missing";
+import { isStaleOfferVersion } from "@/lib/crm/feed-signals";
+import { xmlStreamIntegrityProblem } from "@/lib/crm/xml-integrity";
+import { baseExternalId, deletesToApply, versionTakeoverMatcher } from "@/lib/crm/domypl-versions";
 
 type IntegrationForSync = {
   id: string;
@@ -95,6 +100,13 @@ type SyncSummary = {
   message: string;
 };
 
+/**
+ * Oferta odrzucona przez parser (jak w asari-sync). NOT_LAND: to nie działka. INVALID: działka,
+ * której chwilowo brakuje ceny, powierzchni albo lokalizacji. Nadal JEST w paczce biura, więc nie
+ * może zniknąć jako „nieobecna" w pełnym eksporcie ani przez <oferta_usun> starej wersji.
+ */
+type DomyRejectedOffer = { rejected: "NOT_LAND" | "INVALID"; externalId: string };
+
 type HeaderMeta = {
   headerDate: Date | null;
   agencyName: string | null;
@@ -117,6 +129,8 @@ type MatchedRemoteFeed = {
 
 type FeedReader = {
   createXmlReadStream: () => Promise<NodeJS.ReadableStream>;
+  /** Czy paczka ma plik zdjęcia. Bez czytania pliku, patrz photo-refresh.ts. */
+  hasPhoto: (fileName: string) => boolean;
   getPhotoBuffer: (fileName: string) => Promise<Buffer | null>;
   close: () => Promise<void>;
 };
@@ -474,21 +488,9 @@ function buildWymiary(params: Record<string, unknown>): string | null {
   return null;
 }
 
-async function removeExistingR2Photos(dzialkaId: string) {
-  const currentPhotos = await prisma.zdjecie.findMany({
-    where: { dzialkaId },
-    select: { publicId: true },
-  });
-
-  for (const photo of currentPhotos) {
-    if (!photo.publicId) continue;
-
-    try {
-      await deleteFromR2(photo.publicId);
-    } catch (error) {
-      console.error("Nie udało się usunąć zdjęcia z R2:", photo.publicId, error);
-    }
-  }
+/** Zdjęcie podane adresem URL pobieramy dopiero przy wgrywaniu (skan 16.09.2026: żaden feed tak nie robi). */
+function isPhotoUrl(fileName: string) {
+  return /^https?:\/\//i.test(fileName);
 }
 
 async function uploadOfferPhotosToR2(
@@ -497,39 +499,45 @@ async function uploadOfferPhotosToR2(
   photoFileNames: string[],
   feedReader: FeedReader
 ) {
-  const uploaded: Array<{ url: string; publicId: string; kolejnosc: number }> = [];
+  const uploaded: UploadedPhoto[] = [];
 
-  for (let index = 0; index < photoFileNames.length; index += 1) {
-    const originalName = photoFileNames[index];
-    let fileBuffer = await feedReader.getPhotoBuffer(originalName);
+  try {
+    for (let index = 0; index < photoFileNames.length; index += 1) {
+      const originalName = photoFileNames[index];
+      let fileBuffer = await feedReader.getPhotoBuffer(originalName);
 
-    if (!fileBuffer && /^https?:\/\//i.test(originalName)) {
-      try {
-        const response = await fetch(originalName);
-        if (response.ok) {
-          fileBuffer = Buffer.from(await response.arrayBuffer());
+      if (!fileBuffer && isPhotoUrl(originalName)) {
+        try {
+          const response = await fetch(originalName);
+          if (response.ok) {
+            fileBuffer = Buffer.from(await response.arrayBuffer());
+          }
+        } catch (error) {
+          console.error("[CRM DEBUG] Nie udało się pobrać zdjęcia z URL:", originalName, error);
         }
-      } catch (error) {
-        console.error("[CRM DEBUG] Nie udało się pobrać zdjęcia z URL:", originalName, error);
       }
+
+      if (!fileBuffer) {
+        console.log("[CRM DEBUG] Pominięto zdjęcie, brak pliku/bufora:", originalName);
+        continue;
+      }
+
+      const upload = await uploadBufferToR2({
+        buffer: fileBuffer,
+        originalFileName: `${integrationId}-${externalId}-${safeUploadFileName(originalName)}`,
+        mimeType: getMimeTypeFromFileName(originalName),
+      });
+
+      uploaded.push({
+        url: upload.url,
+        publicId: upload.key,
+        kolejnosc: index,
+      });
     }
-
-    if (!fileBuffer) {
-      console.log("[CRM DEBUG] Pominięto zdjęcie, brak pliku/bufora:", originalName);
-      continue;
-    }
-
-    const upload = await uploadBufferToR2({
-      buffer: fileBuffer,
-      originalFileName: `${integrationId}-${externalId}-${safeUploadFileName(originalName)}`,
-      mimeType: getMimeTypeFromFileName(originalName),
-    });
-
-    uploaded.push({
-      url: upload.url,
-      publicId: upload.key,
-      kolejnosc: index,
-    });
+  } catch (error) {
+    // Wgrane w tym wywołaniu nie mają jeszcze wiersza w bazie, więc nic na portalu ich nie pokazuje.
+    await deleteR2Photos(uploaded.map((photo) => photo.publicId), "[CRM]");
+    throw error;
   }
 
   return uploaded;
@@ -739,6 +747,7 @@ async function openFeedReader(localFilePath: string, remoteFileName: string): Pr
     console.log("[CRM DEBUG] Otwieram XML bez ZIP:", remoteFileName);
     return {
       createXmlReadStream: async () => fs.createReadStream(localFilePath),
+      hasPhoto: () => false,
       getPhotoBuffer: async () => null,
       close: async () => {},
     };
@@ -773,14 +782,17 @@ async function openFeedReader(localFilePath: string, remoteFileName: string): Pr
     files.filter((entry) => entry.type === "File").map((entry) => [safeBasename(entry.path), entry])
   );
 
+  function findPhotoEntry(fileName: string) {
+    const targetName = safeBasename(fileName);
+    return entryMap.get(targetName) || [...entryMap.entries()].find(([key]) => key.endsWith(targetName))?.[1];
+  }
+
   return {
     createXmlReadStream: async () => xmlEntry.stream(),
+    hasPhoto: (fileName: string) => Boolean(findPhotoEntry(fileName)),
     getPhotoBuffer: async (fileName: string) => {
       const targetName = safeBasename(fileName);
-
-      const entry =
-        entryMap.get(targetName) ||
-        [...entryMap.entries()].find(([key]) => key.endsWith(targetName))?.[1];
+      const entry = findPhotoEntry(fileName);
 
       if (!entry) {
         console.log("[CRM DEBUG] Nie znaleziono zdjęcia w ZIP:", {
@@ -942,7 +954,7 @@ function parseOfferFragment(
   provider: CrmProvider,
   dzialTab: string,
   dzialTyp: string
-): ParsedDomyOffer | null {
+): ParsedDomyOffer | DomyRejectedOffer | null {
   try {
     const parser = new XMLParser({
       ignoreAttributes: false,
@@ -985,7 +997,7 @@ function parseOfferFragment(
 
     if (!isLandOffer) {
       console.log("[CRM DEBUG] Odrzucono:", externalId, "to nie jest działka", { plotTypeRaw });
-      return null;
+      return { rejected: "NOT_LAND", externalId };
     }
 
     const location = parseLocation(ofertaNode, params);
@@ -1014,7 +1026,7 @@ function parseOfferFragment(
         rawCena: ofertaNode.cena,
         price,
       });
-      return null;
+      return { rejected: "INVALID", externalId };
     }
 
     if (!area || area < 1) {
@@ -1024,12 +1036,12 @@ function parseOfferFragment(
         available_area: params.available_area,
         area,
       });
-      return null;
+      return { rejected: "INVALID", externalId };
     }
 
     if (!location.wojewodztwo || !location.miasto) {
       console.log("[CRM DEBUG] Odrzucono:", externalId, "brak lokalizacji", location);
-      return null;
+      return { rejected: "INVALID", externalId };
     }
 
     const title = sanitizeTitle(
@@ -1168,7 +1180,13 @@ async function streamParseDomyPlOffers(
   xmlStream: NodeJS.ReadableStream,
   provider: CrmProvider,
   onOffer: (offer: ParsedDomyOffer) => Promise<void>
-): Promise<{ importedOffers: number; headerMeta: HeaderMeta; deletedExternalIds: string[] }> {
+): Promise<{
+  importedOffers: number;
+  headerMeta: HeaderMeta;
+  deletedExternalIds: string[];
+  /** Działki obecne w pliku, ale odrzucone za niekompletne dane (patrz DomyRejectedOffer). */
+  invalidLandExternalIds: string[];
+}> {
   const saxStream = sax.createStream(true, {
     lowercase: true,
     trim: false,
@@ -1194,6 +1212,7 @@ async function streamParseDomyPlOffers(
   let deleteDepth = 0;
   let deleteXml = "";
   const deletedExternalIds: string[] = [];
+  const invalidLandExternalIds: string[] = [];
 
   // R-A/R-B: IMO grupuje oferty w kontenerze <dzial tab="..." typ="...">, który jest rodzicem
   // <oferta>. Zapamiętujemy bieżący dzial i przekazujemy do parsera oferty (tylko IMOX go używa).
@@ -1361,6 +1380,11 @@ async function streamParseDomyPlOffers(
             );
             if (!parsed) return;
 
+            if ("rejected" in parsed) {
+              if (parsed.rejected === "INVALID") invalidLandExternalIds.push(parsed.externalId);
+              return;
+            }
+
             importedOffers += 1;
             await onOffer(parsed);
           })
@@ -1373,7 +1397,12 @@ async function streamParseDomyPlOffers(
     }
   });
 
-  const finishedPromise = new Promise<{ importedOffers: number; headerMeta: HeaderMeta; deletedExternalIds: string[] }>((resolve, reject) => {
+  const finishedPromise = new Promise<{
+    importedOffers: number;
+    headerMeta: HeaderMeta;
+    deletedExternalIds: string[];
+    invalidLandExternalIds: string[];
+  }>((resolve, reject) => {
     saxStream.on("error", (error: unknown) => reject(error));
     xmlStream.on("error", (error: unknown) => reject(error));
 
@@ -1392,6 +1421,7 @@ async function streamParseDomyPlOffers(
             importedOffers,
             headerMeta,
             deletedExternalIds,
+            invalidLandExternalIds,
           });
         })
         .catch(reject);
@@ -1465,22 +1495,9 @@ async function logSync(
   });
 }
 
-// Galactica przy kolejnych zrzutach podbija licznik wersji w atrybucie `id` oferty:
-// AKM-GS-55571-18 → -19 → -20. Dla unikatu (integrationId, externalId) to był nowy byt,
-// więc zamiast aktualizacji powstawała kolejna kopia tej samej działki. Do 2026-08 uzbierało
-// się tak 1406 duplikatów w 17 biurach (patrz scripts/crm-dedup-galactica.ts).
+// Galactica przy kolejnych zrzutach podbija licznik wersji w atrybucie `id` oferty
+// (AKM-GS-55571-18 → -19 → -20), opis i wzorzec w domypl-versions.ts.
 //
-// Ucinamy wyłącznie sufiks wersji, nigdy numeru oferty — dlatego wzorzec wymaga, żeby po
-// obcięciu został pełny numer typu „…GS-<cyfry>”:
-//   GS-28954      → brak dopasowania (to już jest numer bazowy, nie wersja)
-//   GS-28954-1    → GS-28954
-//   AKM-GS-55571-18 → AKM-GS-55571
-const VERSIONED_EXTERNAL_ID = /^(.*G[SW]-\d+)-\d+$/i;
-
-function baseExternalId(externalId: string): string | null {
-  return externalId.match(VERSIONED_EXTERNAL_ID)?.[1] ?? null;
-}
-
 // Szuka wcześniejszej wersji tej samej oferty. Kandydatów zawęża myślnik na końcu prefiksu
 // (`GS-28954-`), więc sąsiedni numer GS-289541 nie wpadnie w wynik. Pierwszeństwo ma oferta
 // aktywna: po deduplikacji wygaszone kopie zostają w bazie i nie chcemy wskrzeszać akurat ich.
@@ -1518,7 +1535,7 @@ async function processOffer(
   offer: ParsedDomyOffer,
   feedReader: FeedReader,
   paymentsEnabled: boolean
-): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS"> {
+): Promise<"CREATE" | "UPDATE" | "REACTIVATE" | "SKIP_NO_CREDITS" | "SKIP_STALE"> {
   const now = new Date();
   const expiresAt = null;
 
@@ -1538,6 +1555,12 @@ async function processOffer(
   // działka z podbitą wersją. Dopiero gdy i to nie trafi, tworzymy nową.
   const existingLink = exactLink ?? (await findLinkByVersionedId(integration.id, offer.externalId));
   const matchedByVersionBump = !exactLink && existingLink !== null;
+
+  // Paczka starsza niż zapisana wersja oferty (wgrana albo ponowiona po nowszej) nie nadpisuje danych
+  // i nie reaktywuje oferty. Sprawdzamy przed geokodowaniem, żeby nie płacić za odrzuconą wersję.
+  if (existingLink && isStaleOfferVersion(offer.externalUpdatedAt, existingLink.externalUpdatedAt)) {
+    return "SKIP_STALE";
+  }
 
   const offerForDb = await enrichOfferWithGeocoding(offer, existingLink?.dzialka);
 
@@ -1576,72 +1599,79 @@ async function processOffer(
       feedReader
     );
 
-    await prisma.$transaction(async (tx) => {
-      const dzialka = await tx.dzialka.create({
-        data: {
-          ...buildDzialkaDataFromOffer(offerForDb),
-          ownerId: integration.userId,
-          editToken: makeEditToken(),
-          publishedAt: now,
-          expiresAt,
-          endedAt: null,
-          status: "AKTYWNE",
-          zdjecia: {
-            create: uploadedPhotos,
-          },
-        },
-      });
-
-      const link = await tx.crmOfferLink.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          externalId: offer.externalId,
-          externalUpdatedAt: offer.externalUpdatedAt,
-          lastImportedAt: now,
-          lastSeenAt: now,
-          lastPublishedAt: now,
-          isActiveInSource: true,
-        },
-      });
-
-      if (paymentsEnabled) {
-        const updatedUser = await tx.user.update({
-          where: { id: integration.userId },
+    try {
+      await prisma.$transaction(async (tx) => {
+        const dzialka = await tx.dzialka.create({
           data: {
-            listingCredits: {
-              decrement: 1,
+            ...buildDzialkaDataFromOffer(offerForDb),
+            ownerId: integration.userId,
+            editToken: makeEditToken(),
+            publishedAt: now,
+            expiresAt,
+            endedAt: null,
+            status: "AKTYWNE",
+            zdjecia: {
+              create: uploadedPhotos,
             },
           },
-          select: {
-            listingCredits: true,
-          },
         });
 
-        await tx.listingCreditTransaction.create({
+        const link = await tx.crmOfferLink.create({
           data: {
-            userId: integration.userId,
-            delta: -1,
-            balanceAfter: updatedUser.listingCredits,
-            sourceType: "CRM_PUBLICATION",
-            note: `CRM publikacja oferty ${offer.externalId}`,
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            externalId: offer.externalId,
+            externalUpdatedAt: offer.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: now,
+            isActiveInSource: true,
           },
         });
-      }
 
-      await tx.crmSyncLog.create({
-        data: {
-          integrationId: integration.id,
-          dzialkaId: dzialka.id,
-          offerLinkId: link.id,
-          externalId: offer.externalId,
-          action: "CREATE",
-          status: "SUCCESS",
-          message: "Oferta utworzona poprawnie z importu FTP/XML.",
-          payload: offer.payload,
-        },
+        if (paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: {
+              listingCredits: {
+                decrement: 1,
+              },
+            },
+            select: {
+              listingCredits: true,
+            },
+          });
+
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `CRM publikacja oferty ${offer.externalId}`,
+            },
+          });
+        }
+
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: link.id,
+            externalId: offer.externalId,
+            action: "CREATE",
+            status: "SUCCESS",
+            message: "Oferta utworzona poprawnie z importu FTP/XML.",
+            payload: offer.payload,
+          },
+        });
       });
-    });
+    } catch (error) {
+      // Oferta nie powstała, więc do wgranych zdjęć nie prowadzi żaden wiersz. Bez sprzątania każdy
+      // kolejny nieudany przebieg dokładałby do R2 komplet tych samych plików.
+      await discardUnsavedPhotos(uploadedPhotos, "[CRM]");
+      throw error;
+    }
 
     return "CREATE";
   }
@@ -1679,118 +1709,104 @@ async function processOffer(
     }
   }
 
-  // Optymalizacja: pomiń re-upload zdjęć, gdy oferta się nie zmieniła (patrz asari-sync).
-  // DOMY.PL czyta zdjęcia z lokalnego ZIP (tanio), ale i tak re-uploadował do R2 co sync.
-  // Sygnał = externalUpdatedAt: przychodzące nie nowsze niż zapisane + zgodna liczba zdjęć
-  // w bazie ⇒ zostaw zdjęcia w R2. Zachowawczo: null-e i reaktywacja ⇒ pełny re-upload.
-  const storedUpdatedAt = existingLink.externalUpdatedAt;
-  const incomingUpdatedAt = offer.externalUpdatedAt;
-  const photosUnchanged =
-    !wasEnded &&
-    storedUpdatedAt != null &&
-    incomingUpdatedAt != null &&
-    incomingUpdatedAt.getTime() <= storedUpdatedAt.getTime() &&
-    (await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } })) === offer.photoFileNames.length;
+  // Zdjęcia: czy wymieniać galerię, rozstrzyga photo-refresh.ts (strażnik re-uploadu, brakujące
+  // pliki w ZIP-ie). refreshOfferPhotos pilnuje kolejności: wgranie nowych, ta transakcja, dopiero
+  // po commicie kasowanie starych obiektów R2.
+  const photoPlan = planPhotoRefresh({
+    wasEnded,
+    storedUpdatedAt: existingLink.externalUpdatedAt,
+    incomingUpdatedAt: offer.externalUpdatedAt,
+    existingPhotoCount: await prisma.zdjecie.count({ where: { dzialkaId: existingLink.dzialkaId } }),
+    feedPhotoNames: offer.photoFileNames,
+    isAvailable: (photoName) => feedReader.hasPhoto(photoName) || isPhotoUrl(photoName),
+  });
 
-  const uploadedPhotos =
-    !photosUnchanged && offer.photoFileNames.length > 0
-      ? await uploadOfferPhotosToR2(
-          integration.id,
-          offer.externalId,
-          offer.photoFileNames,
-          feedReader
-        )
-      : [];
-
-  const shouldReplacePhotos = uploadedPhotos.length > 0;
-
-  if (shouldReplacePhotos) {
-    await removeExistingR2Photos(existingLink.dzialkaId);
-  }
-
-  await prisma.$transaction(async (tx) => {
-    if (shouldReplacePhotos) {
-      await tx.zdjecie.deleteMany({
-        where: { dzialkaId: existingLink.dzialkaId },
-      });
-    }
-
-    const dzialka = await tx.dzialka.update({
-      where: { id: existingLink.dzialkaId },
-      data: {
-        ...buildDzialkaDataFromOffer(offerForDb),
-        ...(wasEnded
-          ? {
-              publishedAt: now,
-              expiresAt,
-              endedAt: null,
-              status: "AKTYWNE" as const,
-            }
-          : {}),
-        ...(shouldReplacePhotos
-          ? {
-              zdjecia: {
-                create: uploadedPhotos,
-              },
-            }
-          : {}),
-      },
-    });
-
-    await tx.crmOfferLink.update({
-      where: { id: existingLink.id },
-      data: {
-        // Przy podbitej wersji przepinamy link na nowe id. Dzięki temu następny zrzut trafia
-        // już dokładnym dopasowaniem, a wygaszanie po `seenExternalIds` dalej się zgadza z feedem.
-        ...(matchedByVersionBump ? { externalId: offer.externalId } : {}),
-        externalUpdatedAt: offer.externalUpdatedAt,
-        lastImportedAt: now,
-        lastSeenAt: now,
-        lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
-        isActiveInSource: true,
-      },
-    });
-
-    if (wasEnded && paymentsEnabled) {
-      const updatedUser = await tx.user.update({
-        where: { id: integration.userId },
-        data: {
-          listingCredits: {
-            decrement: 1,
+  await refreshOfferPhotos({
+    plan: photoPlan,
+    label: `[CRM] Oferta ${offer.externalId}`,
+    upload: () => uploadOfferPhotosToR2(integration.id, offer.externalId, offer.photoFileNames, feedReader),
+    effects: r2PhotoEffects("[CRM]"),
+    save: (photos) =>
+      prisma.$transaction(async (tx) => {
+        // Wiersz działki pierwszy: jego blokada szereguje równoległe przebiegi (swapOfferPhotos).
+        const dzialka = await tx.dzialka.update({
+          where: { id: existingLink.dzialkaId },
+          data: {
+            ...buildDzialkaDataFromOffer(offerForDb),
+            ...(wasEnded
+              ? {
+                  publishedAt: now,
+                  expiresAt,
+                  endedAt: null,
+                  status: "AKTYWNE" as const,
+                }
+              : {}),
           },
-        },
-        select: {
-          listingCredits: true,
-        },
-      });
+        });
 
-      await tx.listingCreditTransaction.create({
-        data: {
-          userId: integration.userId,
-          delta: -1,
-          balanceAfter: updatedUser.listingCredits,
-          sourceType: "CRM_PUBLICATION",
-          note: `CRM reaktywacja oferty ${offer.externalId}`,
-        },
-      });
-    }
+        const replacedPhotoKeys = photos.replace ? await swapOfferPhotos(tx, dzialka.id, photos.photos) : [];
 
-    await tx.crmSyncLog.create({
-      data: {
-        integrationId: integration.id,
-        dzialkaId: dzialka.id,
-        offerLinkId: existingLink.id,
-        externalId: offer.externalId,
-        action: wasEnded ? "REACTIVATE" : "UPDATE",
-        status: "SUCCESS",
-        message: matchedByVersionBump
-          ? `Rozpoznano podbitą wersję oferty (${existingLink.externalId} → ${offer.externalId}), zaktualizowano zamiast tworzyć duplikat.`
-          : wasEnded
-            ? "Oferta reaktywowana poprawnie z importu FTP/XML."
-            : "Oferta zaktualizowana poprawnie z importu FTP/XML.",
-        payload: offer.payload,
-      },
-    });
+        await tx.crmOfferLink.update({
+          where: { id: existingLink.id },
+          data: {
+            // Przy podbitej wersji przepinamy link na nowe id. Dzięki temu następny zrzut trafia
+            // już dokładnym dopasowaniem, a wygaszanie po `seenExternalIds` dalej się zgadza z feedem.
+            ...(matchedByVersionBump ? { externalId: offer.externalId } : {}),
+            // Data wersji tylko przy galerii zgodnej z feedem, inaczej strażnik zamroziłby starą galerię.
+            externalUpdatedAt: photos.syncedWithFeed ? offer.externalUpdatedAt : existingLink.externalUpdatedAt,
+            lastImportedAt: now,
+            lastSeenAt: now,
+            lastPublishedAt: wasEnded ? now : existingLink.lastPublishedAt,
+            isActiveInSource: true,
+          },
+        });
+
+        if (wasEnded && paymentsEnabled) {
+          const updatedUser = await tx.user.update({
+            where: { id: integration.userId },
+            data: {
+              listingCredits: {
+                decrement: 1,
+              },
+            },
+            select: {
+              listingCredits: true,
+            },
+          });
+
+          await tx.listingCreditTransaction.create({
+            data: {
+              userId: integration.userId,
+              delta: -1,
+              balanceAfter: updatedUser.listingCredits,
+              sourceType: "CRM_PUBLICATION",
+              note: `CRM reaktywacja oferty ${offer.externalId}`,
+            },
+          });
+        }
+
+        await tx.crmSyncLog.create({
+          data: {
+            integrationId: integration.id,
+            dzialkaId: dzialka.id,
+            offerLinkId: existingLink.id,
+            externalId: offer.externalId,
+            action: wasEnded ? "REACTIVATE" : "UPDATE",
+            status: "SUCCESS",
+            message: appendPhotoNote(
+              matchedByVersionBump
+                ? `Rozpoznano podbitą wersję oferty (${existingLink.externalId} → ${offer.externalId}), zaktualizowano zamiast tworzyć duplikat.`
+                : wasEnded
+                  ? "Oferta reaktywowana poprawnie z importu FTP/XML."
+                  : "Oferta zaktualizowana poprawnie z importu FTP/XML.",
+              photos.note
+            ),
+            payload: offer.payload,
+          },
+        });
+
+        return replacedPhotoKeys;
+      }),
   });
 
   return wasEnded ? "REACTIVATE" : "UPDATE";
@@ -1799,10 +1815,14 @@ async function processOffer(
 // Wygaszanie po pełnym eksporcie żyje we wspólnym module: ma hamulec udziału (urwany eksport nie
 // kasuje całej podaży biura), czyta podaż stronami zamiast `notIn` z tysiącami parametrów
 // i zapisuje partiami. Patrz deactivate-missing.ts i mass-deactivation.ts.
-async function deactivateMissingOffers(integrationId: string, seenExternalIds: Set<string>) {
+//
+// Link przejmowany przez nową wersję Galactiki z eksportu też jest obecny (domypl-versions.ts): gdy
+// zapis nowej wersji rzucił albo odpadła na walidacji, link ma jeszcze stare id, a działka jest w eksporcie.
+async function deactivateMissingOffers(integrationId: string, presentLandExternalIds: string[]) {
   const result = await deactivateOffersMissingFromFullExport({
     integrationId,
-    seenExternalIds,
+    seenExternalIds: new Set(presentLandExternalIds),
+    isAlsoPresent: versionTakeoverMatcher(presentLandExternalIds),
     message: "Oferta zakończona, ponieważ nie wystąpiła w pełnym eksporcie.",
     sourceLabel: "CRM",
   });
@@ -1931,6 +1951,8 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
   let deactivatedCount = 0;
   let skippedCount = 0;
   let errorCount = 0;
+  /** Oferty pominięte, bo przyszły w wersji starszej niż zapisana (isStaleOfferVersion). */
+  let staleCount = 0;
 
   const processedFileNames: string[] = [];
 
@@ -1978,6 +2000,16 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
 
       try {
         currentFeedReader = await openFeedReader(downloaded.localFilePath, downloaded.remoteFileName);
+
+        // Przebieg kontrolny bez zapisów (xml-integrity.ts). Parser poniżej zapisuje ofertę po ofercie,
+        // więc bez niego plik ucięty w trakcie wgrywania albo przez CRM był importowany do miejsca
+        // uszkodzenia, a błąd wychodził dopiero na końcu. Uszkodzony plik pomijamy w całości: trafia
+        // do CrmProcessedFile jako ERROR i wraca w kolejnym przebiegu, gdy będzie kompletny.
+        const integrityProblem = await xmlStreamIntegrityProblem(await currentFeedReader.createXmlReadStream());
+        if (integrityProblem) {
+          throw new Error(`Uszkodzony XML, plik pominięty w całości: ${integrityProblem}`);
+        }
+
         const xmlStream = await currentFeedReader.createXmlReadStream();
 
         const parseResult = await streamParseDomyPlOffers(xmlStream, integration.provider, async (offer) => {
@@ -2002,6 +2034,8 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
             } else if (action === "SKIP_NO_CREDITS") {
               skippedCount += 1;
               fileSkippedCount += 1;
+            } else if (action === "SKIP_STALE") {
+              staleCount += 1;
             }
           } catch (error) {
             errorCount += 1;
@@ -2030,8 +2064,12 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
           zawartoscPliku.includes("calosc") ||
           zawartoscPliku.includes("całość");
 
+        // Działki obecne w paczce: poprawne i odrzucone za niekompletne dane. Nie zależy od tego,
+        // czy zapis oferty do bazy się udał (seenExternalIds uzupełniamy przed processOffer).
+        const presentLandExternalIds = [...seenExternalIds, ...parseResult.invalidLandExternalIds];
+
         if (integration.fullImportMode && isFullExport && seenExternalIds.size > 0) {
-          const deactivated = await deactivateMissingOffers(integration.id, seenExternalIds);
+          const deactivated = await deactivateMissingOffers(integration.id, presentLandExternalIds);
           deactivatedCount += deactivated;
           fileDeactivatedCount += deactivated;
         }
@@ -2041,11 +2079,11 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
         // wisiały bez końca: bezpiecznik R1 wymaga pełnego eksportu (Galactica przysłała 6 takich
         // plików na 6828), a znaczniki usunięcia — które przysyła w każdej paczce — lądowały w koszu.
         // Sprawdzone na paczkach z 2026-08-17: każda paczka Galactiki niesie <oferta_usun>.
-        // Oferta obecna w TEJ SAMEJ paczce wygrywa z żądaniem usunięcia — inaczej wystarczyłoby,
+        // Działka obecna w TEJ SAMEJ paczce wygrywa z żądaniem usunięcia, inaczej wystarczyłoby,
         // żeby CRM w jednym pliku skasował i od razu wystawił tę samą ofertę, i zgasilibyśmy żywą.
-        const deletedExternalIds = parseResult.deletedExternalIds.filter(
-          (externalId) => !seenExternalIds.has(externalId)
-        );
+        // Tak samo nowa wersja Galactiki w paczce chroni starą przed usunięciem, nawet gdy zapis
+        // nowej rzucił albo odpadła na walidacji (szczegóły w domypl-versions.ts).
+        const deletedExternalIds = deletesToApply(parseResult.deletedExternalIds, presentLandExternalIds);
 
         if (deletedExternalIds.length > 0) {
           // Bez `feedModifiedAt`: paczki lecą chronologicznie (sort w downloadNewFeedsFromFtp),
@@ -2159,6 +2197,10 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
           currentFeedReader = null;
         }
       }
+    }
+
+    if (staleCount > 0) {
+      console.log(`[CRM DEBUG] Pominięto ${staleCount} ofert w wersji starszej niż zapisana w bazie.`);
     }
 
     await prisma.crmIntegration.update({
