@@ -196,6 +196,53 @@ Bez włącznika silnik w każdym przebiegu pisze w logu workera, co by skasował
 `CRM_ESTICRM_PRUNE=<id jednego biura>` + `pm2 restart crm-worker --update-env`, kontrola kolejnego
 przebiegu tego biura, potem `CRM_ESTICRM_PRUNE=1`.
 
+## Pusty katalog FTP: „Czeka na 1. paczkę”
+
+Biuro dostaje katalog na FTP, zanim włączy eksport w swoim CRM, więc do pierwszej paczki katalog
+jest pusty. Reguły w `src/lib/crm/integration-health.ts` (testy obok).
+
+**DOMY.PL (Galactica, IMOX, Propertly), od 2026-09-18.** Katalog bez żadnej paczki ZIP/XML u
+integracji bez śladu importu (zero `CrmProcessedFile` w dowolnym statusie, zero `CrmOfferLink`, puste
+`lastSuccessAt`) kończy przebieg bez błędu:
+- job `SUCCESS` z `remoteFileName = CZEKA_NA_PIERWSZA_PACZKE`, bez wpisu w `CrmSyncLog`,
+- w logu workera (stdout, nie log błędów): `[CRM DEBUG] Katalog ... czeka na pierwszą paczkę (to nie błąd)`,
+- przebieg zdejmuje błąd zostawiony przez dawne przebiegi, ale nie ustawia `lastSuccessAt`, bo pusta
+  data jest częścią śladu: z nią kolejny pusty przebieg byłby już alarmem.
+
+U integracji ze śladem importu pusty katalog zostaje błędem jak dotąd (`Nie znaleziono żadnego pliku
+ZIP/XML w katalogu ...`): biuro zmieniło katalog albo wyłączyło eksport (Arkadia Włocławek, 3 miesiące
+bez importu). Przed zmianą 7 integracji (5x IMOX, 2x Galactica) dawało 84 joby ERROR na dobę, a worker
+po każdym błędzie czeka 60 s, czyli każda seria stała 7 z ok. 22 minut.
+
+**ASARI, EstiCRM, LocumNet, od 2026-09-18 (`isEmptyDirectoryAlarm`).** Katalog bez żadnego pliku
+ofert u integracji z choć jedną ofertą w bazie (`CrmOfferLink`, także wygaszoną) to błąd przebiegu, jak
+w DOMY.PL: job `ERROR`, `lastErrorAt` i wpis ERROR w `CrmSyncLog`, `lastSuccessAt` stoi (w EstiCRM to
+kotwica okna, więc po powrocie paczek okno sięga od przerwy). Treść widzi też biuro w swoim panelu,
+np. ASARI: `Nie znaleziono żadnego pliku ofert ASARI (*_NNN.xml) w katalogu /x, a integracja ma już
+oferty w bazie. Bez paczek z CRM te oferty nie są aktualizowane.` (EstiCRM i LocumNet: „pliku ZIP/XML”).
+- Pliki ofert liczone z całej listy katalogu i jednego poziomu niżej: ASARI `*_NNN.xml`, EstiCRM
+  i LocumNet ZIP-y i luźne XML ofert. W EstiCRM NIE z okna przebiegu: okno bywa puste u zdrowego biura,
+  które od doby nic nie wysłało (18.09: 3 z 9 biur z ofertami, najnowsza paczka sprzed 2 do 7 dni),
+  więc reguła na oknie zapaliłaby im Błąd. Przy niewylistowanym podkatalogu EstiCRM alarm pustki nie
+  rusza, przebieg zgłasza błąd listowania jak dotąd.
+- Śladem są TYLKO oferty: `lastSuccessAt` ustawiały też puste przebiegi (18.09: 6x ASARI i 1x EstiCRM
+  bez żadnej oferty, każda z datą sukcesu), a `CrmProcessedFile` te silniki nie prowadzą. Bez oferty
+  pusty katalog dalej kończy przebieg sukcesem z `lastSuccessAt` (joby `ASARI_MULTIPLE_FILES`,
+  `ESTICRM_FILES`, `LOCUMNET_FILES`), w panelu „Czeka na 1. paczkę”.
+- Pomiar przed wdrożeniem (18.09, odczyt bazy i listy FTP): wszystkie 30 integracji z ofertami ma
+  pliki ofert w katalogu, a w całej historii `CrmImportJob` (110 797 jobów od 25.04.2026) nie ma ani
+  jednego pustego przebiegu po pierwszej ofercie integracji. Wdrożenie nie zapala żadnego Błędu.
+- Każdy taki przebieg to job ERROR i 60 s przerwy workera. Biuro, które odeszło: wyłączyć integrację,
+  a nie zostawiać alarmu.
+- Reguła nie łapie biura, które przestało wysyłać, a stare paczki zostały w katalogu (sprzątanie
+  zawsze zostawia najświeższe). To osobny sygnał, wiek najnowszej paczki, niewdrożony.
+
+**Panel `/admin/crm`:**
+- **Czeka na 1. paczkę**: zero ofert i zero przetworzonych paczek, ostatni przebieg bez błędu. Obejmuje
+  wszystkie silniki, więc u ASARI, EstiCRM i LocumNet trafia tu też rzadki eksport bez żadnej działki.
+- **Brak danych**: zero ofert, ale paczki przetworzone (tylko DOMY.PL): przychodzą bez żadnej działki.
+- Kolejność „Problemy najpierw”: Błąd, Brak danych, Nieświeże, Czeka na 1. paczkę, OK, Wyłączona.
+
 ## Bezpieczeństwo (mapowanie na ryzyka z audytu)
 
 | Ryzyko | Jak zaadresowane |

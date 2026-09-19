@@ -68,7 +68,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Jak utwardzić drogę dojazdową do działki (slug: jak-utwardzic-droge-dojazdowa-do-dzialki)
 - [ ] Warunki techniczne przyłączy: jak je uzyskać
 - [x] Od czego zacząć budowę domu na działce (slug: od-czego-zaczac-budowe-domu-na-dzialce)
-- [ ] Dziennik budowy i kierownik budowy: co musisz wiedzieć
+- [x] Dziennik budowy i kierownik budowy: co musisz wiedzieć (slug: dziennik-budowy-i-kierownik-budowy)
 - [x] Ogrodzenie działki: kiedy potrzebne zgłoszenie (slug: ogrodzenie-dzialki-kiedy-zgloszenie)
 - [x] Wycinka drzew na działce: kiedy potrzebne zezwolenie (slug: wycinka-drzew-na-dzialce-zezwolenie)
 - [ ] Niwelacja terenu pod budowę

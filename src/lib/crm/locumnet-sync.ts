@@ -32,6 +32,7 @@ import {
   type OfferSignal,
 } from "@/lib/crm/feed-signals";
 import { xmlIntegrityProblem } from "@/lib/crm/xml-integrity";
+import { isEmptyDirectoryAlarm } from "@/lib/crm/integration-health";
 
 // Silnik importu LocumNet Online (format XML "LOCUMNET-ONLINE").
 // Mechanika jak esticrm-sync: biuro wrzuca ZIP-y (lno_*.zip) na nasze FTP drop-zone,
@@ -741,6 +742,27 @@ async function downloadLocumnetFeedFromFtp(integration: IntegrationForSync): Pro
       .filter((item) => item.name.toLowerCase().endsWith(".zip"))
       .sort((a, b) => (b.modifiedAt?.getTime() ?? 0) - (a.modifiedAt?.getTime() ?? 0));
 
+    // Luźne pliki obok ZIP-ów (gdyby biuro wgrało XML/zdjęcia bez paczki).
+    const directXmlFiles = files.filter((item) => item.name.toLowerCase().endsWith(".xml"));
+    const directImageFiles = files.filter((item) => /\.(jpe?g|png|webp|avif)$/i.test(item.name));
+
+    // Pusty katalog to alarm tylko u integracji, która ma już oferty (isEmptyDirectoryAlarm). Nowe
+    // biuro dostaje katalog przed pierwszym eksportem i do tego czasu czeka bez błędu.
+    const offerFilesInDirectory = zipFiles.length + directXmlFiles.length;
+
+    if (offerFilesInDirectory === 0) {
+      const offerLink = await prisma.crmOfferLink.findFirst({
+        where: { integrationId: integration.id },
+        select: { id: true },
+      });
+
+      if (isEmptyDirectoryAlarm({ offerFilesInDirectory, hasOfferLink: offerLink !== null })) {
+        throw new Error(
+          `Nie znaleziono żadnego pliku ZIP/XML w katalogu ${remoteDir}, a integracja ma już oferty w bazie. Bez paczek z CRM te oferty nie są aktualizowane.`
+        );
+      }
+    }
+
     const extractedRoot = path.join(tempDir, "extracted");
 
     // Do auto-czyszczenia: data najnowszego PEŁNEGO eksportu (FullExport=True). ZIP-y starsze
@@ -795,10 +817,6 @@ async function downloadLocumnetFeedFromFtp(integration: IntegrationForSync): Pro
 
       if (isFullZip || !isKnownIncremental) break;
     }
-
-    // Luźne pliki obok ZIP-ów (gdyby biuro wgrało XML/zdjęcia bez paczki).
-    const directXmlFiles = files.filter((item) => item.name.toLowerCase().endsWith(".xml"));
-    const directImageFiles = files.filter((item) => /\.(jpe?g|png|webp|avif)$/i.test(item.name));
 
     for (const file of directXmlFiles) {
       const localPath = path.join(tempDir, "direct", file.remotePath);

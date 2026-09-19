@@ -40,6 +40,7 @@ import { deactivateOffersMissingFromFullExport } from "@/lib/crm/deactivate-miss
 import { isStaleOfferVersion } from "@/lib/crm/feed-signals";
 import { xmlStreamIntegrityProblem } from "@/lib/crm/xml-integrity";
 import { baseExternalId, deletesToApply, versionTakeoverMatcher } from "@/lib/crm/domypl-versions";
+import { awaitingFirstFeedUpdate, isAwaitingFirstFeed } from "@/lib/crm/integration-health";
 
 type IntegrationForSync = {
   id: string;
@@ -57,6 +58,7 @@ type IntegrationForSync = {
   ftpPassive: boolean;
   expectedFilePattern: string | null;
   fullImportMode: boolean;
+  lastSuccessAt: Date | null;
 };
 
 type ParsedDomyOffer = {
@@ -119,6 +121,13 @@ type DownloadedFeed = {
   fileSize: number | null;
   fileModifiedAt: Date | null;
   cleanup: () => Promise<void>;
+};
+
+type FtpFeedBatch = {
+  /** Pusta tablica przy samych przetworzonych już plikach = brak NOWYCH plików. */
+  feeds: DownloadedFeed[];
+  /** Katalog bez żadnej paczki ZIP/XML u integracji, która nic jeszcze nie zaimportowała. */
+  awaitingFirstFeedIn: string | null;
 };
 
 type MatchedRemoteFeed = {
@@ -543,7 +552,7 @@ async function uploadOfferPhotosToR2(
   return uploaded;
 }
 
-async function downloadNewFeedsFromFtp(integration: IntegrationForSync): Promise<DownloadedFeed[]> {
+async function downloadNewFeedsFromFtp(integration: IntegrationForSync): Promise<FtpFeedBatch> {
   if (!integration.ftpHost || !integration.ftpUsername || !integration.ftpPassword) {
     throw new Error("Integracja FTP nie ma uzupełnionych danych logowania.");
   }
@@ -609,7 +618,27 @@ async function downloadNewFeedsFromFtp(integration: IntegrationForSync): Promise
       });
 
     if (remoteFeeds.length === 0) {
-      throw new Error(`Nie znaleziono żadnego pliku ZIP/XML w katalogu ${remoteDir}.`);
+      // Pusty katalog to alarm tylko u integracji, która już coś importowała (integration-health.ts).
+      // Nowe biuro dostaje katalog, zanim włączy eksport, i do pierwszej paczki czeka bez błędu.
+      const [processedFile, offerLink] = await Promise.all([
+        prisma.crmProcessedFile.findFirst({ where: { integrationId: integration.id }, select: { id: true } }),
+        prisma.crmOfferLink.findFirst({ where: { integrationId: integration.id }, select: { id: true } }),
+      ]);
+
+      const awaitingFirstFeed = isAwaitingFirstFeed({
+        hasProcessedFile: processedFile !== null,
+        hasOfferLink: offerLink !== null,
+        lastSuccessAt: integration.lastSuccessAt,
+      });
+
+      if (!awaitingFirstFeed) {
+        throw new Error(`Nie znaleziono żadnego pliku ZIP/XML w katalogu ${remoteDir}.`);
+      }
+
+      console.log(
+        `[CRM DEBUG] Katalog ${remoteDir} nie ma jeszcze żadnej paczki ZIP/XML. Integracja nic jeszcze nie zaimportowała, więc czeka na pierwszą paczkę (to nie błąd).`
+      );
+      return { feeds: [], awaitingFirstFeedIn: remoteDir };
     }
 
 const processedFiles = await prisma.crmProcessedFile.findMany({
@@ -683,7 +712,7 @@ let filesToDownload = remoteFeeds.filter((file) => {
 
 if (filesToDownload.length === 0) {
   console.log("[CRM DEBUG] Brak nowych plików do przetworzenia.");
-  return [];
+  return { feeds: [], awaitingFirstFeedIn: null };
 }
 
 const MAX_FILES_PER_RUN = 20;
@@ -731,7 +760,7 @@ filesToDownload = filesToDownload.slice(0, MAX_FILES_PER_RUN);
       });
     }
 
-    return downloadedFeeds;
+    return { feeds: downloadedFeeds, awaitingFirstFeedIn: null };
   } catch (error) {
     if (tempDir) await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
     throw error;
@@ -1935,6 +1964,7 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
       ftpPassive: true,
       expectedFilePattern: true,
       fullImportMode: true,
+      lastSuccessAt: true,
     },
   });
 
@@ -1961,7 +1991,29 @@ export async function syncCrmIntegrationNow(integrationId: string): Promise<Sync
   const processedFileNames: string[] = [];
 
   try {
-  downloadedFeeds = await downloadNewFeedsFromFtp(integration);
+  const feedBatch = await downloadNewFeedsFromFtp(integration);
+  downloadedFeeds = feedBatch.feeds;
+
+  if (feedBatch.awaitingFirstFeedIn !== null) {
+    // Bez lastSuccessAt i bez wpisu w CrmSyncLog: dopóki biuro nic nie przyśle, przebiegi tylko
+    // zaglądają do katalogu. Panel /admin/crm pokazuje to jako „Czeka na 1. paczkę”.
+    await prisma.crmIntegration.update({
+      where: { id: integration.id },
+      data: awaitingFirstFeedUpdate(now),
+    });
+
+    return {
+      success: true,
+      remoteFileName: "CZEKA_NA_PIERWSZA_PACZKE",
+      importedOffers: 0,
+      createdCount: 0,
+      updatedCount: 0,
+      deactivatedCount: 0,
+      skippedCount: 0,
+      errorCount: 0,
+      message: `Katalog ${feedBatch.awaitingFirstFeedIn} nie ma jeszcze żadnej paczki ZIP/XML. Integracja czeka na pierwszą paczkę z CRM biura.`,
+    };
+  }
 
   if (downloadedFeeds.length === 0) {
     await prisma.crmIntegration.update({
