@@ -125,5 +125,5 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Działka uzbrojona a nieuzbrojona: co się bardziej opłaca (slug: dzialka-uzbrojona-a-nieuzbrojona)
 - [ ] Jak dywersyfikować portfel działkami
 - [x] Ryzyka inwestowania w działki i jak je ograniczyć (slug: ryzyka-inwestowania-w-dzialki)
-- [ ] Działka pod glamping i domki na wynajem
+- [x] Działka pod glamping i domki na wynajem (slug: dzialka-pod-glamping-i-domki-na-wynajem)
 - [ ] Jak finansować zakup działki inwestycyjnej
