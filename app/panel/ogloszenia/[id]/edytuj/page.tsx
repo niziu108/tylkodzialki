@@ -68,6 +68,15 @@ export default async function EdytujOgloszeniePage({ params }: Props) {
         powierzchniaM2: dzialka.powierzchniaM2,
         transakcja: dzialka.transakcja,
         sprzedajacyTyp: dzialka.sprzedajacyTyp,
+        sprzedajacyImie: dzialka.sprzedajacyImie,
+        biuroNazwa: dzialka.biuroNazwa,
+        biuroOpiekun: dzialka.biuroOpiekun,
+        // Logo tylko to z samej oferty. Logo konta wstawione w formularz zapisałoby się jako logo
+        // TEJ oferty, a admin przy podmianie logo biura kasuje stary plik z R2, więc oferta
+        // zostałaby z martwym adresem. Puste pole jest bezpieczne: oferta bez własnego logo bierze
+        // je z konta (src/lib/dzialki.ts), a zapis formularza konta już nie czyści
+        // (src/lib/daneBiuraKonta.ts).
+        biuroLogoUrl: dzialka.biuroLogoUrl,
         numerOferty: dzialka.numerOferty,
         przeznaczenia: dzialka.przeznaczenia as any,
         opis: dzialka.opis,
