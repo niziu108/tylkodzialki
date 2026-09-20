@@ -145,6 +145,12 @@ async function deleteOldLogoIfR2(url: string | null | undefined) {
   const key = extractR2KeyFromUrl(url);
   if (!key) return;
 
+  // Kasujemy wyłącznie pliki wgrane tutaj, w adminie (folder `loga-biur/`). Logo wgrane
+  // w formularzu ogłoszenia ląduje w `dzialki/` i bywa TYM SAMYM plikiem, co logo na ofertach
+  // biura (2026-09-18: 9 aktywnych ofert), więc skasowanie go przy podmianie logo konta
+  // zostawiłoby te oferty z martwym adresem. Niepodmieniony plik w R2 nikomu nie szkodzi.
+  if (!key.startsWith("loga-biur/")) return;
+
   try {
     await deleteFromR2(key);
   } catch (error) {

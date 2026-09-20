@@ -20,6 +20,8 @@
  *     dostaje to, co jest; oferta ze zdjęciami nie traci ich na rzecz uboższej wersji.
  *  4. Pusta lista zdjęć w feedzie nie kasuje galerii. Tak od początku działał silnik DOMY.PL,
  *     a pomiar z 16.09 nie znalazł ani jednej oferty z galerią, której feed nagle nie podaje zdjęć.
+ *  5. Brak WSZYSTKICH plików przy liczbie zdjęć zgodnej z galerią to zwykła paczka różnicowa bez
+ *     zdjęć (Galactica), nie usterka feedu: galeria zostaje, ale bez ostrzeżenia w logach.
  *
  * Pętla: decyzja o brakujących plikach zapada PRZED wgraniem, na liście plików z FTP albo ZIP-a.
  * Oferta, której plików brakuje trwale, nie wgrywa więc zdjęć w każdym przebiegu. Wgranie na próżno
@@ -170,6 +172,20 @@ export function settlePhotoUpload(plan: PhotoRefreshPlan, uploadedCount: number)
         ? `Galeria wymieniona na niepełną (${readyPhotoCount}), bo obecna była mniejsza (${existingPhotoCount}).`
         : `Oferta dostaje niepełną galerię (${readyPhotoCount}).`;
     return { replace, syncedWithFeed: false, note: `${verdict} ${describeMissing(plan, readyPhotoCount)}`, warn: true };
+  }
+
+  // Paczka różnicowa bez plików zdjęć: feed wymienia dokładnie tyle zdjęć, ile stoi w galerii, i nie
+  // ma ani jednego pliku. Tak wygląda zwykła aktualizacja Galactiki, gdzie nazwa pliku to id oferty
+  // i numer (stała między paczkami), więc biuro wysyła zdjęcia tylko wtedy, gdy je zmieniło. Galeria
+  // zostaje jak przy każdym innym braku plików, ale to nie jest usterka feedu, więc bez ostrzeżenia.
+  // Pomiar 18.09.2026: 23 z 40 aktualizacji Galactiki w jednej serii.
+  if (readyPhotoCount === 0 && existingPhotoCount === feedPhotoCount) {
+    return {
+      replace: false,
+      syncedWithFeed: false,
+      note: `Zdjęcia bez zmian (paczka bez plików, galeria ${existingPhotoCount}).`,
+      warn: false,
+    };
   }
 
   const verdict =

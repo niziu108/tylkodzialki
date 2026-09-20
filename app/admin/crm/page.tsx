@@ -3,17 +3,15 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
+import { integrationHealth, type IntegrationHealth } from "@/lib/crm/integration-health";
 
 // Monitoring CRM (Sprint 3): widok TYLKO do odczytu. Czytamy statystyki,
 // które silniki (domypl / asari / esticrm) i tak zapisują po każdym imporcie.
 // Brak zapisów do bazy, brak wpływu na synchronizację.
 export const dynamic = "force-dynamic";
 
-// Cron auto-sync leci 2x dziennie (co 12 h). Brak udanego importu dłużej niż
-// to oznacza pominięte przebiegi, więc traktujemy integrację jako nieświeżą.
-const STALE_THRESHOLD_HOURS = 48;
-
-type Health = "ERROR" | "NO_DATA" | "STALE" | "OK" | "DISABLED";
+// Reguły statusu (w tym próg „Nieświeże”) w src/lib/crm/integration-health.ts, tam też testy.
+type Health = IntegrationHealth;
 
 const PROVIDER_LABELS: Record<string, string> = {
   GALACTICA: "Galactica",
@@ -47,17 +45,23 @@ const HEALTH_META: Record<
     dot: "bg-amber-400",
     order: 2,
   },
+  WAITING: {
+    label: "Czeka na 1. paczkę",
+    badge: "border-sky-500/30 bg-sky-500/15 text-sky-300",
+    dot: "bg-sky-300",
+    order: 3,
+  },
   OK: {
     label: "OK",
     badge: "border-brand/30 bg-brand/20 text-brand-bright",
     dot: "bg-brand-bright",
-    order: 3,
+    order: 4,
   },
   DISABLED: {
     label: "Wyłączona",
     badge: "border-fg/15 bg-fg/10 text-fg/72",
     dot: "bg-fg/40",
-    order: 4,
+    order: 5,
   },
 };
 
@@ -128,31 +132,6 @@ type IntegrationRow = {
   user: { id: string; email: string | null; name: string | null };
 };
 
-function computeHealth(it: IntegrationRow, now: number, offerCount: number): Health {
-  if (!it.isActive) return "DISABLED";
-
-  // Cały ostatni przebieg padł: silnik ustawił lastErrorAt nowszy od sukcesu
-  // (albo sukcesu nie było wcale). Błędy cząstkowe -> lastErrorCount > 0.
-  const runFailed =
-    !!it.lastErrorAt &&
-    (!it.lastSuccessAt ||
-      new Date(it.lastErrorAt).getTime() > new Date(it.lastSuccessAt).getTime());
-
-  if (it.lastErrorCount > 0 || runFailed) return "ERROR";
-
-  // EstiCRM przy pustym katalogu nie rzuca bledem, tylko konczy przebieg z zerem
-  // ofert (patrz esticrm-sync: "Brak plików XML ofert") -> bez tego swiecilby OK,
-  // choc biuro nie przyslalo jeszcze ani jednego pliku.
-  if (offerCount === 0) return "NO_DATA";
-
-  const staleMs = STALE_THRESHOLD_HOURS * 60 * 60 * 1000;
-  const fresh =
-    !!it.lastSuccessAt && now - new Date(it.lastSuccessAt).getTime() <= staleMs;
-
-  if (!fresh) return "STALE";
-  return "OK";
-}
-
 type AdminCrmPageProps = {
   searchParams?: Promise<{ sort?: string }>;
 };
@@ -208,7 +187,9 @@ export default async function AdminCrmMonitoringPage({
   // Rozroznienie, ktorego sam licznik ofert nie daje: "nigdy nic nie przyszlo" to inna rozmowa
   // z biurem niz "kiedys dzialalo i zgaslo". Do tego ostatni slad ze zrodla (lastSeenAt), bo
   // lastSuccessAt mowi tylko tyle, ze przebieg sie udal, nawet gdy nie przyniosl ani jednej oferty.
-  const [aktywneLinki, ostatnieSlady] = await Promise.all([
+  // Przetworzone paczki (tylko DOMY.PL je zapisuje) odróżniają „czeka na 1. paczkę” od paczek,
+  // które przyszły bez żadnej działki.
+  const [aktywneLinki, ostatnieSlady, przetworzonePaczki] = await Promise.all([
     prisma.crmOfferLink.groupBy({
       by: ["integrationId"],
       where: { isActiveInSource: true },
@@ -218,6 +199,10 @@ export default async function AdminCrmMonitoringPage({
       by: ["integrationId"],
       _max: { lastSeenAt: true },
     }),
+    prisma.crmProcessedFile.groupBy({
+      by: ["integrationId"],
+      _count: { _all: true },
+    }),
   ]);
 
   const aktywneByIntegration = new Map(
@@ -225,6 +210,9 @@ export default async function AdminCrmMonitoringPage({
   );
   const sladByIntegration = new Map(
     ostatnieSlady.map((row) => [row.integrationId, row._max.lastSeenAt]),
+  );
+  const paczkiByIntegration = new Map(
+    przetworzonePaczki.map((row) => [row.integrationId, row._count._all]),
   );
 
   const params = await searchParams;
@@ -240,7 +228,10 @@ export default async function AdminCrmMonitoringPage({
         offerCount,
         aktywneOferty: aktywneByIntegration.get(it.id) ?? 0,
         ostatniSlad: sladByIntegration.get(it.id) ?? null,
-        health: computeHealth(it, now, offerCount),
+        health: integrationHealth(
+          { ...it, offerLinks: offerCount, processedFiles: paczkiByIntegration.get(it.id) ?? 0 },
+          now,
+        ),
       };
     })
     .sort((a, b) => {
@@ -267,6 +258,7 @@ export default async function AdminCrmMonitoringPage({
     ERROR: 0,
     NO_DATA: 0,
     STALE: 0,
+    WAITING: 0,
     OK: 0,
     DISABLED: 0,
   };
@@ -307,6 +299,7 @@ export default async function AdminCrmMonitoringPage({
     ERROR: number;
     NO_DATA: number;
     STALE: number;
+    WAITING: number;
     OK: number;
     DISABLED: number;
   };
@@ -321,6 +314,7 @@ export default async function AdminCrmMonitoringPage({
         ERROR: 0,
         NO_DATA: 0,
         STALE: 0,
+        WAITING: 0,
         OK: 0,
         DISABLED: 0,
       };
@@ -339,6 +333,7 @@ export default async function AdminCrmMonitoringPage({
     { label: "Błędy", value: counts.ERROR, health: "ERROR" },
     { label: "Brak danych", value: counts.NO_DATA, health: "NO_DATA" },
     { label: "Nieświeże", value: counts.STALE, health: "STALE" },
+    { label: "Czeka na 1. paczkę", value: counts.WAITING, health: "WAITING" },
     { label: "OK", value: counts.OK, health: "OK" },
     { label: "Wyłączone", value: counts.DISABLED, health: "DISABLED" },
   ];
@@ -362,7 +357,7 @@ export default async function AdminCrmMonitoringPage({
 
             <p className="mt-2 text-sm text-fg/70">
               Stan wszystkich integracji w jednym miejscu. Auto-sync uruchamia się
-              o 06:00 i 18:00 UTC. Kolejność listy ustawisz sortowaniem niżej.
+              co 2 godziny, o pełnej godzinie UTC. Kolejność listy ustawisz sortowaniem niżej.
             </p>
           </div>
 
@@ -374,7 +369,7 @@ export default async function AdminCrmMonitoringPage({
           </Link>
         </div>
 
-        <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-fg/10 bg-fg/5 p-4">
             <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
               Integracje
@@ -429,6 +424,7 @@ export default async function AdminCrmMonitoringPage({
                     <span className="text-red-300">Błąd {stat.ERROR}</span>
                     <span className="text-amber-200">Brak danych {stat.NO_DATA}</span>
                     <span className="text-amber-300">Nieświeże {stat.STALE}</span>
+                    <span className="text-sky-300">Czeka na 1. paczkę {stat.WAITING}</span>
                     <span className="text-brand-bright">OK {stat.OK}</span>
                     {stat.DISABLED > 0 ? (
                       <span className="text-fg/68">Wył. {stat.DISABLED}</span>
@@ -589,8 +585,14 @@ export default async function AdminCrmMonitoringPage({
                           </span>
                           {row.health === "NO_DATA" ? (
                             <div className="mt-1.5 max-w-[180px] text-xs text-amber-200/80">
-                              Sync działa, ale biuro nie przysłało jeszcze żadnej
-                              oferty.
+                              Paczki przychodzą, ale nie ma w nich żadnej
+                              działki.
+                            </div>
+                          ) : null}
+                          {row.health === "WAITING" ? (
+                            <div className="mt-1.5 max-w-[180px] text-xs text-sky-300/80">
+                              Sync działa, biuro nie przysłało jeszcze żadnej
+                              paczki z działkami.
                             </div>
                           ) : null}
                         </td>

@@ -18,6 +18,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/auth-options';
 import { queryDzialkiList } from '@/lib/dzialkiListing';
 import { MAX_PHOTOS_PER_OFFER } from '@/lib/photoLimits';
+import { uzupelnienieDanychBiura } from '@/lib/daneBiuraKonta';
 
 const MAX_PHOTOS = MAX_PHOTOS_PER_OFFER;
 
@@ -96,6 +97,10 @@ export async function POST(req: Request) {
       id: true,
       email: true,
       listingCredits: true,
+      // Do reguły „formularz tylko uzupełnia braki" (src/lib/daneBiuraKonta.ts).
+      defaultBiuroNazwa: true,
+      defaultBiuroOpiekun: true,
+      defaultBiuroLogoUrl: true,
     },
   });
 
@@ -324,9 +329,14 @@ export async function POST(req: Request) {
           defaultSprzedajacyTyp: seller,
           defaultSprzedajacyImie:
             seller === SprzedajacyTyp.PRYWATNIE ? sprzedajacyImieClean : null,
-          defaultBiuroNazwa: seller === SprzedajacyTyp.BIURO ? biuroNazwaClean : null,
-          defaultBiuroOpiekun: seller === SprzedajacyTyp.BIURO ? biuroOpiekunClean : null,
-          defaultBiuroLogoUrl: seller === SprzedajacyTyp.BIURO ? biuroLogoUrlClean : null,
+          // Nazwa, opiekun i logo biura NIE są „ostatnio wpisanymi" danymi formularza: to marka
+          // konta widoczna przy wszystkich ofertach biura, na /dla-biur i na wizytówce. Formularz
+          // jednej oferty tylko uzupełnia braki, nigdy nie kasuje ani nie nadpisuje.
+          ...uzupelnienieDanychBiura(dbUser, seller, {
+            biuroNazwa: biuroNazwaClean,
+            biuroOpiekun: biuroOpiekunClean,
+            biuroLogoUrl: biuroLogoUrlClean,
+          }),
         },
       });
 

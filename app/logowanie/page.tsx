@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import ScrollFill from '@/components/ScrollFill';
+import { powrotPoLogowaniu } from '@/lib/powrotPoLogowaniu';
 
 const BG = 'var(--bg)';
 const FG = 'var(--fg)';
@@ -76,13 +77,9 @@ function AuthPageContent() {
   const { status } = useSession();
 
   const callbackUrl = useMemo(() => {
-    const url = sp.get('callbackUrl')?.trim();
-
-    if (!url || url === '/' || url === '') {
-      return '/panel';
-    }
-
-    return url;
+    // Bez window (render na serwerze) nie ma z czym porównać originu; w przeglądarce liczy się od nowa.
+    if (typeof window === 'undefined') return '/panel';
+    return powrotPoLogowaniu(sp.get('callbackUrl'), window.location.origin);
   }, [sp]);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');

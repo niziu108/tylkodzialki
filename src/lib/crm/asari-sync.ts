@@ -13,6 +13,7 @@ import {
   Prisma,
   Przeznaczenie,
   WodaStatus,
+  type TransakcjaTyp,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { payloadForLog } from "@/lib/crm/log-policy";
@@ -21,6 +22,7 @@ import { uploadBufferToR2 } from "@/lib/r2";
 import { appendPhotoNote, planPhotoRefresh, refreshOfferPhotos, type UploadedPhoto } from "@/lib/crm/photo-refresh";
 import { deleteR2Photos, discardUnsavedPhotos, r2PhotoEffects, swapOfferPhotos } from "@/lib/crm/offer-photos";
 import { repairAreaFromHectares } from "@/lib/crm/area-sanity";
+import { asariTransakcja } from "@/lib/crm/asari-transakcja";
 import { sanitizePlCoords, coordsMatchLocationText } from "@/lib/geo";
 import { beginGeocodeRun, geocodeAddressInPoland } from "@/lib/crm/geocode";
 import {
@@ -36,6 +38,7 @@ import {
   resolveAsariFullExportScope,
 } from "@/lib/crm/asari-full-export";
 import { xmlIntegrityProblem } from "@/lib/crm/xml-integrity";
+import { isEmptyDirectoryAlarm } from "@/lib/crm/integration-health";
 
 type IntegrationForSync = {
   id: string;
@@ -71,6 +74,8 @@ type AsariOffer = {
   description: string | null;
   pricePln: number;
   areaM2: number;
+  /** Przy WYNAJEM `pricePln` to czynsz miesięczny, patrz asari-transakcja.ts. */
+  transakcja: TransakcjaTyp;
   email: string;
   phone: string;
   locationLabel: string | null;
@@ -496,6 +501,28 @@ function getPropertyTypeText(
   return "";
 }
 
+// Operacja oferty (SPRZEDAŻ / WYNAJEM) po DOKŁADNEJ nazwie pola, z tego samego powodu co wyżej:
+// „includes" złapałby „data transakcji" albo „cena transakcyjna". W standardzie ASARI to pole 43
+// „operacja"; bez pliku definicji czytamy je wprost, jak pole 36 w getPropertyTypeText.
+function getOperationText(
+  params: Record<string, unknown>,
+  definitions: AsariDefinitions
+): string {
+  const candidateNames = new Set(["operacja", "transakcja", "rodzaj transakcji", "typ transakcji"]);
+
+  for (const [id, rawName] of definitions.byId.entries()) {
+    if (!candidateNames.has(normalizeFieldName(rawName))) continue;
+    const value = toTextValue(params[id]);
+    if (value) return value;
+  }
+
+  if (definitions.byId.size === 0) {
+    return toTextValue(params["43"]);
+  }
+
+  return "";
+}
+
 function isLikelyLandOffer(params: Record<string, unknown>, definitions: AsariDefinitions) {
   const categoryText = [
     getTextByName(params, definitions, ["typ", "nieruchomosci"], ["17", "18"]),
@@ -559,6 +586,14 @@ function parseAsariOffer(
   if (!isLandByType && !isLikelyLandOffer(params, definitions)) {
     console.log("[ASARI DEBUG] Odrzucono:", externalId, "to nie wygląda na działkę.");
     return { rejected: "INVALID", externalId };
+  }
+
+  const operation = getOperationText(params, definitions);
+  const transakcja = asariTransakcja(operation, externalId);
+
+  if (!transakcja) {
+    console.log("[ASARI DEBUG] Odrzucono:", externalId, `operacja "${operation}" to poszukiwanie klienta, nie oferta.`);
+    return { rejected: "NOT_LAND", externalId };
   }
 
   const price =
@@ -713,6 +748,7 @@ function parseAsariOffer(
     pricePln: Math.round(price),
     // Bramka na hektary w polu metrów: patrz area-sanity.ts
     areaM2: repairAreaFromHectares(Math.round(area), `${titleRaw} ${description}`),
+    transakcja,
     email,
     phone,
     locationLabel,
@@ -963,6 +999,21 @@ async function downloadAsariFeedFromFtp(integration: IntegrationForSync): Promis
         !/^definictions\.xml$/i.test(item.name) &&
         !/^definitions\.xml$/i.test(item.name)
     );
+
+    // Pusty katalog to alarm tylko u integracji, która ma już oferty (isEmptyDirectoryAlarm). Nowe
+    // biuro dostaje katalog przed pierwszym eksportem i do tego czasu czeka bez błędu.
+    if (allOfferXmlCandidates.length === 0) {
+      const offerLink = await prisma.crmOfferLink.findFirst({
+        where: { integrationId: integration.id },
+        select: { id: true },
+      });
+
+      if (isEmptyDirectoryAlarm({ offerFilesInDirectory: allOfferXmlCandidates.length, hasOfferLink: offerLink !== null })) {
+        throw new Error(
+          `Nie znaleziono żadnego pliku ofert ASARI (*_NNN.xml) w katalogu ${remoteDir}, a integracja ma już oferty w bazie. Bez paczek z CRM te oferty nie są aktualizowane.`
+        );
+      }
+    }
 
     const listedOfferBasenames = new Set(cfg.listedOfferFiles.map(safeBasename));
 
@@ -1248,6 +1299,7 @@ function buildDzialkaDataFromOffer(offer: AsariOffer) {
     tytul: offer.title,
     cenaPln: offer.pricePln,
     powierzchniaM2: offer.areaM2,
+    transakcja: offer.transakcja,
     email: offer.email,
     telefon: offer.phone,
     sprzedajacyTyp: "BIURO" as const,
