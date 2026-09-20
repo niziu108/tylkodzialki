@@ -105,7 +105,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Jak napisać skuteczne ogłoszenie działki (slug: jak-napisac-skuteczne-ogloszenie-dzialki)
 - [x] Sprzedaż przez biuro a samodzielnie (slug: sprzedaz-dzialki-przez-biuro-a-samodzielnie)
 - [x] Sprzedaż udziału w działce (slug: sprzedaz-udzialu-w-dzialce)
-- [ ] Sprzedaż działki z domem w budowie
+- [x] Sprzedaż działki z domem w budowie (slug: sprzedaz-dzialki-z-domem-w-budowie)
 - [x] ~~Jak podzielić działkę przed sprzedażą, żeby zarobić więcej~~ POKRYTE w „Jak zarabiać na podziale działki" (slug: jak-zarabiac-na-podziale-dzialki).
 - [ ] Najczęstsze błędy przy sprzedaży działki
 - [ ] Jak sprawdzić wiarygodność kupującego
