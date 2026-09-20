@@ -5,7 +5,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
 import FaqSection from '@/components/FaqSection';
 import { getSeoRegion } from '@/lib/seo-locations';
-import { buildSpecRows } from '@/lib/seoCategoryContent';
+import { buildSpecRows, buildAreaTitle } from '@/lib/seoCategoryContent';
 import {
   getPowiatDetail,
   getPowiatList,
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const nom = powiatNom(data.adj);
 
   return {
-    title: `Działki na sprzedaż, ${nom}`,
+    title: { absolute: buildAreaTitle(`Działki na sprzedaż, ${nom}`, data.detail.count) },
     description: `Aktualne oferty działek w ${powiatLoc(data.adj)}${region ? `, województwo ${region.name}` : ''}. Sprawdź ceny, powierzchnie, media i przejdź do kontaktu na stronie oferty.`,
     alternates: { canonical: `/dzialki/powiat/${data.wojSlug}/${data.slug}` },
     robots: data.detail.count >= POWIAT_MIN_INDEX ? undefined : { index: false, follow: true },

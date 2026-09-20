@@ -228,6 +228,54 @@ export function buildCityMetaDescription(city: SeoCity, total: number): string {
   return `${lead} Filtruj po typie, cenie, powierzchni i mediach. Kontakt do sprzedającego na stronie oferty.`;
 }
 
+// ── Tytuł huba (SEO title) ─────────────────────────────────────────────────────
+// Google od dawna pokazuje nazwę witryny osobno, nad tytułem, więc doklejany szablon
+// „| tylkodzialki.pl" zjadał 17 z ~60 widocznych znaków i nie mówił nic, czego wynik
+// już nie pokazuje. W to miejsce wchodzi liczba ofert: w wynikach listingowych to
+// najmocniejszy powód kliknięcia („jest z czego wybierać"), a mamy ją policzoną i tak,
+// bez dodatkowego zapytania do bazy. To nie jest czynnik rankingowy, tylko CTR z tej
+// samej pozycji.
+//
+// „i okolice" nie jest ozdobnikiem: huby liczą podaż w promieniu CITY_RADIUS_KM, a fraza
+// „<miasto> i okolice" siedzi w naszym top 10 zapytań GSC. Tytuł ma mówić, co strona robi.
+// Strony powiatu i województwa to obszary administracyjne, nie promień, więc tam tej
+// frazy NIE dopisujemy.
+//
+// Google ucina tytuł na szerokości ok. 600 px, nie na liczbie znaków, więc TITLE_MAX_CHARS
+// to bezpieczne przybliżenie: dłuższe warianty odpadają po kolei, zamiast dać się uciąć
+// w pół słowa. Ostatni wariant na liście jest zawsze krótki i jest wyjściem awaryjnym
+// (miasto o bardzo długiej nazwie), więc lista MUSI kończyć się samą nazwą bez dodatków.
+export const TITLE_MAX_CHARS = 60;
+
+export function pickTitle(variants: string[]): string {
+  return variants.find((t) => t.length <= TITLE_MAX_CHARS) ?? variants[variants.length - 1];
+}
+
+// Liczba do tytułu — ten sam próg co w opisie: małą podażą się nie chwalimy.
+function titleCountPhrase(count: number): string | null {
+  return count >= META_COUNT_LEAD ? `${formatIntPL(count)} ${ofertaWord(count)}` : null;
+}
+
+export function buildCategoryTitle(city: SeoCity, type: SeoType, count: number): string {
+  const base = `Działki ${type.adj} ${city.name}`;
+  const n = titleCountPhrase(count);
+  if (!n) return pickTitle([`${base} i okolice, oferty na sprzedaż`, `${base} i okolice`, base]);
+  return pickTitle([`${base} i okolice, ${n} na sprzedaż`, `${base} i okolice, ${n}`, `${base}, ${n}`, base]);
+}
+
+export function buildCityTitle(city: SeoCity, total: number): string {
+  const base = `Działki na sprzedaż ${city.name}`;
+  const n = titleCountPhrase(total);
+  if (!n) return pickTitle([`${base} i okolice`, base]);
+  return pickTitle([`${base} i okolice, ${n}`, `${base}, ${n}`, base]);
+}
+
+// Powiat/województwo: `base` przychodzi gotowe ze strony (odmiana nazwy jest tam).
+export function buildAreaTitle(base: string, count: number): string {
+  const n = titleCountPhrase(count);
+  return n ? pickTitle([`${base}, ${n}`, base]) : base;
+}
+
 // ── FAQ (zasila FAQPage JSON-LD + widoczna sekcja) ─────────────────────────────
 export function buildFaq(city: SeoCity, type: SeoType, detail: CategoryDetail): FaqItem[] {
   const faq: FaqItem[] = [];

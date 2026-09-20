@@ -6,7 +6,7 @@ import HubLinkGrid, { type HubLinkItem } from '@/components/HubLinkGrid';
 import { getSeoCity, getRegionForCity, SEO_TYPES } from '@/lib/seo-locations';
 import { getCityStats, CITY_RADIUS_KM } from '@/lib/seoHub';
 import { queryHubListing } from '@/lib/dzialkiListing';
-import { buildCityMetaDescription } from '@/lib/seoCategoryContent';
+import { buildCityMetaDescription, buildCityTitle } from '@/lib/seoCategoryContent';
 
 type PageProps = {
   params: Promise<{ city: string }>;
@@ -38,7 +38,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const stats = await getCityStats(city.slug);
 
   return {
-    title: `Działki na sprzedaż ${city.name}`,
+    // absolute = bez szablonu „| tylkodzialki.pl" z layoutu; patrz buildCategoryTitle.
+    title: { absolute: buildCityTitle(city, stats.total) },
     description: buildCityMetaDescription(city, stats.total),
     alternates: { canonical: `/dzialki/${city.slug}` },
     robots: stats.total > 0 ? undefined : { index: false, follow: true },

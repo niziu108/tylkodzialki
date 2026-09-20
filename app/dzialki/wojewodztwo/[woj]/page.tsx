@@ -9,6 +9,7 @@ import { getVoivodeshipStats } from '@/lib/seoHub';
 import { queryHubListing } from '@/lib/dzialkiListing';
 import { getPowiatList } from '@/lib/seoPowiaty';
 import { powiatHeading } from '@/lib/seoPowiatContent';
+import { buildAreaTitle } from '@/lib/seoCategoryContent';
 
 type PageProps = {
   params: Promise<{ woj: string }>;
@@ -40,7 +41,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const stats = await getVoivodeshipStats(region.slug);
 
   return {
-    title: `Działki na sprzedaż, województwo ${region.name}`,
+    title: {
+      absolute: buildAreaTitle(`Działki na sprzedaż, województwo ${region.name}`, stats.total),
+    },
     description: `Aktualne oferty działek na sprzedaż. Województwo ${region.name}: wybierz miasto i typ działki, sprawdź ceny, powierzchnie i media.`,
     alternates: { canonical: `/dzialki/wojewodztwo/${region.slug}` },
     robots: stats.total > 0 ? undefined : { index: false, follow: true },

@@ -18,6 +18,7 @@ import {
   buildLocalParagraphs,
   buildFaq,
   buildCategoryMetaDescription,
+  buildCategoryTitle,
 } from '@/lib/seoCategoryContent';
 
 type PageProps = {
@@ -53,7 +54,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const detail = await getCategoryDetail(city.slug, type.enum);
 
   return {
-    title: `Działki ${type.adj} ${city.name}, oferty na sprzedaż`,
+    // absolute = bez szablonu „| tylkodzialki.pl" z layoutu; patrz buildCategoryTitle.
+    title: { absolute: buildCategoryTitle(city, type, detail.count) },
     description: buildCategoryMetaDescription(city, type, detail),
     alternates: { canonical: `/dzialki/${city.slug}/${type.slug}` },
     robots: detail.count > 0 ? undefined : { index: false, follow: true },
