@@ -115,28 +115,6 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
     ? biuro.www.replace(/^https?:\/\//i, '').replace(/\/+$/, '')
     : null;
 
-  // Zakres portfela jedną linią: od jakiej ceny zaczynają się działki i jakie
-  // powierzchnie ma biuro. Portale ogólne tego nie pokażą, bo grunt tonie im
-  // w mieszkaniach — a kupującemu od razu mówi, czy to oferta dla niego.
-  const { zakres } = biuro;
-  const zakresCzesci: string[] = [];
-
-  if (zakres.cenaMin) {
-    zakresCzesci.push(`działki od ${formatIntPL(zakres.cenaMin)} zł`);
-  }
-
-  if (zakres.powierzchniaMin && zakres.powierzchniaMax) {
-    zakresCzesci.push(
-      zakres.powierzchniaMin === zakres.powierzchniaMax
-        ? `powierzchnia ${formatIntPL(zakres.powierzchniaMin)} m²`
-        : `powierzchnie od ${formatIntPL(zakres.powierzchniaMin)} do ${formatIntPL(zakres.powierzchniaMax)} m²`
-    );
-  }
-
-  const zakresLabel = zakresCzesci.length
-    ? `${zakresCzesci.join(', ').replace(/^./, (c) => c.toUpperCase())}.`
-    : null;
-
   const tabs: BiuroTab[] = [];
 
   if (maKontakt) {
@@ -189,20 +167,6 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
           {biuro.liczbaOddzialow ? (
             <DataRow label="Oddziały">{formatIntPL(biuro.liczbaOddzialow)}</DataRow>
           ) : null}
-        </div>
-      ),
-    });
-  }
-
-  if (akapity.length) {
-    tabs.push({
-      key: 'o-biurze',
-      label: 'O biurze',
-      content: (
-        <div className="mx-auto max-w-2xl space-y-4 text-[15px] leading-7 text-fg/72">
-          {akapity.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
         </div>
       ),
     });
@@ -358,10 +322,17 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
                 )}
               </p>
 
-              {zakresLabel ? (
-                <p className="mt-2 text-balance text-center text-[14px] leading-6 text-fg/55 md:text-left">
-                  {zakresLabel}
-                </p>
+              {/* Opis od biura stoi tuż pod logo, a nie w zakładce: to jedyna treść
+                  wizytówki pisana zdaniami, a zakładki zostawiamy na twarde dane (kontakt,
+                  zasięg). Kolejność czytania: kim jest biuro, ile ma działek, czym się
+                  zajmuje. Akapity zawsze do lewej, także na telefonie: wyśrodkowana proza
+                  czyta się źle, a nazwa i liczba ofert to pojedyncze wiersze. */}
+              {akapity.length ? (
+                <div className="mt-6 space-y-3 text-left text-[14px] leading-6 text-fg/62">
+                  {akapity.map((p, i) => (
+                    <p key={i}>{p}</p>
+                  ))}
+                </div>
               ) : null}
             </div>
 

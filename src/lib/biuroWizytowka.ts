@@ -68,15 +68,11 @@ export type WizytowkaZasieg = {
   przypisane: number;
 };
 
-/* Zakres portfela: od jakiej ceny zaczynają się działki i w jakich powierzchniach.
- * Świadomie NIE liczymy mediany zł/m² — gdyby partner wypadł drożej od rynku,
- * wizytówka stałaby się dowodem przeciwko niemu. „Od ilu" i „jakie rozmiary"
- * mówią o asortymencie, a nie oceniają cennika. */
-export type WizytowkaZakres = {
-  cenaMin: number | null;
-  powierzchniaMin: number | null;
-  powierzchniaMax: number | null;
-};
+/* Wizytówka świadomie nie pokazuje zakresu cen ani powierzchni portfela (zdjęte
+ * 20.09.2026). Liczyło się to z feedu, a feed miesza wynajem ze sprzedażą i wciąga
+ * hektary wpisane jako metry, więc zdanie wychodziło od kilkuset złotych do setek
+ * milionów metrów. Dane o cenie są na kartach ofert i na stronach /ceny, gdzie
+ * przechodzą przez filtry rozsądku. */
 
 export type Wizytowka = {
   slug: string;
@@ -93,7 +89,6 @@ export type Wizytowka = {
   rokZalozenia: number | null;
   liczbaOddzialow: number | null;
   liczbaOfert: number;
-  zakres: WizytowkaZakres;
   zasieg: WizytowkaZasieg;
   oferty: WizytowkaOferta[];
   strona: number;
@@ -159,7 +154,6 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
       biuroWizytowkaOn: true,
       biuroPartnerStrategiczny: true,
       biuroNazwaWLogo: true,
-      biuroZakresUkryty: true,
       biuroSlug: true,
       biuroOpis: true,
       biuroTelefon: true,
@@ -180,20 +174,8 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
 
   const aktywne = { ownerId: user.id, status: 'AKTYWNE' as const };
 
-  const [liczbaOfert, zakresRaw, adminRows, oferty] = await Promise.all([
+  const [liczbaOfert, adminRows, oferty] = await Promise.all([
     prisma.dzialka.count({ where: aktywne }),
-    prisma.dzialka.aggregate({
-      // Tylko sprzedaż. Wynajem chodzi w czynszu miesięcznym, więc w jednym przedziale
-      // z cenami sprzedaży nic nie znaczy: 2500 zł za plac na miesiąc stanęłoby obok
-      // 39 mln za grunt inwestycyjny. Portfel złożony z samego wynajmu nie dostanie
-      // zakresu w ogóle i to jest w porządku: lepiej nic niż zdanie bez sensu.
-      //
-      // Bezpiecznik na cenę: dziś żadna aktywna oferta nie ma ceny 0, ale gdyby taka przyszła
-      // z feedu, zrobiłaby z portfela „działki od 0 zł".
-      where: { ...aktywne, transakcja: 'SPRZEDAZ', cenaPln: { gt: 0 } },
-      _min: { cenaPln: true, powierzchniaM2: true },
-      _max: { powierzchniaM2: true },
-    }),
     prisma.dzialka.findMany({
       where: aktywne,
       select: { locationFull: true, adminWoj: true, adminPowiat: true },
@@ -233,7 +215,7 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
     }),
   ]);
 
-  // Znaczek „Obniżka X%" to fakt o ofercie, nie ocena cennika biura (patrz komentarz przy zakresie).
+  // Znaczek „Obniżka X%" to fakt o ofercie, nie ocena cennika biura.
   const obnizki = await getObnizkiCen(oferty.map((o) => o.id));
 
   return {
@@ -253,17 +235,6 @@ export const getWizytowkaBySlug = cache(async (slug: string, strona = 1): Promis
     rokZalozenia: user.biuroRokZalozenia,
     liczbaOddzialow: user.biuroLiczbaOddzialow,
     liczbaOfert,
-    // Wyłącznik z admina dla portfeli, w których feed miesza wynajem ze sprzedażą.
-    // Rodzaju transakcji nie da się pewnie odgadnąć z tekstu oferty („pod domki na
-    // wynajem" to sprzedaż), więc zamiast poprawiać dane biura zgadywanką, zdejmujemy
-    // całe zdanie: lepiej nie powiedzieć nic, niż podać kupującemu czynsz jako cenę.
-    zakres: user.biuroZakresUkryty
-      ? { cenaMin: null, powierzchniaMin: null, powierzchniaMax: null }
-      : {
-          cenaMin: zakresRaw._min.cenaPln ?? null,
-          powierzchniaMin: zakresRaw._min.powierzchniaM2 ?? null,
-          powierzchniaMax: zakresRaw._max.powierzchniaM2 ?? null,
-        },
     zasieg: zbudujZasieg(adminRows),
     oferty: oferty.map((o) => ({
       id: o.id,
