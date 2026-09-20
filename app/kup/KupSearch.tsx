@@ -1968,11 +1968,11 @@ export default function KupSearch({
               onSearchArea={onSearchArea}
               onClose={() => {
                 // Weszliśmy z konkretnej oferty → zamknięcie mapy wraca do tej oferty,
-                // a nie zrzuca do wyszukiwarki. Cofamy w historii (zachowana pozycja
-                // na stronie oferty); gdy historii brak (np. wejście z linku), idziemy wprost.
+                // a nie zrzuca do wyszukiwarki. Idziemy wprost, bo cofanie historii
+                // odtwarzało kolejno ruchy po mapie (każde szukanie w kadrze to wpis)
+                // i trzeba było klikać kilka razy. Pozycję na ofercie przywraca ona sama.
                 if (initialFocusId) {
-                  if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-                  else router.push(`/dzialka/${initialFocusId}`);
+                  router.push(`/dzialka/${initialFocusId}`);
                 } else {
                   setMapOpen(false);
                 }

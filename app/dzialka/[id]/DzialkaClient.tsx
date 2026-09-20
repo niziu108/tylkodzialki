@@ -887,6 +887,46 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     setIdx((p) => (p + 1) % photos.length);
   };
 
+  // Powrót z mapy ofert ląduje tam, skąd się w nią weszło (zwykle blok lokalizacji na
+  // dole), a nie na górze strony. Pozycję zapisuje klik w podgląd mapy niżej.
+  useEffect(() => {
+    if (preview || !id) return;
+
+    let y = 0;
+    try {
+      if (sessionStorage.getItem('TD_OFERTA_ID') !== id) return;
+      y = Number(sessionStorage.getItem('TD_OFERTA_Y') ?? '0');
+    } catch {}
+    if (!y) return;
+
+    const sprzatnij = () => {
+      try {
+        sessionStorage.removeItem('TD_OFERTA_ID');
+        sessionStorage.removeItem('TD_OFERTA_Y');
+      } catch {}
+    };
+
+    // Instant, nie smooth: płynny przeskok o kilka tysięcy px wygląda jak awaria
+    // ([[project-scroll-smooth-gotcha]]). Ponawiamy, dopóki strona nie urośnie na tyle,
+    // żeby dało się tam zjechać: raport działki i zdjęcia dochodzą po pierwszym rysowaniu,
+    // a sam komponent zaczyna od przewinięcia na górę. Zapis kasujemy dopiero po skoku,
+    // inaczej podwójny montaż (tryb ścisły Reacta w dev) zjadał go przy pierwszym podejściu.
+    let proby = 0;
+    const timer = window.setInterval(() => {
+      proby += 1;
+      if (!window.location.pathname.includes(id)) {
+        window.clearInterval(timer);
+        return;
+      }
+      window.scrollTo({ top: y, left: 0, behavior: 'instant' as ScrollBehavior });
+      if (Math.abs(window.scrollY - y) < 4 || proby >= 20) {
+        window.clearInterval(timer);
+        sprzatnij();
+      }
+    }, 120);
+    return () => window.clearInterval(timer);
+  }, [id, preview]);
+
   // Czy w ofertę weszliśmy z MAPY (karta pinu ustawia TD_KUP_FROM_MAP=id)? Jeśli tak, przycisk
   // powrotu mówi „Wróć do mapy" i wraca na /kup z otwartą mapą (?focus=), zamiast na płaską listę.
   const [backToMap, setBackToMap] = useState(false);
@@ -1456,6 +1496,14 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   <Link
     href={naszaMapaHref}
     aria-label="Zobacz tę działkę na mapie ofert"
+    onClick={() => {
+      // Zapamiętujemy miejsce, z którego ktoś odchodzi na mapę, żeby „Wróć do oferty"
+      // przywiozło go tutaj, a nie na górę strony.
+      try {
+        sessionStorage.setItem('TD_OFERTA_ID', id);
+        sessionStorage.setItem('TD_OFERTA_Y', String(Math.round(window.scrollY)));
+      } catch {}
+    }}
     className="group mt-4 block overflow-hidden rounded-3xl bg-surface-2/20"
   >
     <div className="relative aspect-video">
