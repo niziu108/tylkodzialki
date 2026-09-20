@@ -597,23 +597,6 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
     return `/kup?${sp.toString()}`;
   }, [d]);
 
-  // Miejscowość oferty (pierwszy człon etykiety) do pre-fillu wyszukiwarki.
-  const town = useMemo(() => (d?.locationLabel ?? '').split(',')[0]?.trim() || null, [d]);
-
-  // „Więcej działek w okolicy" — wyszukiwarka z JUŻ wpisaną miejscowością i wyśrodkowana
-  // na tej okolicy (współrzędne oferty). To pre-fill: z oferty user wpada w listę ofert
-  // z tego miasta bez wpisywania czegokolwiek. Bez współrzędnych /kup sam zgeokoduje tekst.
-  const kupTownHref = useMemo(() => {
-    if (!town) return null;
-    const sp = new URLSearchParams({ loc: town });
-    if (typeof d?.lat === 'number' && typeof d?.lng === 'number') {
-      sp.set('lat', String(d.lat));
-      sp.set('lng', String(d.lng));
-      sp.set('radius', '10');
-    }
-    return `/kup?${sp.toString()}`;
-  }, [town, d]);
-
   const prad = labelPrad(d?.prad ?? null);
   const woda = labelWoda(d?.woda ?? null);
   const kan = labelKanalizacja(d?.kanalizacja ?? null);
@@ -1053,7 +1036,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden" style={{ color: FG }}>
-      <div className="relative z-10 mx-auto max-w-6xl px-4 pb-10 pt-6">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 pb-4 pt-6 md:pb-10">
         <div className="flex items-center justify-between gap-3">
           <Link
             href="/kup"
@@ -1443,21 +1426,11 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <div className="py-5">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Lokalizacja</div>
 
-                  {/* Jedna linijka zamiast trzech podobnych: sama nazwa jest skrótem do ofert
-                      w tej miejscowości, „przybliżona” to dopisek przy niej, a po mapę
-                      wystarczy podgląd niżej, więc osobny link do niej zniknął. */}
+                  {/* Sam adres, bez linku: do ofert w okolicy prowadzi podgląd mapy niżej.
+                      Wcześniej stały tu trzy podobne wiersze z tą samą nazwą miejscowości. */}
                   {loc ? (
                     <div className="mt-2 min-w-0 text-fg/90 text-[14px] leading-snug whitespace-normal break-words">
-                      {kupTownHref && town ? (
-                        <Link
-                          href={kupTownHref}
-                          className="underline decoration-fg/25 underline-offset-8 transition hover:decoration-fg/60"
-                        >
-                          {loc}
-                        </Link>
-                      ) : (
-                        loc
-                      )}
+                      {loc}
                       {isApproxLocation ? <span className="text-fg/60"> (przybliżona)</span> : null}
                     </div>
                   ) : null}

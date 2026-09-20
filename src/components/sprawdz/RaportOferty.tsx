@@ -95,7 +95,7 @@ export default function RaportOferty({
 
   return (
     <section id="raport-dzialki" aria-labelledby="raport-dzialki-tytul" className="scroll-mt-24 border-t border-fg/5">
-      <div className="mx-auto max-w-6xl px-4 py-12">
+      <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
         <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">Raport działki</div>
 
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">

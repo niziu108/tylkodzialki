@@ -476,6 +476,15 @@ export default function KupMap({
           disableDefaultUI: true,
           zoomControl: true,
           mapTypeControl: true,
+          mapTypeControlOptions: {
+            // Na telefonie pasek „Mapa | Satelita” zajmował pół szerokości ekranu i wchodził
+            // pod przycisk powrotu, więc tam jest jednym wąskim wyborem. Na komputerze
+            // zostaje pasek: przełączenie jednym kliknięciem.
+            style:
+              typeof window !== 'undefined' && window.innerWidth < 640
+                ? google.maps.MapTypeControlStyle.DROPDOWN_MENU
+                : google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+          },
           gestureHandling: 'greedy',
           clickableIcons: false,
           maxZoom: 19,
@@ -649,7 +658,7 @@ export default function KupMap({
 
       {/* Licznik ofert w kadrze (chowany, gdy otwarta karta oferty). */}
       {ready && !error && !selected && (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-[5] rounded-full bg-bg/90 px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-fg/70 backdrop-blur">
+        <div className="pointer-events-none absolute bottom-10 left-3 z-[5] rounded-full bg-bg/90 px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-fg/70 backdrop-blur">
           {loaded ? `${formatIntPL(total)} w tym widoku` : 'Ładowanie…'}
         </div>
       )}
@@ -668,7 +677,7 @@ export default function KupMap({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-[6] flex items-center gap-2 rounded-full border border-fg/20 bg-bg/95 px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.16em] text-fg shadow-lg backdrop-blur transition hover:border-fg/40"
+          className="absolute right-3 top-3 z-[6] flex items-center gap-1.5 rounded-full border border-fg/20 bg-bg/95 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.1em] text-fg shadow-lg backdrop-blur transition hover:border-fg/40 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.16em]"
         >
           <span className="text-[15px] leading-none">{closeLabel ? '←' : '×'}</span> {closeLabel ?? 'Lista'}
         </button>

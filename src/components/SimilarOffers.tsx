@@ -103,7 +103,7 @@ export default function SimilarOffers({ items }: { items: SimilarDzialka[] }) {
 
   return (
     <section aria-labelledby="podobne-oferty" className="border-t border-fg/5">
-      <div className="mx-auto max-w-7xl px-6 py-12 md:px-10">
+      <div className="mx-auto max-w-7xl px-6 py-8 md:px-10 md:py-12">
         <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">Zobacz też</div>
 
         <h2
