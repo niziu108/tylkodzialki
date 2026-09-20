@@ -129,8 +129,11 @@ export default async function DlaBiurPage() {
           ) : null}
 
           <div className={agencyCount > 0 ? '' : 'lg:col-span-2'}>
+            {/* Hasło ma mieścić się w jednej linii także na wąskim telefonie, więc jest
+                krótkie; twarda spacja trzyma „bez wyłączności” razem, gdyby kiedyś
+                musiało się złamać. */}
             <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand/12 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text md:text-[12px]">
-              Publikacja bezpłatna, bez wyłączności
+              Bezpłatnie, bez wyłączności
             </span>
 
             <h1 className="mt-5 text-[26px] font-semibold leading-[1.12] tracking-tight text-fg md:text-[40px] lg:text-[44px]">
