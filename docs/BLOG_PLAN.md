@@ -107,7 +107,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Sprzedaż udziału w działce (slug: sprzedaz-udzialu-w-dzialce)
 - [x] Sprzedaż działki z domem w budowie (slug: sprzedaz-dzialki-z-domem-w-budowie)
 - [x] ~~Jak podzielić działkę przed sprzedażą, żeby zarobić więcej~~ POKRYTE w „Jak zarabiać na podziale działki" (slug: jak-zarabiac-na-podziale-dzialki).
-- [ ] Najczęstsze błędy przy sprzedaży działki
+- [x] Najczęstsze błędy przy sprzedaży działki (slug: najczestsze-bledy-przy-sprzedazy-dzialki)
 - [ ] Jak sprawdzić wiarygodność kupującego
 
 ## Inwestowanie
