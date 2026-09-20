@@ -1020,12 +1020,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden" style={{ color: FG }}>
-      <div
-        className={cx(
-          'relative z-10 mx-auto max-w-6xl px-4 pt-6',
-          telefon ? 'pb-24 md:pb-10' : 'pb-10'
-        )}
-      >
+      <div className="relative z-10 mx-auto max-w-6xl px-4 pb-10 pt-6">
         <div className="flex items-center justify-between gap-3">
           <Link
             href="/kup"
@@ -1176,8 +1171,8 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 className="hidden lg:block"
                 html={opis}
                 znaki={opisZnaki}
-                limit={460}
-                progZnakow={900}
+                limit={600}
+                progZnakow={1100}
               />
             ) : null}
           </section>
@@ -1571,7 +1566,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       ) : null}
 
             {telefon && telefonHref ? (
-  <div className="fixed bottom-0 left-0 right-0 z-[90] bg-bg/88 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 backdrop-blur-xl md:hidden">
+  <div className="td-pasek-kontaktu fixed bottom-0 left-0 right-0 z-[90] bg-bg/88 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 backdrop-blur-xl md:hidden">
     <div className="mx-auto grid max-w-[420px] grid-cols-2 gap-2">
       <a
         href={`tel:${telefonHref}`}
@@ -1890,6 +1885,15 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
         }
         .td-opis a:hover {
           text-decoration-color: rgba(243, 239, 245, 0.45);
+        }
+
+        /* Miejsce na przyklejony pasek „Zadzwoń / Napisz” zostawiamy na samym dole strony.
+           Wcześniej robił to dolny odstęp bloku oferty, czyli w połowie strony: przed
+           raportem działki rosła ~120 px dziura, a stopka i tak chowała się pod paskiem. */
+        @media (max-width: 767px) {
+          body:has(.td-pasek-kontaktu) {
+            padding-bottom: calc(env(safe-area-inset-bottom) + 70px);
+          }
         }
 
         .td-thumbstrip {
