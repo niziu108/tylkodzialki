@@ -172,6 +172,26 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
     });
   }
 
+  /* Opis biura ma dwa miejsca, zależnie od szerokości ekranu. Na komputerze stoi pod
+   * logo, w lewej kolumnie, bo obok zakładek jest na niego miejsce i nie kosztuje ani
+   * jednego kliknięcia. Na telefonie kolumny nie ma, a rozwinięty opis odsuwał oferty
+   * o dobry ekran w dół, więc zostaje zakładką, tak jak było. Treść jest ta sama,
+   * przełącza ją sama klasa `lg:`, więc czytnik ekranu widzi tylko jedną wersję. */
+  if (akapity.length) {
+    tabs.push({
+      key: 'o-biurze',
+      label: 'O biurze',
+      tylkoMobile: true,
+      content: (
+        <div className="mx-auto max-w-2xl space-y-4 text-[15px] leading-7 text-fg/72">
+          {akapity.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
+        </div>
+      ),
+    });
+  }
+
   if (zasieg.wojewodztwa.length) {
     // Dzielimy listę na pół z góry, zamiast bawić się układem kolumnowym w CSS:
     // dwie zwykłe kolumny są odporne i czytają się w dół, a przy nieparzystej
@@ -322,13 +342,13 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
                 )}
               </p>
 
-              {/* Opis od biura stoi tuż pod logo, a nie w zakładce: to jedyna treść
-                  wizytówki pisana zdaniami, a zakładki zostawiamy na twarde dane (kontakt,
-                  zasięg). Kolejność czytania: kim jest biuro, ile ma działek, czym się
-                  zajmuje. Akapity zawsze do lewej, także na telefonie: wyśrodkowana proza
-                  czyta się źle, a nazwa i liczba ofert to pojedyncze wiersze. */}
+              {/* Opis pod logo tylko od `lg`, czyli dokładnie tam, gdzie nagłówek stoi
+                  w dwóch kolumnach i obok zakładek jest na niego miejsce. Niżej ten sam
+                  tekst wraca do zakładki „O biurze" (patrz komentarz przy `tabs`).
+                  Akapity do lewej: wyśrodkowana proza czyta się źle, a nazwa i liczba
+                  ofert to pojedyncze wiersze i zostają na środku. */}
               {akapity.length ? (
-                <div className="mt-6 space-y-3 text-left text-[14px] leading-6 text-fg/62">
+                <div className="mt-6 hidden space-y-3 text-left text-[14px] leading-6 text-fg/62 lg:block">
                   {akapity.map((p, i) => (
                     <p key={i}>{p}</p>
                   ))}
