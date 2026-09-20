@@ -194,6 +194,88 @@ function FieldBlock({
   );
 }
 
+/**
+ * Opis w zwinięciu: długi opis potrafi mieć 3 tys. px w wąskiej kolumnie i spycha
+ * w dół raport działki oraz podobne oferty. Pokazujemy jeden ekran tekstu, reszta
+ * na kliknięcie. Cały opis zostaje w HTML (przycinamy wyłącznie CSS-em), więc
+ * Google widzi pełną treść.
+ */
+function OpisBlok({
+  html,
+  znaki,
+  limit,
+  progZnakow,
+  className,
+}: {
+  html: string;
+  znaki: number;
+  limit: number;
+  progZnakow: number;
+  className?: string;
+}) {
+  // Start z oceny po liczbie znaków: ta sama na serwerze i w przeglądarce, więc nic
+  // nie mruga przy hydracji. Efekt poniżej poprawia ją faktycznym pomiarem wysokości.
+  const [zwijac, setZwijac] = useState(znaki > progZnakow);
+  const [rozwiniety, setRozwiniety] = useState(false);
+  const tekstRef = useRef<HTMLDivElement | null>(null);
+  const blokRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = tekstRef.current;
+    if (!el) return;
+    // Przycisk tylko wtedy, gdy naprawdę jest co chować: dla dwóch linii ponad limit
+    // byłoby to klikanie bez zysku.
+    const zmierz = () => {
+      // Druga wersja bloku (ta dla innej szerokości ekranu) siedzi w DOM ukryta i mierzy
+      // się na zero. Bez tego przełączenie okna z komputera na telefon rozwijało opis.
+      if (el.scrollHeight === 0) return;
+      setZwijac(el.scrollHeight > limit + 120);
+    };
+    zmierz();
+    const ro = new ResizeObserver(zmierz);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [limit, html]);
+
+  // Po zwinięciu wracamy na początek opisu: bez tego użytkownik zostaje w miejscu,
+  // gdzie przed chwilą był środek tekstu, czyli gdzieś w podobnych ofertach.
+  const byloRozwiniete = useRef(false);
+  useEffect(() => {
+    const blok = blokRef.current;
+    if (byloRozwiniete.current && !rozwiniety && blok && blok.getBoundingClientRect().top < 0) {
+      blok.scrollIntoView({ block: 'start' });
+    }
+    byloRozwiniete.current = rozwiniety;
+  }, [rozwiniety]);
+
+  const zwiniety = zwijac && !rozwiniety;
+
+  return (
+    <div ref={blokRef} className={cx('scroll-mt-24', className)}>
+      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Opis</div>
+      <div
+        ref={tekstRef}
+        className={cx(
+          'td-opis mt-4 text-[15px] leading-relaxed text-fg/85',
+          zwiniety && 'td-opis-zwiniety'
+        )}
+        style={zwiniety ? { maxHeight: limit } : undefined}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+
+      {zwijac ? (
+        <button
+          type="button"
+          onClick={() => setRozwiniety(!rozwiniety)}
+          className="mt-4 flex w-fit text-[12px] uppercase tracking-[0.18em] text-brand-text underline decoration-brand/40 underline-offset-8 transition hover:text-brand-bright"
+        >
+          {rozwiniety ? 'Zwiń opis' : 'Pokaż cały opis'}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function ShareIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -540,6 +622,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const hasUzbrojenie = Boolean(prad || woda || kan || gaz || sw);
 
   const opis = formatOpis(d?.opis);
+  const opisZnaki = plainText(d?.opis).length;
   // Tytuł to czysty tekst — dekodujemy encje (ó, m²) i usuwamy ewentualne tagi z eksportu CRM.
   const tytul = plainText(d?.tytul);
 
@@ -1089,13 +1172,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             </div>
 
             {opis ? (
-              <div className="hidden lg:block">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Opis</div>
-                <div
-                  className="td-opis mt-4 text-[15px] leading-relaxed text-fg/85"
-                  dangerouslySetInnerHTML={{ __html: opis }}
-                />
-              </div>
+              <OpisBlok
+                className="hidden lg:block"
+                html={opis}
+                znaki={opisZnaki}
+                limit={460}
+                progZnakow={900}
+              />
             ) : null}
           </section>
 
@@ -1314,13 +1397,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
               {opis ? (
                 <>
-                  <div className="py-5 lg:hidden">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Opis</div>
-                    <div
-                      className="td-opis mt-4 text-[15px] leading-relaxed text-fg/85"
-                      dangerouslySetInnerHTML={{ __html: opis }}
-                    />
-                  </div>
+                  <OpisBlok
+                    className="py-5 lg:hidden"
+                    html={opis}
+                    znaki={opisZnaki}
+                    limit={340}
+                    progZnakow={500}
+                  />
                   <Hr className="lg:hidden" />
                 </>
               ) : null}
@@ -1764,6 +1847,13 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           overflow-wrap: anywhere;
           word-break: break-word;
           white-space: normal;
+        }
+        /* Zwinięcie przez maskę, a nie gradient w kolorze tła: ten sam wygląd na jasnym
+           tle strony i na szarym tle kolumny z parametrami. */
+        .td-opis-zwiniety {
+          overflow: hidden;
+          -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
         }
         .td-opis b,
         .td-opis strong {
