@@ -117,6 +117,26 @@ describe("brakujące pliki zdjęć", () => {
     });
   });
 
+  it("paczka różnicowa bez plików przy zgodnej liczbie zdjęć: galeria zostaje, bez ostrzeżenia", () => {
+    // Zwykła aktualizacja Galactiki: 5 nazw w feedzie, 5 zdjęć w galerii, zero plików w paczce.
+    const { plan, outcome } = decide(input({ feedPhotoNames: names(5), available: [], existingPhotoCount: 5 }));
+
+    expect(plan.upload).toBe(false);
+    expect(outcome).toEqual({
+      replace: false,
+      syncedWithFeed: false,
+      note: "Zdjęcia bez zmian (paczka bez plików, galeria 5).",
+      warn: false,
+    });
+  });
+
+  it("brak wszystkich plików przy innej liczbie zdjęć niż w galerii: ostrzeżenie zostaje", () => {
+    const { outcome } = decide(input({ feedPhotoNames: names(5), available: [], existingPhotoCount: 4 }));
+
+    expect(outcome).toMatchObject({ replace: false, warn: true });
+    expect(outcome.note).toBe("Zostaje obecna galeria (4). Brak plików: 5 z 5 (1.jpg, 2.jpg, 3.jpg, …).");
+  });
+
   it("brak wszystkich plików przy ofercie bez zdjęć: nic do wgrania", () => {
     const { plan, outcome } = decide(input({ feedPhotoNames: names(6), available: [], existingPhotoCount: 0 }));
 
