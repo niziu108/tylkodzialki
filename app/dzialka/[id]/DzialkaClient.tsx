@@ -351,6 +351,13 @@ export default function DzialkaPage({
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
+
+  // Zwiniety opis na komputerze siega tyle, ile zostaje po galerii do konca kolumny
+  // z parametrami: obie kolumny konczą się wtedy równo i nie ma pustki obok tekstu.
+  // Wartość startowa jest bezpieczna, pomiar poprawia ją po wyrenderowaniu.
+  const galeriaRef = useRef<HTMLDivElement | null>(null);
+  const parametryRef = useRef<HTMLDivElement | null>(null);
+  const [limitOpisu, setLimitOpisu] = useState(600);
   const [shareDone, setShareDone] = useState(false);
 
   // Numer telefonu domyślnie zakryty — dopiero „Pokaż numer" go odsłania. Samo odsłonięcie
@@ -620,6 +627,32 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       ? DOJAZD_LABEL[d.dojazd as keyof typeof DOJAZD_LABEL] ?? null
       : null;
   const hasUzbrojenie = Boolean(prad || woda || kan || gaz || sw);
+
+  useEffect(() => {
+    const galeria = galeriaRef.current;
+    const parametry = parametryRef.current;
+    if (!galeria || !parametry) return;
+
+    const przelicz = () => {
+      const zostaje = parametry.offsetHeight - galeria.offsetHeight - 120;
+      // Dolna granica, żeby przy krótkiej liście parametrów opis nie zostawał ogryzkiem,
+      // górna, żeby przy bardzo długiej nie wracała ściana tekstu.
+      setLimitOpisu(Math.round(Math.min(1500, Math.max(420, zostaje))));
+    };
+    przelicz();
+
+    // Kolumna z parametrami rośnie jeszcze po pierwszym rysowaniu: dochodzą czcionki
+    // Google, logo biura i podgląd mapy. Dlatego powtarzamy pomiar kilka razy zamiast
+    // ufać jednemu odczytowi (ResizeObserver bywał tu głuchy na ostatnią zmianę).
+    const dogrywki = [200, 700, 1800].map((ms) => window.setTimeout(przelicz, ms));
+    document.fonts?.ready.then(przelicz).catch(() => {});
+    window.addEventListener('resize', przelicz);
+
+    return () => {
+      dogrywki.forEach(window.clearTimeout);
+      window.removeEventListener('resize', przelicz);
+    };
+  }, [d?.id]);
 
   const opis = formatOpis(d?.opis);
   const opisZnaki = plainText(d?.opis).length;
@@ -1080,7 +1113,10 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
         <div className="mt-6 grid gap-0 lg:gap-10 lg:grid-cols-2">
           <section className="min-w-0 lg:space-y-8">
-            <div className="min-w-0 -mx-4 overflow-hidden rounded-none bg-surface-2/20 lg:mx-0 lg:rounded-3xl">
+            <div
+              ref={galeriaRef}
+              className="min-w-0 -mx-4 overflow-hidden rounded-none bg-surface-2/20 lg:mx-0 lg:rounded-3xl"
+            >
               <div
                 className="relative aspect-[4/3] touch-pan-y bg-fg/5 lg:aspect-video"
                 onTouchStart={onTouchStart}
@@ -1171,14 +1207,14 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 className="hidden lg:block"
                 html={opis}
                 znaki={opisZnaki}
-                limit={600}
+                limit={limitOpisu}
                 progZnakow={1100}
               />
             ) : null}
           </section>
 
           <aside className="min-w-0 -mx-4 rounded-none bg-surface-2/20 lg:mx-0 lg:rounded-3xl">
-            <div className="px-4 pb-6 pt-0 lg:p-7">
+            <div ref={parametryRef} className="px-4 pb-6 pt-0 lg:p-7">
               {isRent ? (
                 <span className="mb-1 flex w-fit items-center rounded-full border border-fg/30 bg-fg/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-fg/90 lg:mb-0">
                   Na wynajem
@@ -1407,19 +1443,23 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <div className="py-5">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Lokalizacja</div>
 
+                  {/* Jedna linijka zamiast trzech podobnych: sama nazwa jest skrótem do ofert
+                      w tej miejscowości, „przybliżona” to dopisek przy niej, a po mapę
+                      wystarczy podgląd niżej, więc osobny link do niej zniknął. */}
                   {loc ? (
                     <div className="mt-2 min-w-0 text-fg/90 text-[14px] leading-snug whitespace-normal break-words">
-                      {loc}
+                      {kupTownHref && town ? (
+                        <Link
+                          href={kupTownHref}
+                          className="underline decoration-fg/25 underline-offset-8 transition hover:decoration-fg/60"
+                        >
+                          {loc}
+                        </Link>
+                      ) : (
+                        loc
+                      )}
+                      {isApproxLocation ? <span className="text-fg/60"> (przybliżona)</span> : null}
                     </div>
-                  ) : null}
-
-                  {kupTownHref && town ? (
-                    <Link
-                      href={kupTownHref}
-                      className="mt-3 inline-flex text-[12px] tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition underline decoration-white/20 underline-offset-8"
-                    >
-                      Więcej działek: {town}
-                    </Link>
                   ) : null}
 
                   {raportDzialki ? (
@@ -1437,19 +1477,6 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     >
                       Raport działki nr {raportDzialki.numer} ↓
                     </a>
-                  ) : isApproxLocation ? (
-                    <div className="mt-3 text-[12px] uppercase tracking-[0.18em] text-fg/68">
-                     Lokalizacja przybliżona
-                   </div>
-                  ) : null}
-
-                  {naszaMapaHref ? (
-                    <Link
-                      href={naszaMapaHref}
-                      className="mt-4 inline-flex text-[12px] tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition underline decoration-white/20 underline-offset-8"
-                    >
-                      ZOBACZ NA MAPIE OFERT
-                    </Link>
                   ) : null}
 
                   {showMap && naszaMapaHref ? (
