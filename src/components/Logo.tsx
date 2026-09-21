@@ -1,23 +1,28 @@
+import { LOGO } from '@/lib/logoWordmark';
+
 type Props = {
   className?: string;
 };
 
 /**
- * Logo marki = `public/logomail.png` (litery w połowie grubości zielonego „d", od 21.09.2026).
- * JEDEN plik używany wszędzie: menu, stopka, mobile (oraz maile przez ten sam plik).
- * Podmiana `public/logomail.png` = zmiana logo w całym serwisie i mailach naraz
- * (przy podmianie podbij `?v=`, bo przeglądarki i CDN trzymają stary plik kilka godzin).
- * `className` steruje wysokością (np. h-10), szerokość auto. `object-contain`: gdy flex
- * ściśnie obrazek (wąski tablet z pełnym menu), logo się zmniejsza, a nie rozciąga.
+ * Logo marki jako wektor: ostre na każdym ekranie, także na zwykłym monitorze, gdzie pomniejszany
+ * PNG rozmywał cienkie litery. Rysunek i proporcje pola są te same co w `public/logomail.png`
+ * (ten plik idzie do maili, faktur i PDF-ów), oba generuje lokalny `scripts/_logo.cjs`.
+ * `className` steruje wysokością (np. h-10), szerokość wynika z proporcji. Gdy flex ściśnie logo
+ * (wąski tablet z pełnym menu), rysunek się zmniejsza przy lewej krawędzi, a nie rozciąga.
  */
 export default function Logo({ className = '' }: Props) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/logomail.png?v=4"
-      alt="tylkodzialki.pl"
-      className={`w-auto select-none object-contain object-left ${className}`}
-      draggable={false}
-    />
+    <svg
+      viewBox={LOGO.viewBox}
+      preserveAspectRatio="xMinYMid meet"
+      role="img"
+      aria-label="tylkodzialki.pl"
+      className={`w-auto max-w-full select-none ${className}`}
+      style={{ aspectRatio: LOGO.ratio }}
+    >
+      <path d={LOGO.letters} fill="#131313" fillRule="evenodd" />
+      <path d={LOGO.d} fill="#7aa333" fillRule="evenodd" />
+    </svg>
   );
 }
