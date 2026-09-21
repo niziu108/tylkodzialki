@@ -108,7 +108,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Sprzedaż działki z domem w budowie (slug: sprzedaz-dzialki-z-domem-w-budowie)
 - [x] ~~Jak podzielić działkę przed sprzedażą, żeby zarobić więcej~~ POKRYTE w „Jak zarabiać na podziale działki" (slug: jak-zarabiac-na-podziale-dzialki).
 - [x] Najczęstsze błędy przy sprzedaży działki (slug: najczestsze-bledy-przy-sprzedazy-dzialki)
-- [ ] Jak sprawdzić wiarygodność kupującego
+- [x] Jak sprawdzić wiarygodność kupującego (slug: jak-sprawdzic-wiarygodnosc-kupujacego)
 
 ## Inwestowanie
 - [ ] Czy warto inwestować w działki w 2026
