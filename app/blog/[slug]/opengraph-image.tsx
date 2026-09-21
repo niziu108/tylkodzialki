@@ -1,6 +1,10 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
 import { getCategoryLabel } from "@/lib/articleCategories";
+import { LOGO_PL } from "@/lib/logoWordmark";
+
+// Logo w prawym górnym rogu: wysokość od góry „d" do dołu „y" (w px okładki)
+const LOGO_H = 34;
 
 export const runtime = "nodejs";
 export const size = { width: 1200, height: 630 };
@@ -194,16 +198,14 @@ export default async function Image({
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              fontSize: "27px",
-              fontWeight: 700,
-              color: "#ffffff",
-            }}
+          <svg
+            width={LOGO_H * (LOGO_PL.width / LOGO_PL.height)}
+            height={LOGO_H}
+            viewBox={`0 0 ${LOGO_PL.width} ${LOGO_PL.height}`}
           >
-            tylkodzialki.pl
-          </div>
+            <path d={LOGO_PL.letters} fill="#ffffff" fillRule="evenodd" />
+            <path d={LOGO_PL.d} fill="#7aa333" fillRule="evenodd" />
+          </svg>
         </div>
 
         <div style={{ display: "flex", position: "relative" }}>

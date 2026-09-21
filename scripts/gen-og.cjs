@@ -36,7 +36,8 @@ const tag = buildRun('Działki na sprzedaż w całej Polsce.', tagFont, 60);
 
 // --- Logo (napis tylkodziałki) jako osadzony obraz ---
 const logoBuf = fs.readFileSync('public/logomail.png');
-const LOGO_NAT_W = 1024, LOGO_NAT_H = 253;
+// Wymiary z nagłówka PNG (IHDR), żeby podmiana logo nie wymagała zmian tutaj
+const LOGO_NAT_W = logoBuf.readUInt32BE(16), LOGO_NAT_H = logoBuf.readUInt32BE(20);
 const LOGO_W = 620;
 const LOGO_H = LOGO_W * (LOGO_NAT_H / LOGO_NAT_W);
 const logoX = (W - LOGO_W) / 2;

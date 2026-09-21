@@ -317,11 +317,6 @@ html.preview-active .global-nav { display: none !important; }
   font-family: var(--font-bebas), sans-serif;
 }
 
-/* Wordmark marki (komponent Logo): cienki krój geometryczny z zielonym „d" */
-.font-logo {
-  font-family: var(--font-logo), var(--font-geist), system-ui, sans-serif;
-}
-
 /* ─────────────────────────────────────────────────────────────────────────────
  * DRUK RAPORTU „Sprawdź działkę"
  *

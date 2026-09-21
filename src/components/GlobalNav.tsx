@@ -109,7 +109,7 @@ export default function GlobalNav() {
   };
 
   const navBtnBase =
-    'relative inline-flex h-[72px] items-center justify-center text-[15px] font-medium tracking-[0.01em] transition';
+    'relative inline-flex h-[72px] items-center justify-center whitespace-nowrap text-[15px] font-medium tracking-[0.01em] transition';
 
   const navBtnWhite =
     'text-fg/80 hover:text-fg after:absolute after:left-0 after:right-0 after:bottom-[20px] after:h-px after:origin-center after:scale-x-0 after:bg-fg/70 after:transition-transform after:duration-200 hover:after:scale-x-100';
@@ -126,12 +126,12 @@ export default function GlobalNav() {
   return (
     <>
       <header className="global-nav sticky top-0 left-0 z-[100] w-full border-b border-fg/10 bg-bg backdrop-blur">
-        <div className="flex h-[72px] w-full items-center justify-between px-4 sm:px-8">
+        <div className="flex h-[72px] w-full items-center justify-between gap-6 px-4 sm:px-8">
           <button onClick={() => go('/')} className="flex items-center" aria-label="Strona główna">
-            <Logo className="h-10 sm:h-12" />
+            <Logo className="h-10 lg:h-12" />
           </button>
 
-          <nav className="hidden items-center gap-10 md:flex">
+          <nav className="hidden items-center gap-4 md:flex lg:gap-10">
             {isLogged ? (
               <button
                 onClick={() => go('/ulubione')}

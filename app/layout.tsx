@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
 import ConsentScripts from '@/components/ConsentScripts';
 import GoogleAnalyticsConsent from '@/components/GoogleAnalyticsConsent';
-import { Geist, Bebas_Neue, Jost } from 'next/font/google';
+import { Geist, Bebas_Neue } from 'next/font/google';
 
 const geist = Geist({
   subsets: ['latin'],
@@ -18,11 +18,6 @@ const bebas = Bebas_Neue({
   subsets: ['latin'],
   weight: '400',
   variable: '--font-bebas',
-});
-
-const jost = Jost({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-logo',
 });
 
 const siteUrl = 'https://tylkodzialki.pl';
@@ -138,7 +133,7 @@ const organizationJsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pl" className={`${geist.variable} ${bebas.variable} ${jost.variable}`}>
+    <html lang="pl" className={`${geist.variable} ${bebas.variable}`}>
       <body className="font-sans bg-bg text-fg">
         <Providers>
           <div className="flex min-h-screen flex-col">
