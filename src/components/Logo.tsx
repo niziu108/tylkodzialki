@@ -3,7 +3,7 @@ type Props = {
 };
 
 /**
- * Logo marki = `public/logomail.png` (litery w grubości zielonego „d", od 21.09.2026).
+ * Logo marki = `public/logomail.png` (litery w połowie grubości zielonego „d", od 21.09.2026).
  * JEDEN plik używany wszędzie: menu, stopka, mobile (oraz maile przez ten sam plik).
  * Podmiana `public/logomail.png` = zmiana logo w całym serwisie i mailach naraz
  * (przy podmianie podbij `?v=`, bo przeglądarki i CDN trzymają stary plik kilka godzin).
@@ -14,7 +14,7 @@ export default function Logo({ className = '' }: Props) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/logomail.png?v=3"
+      src="/logomail.png?v=4"
       alt="tylkodzialki.pl"
       className={`w-auto select-none object-contain object-left ${className}`}
       draggable={false}
