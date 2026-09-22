@@ -54,7 +54,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Jak czytać ogłoszenie działki i wyłapać haczyki (slug: jak-czytac-ogloszenie-dzialki-haczyki)
 - [x] Działka rekreacyjna ROD: co można, czy można mieszkać (slug: dzialka-rod-co-mozna-czy-mozna-mieszkac)
 - [x] Działka siedliskowa: dla kogo i jakie warunki (slug: dzialka-siedliskowa-dla-kogo-warunki)
-- [ ] Jak rozpoznać działkę inwestycyjną
+- [x] Jak rozpoznać działkę inwestycyjną (slug: jak-rozpoznac-dzialke-inwestycyjna)
 - [x] Jak sprawdzić planowane inwestycje w okolicy działki (slug: jak-sprawdzic-planowane-inwestycje-w-okolicy-dzialki)
 - [ ] Jak sprawdzić dostępność przyłączy na działce
 - [x] Nasłonecznienie i ukształtowanie działki: jak ocenić (slug: naslonecznienie-i-uksztaltowanie-dzialki)
