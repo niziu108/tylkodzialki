@@ -15,6 +15,7 @@ import { getPointValuation } from '@/lib/seoHub';
 import { getSeoRegion } from '@/lib/seo-locations';
 import { normalizeText } from '@/lib/dzialkiSearch';
 import { decodeHtmlEntities } from '@/lib/formatOpis';
+import { ladnaNazwaObrebu } from '@/lib/dzialkaZOpisu';
 
 // Oferta renderowana po stronie serwera (ISR): Google dostaje pełny HTML,
 // użytkownik gotową treść, a baza jest odpytywana najwyżej raz na 60 s per oferta.
@@ -260,13 +261,26 @@ export default async function Page({ params }: PageProps) {
   const [rcnOkolicy, wycenaOkolicy] =
     srodek && dzialka
       ? await Promise.all([
-          getRcnOkolica(srodek.lat, srodek.lng, rolny ? 'rolna' : 'budowlana').catch(() => null),
+          getRcnOkolica(srodek.lat, srodek.lng, rolny ? 'rolna' : 'budowlana', { powierzchniaM2: powierzchnia }).catch(
+            () => null
+          ),
           getPointValuation(srodek.lat, srodek.lng, powierzchnia, dzialka.id).catch(() => null),
         ])
       : ([null, null] as const);
   const trendOkolicy =
     srodek && wycenaOkolicy ? await getAreaPriceTrend(srodek.lat, srodek.lng, wycenaOkolicy.radiusKm) : null;
   const cenyBezRaportu = !raport ? cenyOkolicy(wycenaOkolicy, rcnOkolicy, trendOkolicy, rolny) : null;
+  // Etykiety z CRM bywają wersalikami i z powtórzeniem („KOSTOMŁOTY PIERWSZE, Kostomłoty pierwsze").
+  const miejsceOkolicy = dzialka
+    ? [
+        ...new Set(
+          cleanText(dzialka.locationLabel)
+            .split(',')
+            .map((s) => ladnaNazwaObrebu(s.trim()))
+            .filter(Boolean)
+        ),
+      ].join(', ') || null
+    : null;
 
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
@@ -427,7 +441,7 @@ export default async function Page({ params }: PageProps) {
       ) : cenyBezRaportu ? (
         <CenyOkolicySekcja
           dane={cenyBezRaportu}
-          miejsce={dzialka ? cleanText(dzialka.locationLabel) || null : null}
+          miejsce={miejsceOkolicy}
           przyblizona={dzialka?.locationMode === 'APPROX'}
         />
       ) : null}

@@ -18,7 +18,7 @@ function wycena(over: Partial<PointValuation> = {}): PointValuation {
     budowlana: { pricePerM2: { low: 70, median: 120, high: 180 }, sampleCount: 12 },
     budowlanaUzbrojona: pusty,
     budowlanaNieuzbrojona: pusty,
-    rolna: { pricePerM2: { low: 8, median: 14, high: 22 }, sampleCount: 5 },
+    rolna: { pricePerM2: { low: 8, median: 14, high: 22 }, sampleCount: 9 },
     similarSize: pusty,
     similarSizeBand: null,
     offersNearby: 16,
@@ -70,6 +70,18 @@ describe('cenyOkolicy', () => {
     expect(dane.cena?.lead?.label).toBe('działki rolne');
   });
 
+  it('pod ofertą rolną nie schodzi do cen budowlanych', () => {
+    const bezRolnych = wycena({ rolna: pusty });
+    expect(cenyOkolicy(bezRolnych, null, null, true)).toBeNull();
+    expect(cenyOkolicy(bezRolnych, rcn, null, true)?.cena).toBeNull();
+  });
+
+  it('poniżej 8 ogłoszeń nie ma mediany z ogłoszeń (widełki z 4-5 ofert kłamały)', () => {
+    const cienka = wycena({ budowlana: { pricePerM2: { low: 70, median: 120, high: 180 }, sampleCount: 5 } });
+    expect(cenyOkolicy(cienka, null, null, false)).toBeNull();
+    expect(cenyOkolicy(cienka, rcn, null, false)?.cena).toBeNull();
+  });
+
   it('HTML podaje promień, próbkę i lata, bez porównania z ceną oferty', () => {
     const out = html(cenyOkolicy(wycena(), rcn, null, false)!);
     expect(out).toContain('Ile kosztują działki w okolicy');
@@ -80,6 +92,11 @@ describe('cenyOkolicy', () => {
     expect(out).toContain('promieniu 10 km');
     expect(out).toContain('lata 2022-2026');
     expect(out).toContain('liczymy od jej środka');
+    const zPasmem = html(cenyOkolicy(null, { ...rcn, pasmoM2: { minM2: 250, maxM2: 4000 } }, null, false)!);
+    expect(zPasmem).toContain('działki od 250 do 4000 m²');
+    const rozjechane = html(cenyOkolicy(null, { ...rcn, medianaZlM2: 53, low: 12, high: 185 }, null, false)!);
+    expect(rozjechane).toContain('12-185');
+    expect(rozjechane).toContain('Środkowa połowa z 23 transakcji');
     expect(out).not.toMatch(/drożej|taniej|drożs|tańsz|zawyż/i);
   });
 });

@@ -45,7 +45,14 @@ export type RcnOkolica = {
   promienKm: number;
   odRoku: number;
   doRoku: number;
+  /** Widełki powierzchni, gdy pulę zawęziliśmy do działek podobnej wielkości. */
+  pasmoM2?: { minM2: number; maxM2: number } | null;
 };
+
+// Pod ofertą porównujemy z aktami działek podobnej wielkości (0,25x do 4x). Bez tego pod
+// siedliskiem 7,5 ha wisiała mediana aktów działek pod dom (audyt 2026-09-25): metr pola
+// i metr działki budowlanej to inne rynki, nawet w tej samej klasie.
+const RCN_PASMO = { low: 0.25, high: 4 } as const;
 
 /**
  * Do której puli należy transakcja. Rejestr opisuje grunt dwoma polami i żadne nie jest pewne:
@@ -89,8 +96,16 @@ export async function getRcnOkolica(
   lat: number,
   lng: number,
   klasa: RcnKlasa,
-  teraz: Date = new Date()
+  opts: { powierzchniaM2?: number | null; teraz?: Date } = {}
 ): Promise<RcnOkolica | null> {
+  const teraz = opts.teraz ?? new Date();
+  const pasmoM2 =
+    opts.powierzchniaM2 && opts.powierzchniaM2 > 0
+      ? {
+          minM2: Math.round(opts.powierzchniaM2 * RCN_PASMO.low),
+          maxM2: Math.round(opts.powierzchniaM2 * RCN_PASMO.high),
+        }
+      : null;
   const od = new Date(teraz);
   od.setMonth(od.getMonth() - RCN_MIESIECY);
 
@@ -107,6 +122,7 @@ export async function getRcnOkolica(
       udzial: '1/1',
       rodzajNieruchomosci: 'nieruchomoscGruntowaNiezabudowana',
       dataTransakcji: { gte: od },
+      ...(pasmoM2 ? { powierzchniaM2: { gte: pasmoM2.minM2, lte: pasmoM2.maxM2 } } : {}),
       lat: { gte: lat - dLat, lte: lat + dLat },
       lng: { gte: lng - dLng, lte: lng + dLng },
     },
@@ -140,6 +156,7 @@ export async function getRcnOkolica(
       promienKm,
       odRoku: Math.min(...lata),
       doRoku: Math.max(...lata),
+      pasmoM2,
     };
   }
 

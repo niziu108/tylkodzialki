@@ -17,6 +17,16 @@ import { Eyebrow } from './Raport';
 // Przy takim promieniu w próbce siedzą już inne miejscowości; pod konkretną ofertą to myli.
 const RCN_MAX_PROMIEN_KM = 35;
 
+// Ile ogłoszeń musi być w puli, żeby pokazać medianę i „większość między". Audyt 2026-09-25
+// (150 losowych ofert): przy 4-5 ogłoszeniach cena 30 z 53 ofert wypadała poza widełki p10-p90,
+// czyli zdanie „większość między" było nieprawdą. Od 8 wzwyż widełki trzymają się rynku.
+export const MIN_OFERT_POD_OFERTA = 8;
+
+// Gdy środkowa połowa aktów rozjeżdża się co najmniej 4x (Szaflary: 12 do 185 zł/m²), w próbce
+// siedzą dwa rynki i jedna mediana nic nie mówi. Wtedy prowadzimy widełkami, jak przy ogłoszeniach.
+// Audyt 2026-09-25: tak wychodzi ok. 15% ofert z aktami.
+const RCN_ROZRZUT_WIDELKI = 4;
+
 export type CenyOkolicyDane = {
   wycena: PointValuation | null;
   cena: CenaDecision | null;
@@ -34,7 +44,15 @@ export function cenyOkolicy(
   // Pula (podobna wielkość / budowlane / rolne) i „mediana czy widełki" jak w „Sprawdź działkę"
   // (lib/raportCena.ts). `value` = null, gdy porównywalnych ofert jest za mało: wtedy milczymy.
   const cena = wycena ? decydujCene(wycena, null, rolny) : null;
-  const zOfert = cena?.lead && cena.value ? cena : null;
+  // Pod ofertą rolną tylko ceny rolnych: gdy ich brak, decydujCene schodzi do budowlanych, a
+  // mediana działek pod dom pod polem uprawnym wprowadza w błąd, choć podpis jest prawdziwy.
+  const zOfert =
+    cena?.lead &&
+    cena.value &&
+    cena.lead.stat.sampleCount >= MIN_OFERT_POD_OFERTA &&
+    (!rolny || cena.lead.label === 'działki rolne')
+      ? cena
+      : null;
   const rcnPokaz = rcn && rcn.promienKm < RCN_MAX_PROMIEN_KM ? rcn : null;
   if (!zOfert && !rcnPokaz) return null;
   return { wycena, cena: zOfert, rcn: rcnPokaz, trend: zOfert ? trend : null };
@@ -42,6 +60,7 @@ export function cenyOkolicy(
 
 export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolicyDane; className?: string }) {
   const { wycena, cena, rcn, trend } = dane;
+  const rcnWidelki = !!rcn && (rcn.low <= 0 || rcn.high / rcn.low >= RCN_ROZRZUT_WIDELKI);
   const v = cena?.value ?? null;
   const opisPuli =
     !wycena || !cena?.lead || !v
@@ -84,17 +103,24 @@ export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolic
         <div className="min-w-0">
           <Eyebrow>Ile realnie płacono w okolicy</Eyebrow>
           <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
-            <span className="text-[30px] font-semibold tracking-tight text-fg">{formatIntPL(rcn.medianaZlM2)}</span>
+            <span className="text-[30px] font-semibold tracking-tight text-fg">
+              {rcnWidelki ? `${formatIntPL(rcn.low)}-${formatIntPL(rcn.high)}` : formatIntPL(rcn.medianaZlM2)}
+            </span>
             <span className="text-base font-medium text-fg/55">zł/m²</span>
             <span className="text-[12px] uppercase tracking-[0.1em] text-fg/45">
               {rcn.klasa === 'rolna' ? 'grunty rolne' : 'działki budowlane'}
             </span>
           </div>
           <p className="mt-2 text-sm leading-6 text-fg/65">
-            Mediana z {rcn.liczba} transakcji z aktów notarialnych (Rejestr Cen Nieruchomości) w promieniu{' '}
-            {rcn.promienKm} km
-            {rcn.odRoku === rcn.doRoku ? `, ${rcn.odRoku} rok` : `, lata ${rcn.odRoku}-${rcn.doRoku}`}. Połowa
-            transakcji zamknęła się między {formatIntPL(rcn.low)} a {formatIntPL(rcn.high)} zł/m².
+            {rcnWidelki ? 'Środkowa połowa z' : 'Mediana z'} {rcn.liczba} transakcji z aktów notarialnych (Rejestr Cen Nieruchomości)
+            {rcn.pasmoM2
+              ? `, działki od ${formatIntPL(rcn.pasmoM2.minM2)} do ${formatIntPL(rcn.pasmoM2.maxM2)} m²,`
+              : ''}{' '}
+            w promieniu {rcn.promienKm} km
+            {rcn.odRoku === rcn.doRoku ? `, ${rcn.odRoku} rok` : `, lata ${rcn.odRoku}-${rcn.doRoku}`}.{' '}
+            {rcnWidelki
+              ? 'Ceny w aktach rozjeżdżają się za mocno na jedną liczbę, bo w okolicy sprzedaje się grunty bardzo różnego rodzaju, dlatego widełki.'
+              : `Połowa transakcji zamknęła się między ${formatIntPL(rcn.low)} a ${formatIntPL(rcn.high)} zł/m².`}
           </p>
         </div>
       ) : null}
