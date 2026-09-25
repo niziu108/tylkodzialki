@@ -77,7 +77,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Jak ustawić dom względem stron świata (slug: jak-ustawic-dom-wzgledem-stron-swiata)
 - [x] Odległości budynku od granicy działki (slug: odleglosci-budynku-od-granicy-dzialki)
 - [x] Projekt zagospodarowania działki: co to jest i co zawiera (slug: projekt-zagospodarowania-dzialki) [dopisany poza backlogiem]
-- [ ] Przyłącze a instalacja: czym się różnią
+- [x] Przyłącze a instalacja: czym się różnią (slug: przylacze-a-instalacja-czym-sie-roznia)
 - [ ] Tymczasowy prąd budowlany: jak załatwić
 
 ## Działka rolna
