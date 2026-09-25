@@ -105,7 +105,9 @@ export async function POST(req: NextRequest) {
     const [nearby, trend, rcn] = await Promise.all([
       getNearbyOffers(parcel.center.lat, parcel.center.lng, valuation.radiusKm),
       getAreaPriceTrend(parcel.center.lat, parcel.center.lng, valuation.radiusKm),
-      getRcnOkolica(parcel.center.lat, parcel.center.lng, looksRolny(mpzp) ? 'rolna' : 'budowlana'),
+      getRcnOkolica(parcel.center.lat, parcel.center.lng, looksRolny(mpzp) ? 'rolna' : 'budowlana', {
+        powierzchniaM2: parcel.areaM2,
+      }),
     ]);
 
     const payload: SprawdzResponse = {

@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { formatIntPL, plDate } from '@/lib/format';
 import type { ParcelReport } from '@/lib/uldk';
 import { type PointValuation, type PriceStat } from '@/lib/seoHub';
-import { decydujCene } from '@/lib/raportCena';
+import { decydujCene, MIN_OFERT_DO_CENY } from '@/lib/raportCena';
 import type { MpzpInfo } from '@/lib/mpzp';
 import type { PogInfo } from '@/lib/pog';
 import type { AreaPriceTrend } from '@/lib/dzialkaPriceHistory';
-import type { RcnOkolica } from '@/lib/rcnStats';
+import { rcnRozjechane, type RcnOkolica } from '@/lib/rcnStats';
 import FeaturedRail from '@/components/FeaturedRail';
 import type { OfferData } from '@/components/OfferCard';
 import RaportMap from './RaportMap';
@@ -63,7 +63,7 @@ export function Row({ label, value }: { label: string; value: string | null }) {
 
 // Wiersz rozbicia cenowego — renderuje się tylko, gdy podpróbka dobiła progu (pricePerM2 != null).
 function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat; sub?: boolean }) {
-  if (!stat.pricePerM2) return null;
+  if (!stat.pricePerM2 || stat.sampleCount < MIN_OFERT_DO_CENY) return null;
   return (
     <div className="grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-t border-fg/10 py-3 md:grid-cols-[14rem_1fr]">
       <span
@@ -89,6 +89,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
   // Wybór puli i decyzja „mediana czy widełki" siedzą w lib/raportCena.ts, żeby dało się je
   // testować bez renderowania komponentu.
   const { lead, value: v, mixed } = decydujCene(valuation, mpzp);
+  const rcnWidelki = !!rcn && rcnRozjechane(rcn);
   const [mapShown, setMapShown] = useState(false);
   const [linkSkopiowany, setLinkSkopiowany] = useState(false);
 
@@ -237,15 +238,13 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
               </p>
             ) : null}
 
-            {/* Druga pula dla kontekstu (budowlane/rolne). Puste rubryki znikają same. */}
-            <div className="empty:hidden mt-6">
-              {lead.label !== 'działki budowlane' ? (
+            {/* Szersza pula tego samego rynku dla kontekstu. Drugiego rynku (rolne pod budowlaną,
+                budowlane pod rolną) nie pokazujemy: to nie jest cena tej działki (audyt 2026-09-25). */}
+            {lead.kind === 'similar' ? (
+              <div className="empty:hidden mt-6">
                 <PriceRow label="Wszystkie budowlane w okolicy" stat={valuation.budowlana} />
-              ) : null}
-              {lead.label !== 'działki rolne' ? (
-                <PriceRow label="Działki rolne" stat={valuation.rolna} />
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </>
         ) : (
           <p className="mt-2 max-w-2xl text-[15px] leading-7 text-fg/65">
@@ -265,7 +264,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
 
           <div className="mt-2 flex flex-wrap items-baseline gap-x-3">
             <span className="text-[34px] font-semibold tracking-tight text-fg md:text-[46px]">
-              {formatIntPL(rcn.medianaZlM2)}
+              {rcnWidelki ? `${formatIntPL(rcn.low)}–${formatIntPL(rcn.high)}` : formatIntPL(rcn.medianaZlM2)}
             </span>
             <span className="text-lg font-medium text-fg/55">zł/m²</span>
             <span className="text-[13px] uppercase tracking-[0.1em] text-fg/45">
@@ -274,11 +273,17 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
           </div>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-fg/65">
-            Mediana z {rcn.liczba} {rcn.liczba === 1 ? 'transakcji' : 'transakcji'} zapisanych w
-            Rejestrze Cen Nieruchomości (GUGiK) w promieniu {rcn.promienKm} km
+            {rcnWidelki ? 'Środkowa połowa z' : 'Mediana z'} {rcn.liczba} transakcji zapisanych w
+            Rejestrze Cen Nieruchomości (GUGiK)
+            {rcn.pasmoM2
+              ? `, działki od ${formatIntPL(rcn.pasmoM2.minM2)} do ${formatIntPL(rcn.pasmoM2.maxM2)} m²,`
+              : ''}{' '}
+            w promieniu {rcn.promienKm} km
             {rcn.odRoku === rcn.doRoku ? ` w ${rcn.odRoku} roku` : `, z lat ${rcn.odRoku}-${rcn.doRoku}`}.
-            To kwoty faktycznie zapłacone u notariusza, nie ceny z ogłoszeń. Połowa transakcji
-            zamknęła się między {formatIntPL(rcn.low)} a {formatIntPL(rcn.high)} zł/m².
+            To kwoty faktycznie zapłacone u notariusza, nie ceny z ogłoszeń.{' '}
+            {rcnWidelki
+              ? 'Ceny w aktach rozjeżdżają się za mocno na jedną liczbę, bo w okolicy sprzedaje się grunty bardzo różnego rodzaju, dlatego widełki.'
+              : `Połowa transakcji zamknęła się między ${formatIntPL(rcn.low)} a ${formatIntPL(rcn.high)} zł/m².`}
             {rcn.promienKm >= 35
               ? ' Bliżej aktów w rejestrze na razie brakuje, a przy takim promieniu mieszczą się już inne miejscowości, więc traktuj tę liczbę jako tło rynku, nie jako cenę tej konkretnej okolicy.'
               : ''}
@@ -287,7 +292,9 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
           {/* Sedno całej sekcji: różnica między tym, czego się chce, a tym, co się dostaje.
               Uczciwie zaznaczamy, że to dwa różne zbiory (inne koło, inny okres), więc czytelnik
               nie weźmie tego za wyliczenie „ile utargujesz". */}
-          {v ? (
+          {/* Zestawienie dwóch median ma sens tylko wtedy, gdy obie opisują jeden rynek. Przy
+              widełkach (dwa rynki w próbce) procent różnicy byłby wyliczeniem z niczego. */}
+          {v && !mixed && !rcnWidelki ? (
             (() => {
               const roznica = Math.round(((v.median - rcn.medianaZlM2) / rcn.medianaZlM2) * 100);
               if (Math.abs(roznica) < 5) {

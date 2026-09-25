@@ -16,7 +16,8 @@ import { getFeaturedListings } from "@/lib/dzialki";
 import { getObnizkiCen } from "@/lib/dzialkaPriceHistory";
 import { DEMO_MPZP, DEMO_PARCEL } from "@/components/sprawdz/demoRaport";
 import { getPointValuation } from "@/lib/seoHub";
-import { getRcnOkolica } from "@/lib/rcnStats";
+import { getRcnOkolica, rcnRozjechane } from "@/lib/rcnStats";
+import { decydujCene, looksRolny } from "@/lib/raportCena";
 import { formatIntPL } from "@/lib/format";
 
 // ISR zamiast force-dynamic: strona główna nie renderuje się od zera przy każdym
@@ -57,10 +58,11 @@ async function przykladRaportu() {
     const { lat, lng } = DEMO_PARCEL.center;
     const [wycena, rcn] = await Promise.all([
       getPointValuation(lat, lng, DEMO_PARCEL.areaM2),
-      getRcnOkolica(lat, lng, 'budowlana'),
+      getRcnOkolica(lat, lng, looksRolny(DEMO_MPZP) ? 'rolna' : 'budowlana', { powierzchniaM2: DEMO_PARCEL.areaM2 }),
     ]);
-    const oferty = wycena.similarSize.pricePerM2 ?? wycena.budowlana.pricePerM2 ?? wycena.pricePerM2;
-    return { ofertyZlM2: oferty?.median ?? null, rcn };
+    // Te same reguły co w raporcie (próg próbki, bez mieszania rynków): karta to jego kawałek.
+    const cena = decydujCene(wycena, DEMO_MPZP);
+    return { ofertyZlM2: cena.value && !cena.mixed ? cena.value.median : null, rcn };
   } catch {
     // Karta jest dodatkiem; gdy baza nie odpowie, sekcja stoi dalej bez niej.
     return null;
@@ -382,7 +384,10 @@ export default async function HomePage() {
                         Realnie zapłacono u notariusza
                       </dt>
                       <dd className="mt-1.5 text-[15px] font-medium text-brand-text">
-                        {formatIntPL(przyklad.rcn.medianaZlM2)} zł/m²
+                        {rcnRozjechane(przyklad.rcn)
+                          ? `${formatIntPL(przyklad.rcn.low)}–${formatIntPL(przyklad.rcn.high)}`
+                          : formatIntPL(przyklad.rcn.medianaZlM2)}{' '}
+                        zł/m²
                         <span className="ml-2 text-[13px] font-normal text-fg/45">
                           z {przyklad.rcn.liczba} aktów
                         </span>

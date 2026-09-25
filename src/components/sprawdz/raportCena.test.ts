@@ -52,7 +52,7 @@ const render = (v: PointValuation, extra: Partial<RaportData> = {}) =>
 
 const wycenaZeSrednia = () =>
   wycena({
-    similarSize: { pricePerM2: { low: 91, median: 107, high: 123 }, sampleCount: 7 },
+    similarSize: { pricePerM2: { low: 91, median: 107, high: 123 }, sampleCount: 9 },
     similarSizeBand: { minM2: 587, maxM2: 1664 },
   });
 
@@ -277,5 +277,68 @@ describe('sekcja planu miejscowego', () => {
     expect(html).toContain('podaje dla tego terenu przeznaczenie i numer uchwały');
     expect(html).toContain('google.com/search');
     expect(html).not.toContain('Otwórz tekst uchwały');
+  });
+});
+
+// Audyt 2026-09-25: liczby, które pokazywaliśmy, a których nie dało się obronić.
+describe('sekcja ceny: reguły z audytu', () => {
+  const planRolny = { functionSymbol: 'R', functionName: 'Tereny rolnicze' } as unknown as RaportData['mpzp'];
+  const aktyRozjechane = {
+    klasa: 'budowlana' as const,
+    medianaZlM2: 53,
+    low: 12,
+    high: 185,
+    liczba: 53,
+    promienKm: 10,
+    odRoku: 2021,
+    doRoku: 2026,
+  };
+
+  it('z 4-5 ogłoszeń nie podaje ceny', () => {
+    const html = render(
+      wycena({
+        budowlana: { pricePerM2: { low: 70, median: 120, high: 180 }, sampleCount: 5 },
+        similarSize: { pricePerM2: { low: 90, median: 110, high: 130 }, sampleCount: 4 },
+      })
+    );
+    expect(html).toContain('zbyt mało porównywalnych działek');
+    expect(html).not.toContain('110');
+  });
+
+  it('gdy podobnych jest za mało, schodzi do wszystkich budowlanych z pełną próbką', () => {
+    const html = render(
+      wycena({
+        budowlana: { pricePerM2: { low: 70, median: 120, high: 180 }, sampleCount: 12 },
+        similarSize: { pricePerM2: { low: 90, median: 110, high: 130 }, sampleCount: 5 },
+      })
+    );
+    expect(html).toContain('120');
+    expect(html).toContain('działki budowlane');
+  });
+
+  it('pod planem rolnym bez rolnych w okolicy nie pokazuje cen budowlanych', () => {
+    const html = render(wycenaZeSrednia(), { mpzp: planRolny });
+    expect(html).toContain('zbyt mało porównywalnych działek');
+    expect(html).not.toContain('107');
+  });
+
+  it('pod budowlaną nie ma rubryki z cenami rolnych', () => {
+    const html = render(wycenaZeSrednia());
+    expect(html).not.toContain('Działki rolne');
+  });
+
+  it('przy rozjechanych aktach widełki zamiast mediany i bez procentu różnicy', () => {
+    const html = render(wycenaZeSrednia(), { rcn: aktyRozjechane });
+    expect(html).toContain('12–185');
+    expect(html).toContain('Środkowa połowa z');
+    expect(html).not.toContain('mediana zapłaconych kwot');
+    expect(html).not.toContain('trzymają się cen z aktów');
+  });
+
+  it('podaje pasmo powierzchni aktów, gdy pulę zawęziliśmy', () => {
+    const html = render(wycenaZeSrednia(), {
+      rcn: { ...aktyRozjechane, low: 62, high: 110, medianaZlM2: 80, pasmoM2: { minM2: 245, maxM2: 3916 } },
+    });
+    expect(html).toContain('działki od 245 do 3916 m²');
   });
 });

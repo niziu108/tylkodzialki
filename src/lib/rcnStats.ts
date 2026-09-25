@@ -82,6 +82,15 @@ export function klasaTransakcji(t: {
   return null;
 }
 
+// Gdy środkowa połowa aktów rozjeżdża się co najmniej 4x (Szaflary: 12 do 185 zł/m²), w próbce
+// siedzą dwa rynki i jedna mediana nic nie mówi. Wtedy prowadzimy widełkami, jak przy ogłoszeniach.
+// Audyt 2026-09-25: tak wychodzi ok. 15% ofert z aktami.
+export const RCN_ROZRZUT_WIDELKI = 4;
+
+export function rcnRozjechane(r: Pick<RcnOkolica, 'low' | 'high'>): boolean {
+  return r.low <= 0 || r.high / r.low >= RCN_ROZRZUT_WIDELKI;
+}
+
 function percentyl(sorted: number[], p: number): number {
   if (!sorted.length) return 0;
   const i = Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * p)));

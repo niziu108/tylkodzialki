@@ -113,7 +113,9 @@ async function zbudujDemo(): Promise<RaportData | undefined> {
     const [nearby, trend, rcn] = await Promise.all([
       getNearbyOffers(lat, lng, valuation.radiusKm),
       getAreaPriceTrend(lat, lng, valuation.radiusKm),
-      getRcnOkolica(lat, lng, looksRolny(DEMO_MPZP) ? 'rolna' : 'budowlana'),
+      getRcnOkolica(lat, lng, looksRolny(DEMO_MPZP) ? 'rolna' : 'budowlana', {
+        powierzchniaM2: DEMO_PARCEL.areaM2,
+      }),
     ]);
     return { parcel: DEMO_PARCEL, valuation, mpzp: DEMO_MPZP, pog: DEMO_POG, trend, rcn, nearby };
   } catch {

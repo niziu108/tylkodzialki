@@ -5,7 +5,7 @@
 // ([[project-sprawdz-dzialke]]).
 
 import type { MpzpInfo } from './mpzp';
-import { isFarAndThin, isWideSpread, type PointValuation, type PriceStat, type RangeStat } from './seoHub';
+import { isWideSpread, type PointValuation, type PriceStat, type RangeStat } from './seoHub';
 
 export type LeadKind = 'similar' | 'type';
 
@@ -41,9 +41,19 @@ export function klasaZPrzeznaczen(przeznaczenia: readonly string[] | null | unde
   return p.includes('ROLNA') || p.includes('LESNA') ? 'rolna' : 'budowlana';
 }
 
+// Ile ogłoszeń musi być w puli, żeby podać medianę i „większość między". Audyt 2026-09-25
+// (150 losowych ofert): przy 4-5 ogłoszeniach cena 30 z 53 ofert wypadała poza widełki p10-p90,
+// czyli zdanie „większość między" było nieprawdą. Od 8 wzwyż widełki trzymają się rynku.
+// Wcześniej ten sam próg działał tylko na największym kole (isFarAndThin), teraz na każdym.
+export const MIN_OFERT_DO_CENY = 8;
+
 // Kolejność: najpierw działki ZBLIŻONEJ WIELKOŚCI, bo to największe źródło rozrzutu w okolicy
 // (za metr działki pod dom płaci się kilka razy tyle co za metr wielohektarowego pola). Dopiero
 // gdy podobnych brakuje, schodzimy do „wszystkie budowlane".
+// Nie mieszamy rynków (audyt 2026-09-25): pod gruntem rolnym tylko ceny rolnych, pod budowlanym
+// tylko budowlanych. Wcześniej brak rolnych w okolicy dawał pod polem medianę działek pod dom
+// (10 z 13 rolnych ofert), a ostatnią deską była mediana „wszystkich typów", czyli obu rynków
+// naraz. Podpis był prawdziwy, ale liczba wprowadzała w błąd. Brak puli = milczymy.
 // `rolny` podajemy wprost tam, gdzie planu nie znamy (sekcja cen pod ofertą bez raportu działki):
 // wtedy pulę wybiera przeznaczenie z ogłoszenia, patrz klasaZPrzeznaczen.
 export function pickLead(
@@ -58,16 +68,9 @@ export function pickLead(
   };
   const bud: Lead = { label: 'działki budowlane', stat: valuation.budowlana, kind: 'type' };
   const rol: Lead = { label: 'działki rolne', stat: valuation.rolna, kind: 'type' };
-  const order = rolny ? [rol, bud] : [sim, bud, rol];
+  const order = rolny ? [rol] : [sim, bud];
 
-  for (const cand of order) if (cand.stat.pricePerM2) return cand;
-  if (valuation.pricePerM2) {
-    return {
-      label: 'wszystkie typy działek',
-      stat: { pricePerM2: valuation.pricePerM2, sampleCount: valuation.sampleCount },
-      kind: 'type',
-    };
-  }
+  for (const cand of order) if (cand.stat.pricePerM2 && cand.stat.sampleCount >= MIN_OFERT_DO_CENY) return cand;
   return null;
 }
 
@@ -77,10 +80,7 @@ export function decydujCene(
   rolny: boolean = looksRolny(mpzp)
 ): CenaDecision {
   const lead = pickLead(valuation, mpzp, rolny);
-  // Gate pewności: gdy compary zebrały się dopiero na największym kole i jest ich mało, nie
-  // prowadzimy liczbą — spada do gałęzi „za mało porównywalnych działek".
-  const farThin = lead ? isFarAndThin(valuation.radiusKm, lead.stat.sampleCount) : false;
-  const value = farThin ? null : lead?.stat.pricePerM2 ?? null;
+  const value = lead?.stat.pricePerM2 ?? null;
   // Widełki zamiast mediany tylko wtedy, gdy próbka NIE jest zawężona do podobnych działek.
   // Przy zawężonej mediana jest uczciwa, bo z rozrzutu wypadł jego największy składnik.
   const mixed = isWideSpread(value) && lead?.kind !== 'similar';
