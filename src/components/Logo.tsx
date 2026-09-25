@@ -21,7 +21,7 @@ export default function Logo({ className = '' }: Props) {
       className={`w-auto max-w-full select-none ${className}`}
       style={{ aspectRatio: LOGO.ratio }}
     >
-      <path d={LOGO.letters} fill="#131313" fillRule="evenodd" />
+      <path d={LOGO.letters} fill="#1a1a17" fillRule="evenodd" />
       <path d={LOGO.d} fill="#7aa333" fillRule="evenodd" />
     </svg>
   );
