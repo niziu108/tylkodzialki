@@ -4,9 +4,10 @@ import DzialkaClient from './DzialkaClient';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SimilarOffers from '@/components/SimilarOffers';
 import RaportOferty from '@/components/sprawdz/RaportOferty';
+import { cenyOkolicy, CenyOkolicySekcja } from '@/components/sprawdz/CenyOkolicy';
 import { odswiezRaportOferty, pobierzRaportOferty } from '@/lib/raportOferty';
 import { getRcnOkolica } from '@/lib/rcnStats';
-import { looksRolny } from '@/lib/raportCena';
+import { klasaZPrzeznaczen, looksRolny } from '@/lib/raportCena';
 import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
 import { getWizytowkaSlugForOwner } from '@/lib/biuroWizytowka';
 import { getAreaPriceTrend, getOfferPriceTrend } from '@/lib/dzialkaPriceHistory';
@@ -238,20 +239,34 @@ export default async function Page({ params }: PageProps) {
     after(() => odswiezRaportOferty(dzialkaId).then(() => undefined, () => undefined));
   }
 
-  // Ceny do raportu liczymy na żywo, nie z zapisu: oferty w okolicy zmieniają się codziennie,
+  // Ceny okolicy liczymy na żywo, nie z zapisu: oferty w okolicy zmieniają się codziennie,
   // a skan aktów notarialnych (RCN) wciąż rośnie. Cena okolicy pomija oglądaną ofertę.
-  const srodek = raport?.dane.parcel.center ?? null;
-  const [rcnRaportu, wycenaRaportu] =
-    raport && srodek && dzialka
+  // Z raportem: od środka działki z ewidencji, pula z planu miejscowego. Bez raportu (ok. 90%
+  // ofert): od punktu oferty, pula z przeznaczenia w ogłoszeniu. Tylko aktywna sprzedaż: pod
+  // wynajmem ceny zakupu nie odpowiadają na pytanie czytającego, a zakończonej Google nie indeksuje.
+  const punktOferty =
+    dzialka &&
+    dzialka.status === 'AKTYWNE' &&
+    dzialka.transakcja !== 'WYNAJEM' &&
+    typeof dzialka.lat === 'number' &&
+    typeof dzialka.lng === 'number' &&
+    Number.isFinite(dzialka.lat) &&
+    Number.isFinite(dzialka.lng)
+      ? { lat: dzialka.lat, lng: dzialka.lng }
+      : null;
+  const srodek = raport ? raport.dane.parcel.center : punktOferty;
+  const rolny = raport ? looksRolny(raport.dane.mpzp) : klasaZPrzeznaczen(dzialka?.przeznaczenia) === 'rolna';
+  const powierzchnia = raport ? raport.dane.parcel.areaM2 : (dzialka?.powierzchniaM2 ?? null);
+  const [rcnOkolicy, wycenaOkolicy] =
+    srodek && dzialka
       ? await Promise.all([
-          getRcnOkolica(srodek.lat, srodek.lng, looksRolny(raport.dane.mpzp) ? 'rolna' : 'budowlana').catch(
-            () => null
-          ),
-          getPointValuation(srodek.lat, srodek.lng, raport.dane.parcel.areaM2, dzialka.id).catch(() => null),
+          getRcnOkolica(srodek.lat, srodek.lng, rolny ? 'rolna' : 'budowlana').catch(() => null),
+          getPointValuation(srodek.lat, srodek.lng, powierzchnia, dzialka.id).catch(() => null),
         ])
       : ([null, null] as const);
-  const trendRaportu =
-    srodek && wycenaRaportu ? await getAreaPriceTrend(srodek.lat, srodek.lng, wycenaRaportu.radiusKm) : null;
+  const trendOkolicy =
+    srodek && wycenaOkolicy ? await getAreaPriceTrend(srodek.lat, srodek.lng, wycenaOkolicy.radiusKm) : null;
+  const cenyBezRaportu = !raport ? cenyOkolicy(wycenaOkolicy, rcnOkolicy, trendOkolicy, rolny) : null;
 
   const canonical = `/dzialka/${id}`;
   const fullUrl = `${SITE_URL}${canonical}`;
@@ -405,9 +420,15 @@ export default async function Page({ params }: PageProps) {
           dane={raport.dane}
           zrodlo={raport.zrodlo}
           sprawdzono={raport.sprawdzonoAt.toISOString()}
-          rcn={rcnRaportu}
-          wycena={wycenaRaportu}
-          trend={trendRaportu}
+          rcn={rcnOkolicy}
+          wycena={wycenaOkolicy}
+          trend={trendOkolicy}
+        />
+      ) : cenyBezRaportu ? (
+        <CenyOkolicySekcja
+          dane={cenyBezRaportu}
+          miejsce={dzialka ? cleanText(dzialka.locationLabel) || null : null}
+          przyblizona={dzialka?.locationMode === 'APPROX'}
         />
       ) : null}
 

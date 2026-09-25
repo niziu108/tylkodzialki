@@ -31,10 +31,26 @@ export function looksRolny(mpzp: MpzpInfo | null): boolean {
   return /roln|leśn|lesn|upraw|grunt orn/.test(name);
 }
 
+// Pula cenowa oferty bez raportu działki, czyli bez planu miejscowego: z przeznaczenia wpisanego
+// w ogłoszeniu. Rolna tylko wtedy, gdy ogłoszenie nie mówi nic o zabudowie (ROLNA/LEŚNA bez
+// BUDOWLANEJ). Siedlisko, rekreacja i inwestycja idą do budowlanych, tak samo konserwatywnie
+// jak looksRolny traktuje zabudowę zagrodową.
+export function klasaZPrzeznaczen(przeznaczenia: readonly string[] | null | undefined): 'rolna' | 'budowlana' {
+  const p = przeznaczenia ?? [];
+  if (p.includes('BUDOWLANA')) return 'budowlana';
+  return p.includes('ROLNA') || p.includes('LESNA') ? 'rolna' : 'budowlana';
+}
+
 // Kolejność: najpierw działki ZBLIŻONEJ WIELKOŚCI, bo to największe źródło rozrzutu w okolicy
 // (za metr działki pod dom płaci się kilka razy tyle co za metr wielohektarowego pola). Dopiero
 // gdy podobnych brakuje, schodzimy do „wszystkie budowlane".
-export function pickLead(valuation: PointValuation, mpzp: MpzpInfo | null): Lead | null {
+// `rolny` podajemy wprost tam, gdzie planu nie znamy (sekcja cen pod ofertą bez raportu działki):
+// wtedy pulę wybiera przeznaczenie z ogłoszenia, patrz klasaZPrzeznaczen.
+export function pickLead(
+  valuation: PointValuation,
+  mpzp: MpzpInfo | null,
+  rolny: boolean = looksRolny(mpzp)
+): Lead | null {
   const sim: Lead = {
     label: 'działki podobnej wielkości',
     stat: valuation.similarSize,
@@ -42,7 +58,7 @@ export function pickLead(valuation: PointValuation, mpzp: MpzpInfo | null): Lead
   };
   const bud: Lead = { label: 'działki budowlane', stat: valuation.budowlana, kind: 'type' };
   const rol: Lead = { label: 'działki rolne', stat: valuation.rolna, kind: 'type' };
-  const order = looksRolny(mpzp) ? [rol, bud] : [sim, bud, rol];
+  const order = rolny ? [rol, bud] : [sim, bud, rol];
 
   for (const cand of order) if (cand.stat.pricePerM2) return cand;
   if (valuation.pricePerM2) {
@@ -55,8 +71,12 @@ export function pickLead(valuation: PointValuation, mpzp: MpzpInfo | null): Lead
   return null;
 }
 
-export function decydujCene(valuation: PointValuation, mpzp: MpzpInfo | null): CenaDecision {
-  const lead = pickLead(valuation, mpzp);
+export function decydujCene(
+  valuation: PointValuation,
+  mpzp: MpzpInfo | null,
+  rolny: boolean = looksRolny(mpzp)
+): CenaDecision {
+  const lead = pickLead(valuation, mpzp, rolny);
   // Gate pewności: gdy compary zebrały się dopiero na największym kole i jest ich mało, nie
   // prowadzimy liczbą — spada do gałęzi „za mało porównywalnych działek".
   const farThin = lead ? isFarAndThin(valuation.radiusKm, lead.stat.sampleCount) : false;

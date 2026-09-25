@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatIntPL } from '@/lib/format';
+import { formatIntPL, plDate } from '@/lib/format';
 import type { ParcelReport } from '@/lib/uldk';
 import { type PointValuation, type PriceStat } from '@/lib/seoHub';
 import { decydujCene } from '@/lib/raportCena';
@@ -43,11 +43,6 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
   return <div className="text-[12px] uppercase tracking-[0.2em] text-brand-text">{children}</div>;
 }
 
-export function plDate(iso: string | null): string | null {
-  if (!iso) return null;
-  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso;
-}
 
 export function areaLabel(m2: number): string {
   const base = `${formatIntPL(m2)} m²`;

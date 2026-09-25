@@ -27,3 +27,11 @@ export function pricePerM2(cena: number | null | undefined, area: number | null 
   if (!cena || !area || cena <= 0 || area <= 0) return 0;
   return Math.round(cena / area);
 }
+
+/** Data ISO (RRRR-MM-DD…) jako DD.MM.RRRR. Tu, a nie w komponencie 'use client': funkcja z takiego
+ * pliku importowana do komponentu serwerowego jest referencją klienta, nie funkcją. */
+export function plDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso;
+}
