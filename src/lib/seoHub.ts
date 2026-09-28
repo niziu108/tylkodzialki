@@ -538,7 +538,21 @@ export const getPointValuation = cache(
     // stawało na 4 ofertach, a raport od 25.09 chce 8, więc milczał, choć kawałek dalej ofert
     // było dość (Oleśnik: 4 oferty w 3 km, Bełchatów 6 km dalej). Próg 4 zostaje jako zapas
     // dla udziałów mediów i listy ofert w okolicy.
+    // Gdy znamy powierzchnię, koło rośnie, aż uzbiera 8 budowlanych PODOBNEJ WIELKOŚCI
+    // (najszersze widełki drabinki). Inaczej stawało przy 8 dowolnych budowlanych i pula schodziła
+    // do „wszystkich budowlanych": pod działką 920 m² pod Piotrkowem lądowały działki inwestycyjne
+    // po 2-2,5 ha i wychodziły widełki 45-171 zł/m² (2026-09-28).
+    const podobnaWKole = (k: number) => {
+      if (!areaM2 || areaM2 <= 0) return 0;
+      const szerokie = similarSizeRange(areaM2, SIMILAR_SIZE_LADDER.length - 1);
+      return priced(
+        ring(k).filter(
+          (r) => isBudowlana(r) && r.powierzchniaM2 >= szerokie.minM2 && r.powierzchniaM2 <= szerokie.maxM2
+        )
+      );
+    };
     const km =
+      RADIUS_LADDER.find((k) => podobnaWKole(k) >= MIN_OFERT_DO_CENY) ??
       RADIUS_LADDER.find((k) => priced(ring(k).filter(isBudowlana)) >= MIN_OFERT_DO_CENY) ??
       RADIUS_LADDER.find((k) => priced(ring(k)) >= MIN_OFERT_DO_CENY) ??
       RADIUS_LADDER.find((k) => priced(ring(k).filter(isBudowlana)) >= MIN_SAMPLE) ??

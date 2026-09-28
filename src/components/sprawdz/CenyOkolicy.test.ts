@@ -151,4 +151,15 @@ describe('cenyOkolicy', () => {
     const bezAktow = html(cenyOkolicy(wycena({ gmina: true }), null, null, false)!);
     expect(bezAktow).toContain('W tej gminie, w promieniu 10 km mamy za mało aktów');
   });
+
+  it('przy znanej powierzchni porównuje tylko z działkami podobnej wielkości', () => {
+    // Za mało podobnych: nie schodzimy do „wszystkich budowlanych" (działki inwestycyjne po 2 ha).
+    const bezPodobnych = wycena({ similarSizeBand: { minM2: 230, maxM2: 3680 }, similarSize: pusty });
+    expect(cenyOkolicy(bezPodobnych, rcn, null, false)?.cena).toBeNull();
+    const zPodobnymi = wycena({
+      similarSizeBand: { minM2: 230, maxM2: 3680 },
+      similarSize: { pricePerM2: { low: 150, median: 240, high: 330 }, sampleCount: 9 },
+    });
+    expect(cenyOkolicy(zPodobnymi, null, null, false)?.cena?.lead?.label).toBe('działki podobnej wielkości');
+  });
 });

@@ -44,7 +44,11 @@ export function cenyOkolicy(
   // (lib/raportCena.ts). `value` = null, gdy porównywalnych ofert jest za mało: wtedy milczymy.
   const cena = wycena ? decydujCene(wycena, null, rolny) : null;
   // Próg próbki i „nie mieszamy rynków" pilnuje decydujCene (audyt 2026-09-25).
-  const zOfert = cena?.lead && cena.value ? cena : null;
+  // Pod ofertą budowlaną ze znaną powierzchnią porównujemy WYŁĄCZNIE z działkami podobnej
+  // wielkości. „Wszystkie budowlane" mieszały działkę pod dom z wielohektarowymi inwestycyjnymi
+  // (Piotrków, 2026-09-28), a kropka oferty lądowała daleko za paskiem z niewłaściwego powodu.
+  const podobne = rolny || !wycena?.similarSizeBand || cena?.lead?.kind === 'similar';
+  const zOfert = cena?.lead && cena.value && podobne ? cena : null;
   const rcnPokaz = rcn && rcn.promienKm <= RCN_MAX_PROMIEN_KM ? rcn : null;
   if (!zOfert && !rcnPokaz) return null;
   return {

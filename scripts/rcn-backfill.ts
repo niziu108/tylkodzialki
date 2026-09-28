@@ -102,6 +102,7 @@ async function main() {
   }
   const { prisma } = await import('../src/lib/prisma');
   const { transakcjeKafla } = await import('../src/lib/rcnClient');
+  const { uzupelnijAdminOferty } = await import('../src/lib/adminOferty');
 
   const progOdswiezenia = new Date(Date.now() - DNI * 24 * 3600 * 1000);
 
@@ -138,7 +139,7 @@ async function main() {
           }
         : { rcnScanAt: null }),
     },
-    select: { id: true, lat: true, lng: true, adminWoj: true, adminGmina: true, locationLabel: true },
+    select: { id: true, lat: true, lng: true, adminWoj: true, adminGmina: true, adminTeryt: true, locationLabel: true },
     // Nowe oferty pierwsze (ktoś właśnie na nie patrzy), potem okolice sprawdzane najdawniej.
     orderBy: [{ rcnScanAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }],
     ...(LIMIT > 0 ? { take: LIMIT } : {}),
@@ -173,6 +174,9 @@ Limit czasu ${MAX_MINUT} min: reszta w następnym przebiegu.`);
       if (trans.length === 0) ofertyBezTransakcji++;
 
       if (APPLY) {
+        // Przy okazji gmina oferty: ceny pod ofertą liczą się tylko w jej gminie (CenyOkolicy),
+        // więc oferta bez kodu gminy nie ma sekcji cen. Tu łapiemy wszystkie w ciągu godziny.
+        if (!d.adminTeryt) await uzupelnijAdminOferty(d.id).catch(() => null);
         for (const t of trans) {
           const { lokalnyIdIip, idDzialki, ...reszta } = t;
           await prisma.rcnTransakcja.upsert({

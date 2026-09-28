@@ -7,6 +7,7 @@ import RaportOferty from '@/components/sprawdz/RaportOferty';
 import { cenyOkolicy, CenyOkolicySekcja } from '@/components/sprawdz/CenyOkolicy';
 import { odswiezRaportOferty, pobierzRaportOferty } from '@/lib/raportOferty';
 import { getRcnOkolica } from '@/lib/rcnStats';
+import { uzupelnijAdminOferty } from '@/lib/adminOferty';
 import { klasaZPrzeznaczen, looksRolny } from '@/lib/raportCena';
 import { getDzialkaById, getSimilarDzialki } from '@/lib/dzialki';
 import { getWizytowkaSlugForOwner } from '@/lib/biuroWizytowka';
@@ -260,8 +261,14 @@ export default async function Page({ params }: PageProps) {
   const powierzchnia = raport ? raport.dane.parcel.areaM2 : (dzialka?.powierzchniaM2 ?? null);
   // Rynek = gmina: z ewidencji działki, a bez raportu z geokodowania oferty.
   const gminaTeryt = raport ? raport.dane.parcel.id.slice(0, 6) : (dzialka?.adminTeryt ?? null);
+  // Bez gminy nie liczymy cen wcale: koło bez granicy gminy dawało wsi ceny miasta. Świeża oferta
+  // dostaje gminę w tle (ULDK) i sekcja pojawi się przy kolejnym odświeżeniu strony.
+  if (dzialka && punktOferty && !gminaTeryt && process.env.VERCEL) {
+    const dzialkaId = dzialka.id;
+    after(() => uzupelnijAdminOferty(dzialkaId).then(() => undefined, () => undefined));
+  }
   const [rcnOkolicy, wycenaOkolicy] =
-    srodek && dzialka
+    srodek && dzialka && gminaTeryt
       ? await Promise.all([
           getRcnOkolica(srodek.lat, srodek.lng, rolny ? 'rolna' : 'budowlana', {
             powierzchniaM2: powierzchnia,
