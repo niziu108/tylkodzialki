@@ -49,8 +49,15 @@ describe('klasaZPrzeznaczen', () => {
     expect(klasaZPrzeznaczen(['LESNA'])).toBe('rolna');
     expect(klasaZPrzeznaczen(['ROLNA', 'BUDOWLANA'])).toBe('budowlana');
     expect(klasaZPrzeznaczen(['SIEDLISKOWA'])).toBe('budowlana');
-    expect(klasaZPrzeznaczen([])).toBe('budowlana');
-    expect(klasaZPrzeznaczen(null)).toBe('budowlana');
+    expect(klasaZPrzeznaczen(['ROLNA', 'LESNA'])).toBe('rolna');
+  });
+
+  it('grunt inwestycyjny, sama rekreacja i brak przeznaczenia: bez porównania', () => {
+    expect(klasaZPrzeznaczen(['INWESTYCYJNA'])).toBeNull();
+    expect(klasaZPrzeznaczen(['BUDOWLANA', 'INWESTYCYJNA'])).toBeNull();
+    expect(klasaZPrzeznaczen(['REKREACYJNA'])).toBeNull();
+    expect(klasaZPrzeznaczen([])).toBeNull();
+    expect(klasaZPrzeznaczen(null)).toBeNull();
   });
 });
 

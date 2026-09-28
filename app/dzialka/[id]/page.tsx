@@ -257,7 +257,9 @@ export default async function Page({ params }: PageProps) {
       ? { lat: dzialka.lat, lng: dzialka.lng }
       : null;
   const srodek = raport ? raport.dane.parcel.center : punktOferty;
-  const rolny = raport ? looksRolny(raport.dane.mpzp) : klasaZPrzeznaczen(dzialka?.przeznaczenia) === 'rolna';
+  // Pula z ogłoszenia; null (grunt inwestycyjny, sama rekreacja) = bez porównania cen.
+  const pulaOferty = klasaZPrzeznaczen(dzialka?.przeznaczenia);
+  const rolny = raport ? looksRolny(raport.dane.mpzp) : pulaOferty === 'rolna';
   const powierzchnia = raport ? raport.dane.parcel.areaM2 : (dzialka?.powierzchniaM2 ?? null);
   // Rynek = gmina: z ewidencji działki, a bez raportu z geokodowania oferty.
   const gminaTeryt = raport ? raport.dane.parcel.id.slice(0, 6) : (dzialka?.adminTeryt ?? null);
@@ -268,7 +270,7 @@ export default async function Page({ params }: PageProps) {
     after(() => uzupelnijAdminOferty(dzialkaId).then(() => undefined, () => undefined));
   }
   const [rcnOkolicy, wycenaOkolicy] =
-    srodek && dzialka && gminaTeryt
+    srodek && dzialka && gminaTeryt && pulaOferty
       ? await Promise.all([
           getRcnOkolica(srodek.lat, srodek.lng, rolny ? 'rolna' : 'budowlana', {
             powierzchniaM2: powierzchnia,

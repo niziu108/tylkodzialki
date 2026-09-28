@@ -31,14 +31,19 @@ export function looksRolny(mpzp: MpzpInfo | null): boolean {
   return /roln|leśn|lesn|upraw|grunt orn/.test(name);
 }
 
-// Pula cenowa oferty bez raportu działki, czyli bez planu miejscowego: z przeznaczenia wpisanego
-// w ogłoszeniu. Rolna tylko wtedy, gdy ogłoszenie nie mówi nic o zabudowie (ROLNA/LEŚNA bez
-// BUDOWLANEJ). Siedlisko, rekreacja i inwestycja idą do budowlanych, tak samo konserwatywnie
-// jak looksRolny traktuje zabudowę zagrodową.
-export function klasaZPrzeznaczen(przeznaczenia: readonly string[] | null | undefined): 'rolna' | 'budowlana' {
+// Pula cenowa oferty z przeznaczenia wpisanego w ogłoszeniu. Porównujemy dwa rynki, dla których
+// mamy uczciwą pulę: działka pod dom (BUDOWLANA, SIEDLISKOWA) i grunt rolny/leśny (bez zabudowy).
+// `null` = nie porównujemy wcale (audyt 8360 ofert, 2026-09-28): INWESTYCYJNA to usługi, handel,
+// przemysł i grunty pod deweloperkę (w centrach po 1000-16 000 zł/m²), a sama REKREACYJNA to
+// ogródki i letniska. Pod działką usługową w Olkuszu wisiał pasek działek pod dom i kropka 11x za
+// nim. Tak samo pusta lista przeznaczeń: nie wiemy, co to za grunt.
+export type PulaOferty = 'rolna' | 'budowlana';
+export function klasaZPrzeznaczen(przeznaczenia: readonly string[] | null | undefined): PulaOferty | null {
   const p = przeznaczenia ?? [];
-  if (p.includes('BUDOWLANA')) return 'budowlana';
-  return p.includes('ROLNA') || p.includes('LESNA') ? 'rolna' : 'budowlana';
+  if (p.includes('INWESTYCYJNA')) return null;
+  if (p.includes('BUDOWLANA') || p.includes('SIEDLISKOWA')) return 'budowlana';
+  if (p.includes('ROLNA') || p.includes('LESNA')) return 'rolna';
+  return null;
 }
 
 // Próg 8 ogłoszeń (audyt 2026-09-25) mieszka w seoHub, bo tym samym progiem wycena dobiera promień.

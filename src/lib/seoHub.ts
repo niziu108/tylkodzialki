@@ -531,7 +531,10 @@ export const getPointValuation = cache(
     const ring = (km: number) => withDist.filter((x) => x.dist <= km).map((x) => x.row);
     const priced = (subset: typeof rows) =>
       subset.filter((r) => r.cenaPln > 0 && r.powierzchniaM2 > 0).length;
-    const isBudowlana = (r: (typeof rows)[number]) => r.przeznaczenia.includes('BUDOWLANA');
+    // Pula „pod dom" bez gruntów inwestycyjnych (usługi, handel, deweloperka): to inny rynek, który
+    // w miastach ciągnął medianę działek pod dom w górę (audyt 2026-09-28).
+    const isBudowlana = (r: (typeof rows)[number]) =>
+      r.przeznaczenia.includes('BUDOWLANA') && !r.przeznaczenia.includes('INWESTYCYJNA');
 
     // Najmniejszy pierścień z próbką budowlanych; potem z jakąkolwiek próbką; na końcu największy.
     // Najpierw progiem, od którego cenę w ogóle pokazujemy (MIN_OFERT_DO_CENY). Wcześniej koło
@@ -582,7 +585,14 @@ export const getPointValuation = cache(
     const budNieuzbr = budowlaneRows.filter(
       (r) => r.prad === 'BRAK_PRZYLACZA' && r.woda === 'BRAK_PRZYLACZA'
     );
-    const rolneRows = near.filter((r) => r.przeznaczenia.includes('ROLNA'));
+    // Rolne = pole/las BEZ zabudowy i inwestycji, tak jak klasyfikujemy oglądaną ofertę
+    // (raportCena.klasaZPrzeznaczen). „Budowlana + rolna" to działka pod dom z kawałkiem pola.
+    const rolneRows = near.filter(
+      (r) =>
+        (r.przeznaczenia.includes('ROLNA') || r.przeznaczenia.includes('LESNA')) &&
+        !r.przeznaczenia.includes('BUDOWLANA') &&
+        !r.przeznaczenia.includes('INWESTYCYJNA')
+    );
 
     // Porównanie do działek zbliżonej wielkości: schodzimy drabinką widełek i zatrzymujemy się na
     // pierwszych, które dają próbkę. Gdy nawet najszersze nie wystarczą, priceStat i tak zwróci
