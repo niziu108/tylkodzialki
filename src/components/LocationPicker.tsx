@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { createParcelOverlay } from '@/lib/parcelOverlay';
+import { Tabs } from '@/components/dzialka-form/ui';
 
 type LocationMode = 'EXACT' | 'APPROX';
 
@@ -351,29 +352,15 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         className="field-line w-full bg-transparent pb-2 text-[18px] text-fg/90 outline-none placeholder:text-fg/62 focus:ring-0 md:text-[19px]"
       />
 
-      <div className="flex flex-wrap gap-8">
-        {(['EXACT', 'APPROX'] as LocationMode[]).map((v) => {
-          const label = v === 'EXACT' ? 'Dokładna lokalizacja' : 'Przybliżona';
-          const active = mode === v;
-          return (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setMode(v)}
-              aria-pressed={active}
-              className={`text-[15px] font-semibold tracking-tight transition ${active ? 'text-fg' : 'text-fg/70 hover:text-fg'}`}
-              style={{
-                textDecoration: active ? 'underline' : 'none',
-                textUnderlineOffset: '10px',
-                textDecorationThickness: '1px',
-                textDecorationColor: active ? 'var(--brand-bright)' : 'transparent',
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Te same zielone pigułki co reszta wyborów w kreatorze (np. sprzedaż / wystawienie). */}
+      <Tabs
+        value={mode}
+        onChange={(v) => setMode(v as LocationMode)}
+        options={[
+          { value: 'EXACT', label: 'Dokładna lokalizacja' },
+          { value: 'APPROX', label: 'Przybliżona' },
+        ]}
+      />
 
       {/* Zielony przycisk otwiera mapę na cały ekran (mapa inicjuje się w tle). */}
       <button
