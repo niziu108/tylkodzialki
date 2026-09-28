@@ -57,8 +57,11 @@ async function przykladRaportu() {
   try {
     const { lat, lng } = DEMO_PARCEL.center;
     const [wycena, rcn] = await Promise.all([
-      getPointValuation(lat, lng, DEMO_PARCEL.areaM2),
-      getRcnOkolica(lat, lng, looksRolny(DEMO_MPZP) ? 'rolna' : 'budowlana', { powierzchniaM2: DEMO_PARCEL.areaM2 }),
+      getPointValuation(lat, lng, DEMO_PARCEL.areaM2, null, DEMO_PARCEL.id.slice(0, 6)),
+      getRcnOkolica(lat, lng, looksRolny(DEMO_MPZP) ? 'rolna' : 'budowlana', {
+        powierzchniaM2: DEMO_PARCEL.areaM2,
+        gminaTeryt: DEMO_PARCEL.id.slice(0, 6),
+      }),
     ]);
     // Te same reguły co w raporcie (próg próbki, bez mieszania rynków): karta to jego kawałek.
     const cena = decydujCene(wycena, DEMO_MPZP);

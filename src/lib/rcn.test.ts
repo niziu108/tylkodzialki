@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRcnXml, normalizujPowierzchnieM2, doZapisu, mediana } from './rcn';
+import { parseRcnXml, parseRcnGml, srodekObrysu, normalizujPowierzchnieM2, doZapisu, mediana } from './rcn';
 
 const XML = `<GETFEATUREINFO>
 <DZIALKA>
@@ -102,5 +102,54 @@ describe('mediana', () => {
   });
   it('pusta lista daje null', () => {
     expect(mediana([])).toBeNull();
+  });
+});
+
+// Odpowiedź GetFeatureInfo w GML (skrót prawdziwej z 2026-09-28): pola rekordu + obrys działki.
+const GML = `<?xml version="1.0" encoding="UTF-8"?>
+<msGMLOutput xmlns:gml="http://www.opengis.net/gml">
+<dzialki_layer><gml:name>Działki</gml:name>
+<dzialki_feature>
+<gml:boundedBy><gml:Box srsName="EPSG:4326"><gml:coordinates>19.365455,51.335963 19.366064,51.336215</gml:coordinates></gml:Box></gml:boundedBy>
+<GEOMETRIA><gml:Polygon srsName="EPSG:4326"><gml:outerBoundaryIs><gml:LinearRing>
+<gml:coordinates>19.365455,51.336019 19.366013,51.335963 19.366064,51.336158 19.365505,51.336215 19.365455,51.336019 </gml:coordinates>
+</gml:LinearRing></gml:outerBoundaryIs></gml:Polygon></GEOMETRIA>
+<gid>203216801</gid>
+<TERYT>1001</TERYT>
+<TRAN_LOKALNY_ID_IIP>58CEE4A7-AA065</TRAN_LOKALNY_ID_IIP>
+<TRAN_RODZAJ_TRANS>wolnyRynek</TRAN_RODZAJ_TRANS>
+<TRAN_CENA_BRUTTO>164000</TRAN_CENA_BRUTTO>
+<DOK_DATA>2024-08-28 02:00:00+02</DOK_DATA>
+<NIER_RODZAJ>nieruchomoscGruntowaNiezabudowana</NIER_RODZAJ>
+<NIER_UDZIAL>1/1</NIER_UDZIAL>
+<NIER_POW_GRUNTU>0.1734</NIER_POW_GRUNTU>
+<DZI_ID_DZIALKI>100101_1.0018.219/7</DZI_ID_DZIALKI>
+<DZI_NR_DZIALKI>219/7</DZI_NR_DZIALKI>
+</dzialki_feature>
+</dzialki_layer>
+</msGMLOutput>`;
+
+describe('parseRcnGml', () => {
+  it('wyciąga pola rekordu (z ceną) i obrys działki', () => {
+    const [o] = parseRcnGml(GML);
+    expect(o.rec.TRAN_CENA_BRUTTO).toBe('164000');
+    expect(o.rec.DZI_ID_DZIALKI).toBe('100101_1.0018.219/7');
+    expect(o.obrysy).toHaveLength(1);
+    expect(o.obrysy[0]).toHaveLength(5);
+    expect(o.obrysy[0][0]).toEqual([19.365455, 51.336019]);
+    // Rekord przechodzi przez te same reguły co z text/xml.
+    const d = doZapisu(o.rec)!;
+    expect(d.powierzchniaM2).toBe(1734);
+    expect(Math.round(d.cenaZaM2)).toBe(95);
+  });
+
+  it('środek działki z obrysu, bez podwójnego liczenia domknięcia', () => {
+    const s = srodekObrysu(parseRcnGml(GML)[0].obrysy)!;
+    expect(s.lng).toBeCloseTo(19.36576, 4);
+    expect(s.lat).toBeCloseTo(51.33609, 4);
+  });
+
+  it('pusta odpowiedź to brak obiektów', () => {
+    expect(parseRcnGml('<msGMLOutput></msGMLOutput>')).toEqual([]);
   });
 });

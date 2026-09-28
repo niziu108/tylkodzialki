@@ -1,4 +1,7 @@
 import dotenv from 'dotenv';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 // Env przed Prisma, jak w pozostałych skryptach.
 dotenv.config({ path: '.env.local' });
@@ -26,6 +29,14 @@ dotenv.config({ path: '.env' });
  *   npm run rcn:backfill -- --apply                       -> cała baza (długo, patrz --limit)
  *   npm run rcn:backfill -- --apply --limit 200
  *   npm run rcn:backfill -- --apply --odswiez --dni 90    -> ponów oferty skanowane dawniej niż 90 dni
+ *
+ * Produkcja (VPS, cron raz dziennie, od 2026-09-28):
+ *   npm run rcn:backfill -- --apply --odswiez --dni 90 --max-minut 1380
+ * Jedno zadanie robi wszystko: najpierw nowe oferty, potem skanowane najdawniej. Oferta skanowana
+ * przed SKAN_METODA_OD (stara metoda gubiła ~45% aktów) jest nieaktualna bez względu na --dni,
+ * więc po wdrożeniu nowej metody pełny ponowny skan robi się sam w kilka dni, a potem każda
+ * okolica wraca co 90 dni (rejestr dopisuje akty z opóźnieniem 1-3 miesięcy). Blokada pliku
+ * pilnuje, żeby dwa przebiegi nigdy nie szły naraz, a --max-minut kończy przebieg przed kolejnym.
  */
 
 const APPLY = process.argv.includes('--apply');
@@ -39,6 +50,15 @@ function argWartosc(nazwa: string): string | null {
 const WOJ = argWartosc('--woj');
 const LIMIT = Number(argWartosc('--limit') ?? (APPLY ? '0' : '5')) || 0;
 const DNI = Number(argWartosc('--dni') ?? '90');
+const MAX_MINUT = Number(argWartosc('--max-minut') ?? '0') || 0;
+
+// Od kiedy skanujemy metodą „zachłannego pokrycia" (rcnClient). Wcześniejsze skany gubiły
+// sąsiednie działki, więc traktujemy je jak nieaktualne. Przy kolejnej zmianie metody: podbić datę.
+const SKAN_METODA_OD = new Date('2026-09-30T00:00:00Z');
+
+const BLOKADA = path.join(os.tmpdir(), 'tylkodzialki-rcn-backfill.lock');
+// Blokada starsza niż doba to ślad po przerwanym procesie (restart serwera), nie działający przebieg.
+const BLOKADA_WAZNA_H = 26;
 
 // Tempo: to darmowa usługa publiczna GUGiK. ~3 zapytania/s to spokojne obciążenie.
 const PRZERWA_PIKSEL_MS = 300;
@@ -47,9 +67,29 @@ const MAX_BLEDOW_POD_RZAD = 20;
 
 const spij = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function zalozBlokade(): boolean {
+  try {
+    const st = fs.statSync(BLOKADA);
+    if (Date.now() - st.mtimeMs < BLOKADA_WAZNA_H * 3600 * 1000) return false;
+    fs.rmSync(BLOKADA, { force: true });
+  } catch {
+    // brak pliku = wolne
+  }
+  try {
+    fs.writeFileSync(BLOKADA, String(process.pid), { flag: 'wx' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
+  if (APPLY && !zalozBlokade()) {
+    console.log(`Inny przebieg RCN trwa (blokada ${BLOKADA}). Kończę bez zmian.`);
+    return;
+  }
   const { prisma } = await import('../src/lib/prisma');
-  const { transakcjeWOkolicy } = await import('../src/lib/rcnClient');
+  const { transakcjeKafla } = await import('../src/lib/rcnClient');
 
   const progOdswiezenia = new Date(Date.now() - DNI * 24 * 3600 * 1000);
 
@@ -76,10 +116,19 @@ async function main() {
       lat: { not: null },
       lng: { not: null },
       ...(wojDokladne ? { adminWoj: wojDokladne } : {}),
-      ...(ODSWIEZ ? { OR: [{ rcnScanAt: null }, { rcnScanAt: { lt: progOdswiezenia } }] } : { rcnScanAt: null }),
+      ...(ODSWIEZ
+        ? {
+            OR: [
+              { rcnScanAt: null },
+              { rcnScanAt: { lt: progOdswiezenia } },
+              { rcnScanAt: { lt: SKAN_METODA_OD } },
+            ],
+          }
+        : { rcnScanAt: null }),
     },
     select: { id: true, lat: true, lng: true, adminWoj: true, adminGmina: true, locationLabel: true },
-    orderBy: { createdAt: 'desc' },
+    // Nowe oferty pierwsze (ktoś właśnie na nie patrzy), potem okolice sprawdzane najdawniej.
+    orderBy: [{ rcnScanAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }],
     ...(LIMIT > 0 ? { take: LIMIT } : {}),
   });
 
@@ -91,12 +140,22 @@ async function main() {
   let znalezione = 0;
   let ofertyBezTransakcji = 0;
   let podRzad = 0;
+  let zapytan = 0;
+  let urwane = 0;
   const t0 = Date.now();
 
   for (let n = 0; n < oferty.length; n++) {
     const d = oferty[n];
     try {
-      const trans = await transakcjeWOkolicy(d.lat!, d.lng!, PRZERWA_PIKSEL_MS);
+      if (MAX_MINUT > 0 && Date.now() - t0 > MAX_MINUT * 60000) {
+        console.log(`
+Limit czasu ${MAX_MINUT} min: reszta w następnym przebiegu.`);
+        break;
+      }
+      const kafel = await transakcjeKafla(d.lat!, d.lng!, PRZERWA_PIKSEL_MS);
+      const trans = kafel.transakcje;
+      zapytan += kafel.zapytan;
+      if (kafel.urwane) urwane++;
       podRzad = 0;
       znalezione += trans.length;
       if (trans.length === 0) ofertyBezTransakcji++;
@@ -149,6 +208,10 @@ async function main() {
   console.log(`Znalezionych transakcji: ${znalezione}`);
   console.log(`Zapisanych (z duplikatami z sąsiednich kafli): ${zapisane}`);
   console.log(`Ofert bez żadnej transakcji w okolicy: ${ofertyBezTransakcji}`);
+  console.log(`Zapytań GetFeatureInfo: ${zapytan}`);
+  // Urwany kafel = trafiliśmy w bezpiecznik MAX_ZAPYTAN_KAFLA. Pojedyncze w śródmieściach są
+  // w porządku; dużo = sprawdzić rcnClient, zanim zaczniemy gubić akty po cichu.
+  console.log(`Kafli urwanych na bezpieczniku: ${urwane}`);
   if (APPLY) {
     const wBazie = await prisma.rcnTransakcja.count();
     console.log(`Unikalnych transakcji w bazie: ${wBazie}`);
@@ -159,7 +222,16 @@ async function main() {
   await prisma.$disconnect();
 }
 
-main().catch(async (e) => {
-  console.error(e);
-  process.exit(1);
-});
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    // Zdejmujemy tylko własną blokadę (plik z naszym PID-em).
+    try {
+      if (fs.readFileSync(BLOKADA, 'utf8') === String(process.pid)) fs.rmSync(BLOKADA, { force: true });
+    } catch {
+      // brak blokady = nic do zdjęcia
+    }
+  });

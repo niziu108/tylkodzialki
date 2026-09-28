@@ -66,14 +66,16 @@ export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolic
   const { wycena, cena, rcn, trend, rolny, cenaOferty, dokladna } = dane;
   const rcnWidelki = !!rcn && rcnRozjechane(rcn);
   const v = cena?.value ?? null;
+  // Oba źródła dostają ten sam kod gminy ze strony oferty, więc flaga wyceny mówi o obu.
+  const gm = wycena?.gmina || rcn?.gmina ? 'w tej samej gminie, ' : '';
   const opisPuli =
     !wycena || !cena?.lead || !v
       ? null
       : cena.lead.kind === 'similar' && wycena.similarSizeBand
-        ? `Działki od ${formatIntPL(wycena.similarSizeBand.minM2)} do ${formatIntPL(wycena.similarSizeBand.maxM2)} m² w promieniu ${wycena.radiusKm} km, większość między ${formatIntPL(v.low)} a ${formatIntPL(v.high)} zł/m².`
+        ? `Działki od ${formatIntPL(wycena.similarSizeBand.minM2)} do ${formatIntPL(wycena.similarSizeBand.maxM2)} m² ${gm}w promieniu ${wycena.radiusKm} km, większość między ${formatIntPL(v.low)} a ${formatIntPL(v.high)} zł/m².`
         : cena.mixed
-          ? `W promieniu ${wycena.radiusKm} km ceny rozjeżdżają się za mocno na jedną liczbę, dlatego widełki.`
-          : `W promieniu ${wycena.radiusKm} km, większość między ${formatIntPL(v.low)} a ${formatIntPL(v.high)} zł/m².`;
+          ? `${gm ? 'W tej samej gminie, w' : 'W'} promieniu ${wycena.radiusKm} km ceny rozjeżdżają się za mocno na jedną liczbę, dlatego widełki.`
+          : `${gm ? 'W tej samej gminie, w' : 'W'} promieniu ${wycena.radiusKm} km, większość między ${formatIntPL(v.low)} a ${formatIntPL(v.high)} zł/m².`;
   const zdanieTrendu = !trend
     ? null
     : Math.abs(trend.changePct) < 0.005
@@ -110,7 +112,7 @@ export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolic
             </>
           ) : (
             <Brak>
-              W promieniu {RADIUS_LADDER[RADIUS_LADDER.length - 1]} km mamy za mało ogłoszeń {pula}, żeby
+              {gm ? 'W tej gminie, w promieniu' : 'W promieniu'} {RADIUS_LADDER[RADIUS_LADDER.length - 1]} km mamy za mało ogłoszeń {pula}, żeby
               podać uczciwą cenę.
             </Brak>
           )}
@@ -134,7 +136,7 @@ export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolic
                 {rcn.pasmoM2
                   ? `, działki od ${formatIntPL(rcn.pasmoM2.minM2)} do ${formatIntPL(rcn.pasmoM2.maxM2)} m²,`
                   : ''}{' '}
-                w promieniu {rcn.promienKm} km
+                {gm}w promieniu {rcn.promienKm} km
                 {rcn.odRoku === rcn.doRoku ? `, ${rcn.odRoku} rok` : `, lata ${rcn.odRoku}-${rcn.doRoku}`}.{' '}
                 {rcnWidelki
                   ? 'Ceny w aktach rozjeżdżają się za mocno na jedną liczbę, bo w okolicy sprzedaje się grunty bardzo różnego rodzaju, dlatego widełki.'
@@ -143,7 +145,7 @@ export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolic
             </>
           ) : (
             <Brak>
-              W promieniu {RCN_MAX_PROMIEN_KM} km mamy za mało aktów notarialnych {pula} z ostatnich{' '}
+              {gm ? 'W tej gminie, w promieniu' : 'W promieniu'} {RCN_MAX_PROMIEN_KM} km mamy za mało aktów notarialnych {pula} z ostatnich{' '}
               {RCN_MIESIECY / 12} lat, żeby podać uczciwą liczbę.
             </Brak>
           )}
@@ -292,7 +294,7 @@ export function CenyOkolicySekcja({
   return (
     <section id="ceny-okolicy" aria-labelledby="ceny-okolicy-tytul" className="scroll-mt-24 border-t border-fg/5">
       <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
-        <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">Ceny w okolicy</div>
+        <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">Ceny działek</div>
         <h2 id="ceny-okolicy-tytul" className="mt-2 text-2xl font-semibold tracking-tight text-fg md:text-3xl">
           {miejsce ? `${miejsce} i okolice` : 'Ceny działek w okolicy'}
         </h2>

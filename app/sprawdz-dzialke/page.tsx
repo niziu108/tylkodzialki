@@ -109,12 +109,14 @@ const FAQ: FaqItem[] = [
 async function zbudujDemo(): Promise<RaportData | undefined> {
   try {
     const { lat, lng } = DEMO_PARCEL.center;
-    const valuation = await getPointValuation(lat, lng, DEMO_PARCEL.areaM2);
+    // Te same reguły co prawdziwy raport, w tym rynek = gmina działki.
+    const valuation = await getPointValuation(lat, lng, DEMO_PARCEL.areaM2, null, DEMO_PARCEL.id.slice(0, 6));
     const [nearby, trend, rcn] = await Promise.all([
       getNearbyOffers(lat, lng, valuation.radiusKm),
       getAreaPriceTrend(lat, lng, valuation.radiusKm),
       getRcnOkolica(lat, lng, looksRolny(DEMO_MPZP) ? 'rolna' : 'budowlana', {
         powierzchniaM2: DEMO_PARCEL.areaM2,
+        gminaTeryt: DEMO_PARCEL.id.slice(0, 6),
       }),
     ]);
     return { parcel: DEMO_PARCEL, valuation, mpzp: DEMO_MPZP, pog: DEMO_POG, trend, rcn, nearby };

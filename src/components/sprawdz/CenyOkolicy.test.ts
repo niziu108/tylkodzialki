@@ -143,4 +143,12 @@ describe('cenyOkolicy', () => {
     expect(out).toContain('130 zł/m²');
     expect(out).not.toContain('2,1 km');
   });
+
+  it('przy puli z jednej gminy mówi to wprost', () => {
+    const out = html(cenyOkolicy(wycena({ gmina: true }), { ...rcn, gmina: true }, null, false)!);
+    expect(out).toContain('W tej samej gminie, w promieniu 6 km');
+    expect(out).toContain('w tej samej gminie, w promieniu 10 km');
+    const bezAktow = html(cenyOkolicy(wycena({ gmina: true }), null, null, false)!);
+    expect(bezAktow).toContain('W tej gminie, w promieniu 10 km mamy za mało aktów');
+  });
 });

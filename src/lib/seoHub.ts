@@ -471,6 +471,8 @@ export type PointValuation = {
   // udział ofert z danym medium na działce; null gdy za mało ofert
   mediaShares: MediaShares | null;
   radiusKm: number;
+  // Pula zawężona do gminy punktu (patrz `gminaTeryt`).
+  gmina?: boolean;
 };
 
 // `pominId`: raport pod ofertą liczy cenę okolicy BEZ oglądanej oferty. Inaczej przy cienkiej
@@ -480,8 +482,13 @@ export const getPointValuation = cache(
     lat: number,
     lng: number,
     areaM2?: number | null,
-    pominId?: string | null
+    pominId?: string | null,
+    // 6-cyfrowy kod gminy: porównujemy tylko z ofertami z tej samej gminy. Miasto na prawach
+    // gminy jest osobną gminą, więc wieś pod miastem nie dostaje cen miejskich (Oleśnik vs
+    // Bełchatów, 2026-09-28). Bez kodu (demo, stare wywołania) liczymy jak dotąd.
+    gminaTeryt?: string | null
   ): Promise<PointValuation> => {
+    const gmina = gminaTeryt && /^\d{6}$/.test(gminaTeryt) ? gminaTeryt : null;
     const maxKm = RADIUS_LADDER[RADIUS_LADDER.length - 1];
     const box = boxAround(lat, lng, maxKm);
     const now = new Date();
@@ -489,6 +496,7 @@ export const getPointValuation = cache(
     const rows = await prisma.dzialka.findMany({
       where: {
         ...(pominId ? { id: { not: pominId } } : {}),
+        ...(gmina ? { adminTeryt: gmina } : {}),
         ownerId: { not: null },
         status: DzialkaStatus.AKTYWNE,
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
@@ -604,6 +612,7 @@ export const getPointValuation = cache(
       offersNearby: near.length,
       mediaShares,
       radiusKm: km,
+      gmina: !!gmina,
     };
   }
 );

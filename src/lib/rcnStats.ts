@@ -51,6 +51,8 @@ export type RcnOkolica = {
   doRoku: number;
   /** Widełki powierzchni, gdy pulę zawęziliśmy do działek podobnej wielkości. */
   pasmoM2?: { minM2: number; maxM2: number } | null;
+  /** Pula zawężona do gminy punktu (miasto na prawach gminy to osobna gmina). */
+  gmina?: boolean;
   /** Najbliższe akty z tej samej puli: medianę da się sprawdzić palcem (jak „sold nearby"). */
   najblizsze?: RcnAkt[];
 };
@@ -129,9 +131,10 @@ export async function getRcnOkolica(
   lat: number,
   lng: number,
   klasa: RcnKlasa,
-  opts: { powierzchniaM2?: number | null; teraz?: Date } = {}
+  opts: { powierzchniaM2?: number | null; teraz?: Date; gminaTeryt?: string | null } = {}
 ): Promise<RcnOkolica | null> {
   const teraz = opts.teraz ?? new Date();
+  const gmina = opts.gminaTeryt && /^\d{6}$/.test(opts.gminaTeryt) ? opts.gminaTeryt : null;
   const pasmoM2 =
     opts.powierzchniaM2 && opts.powierzchniaM2 > 0
       ? {
@@ -158,10 +161,16 @@ export async function getRcnOkolica(
       // rekord dawał podpis „lata 2021-2202".
       dataTransakcji: { gte: od, lte: teraz },
       ...(pasmoM2 ? { powierzchniaM2: { gte: pasmoM2.minM2, lte: pasmoM2.maxM2 } } : {}),
+      // Ta sama gmina (2026-09-28): identyfikator działki zaczyna się od kodu gminy („100102_2.").
+      // Oleśnik (gmina wiejska Bełchatów, 100102) dostawał akty z miasta Bełchatów (100101) 4 km
+      // dalej, gdzie metr kosztuje kilka razy więcej. Miasto i wieś to dwa rynki, a granica gminy
+      // to najprostsza granica rynku, jaką mamy w danych po obu stronach.
+      ...(gmina ? { idDzialki: { startsWith: `${gmina}_` } } : {}),
       lat: { gte: lat - dLat, lte: lat + dLat },
       lng: { gte: lng - dLng, lte: lng + dLng },
     },
     select: {
+      lokalnyIdIip: true,
       lat: true,
       lng: true,
       cenaZaM2: true,
@@ -173,7 +182,11 @@ export async function getRcnOkolica(
     },
   });
 
+  // Jeden akt na kilka działek jest w rejestrze kilka razy (każda działka z ceną i powierzchnią
+  // CAŁEJ transakcji). Bez tego jedna sprzedaż ważyła w medianie tyle, ile miała działek.
+  const widziane = new Set<string>();
   const pasujace = rows
+    .filter((r) => (widziane.has(r.lokalnyIdIip) ? false : (widziane.add(r.lokalnyIdIip), true)))
     .filter((r) => klasaTransakcji(r) === klasa)
     .map((r) => ({ ...r, dist: haversineKm(lat, lng, r.lat, r.lng) }));
 
@@ -194,6 +207,7 @@ export async function getRcnOkolica(
       odRoku: Math.min(...lata),
       doRoku: Math.max(...lata),
       pasmoM2,
+      gmina: !!gmina,
       najblizsze: [...wKole]
         .sort((a, b) => a.dist - b.dist)
         .slice(0, RCN_NAJBLIZSZE)

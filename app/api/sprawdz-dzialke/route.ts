@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     // sekundy). Limit 20 s i osobna flaga pozwalają raportowi powiedzieć „gmina nie odpowiedziała".
     // TERYT z identyfikatora działki: gminy na hostingu GISON lib pyta najpierw wprost.
     const [valuation, mpzpWynik, pog] = await Promise.all([
-      getPointValuation(parcel.center.lat, parcel.center.lng, parcel.areaM2),
+      getPointValuation(parcel.center.lat, parcel.center.lng, parcel.areaM2, null, parcel.id.slice(0, 6)),
       getMpzpAtPoint(parcel.center.lat, parcel.center.lng, {
         rzucajBledy: true,
         teryt: parcel.id.slice(0, 6),
@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
       getAreaPriceTrend(parcel.center.lat, parcel.center.lng, valuation.radiusKm),
       getRcnOkolica(parcel.center.lat, parcel.center.lng, looksRolny(mpzp) ? 'rolna' : 'budowlana', {
         powierzchniaM2: parcel.areaM2,
+        gminaTeryt: parcel.id.slice(0, 6),
       }),
     ]);
 

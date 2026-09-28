@@ -1,8 +1,10 @@
 // Rejestr Cen Nieruchomości (RCN, GUGiK): parsowanie i oczyszczanie odpowiedzi usługi WMS.
 //
-// Źródło: `https://mapy.geoportal.gov.pl/wss/service/rcn`, warstwa `dzialki`,
-// GetFeatureInfo z `INFO_FORMAT=text/xml`. Uwaga: GML tego samego punktu NIE zawiera
-// `TRAN_CENA_BRUTTO`, więc XML jest jedynym sensownym formatem.
+// Źródło: `https://mapy.geoportal.gov.pl/wss/service/rcn`, warstwa `dzialki`, GetFeatureInfo.
+// Od 2026-09-28 pobieramy `INFO_FORMAT=application/vnd.ogc.gml`: ma te same pola co text/xml
+// (w tym TRAN_CENA_BRUTTO, sprawdzone na żywo; wcześniejsza notatka „GML bez ceny" jest
+// nieaktualna) ORAZ obrys działki. Obrys pozwala pobierać kafel bez gubienia sąsiednich działek
+// (rcnClient) i daje prawdziwe położenie działki zamiast środka plamy na obrazku.
 //
 // Ten moduł jest celowo bez zależności (żadnej sieci, żadnej bazy), bo to reguły liczenia:
 // wyglądają na oczywiste, a cicho psują mediany. Testy w `rcn.test.ts`.
@@ -38,6 +40,53 @@ export function parseRcnXml(xml: string): RcnRaw[] {
     out.push(rec);
   }
   return out;
+}
+
+/** [lng, lat] w EPSG:4326, tak jak w `gml:coordinates`. */
+export type RcnPunkt = [number, number];
+
+export type RcnObiektGml = { rec: RcnRaw; obrysy: RcnPunkt[][] };
+
+/**
+ * Wyciąga obiekty `<dzialki_feature>` z odpowiedzi GetFeatureInfo w GML: pola rekordu (te same
+ * nazwy co w text/xml) i pierścienie obrysu działki. Wieloczęściowa działka = kilka pierścieni.
+ */
+export function parseRcnGml(gml: string): RcnObiektGml[] {
+  const out: RcnObiektGml[] = [];
+  for (const blok of gml.matchAll(/<dzialki_feature>([\s\S]*?)<\/dzialki_feature>/g)) {
+    const tresc = blok[1];
+    const geometria = tresc.match(/<GEOMETRIA>([\s\S]*?)<\/GEOMETRIA>/)?.[1] ?? '';
+    const obrysy: RcnPunkt[][] = [];
+    for (const c of geometria.matchAll(/<gml:coordinates>([\s\S]*?)<\/gml:coordinates>/g)) {
+      const pierscien = c[1]
+        .trim()
+        .split(/\s+/)
+        .map((para) => para.split(',').map(Number) as RcnPunkt)
+        .filter((p) => p.length === 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+      if (pierscien.length >= 3) obrysy.push(pierscien);
+    }
+    // Pola rekordu: bez geometrii i bez znaczników gml:, żeby nie złapać współrzędnych jako pola.
+    const rec: RcnRaw = {};
+    for (const pole of tresc.replace(/<GEOMETRIA>[\s\S]*?<\/GEOMETRIA>/, '').matchAll(/<([A-Z_0-9]+)>([\s\S]*?)<\/\1>/g)) {
+      rec[pole[1]] = pole[2].trim();
+    }
+    out.push({ rec, obrysy });
+  }
+  return out;
+}
+
+/** Środek działki: średnia wierzchołków najdłuższego pierścienia (bez powtórzonego domknięcia). */
+export function srodekObrysu(obrysy: RcnPunkt[][]): { lat: number; lng: number } | null {
+  const glowny = [...obrysy].sort((a, b) => b.length - a.length)[0];
+  if (!glowny) return null;
+  const pkt =
+    glowny.length > 1 && glowny[0][0] === glowny.at(-1)![0] && glowny[0][1] === glowny.at(-1)![1]
+      ? glowny.slice(0, -1)
+      : glowny;
+  return {
+    lng: pkt.reduce((s, p) => s + p[0], 0) / pkt.length,
+    lat: pkt.reduce((s, p) => s + p[1], 0) / pkt.length,
+  };
 }
 
 // Powyżej tego progu traktujemy liczbę jako metry, poniżej jako hektary.

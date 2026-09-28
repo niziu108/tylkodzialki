@@ -2,9 +2,16 @@
 //
 // Dlaczego tak dziwnie, przez obrazek: usługa nie ma WFS-a z ceną (powiatowe WFS-y mają tylko
 // 8 pól, bez kwot), a jej WMS oddaje dane wyłącznie przez GetFeatureInfo, czyli per piksel.
-// Żeby nie strzelać na oślep, najpierw pobieramy kafel GetMap, znajdujemy na nim skupiska
-// nieprzezroczystych pikseli (jeden symbol transakcji to kilkanaście pikseli), i dopiero
-// środek każdego skupiska odpytujemy raz. To zamienia setki zapytań w kilka.
+// Żeby nie strzelać na oślep, najpierw pobieramy kafel GetMap i patrzymy, gdzie na nim są
+// narysowane działki z transakcjami (nieprzezroczyste piksele).
+//
+// Jak odpytujemy (od 2026-09-28): ZACHŁANNE POKRYCIE. Bierzemy pierwszy jeszcze niepokryty
+// piksel działek, pytamy o niego w GML, a odpowiedź zawiera obrys działki. Cały obrys (z
+// marginesem na grubość linii) oznaczamy jako pokryty i szukamy następnego niepokrytego piksela.
+// Wychodzi mniej więcej jedno zapytanie na działkę.
+// Wcześniej pytaliśmy tylko o środek każdej plamy, a sąsiednie działki (osiedle, podział pola
+// na działki pod dom) rysują się jako JEDNA plama: pomiar na 8 kaflach dał 34 transakcje
+// zamiast 62, czyli gubiliśmy ~45%, i to najczęściej właśnie działki pod dom.
 //
 // Ograniczenie usługi: warstwa `dzialki` ma MaxScaleDenominator 5001, więc kafel musi być
 // ciasny (ok. 400 m). Powyżej tej skali serwer zwraca pusty obrazek i pustą odpowiedź.
@@ -12,17 +19,24 @@
 // Usługa jest wg GUGiK „rozwiązaniem tymczasowym", dlatego wyniki trzymamy u siebie w bazie.
 
 import sharp from 'sharp';
-import { parseRcnXml, doZapisu, type RcnTransakcjaDane } from '@/lib/rcn';
+import { parseRcnGml, srodekObrysu, doZapisu, type RcnPunkt, type RcnTransakcjaDane } from '@/lib/rcn';
 
 const RCN_WMS = 'https://mapy.geoportal.gov.pl/wss/service/rcn';
 const KAFEL_PX = 512;
 /** Połowa wysokości kafla w stopniach szerokości. 0.0020 to ok. 220 m, czyli kafel ok. 440 m. */
 const POL_KAFLA_LAT = 0.002;
 
-/** Ile pikseli musi mieć skupisko, żeby uznać je za symbol, a nie za artefakt antyaliasingu. */
-const MIN_PIKSELI_SKUPISKA = 4;
-/** Zabezpieczenie przed gęstym śródmieściem: tyle skupisk odpytujemy z jednego kafla. */
-const MAX_SKUPISK = 45;
+/** Próg przezroczystości: niżej to antyaliasing krawędzi, nie rysunek działki. */
+const MIN_ALFA = 120;
+/** Margines (px) wokół obrysu działki: linia na obrazku jest grubsza niż sama granica. */
+const MARGINES_OBRYSU_PX = 2;
+/** Promień (px) kwadratu oznaczanego wokół odpytanego piksela, także gdy odpowiedź była pusta. */
+const OTOCZKA_PYTANIA_PX = 3;
+/**
+ * Bezpiecznik na jeden kafel. Typowy kafel to kilka-kilkanaście zapytań; gęste śródmieście może
+ * mieć ich więcej. Przekroczenie zgłaszamy w wyniku (`urwane`), żeby było widać, a nie zgadywać.
+ */
+export const MAX_ZAPYTAN_KAFLA = 400;
 
 export type PunktTransakcji = Omit<RcnTransakcjaDane, 'lat' | 'lng'> & { lat: number; lng: number };
 
@@ -74,40 +88,12 @@ async function pobierzKafel(lat: number, lng: number): Promise<Buffer | null> {
   });
 }
 
-/** Środki skupisk nieprzezroczystych pikseli, w układzie pikseli kafla. */
-async function skupiska(png: Buffer): Promise<Array<[number, number]>> {
+/** Maska narysowanych działek: 1 = piksel do pokrycia. */
+async function maskaDzialek(png: Buffer): Promise<Uint8Array> {
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const { width: w, height: h, channels } = info;
-  const odwiedzone = new Uint8Array(w * h);
-  const srodki: Array<[number, number]> = [];
-  const alfa = (x: number, y: number) => data[(y * w + x) * channels + 3];
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (odwiedzone[y * w + x] || alfa(x, y) < 120) continue;
-      let sumaX = 0;
-      let sumaY = 0;
-      let ile = 0;
-      const stos: Array<[number, number]> = [[x, y]];
-      odwiedzone[y * w + x] = 1;
-      while (stos.length) {
-        const [cx, cy] = stos.pop()!;
-        sumaX += cx;
-        sumaY += cy;
-        ile++;
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-          const nx = cx + dx;
-          const ny = cy + dy;
-          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-          if (odwiedzone[ny * w + nx] || alfa(nx, ny) < 120) continue;
-          odwiedzone[ny * w + nx] = 1;
-          stos.push([nx, ny]);
-        }
-      }
-      if (ile >= MIN_PIKSELI_SKUPISKA) srodki.push([Math.round(sumaX / ile), Math.round(sumaY / ile)]);
-    }
-  }
-  return srodki;
+  const maska = new Uint8Array(info.width * info.height);
+  for (let p = 0; p < maska.length; p++) maska[p] = data[p * info.channels + 3] >= MIN_ALFA ? 1 : 0;
+  return maska;
 }
 
 async function odpytajPiksel(lat: number, lng: number, i: number, j: number): Promise<string | null> {
@@ -120,8 +106,8 @@ async function odpytajPiksel(lat: number, lng: number, i: number, j: number): Pr
         BBOX: `${b.south},${b.west},${b.north},${b.east}`,
         WIDTH: String(KAFEL_PX), HEIGHT: String(KAFEL_PX),
         I: String(i), J: String(j),
-        // GML tego samego punktu NIE zawiera ceny, text/plain zwraca sam identyfikator.
-        INFO_FORMAT: 'text/xml', FEATURE_COUNT: '20',
+        // GML: te same pola co text/xml plus obrys działki (patrz lib/rcn.ts).
+        INFO_FORMAT: 'application/vnd.ogc.gml', FEATURE_COUNT: '50',
       }),
     );
     if (!res.ok) throw new Error(`GetFeatureInfo HTTP ${res.status}`);
@@ -129,46 +115,106 @@ async function odpytajPiksel(lat: number, lng: number, i: number, j: number): Pr
   });
 }
 
-/** Piksel kafla na współrzędne geograficzne (środek symbolu transakcji). */
-function pikselNaLatLng(lat: number, lng: number, i: number, j: number) {
-  const b = bbox(lat, lng);
-  return {
-    lat: b.north - ((b.north - b.south) * j) / KAFEL_PX,
-    lng: b.west + ((b.east - b.west) * i) / KAFEL_PX,
-  };
+function wWielokacie(x: number, y: number, pierscien: Array<[number, number]>): boolean {
+  let w = false;
+  for (let a = 0, b = pierscien.length - 1; a < pierscien.length; b = a++) {
+    const [xa, ya] = pierscien[a];
+    const [xb, yb] = pierscien[b];
+    if (ya > y !== yb > y && x < ((xb - xa) * (y - ya)) / (yb - ya) + xa) w = !w;
+  }
+  return w;
 }
 
 /**
- * Transakcje RCN w okolicy punktu (kafel ok. 440 m). Zwraca rekordy już oczyszczone
- * (`doZapisu`), zdeduplikowane po kluczu naturalnym transakcja+działka.
- * `przerwaMs` reguluje tempo — to darmowa usługa publiczna, nie dobijamy jej.
+ * Oznacza jako pokryte piksele kafla leżące w obrysie działki albo do MARGINES_OBRYSU_PX od niego.
+ * Czyste i eksportowane dla testów: to od tej funkcji zależy, czy zapytamy o każdą działkę.
  */
-export async function transakcjeWOkolicy(
-  lat: number,
-  lng: number,
-  przerwaMs = 300,
-): Promise<PunktTransakcji[]> {
-  const png = await pobierzKafel(lat, lng);
-  if (!png) return [];
+export function pokryjObrys(
+  pokryte: Uint8Array,
+  obrys: RcnPunkt[],
+  kafel: { south: number; west: number; north: number; east: number },
+  px = KAFEL_PX,
+): void {
+  const naPiksel = obrys.map(
+    ([lng, lat]) =>
+      [((lng - kafel.west) / (kafel.east - kafel.west)) * px, ((kafel.north - lat) / (kafel.north - kafel.south)) * px] as [
+        number,
+        number,
+      ],
+  );
+  const m = MARGINES_OBRYSU_PX;
+  const x0 = Math.max(0, Math.floor(Math.min(...naPiksel.map((p) => p[0])) - m));
+  const x1 = Math.min(px - 1, Math.ceil(Math.max(...naPiksel.map((p) => p[0])) + m));
+  const y0 = Math.max(0, Math.floor(Math.min(...naPiksel.map((p) => p[1])) - m));
+  const y1 = Math.min(px - 1, Math.ceil(Math.max(...naPiksel.map((p) => p[1])) + m));
+  const probki: Array<[number, number]> = [[0, 0], [m, 0], [-m, 0], [0, m], [0, -m], [m, m], [m, -m], [-m, m], [-m, -m]];
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      if (pokryte[y * px + x]) continue;
+      const cx = x + 0.5;
+      const cy = y + 0.5;
+      if (probki.some(([dx, dy]) => wWielokacie(cx + dx, cy + dy, naPiksel))) pokryte[y * px + x] = 1;
+    }
+  }
+}
 
-  const srodki = await skupiska(png);
+function pokryjKwadrat(pokryte: Uint8Array, i: number, j: number, r: number, px = KAFEL_PX) {
+  for (let y = Math.max(0, j - r); y <= Math.min(px - 1, j + r); y++) {
+    for (let x = Math.max(0, i - r); x <= Math.min(px - 1, i + r); x++) pokryte[y * px + x] = 1;
+  }
+}
+
+export type WynikKafla = { transakcje: PunktTransakcji[]; zapytan: number; urwane: boolean };
+
+/**
+ * Transakcje RCN w kaflu ok. 440 m wokół punktu. Rekordy oczyszczone (`doZapisu`),
+ * zdeduplikowane po kluczu transakcja+działka, z położeniem środka działki z obrysu.
+ * `przerwaMs` reguluje tempo: to darmowa usługa publiczna, nie dobijamy jej.
+ */
+export async function transakcjeKafla(lat: number, lng: number, przerwaMs = 300): Promise<WynikKafla> {
+  const png = await pobierzKafel(lat, lng);
+  if (!png) return { transakcje: [], zapytan: 0, urwane: false };
+
+  const kafel = bbox(lat, lng);
+  const maska = await maskaDzialek(png);
+  const pokryte = new Uint8Array(KAFEL_PX * KAFEL_PX);
   const widziane = new Set<string>();
   const out: PunktTransakcji[] = [];
+  let zapytan = 0;
 
-  for (const [i, j] of srodki.slice(0, MAX_SKUPISK)) {
-    const xml = await odpytajPiksel(lat, lng, i, j);
-    if (xml) {
-      const punkt = pikselNaLatLng(lat, lng, i, j);
-      for (const surowy of parseRcnXml(xml)) {
-        const dane = doZapisu(surowy);
-        if (!dane) continue;
-        const klucz = `${dane.lokalnyIdIip}|${dane.idDzialki}`;
-        if (widziane.has(klucz)) continue;
-        widziane.add(klucz);
-        out.push({ ...dane, lat: punkt.lat, lng: punkt.lng });
-      }
+  for (let p = 0; p < maska.length; p++) {
+    if (!maska[p] || pokryte[p]) continue;
+    if (zapytan >= MAX_ZAPYTAN_KAFLA) return { transakcje: out, zapytan, urwane: true };
+
+    const i = p % KAFEL_PX;
+    const j = Math.floor(p / KAFEL_PX);
+    const gml = await odpytajPiksel(lat, lng, i, j);
+    zapytan++;
+    // Zawsze oznaczamy otoczkę pytanego piksela: pusta odpowiedź (krawędź linii) nie może
+    // wracać w pętli, a jedna działka nie może kosztować wielu zapytań.
+    pokryjKwadrat(pokryte, i, j, OTOCZKA_PYTANIA_PX);
+
+    for (const { rec, obrysy } of gml ? parseRcnGml(gml) : []) {
+      for (const obrys of obrysy) pokryjObrys(pokryte, obrys, kafel);
+      const dane = doZapisu(rec);
+      if (!dane) continue;
+      const klucz = `${dane.lokalnyIdIip}|${dane.idDzialki}`;
+      if (widziane.has(klucz)) continue;
+      widziane.add(klucz);
+      // Położenie: środek działki z obrysu. Awaryjnie odpytany piksel.
+      const b = kafel;
+      const srodek = srodekObrysu(obrysy) ?? {
+        lat: b.north - ((b.north - b.south) * (j + 0.5)) / KAFEL_PX,
+        lng: b.west + ((b.east - b.west) * (i + 0.5)) / KAFEL_PX,
+      };
+      out.push({ ...dane, lat: srodek.lat, lng: srodek.lng });
     }
     await new Promise((r) => setTimeout(r, przerwaMs));
   }
-  return out;
+  return { transakcje: out, zapytan, urwane: false };
+}
+
+/** Zgodność wstecz: same transakcje kafla. */
+export async function transakcjeWOkolicy(lat: number, lng: number, przerwaMs = 300): Promise<PunktTransakcji[]> {
+  return (await transakcjeKafla(lat, lng, przerwaMs)).transakcje;
 }

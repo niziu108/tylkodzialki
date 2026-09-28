@@ -258,13 +258,18 @@ export default async function Page({ params }: PageProps) {
   const srodek = raport ? raport.dane.parcel.center : punktOferty;
   const rolny = raport ? looksRolny(raport.dane.mpzp) : klasaZPrzeznaczen(dzialka?.przeznaczenia) === 'rolna';
   const powierzchnia = raport ? raport.dane.parcel.areaM2 : (dzialka?.powierzchniaM2 ?? null);
+  // Rynek = gmina: z ewidencji działki, a bez raportu z geokodowania oferty.
+  const gminaTeryt = raport ? raport.dane.parcel.id.slice(0, 6) : (dzialka?.adminTeryt ?? null);
   const [rcnOkolicy, wycenaOkolicy] =
     srodek && dzialka
       ? await Promise.all([
-          getRcnOkolica(srodek.lat, srodek.lng, rolny ? 'rolna' : 'budowlana', { powierzchniaM2: powierzchnia }).catch(
+          getRcnOkolica(srodek.lat, srodek.lng, rolny ? 'rolna' : 'budowlana', {
+            powierzchniaM2: powierzchnia,
+            gminaTeryt,
+          }).catch(
             () => null
           ),
-          getPointValuation(srodek.lat, srodek.lng, powierzchnia, dzialka.id).catch(() => null),
+          getPointValuation(srodek.lat, srodek.lng, powierzchnia, dzialka.id, gminaTeryt).catch(() => null),
         ])
       : ([null, null] as const);
   const trendOkolicy =
