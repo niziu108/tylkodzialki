@@ -30,8 +30,12 @@ export const RCN_MIN_PROBKA = 10;
 /** Ile miesięcy wstecz uznajemy za „dzisiejszy rynek". */
 export const RCN_MIESIECY = 60;
 
+// Najdalej 10 km (2026-09-28). Akty zbieramy tylko z kafli ~440 m wokół NASZYCH ofert (rcnClient),
+// więc 20 i 35 km nie znaczyło „szersza okolica", tylko „wsie, gdzie akurat mamy oferty": pod
+// Bartągiem (oferta 526 zł/m²) wisiało 62 zł/m² z aktów 10-20 km dalej, a z Olsztyna nie było
+// ani jednego. Tak liczyło 60% ofert z medianą aktów. Cisza > liczba do obalenia.
 /** Drabinka promieni (km): bierzemy pierwszy, który daje próbkę. */
-export const RCN_PROMIENIE = [10, 20, 35] as const;
+export const RCN_PROMIENIE = [5, 10] as const;
 
 export type RcnKlasa = 'budowlana' | 'rolna';
 
