@@ -56,6 +56,7 @@ const render = (dane: Partial<RaportOfertyDane>) =>
       zrodlo: 'PINEZKA',
       sprawdzono: '2026-09-15T12:00:00.000Z',
       rcn: null,
+      cenaOferty: null,
       wycena: null,
       trend: null,
     })

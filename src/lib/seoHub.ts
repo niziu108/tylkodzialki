@@ -193,6 +193,13 @@ export const getRegionTotals = cache(async (): Promise<Record<string, number>> =
 // Minimalna próbka, przy której podajemy medianę/zakres ceny i udziały cech.
 export const MIN_SAMPLE = 4;
 
+// Ile ogłoszeń musi być w puli, żeby wycena punktowa (raport, ceny pod ofertą, kreator) podała
+// medianę i „większość między". Audyt 2026-09-25 (150 losowych ofert): przy 4-5 ogłoszeniach
+// cena 30 z 53 ofert wypadała poza widełki p10-p90, czyli zdanie „większość między" było
+// nieprawdą. Od 8 wzwyż widełki trzymają się rynku. Tu, a nie w raportCena, bo tym samym progiem
+// wycena dobiera promień (raportCena importuje stąd i re-eksportuje).
+export const MIN_OFERT_DO_CENY = 8;
+
 // Zakres odporny na outliery: low=10. percentyl, high=90. percentyl (a NIE surowe min/max,
 // które ciągną pojedyncze śmieciowe ogłoszenia, np. „3 zł/m²"). Mediana w środku.
 export type RangeStat = { low: number; median: number; high: number };
@@ -519,7 +526,13 @@ export const getPointValuation = cache(
     const isBudowlana = (r: (typeof rows)[number]) => r.przeznaczenia.includes('BUDOWLANA');
 
     // Najmniejszy pierścień z próbką budowlanych; potem z jakąkolwiek próbką; na końcu największy.
+    // Najpierw progiem, od którego cenę w ogóle pokazujemy (MIN_OFERT_DO_CENY). Wcześniej koło
+    // stawało na 4 ofertach, a raport od 25.09 chce 8, więc milczał, choć kawałek dalej ofert
+    // było dość (Oleśnik: 4 oferty w 3 km, Bełchatów 6 km dalej). Próg 4 zostaje jako zapas
+    // dla udziałów mediów i listy ofert w okolicy.
     const km =
+      RADIUS_LADDER.find((k) => priced(ring(k).filter(isBudowlana)) >= MIN_OFERT_DO_CENY) ??
+      RADIUS_LADDER.find((k) => priced(ring(k)) >= MIN_OFERT_DO_CENY) ??
       RADIUS_LADDER.find((k) => priced(ring(k).filter(isBudowlana)) >= MIN_SAMPLE) ??
       RADIUS_LADDER.find((k) => priced(ring(k)) >= MIN_SAMPLE) ??
       maxKm;
@@ -562,7 +575,8 @@ export const getPointValuation = cache(
         );
         band = kandydat;
         similarRows = rows;
-        if (priced(rows) >= MIN_SAMPLE) break;
+        // Tym samym progiem co raport: przy 4-7 podobnych lepiej poszerzyć widełki wielkości.
+        if (priced(rows) >= MIN_OFERT_DO_CENY) break;
       }
     }
 

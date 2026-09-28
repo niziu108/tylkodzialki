@@ -269,7 +269,14 @@ export default async function Page({ params }: PageProps) {
       : ([null, null] as const);
   const trendOkolicy =
     srodek && wycenaOkolicy ? await getAreaPriceTrend(srodek.lat, srodek.lng, wycenaOkolicy.radiusKm) : null;
-  const cenyBezRaportu = !raport ? cenyOkolicy(wycenaOkolicy, rcnOkolicy, trendOkolicy, rolny) : null;
+  // Kropka „ta oferta" na skali cen: zł/m² z ogłoszenia, tak jak w nagłówku oferty.
+  const cenaOfertyZlM2 =
+    punktOferty && dzialka && dzialka.cenaPln > 0 && dzialka.powierzchniaM2 > 0
+      ? dzialka.cenaPln / dzialka.powierzchniaM2
+      : null;
+  const cenyBezRaportu = !raport
+    ? cenyOkolicy(wycenaOkolicy, rcnOkolicy, trendOkolicy, rolny, cenaOfertyZlM2)
+    : null;
   // Etykiety z CRM bywają wersalikami i z powtórzeniem („KOSTOMŁOTY PIERWSZE, Kostomłoty pierwsze").
   const miejsceOkolicy = dzialka
     ? [
@@ -437,6 +444,7 @@ export default async function Page({ params }: PageProps) {
           rcn={rcnOkolicy}
           wycena={wycenaOkolicy}
           trend={trendOkolicy}
+          cenaOferty={cenaOfertyZlM2}
         />
       ) : cenyBezRaportu ? (
         <CenyOkolicySekcja

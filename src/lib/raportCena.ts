@@ -5,7 +5,7 @@
 // ([[project-sprawdz-dzialke]]).
 
 import type { MpzpInfo } from './mpzp';
-import { isWideSpread, type PointValuation, type PriceStat, type RangeStat } from './seoHub';
+import { isWideSpread, MIN_OFERT_DO_CENY, type PointValuation, type PriceStat, type RangeStat } from './seoHub';
 
 export type LeadKind = 'similar' | 'type';
 
@@ -41,11 +41,8 @@ export function klasaZPrzeznaczen(przeznaczenia: readonly string[] | null | unde
   return p.includes('ROLNA') || p.includes('LESNA') ? 'rolna' : 'budowlana';
 }
 
-// Ile ogłoszeń musi być w puli, żeby podać medianę i „większość między". Audyt 2026-09-25
-// (150 losowych ofert): przy 4-5 ogłoszeniach cena 30 z 53 ofert wypadała poza widełki p10-p90,
-// czyli zdanie „większość między" było nieprawdą. Od 8 wzwyż widełki trzymają się rynku.
-// Wcześniej ten sam próg działał tylko na największym kole (isFarAndThin), teraz na każdym.
-export const MIN_OFERT_DO_CENY = 8;
+// Próg 8 ogłoszeń (audyt 2026-09-25) mieszka w seoHub, bo tym samym progiem wycena dobiera promień.
+export { MIN_OFERT_DO_CENY };
 
 // Kolejność: najpierw działki ZBLIŻONEJ WIELKOŚCI, bo to największe źródło rozrzutu w okolicy
 // (za metr działki pod dom płaci się kilka razy tyle co za metr wielohektarowego pola). Dopiero

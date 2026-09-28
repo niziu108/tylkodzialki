@@ -29,6 +29,16 @@ describe('klasaTransakcji', () => {
     expect(t('terenZabudowyZagrodowejGospodarstwRolnych')).toBe('rolna');
   });
 
+  it('usługi, bloki i drogi to nie działka pod dom, nawet na gruntach zabudowanych', () => {
+    expect(t('terenZabudowyUslugowej', 'gruntyZabudowaneIZurbanizowane')).toBeNull();
+    expect(t('budownictwoMieszkanioweWielorodzinne', 'gruntyZabudowaneIZurbanizowane')).toBeNull();
+    expect(t('terenDrogWewnetrznych', 'gruntyZabudowaneIZurbanizowane')).toBeNull();
+    // Mieszane MN/U to typowa działka pod dom, zostaje.
+    expect(t('budownictwoMieszkanioweJednorodzinne;terenZabudowyUslugowej')).toBe('budowlana');
+    // Bez planu grunt zabudowany dalej liczy się jak dotąd.
+    expect(t('brakMPZPLubWZ', 'gruntyZabudowaneIZurbanizowane')).toBe('budowlana');
+  });
+
   it('bez przeznaczenia decyduje sposób użytkowania', () => {
     expect(t(null, 'gruntyRolne')).toBe('rolna');
     expect(t(null, 'gruntyLesne')).toBe('rolna');

@@ -27,6 +27,7 @@ export default function RaportOferty({
   rcn,
   wycena,
   trend,
+  cenaOferty,
 }: {
   dane: RaportOfertyDane;
   zrodlo: ZrodloDzialki;
@@ -34,12 +35,13 @@ export default function RaportOferty({
   rcn: RcnOkolica | null;
   wycena: PointValuation | null; // z naszych ofert w okolicy, bez oglądanej oferty
   trend: AreaPriceTrend | null;
+  cenaOferty: number | null; // zł/m² oglądanej oferty, kropka na skali cen
 }) {
   const { parcel, mpzp, pog, niedostepne = [] } = dane;
   const mpzpNieznany = niedostepne.includes('mpzp');
 
   // Pula cenowa z planu miejscowego: grunt rolny w planie = porównujemy z rolnymi.
-  const ceny = cenyOkolicy(wycena, rcn, trend, looksRolny(mpzp));
+  const ceny = cenyOkolicy(wycena, rcn, trend, looksRolny(mpzp), cenaOferty);
   const [mapShown, setMapShown] = useState(false);
   const obreb = ladnaNazwaObrebu(parcel.region);
   const przeznaczenie = mpzp?.functionName

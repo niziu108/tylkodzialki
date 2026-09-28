@@ -51,7 +51,21 @@ export type RcnOkolica = {
   doRoku: number;
   /** Widełki powierzchni, gdy pulę zawęziliśmy do działek podobnej wielkości. */
   pasmoM2?: { minM2: number; maxM2: number } | null;
+  /** Najbliższe akty z tej samej puli: medianę da się sprawdzić palcem (jak „sold nearby"). */
+  najblizsze?: RcnAkt[];
 };
+
+export type RcnAkt = {
+  /** ISO (string, nie Date: dane idą też do komponentów klienta i JSON-a API). */
+  data: string;
+  powierzchniaM2: number;
+  cenaPln: number;
+  zlM2: number;
+  km: number;
+};
+
+/** Ile najbliższych aktów pokazujemy pod medianą. */
+export const RCN_NAJBLIZSZE = 5;
 
 // Pod ofertą porównujemy z aktami działek podobnej wielkości (0,25x do 4x). Bez tego pod
 // siedliskiem 7,5 ha wisiała mediana aktów działek pod dom (audyt 2026-09-25): metr pola
@@ -73,14 +87,20 @@ export function klasaTransakcji(t: {
   // Rolne rozstrzygamy PIERWSZE i tylko wtedy, gdy nic nie wskazuje na zabudowę mieszkaniową.
   // Wpisy łączone („budownictwoMieszkanioweJednorodzinne;terenRolniczy") to działki pod dom
   // z rolnym kawałkiem, a nie pole uprawne, więc idą do budowlanych.
+  // Tylko JEDNORODZINNA (2026-09-28). Grunt pod bloki, usługi czy przemysł to rynek deweloperów
+  // i firm, nie działka pod dom: pod Oleśnikiem wśród „najbliższych aktów" stał teren usługowy
+  // po 583 zł/m², gdy domowe szły po 95-200.
   const mieszkaniowe =
-    prz.includes('budownictwomieszkaniowe') || prz.includes('decyzjawarunkizabudowy');
+    prz.includes('budownictwomieszkaniowejednorodzinne') || prz.includes('decyzjawarunkizabudowy');
   if (mieszkaniowe) return 'budowlana';
 
   if (prz.includes('terenrolniczy') || prz.includes('zabudowyzagrodowej')) return 'rolna';
   if (spo.includes('gruntyrolne') || spo.includes('gruntylesne')) return 'rolna';
 
-  if (spo.includes('gruntyzabudowaneizurbanizowane')) return 'budowlana';
+  // Sposób użytkowania rozstrzyga tylko wtedy, gdy plan nic konkretnego nie mówi. Jawne inne
+  // przeznaczenie (usługi, wielorodzinne, drogi) = poza obiema pulami.
+  const planOgolny = !prz || prz === 'brakmpzplubwz' || prz === 'innyniewymieniony';
+  if (planOgolny && spo.includes('gruntyzabudowaneizurbanizowane')) return 'budowlana';
 
   // „brakMPZPLubWZ", „innyNiewymieniony", puste — nie wiemy, czego dotyczyła transakcja.
   return null;
@@ -143,6 +163,8 @@ export async function getRcnOkolica(
       lat: true,
       lng: true,
       cenaZaM2: true,
+      cenaBruttoPln: true,
+      powierzchniaM2: true,
       dataTransakcji: true,
       przeznaczenieMpzp: true,
       sposobUzytkowania: true,
@@ -170,6 +192,16 @@ export async function getRcnOkolica(
       odRoku: Math.min(...lata),
       doRoku: Math.max(...lata),
       pasmoM2,
+      najblizsze: [...wKole]
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, RCN_NAJBLIZSZE)
+        .map((r) => ({
+          data: r.dataTransakcji.toISOString(),
+          powierzchniaM2: r.powierzchniaM2,
+          cenaPln: r.cenaBruttoPln,
+          zlM2: Math.round(r.cenaZaM2),
+          km: Math.round(r.dist * 10) / 10,
+        })),
     };
   }
 
