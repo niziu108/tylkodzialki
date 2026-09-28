@@ -78,7 +78,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Odległości budynku od granicy działki (slug: odleglosci-budynku-od-granicy-dzialki)
 - [x] Projekt zagospodarowania działki: co to jest i co zawiera (slug: projekt-zagospodarowania-dzialki) [dopisany poza backlogiem]
 - [x] Przyłącze a instalacja: czym się różnią (slug: przylacze-a-instalacja-czym-sie-roznia)
-- [ ] Tymczasowy prąd budowlany: jak załatwić
+- [x] Tymczasowy prąd budowlany: jak załatwić (slug: tymczasowy-prad-budowlany-jak-zalatwic)
 
 ## Działka rolna
 - [x] Kto może kupić działkę rolną w 2026 (slug: kto-moze-kupic-dzialke-rolna)
