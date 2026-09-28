@@ -109,13 +109,13 @@ export default function GlobalNav() {
   };
 
   const navBtnBase =
-    'relative inline-flex h-[72px] items-center justify-center whitespace-nowrap text-[15px] font-medium tracking-[0.01em] transition';
+    'relative inline-flex h-[72px] items-center justify-center whitespace-nowrap text-[15px] font-medium tracking-[0.01em] transition-colors duration-200 ease-out';
 
-  const navBtnWhite =
-    'text-fg/80 hover:text-fg after:absolute after:left-0 after:right-0 after:bottom-[20px] after:h-px after:origin-center after:scale-x-0 after:bg-fg/70 after:transition-transform after:duration-200 hover:after:scale-x-100';
+  // Hover = sam kolor (spokojny tekst dochodzi do pełnej czerni), bez podkreślenia i skalowania.
+  const navBtnWhite = 'text-fg/65 hover:text-fg';
 
-  const navBtnGreen =
-    'text-brand-text hover:text-brand-bright after:absolute after:left-0 after:right-0 after:bottom-[20px] after:h-px after:origin-center after:scale-x-0 after:bg-brand after:transition-transform after:duration-200 hover:after:scale-x-100';
+  // W jasnym motywie brand-text == brand-bright, więc hover przyciemnia zieleń.
+  const navBtnGreen = 'text-brand-text hover:text-[#5f8526]';
 
   const linkMobile =
     'w-full py-5 text-[clamp(20px,5.5vw,28px)] font-medium leading-none text-fg transition-colors hover:text-brand-bright';
@@ -135,7 +135,7 @@ export default function GlobalNav() {
             {isLogged ? (
               <button
                 onClick={() => go('/ulubione')}
-                className={`${navBtnBase} ${navBtnWhite} text-brand-text hover:text-brand-bright`}
+                className={`${navBtnBase} ${navBtnGreen}`}
                 aria-label="Ulubione działki"
                 title="Ulubione"
               >
