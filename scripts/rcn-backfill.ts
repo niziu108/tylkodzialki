@@ -30,8 +30,8 @@ dotenv.config({ path: '.env' });
  *   npm run rcn:backfill -- --apply --limit 200
  *   npm run rcn:backfill -- --apply --odswiez --dni 90    -> ponów oferty skanowane dawniej niż 90 dni
  *
- * Produkcja (VPS, cron raz dziennie, od 2026-09-28):
- *   npm run rcn:backfill -- --apply --odswiez --dni 90 --max-minut 1380
+ * Produkcja (VPS, cron co godzinę pod flock, od 2026-09-28):
+ *   npm run rcn:backfill -- --apply --odswiez --dni 90 --max-minut 55
  * Jedno zadanie robi wszystko: najpierw nowe oferty, potem skanowane najdawniej. Oferta skanowana
  * przed SKAN_METODA_OD (stara metoda gubiła ~45% aktów) jest nieaktualna bez względu na --dni,
  * więc po wdrożeniu nowej metody pełny ponowny skan robi się sam w kilka dni, a potem każda
@@ -67,10 +67,22 @@ const MAX_BLEDOW_POD_RZAD = 20;
 
 const spij = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function procesZyje(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function zalozBlokade(): boolean {
   try {
     const st = fs.statSync(BLOKADA);
-    if (Date.now() - st.mtimeMs < BLOKADA_WAZNA_H * 3600 * 1000) return false;
+    const pid = Number(fs.readFileSync(BLOKADA, 'utf8'));
+    // Blokada zostaje tylko, gdy jej właściciel naprawdę jeszcze działa. Po restarcie serwera
+    // albo zabitym procesie plik jest martwy i nie może wstrzymać pobierania.
+    if (pid > 0 && procesZyje(pid) && Date.now() - st.mtimeMs < BLOKADA_WAZNA_H * 3600 * 1000) return false;
     fs.rmSync(BLOKADA, { force: true });
   } catch {
     // brak pliku = wolne
