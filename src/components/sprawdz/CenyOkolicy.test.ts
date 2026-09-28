@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { PointValuation } from '@/lib/seoHub';
 import type { RcnOkolica } from '@/lib/rcnStats';
 import { klasaZPrzeznaczen } from '@/lib/raportCena';
-import { cenyOkolicy, CenyOkolicySekcja, koniecSkali } from './CenyOkolicy';
+import { cenyOkolicy, CenyOkolicySekcja } from './CenyOkolicy';
 
 const pusty = { pricePerM2: null, sampleCount: 0 };
 
@@ -112,14 +112,14 @@ describe('cenyOkolicy', () => {
 
   it('kropka oglądanej oferty na skali, bez werdyktu', () => {
     const out = html(cenyOkolicy(wycena(), rcn, null, false, 526.4)!);
-    expect(out).toContain('Na jednej skali');
+    expect(out).toContain('Gdzie wypada ta oferta');
     expect(out).toContain('Ta oferta');
     expect(out).toContain('526 zł/m²');
-    expect(out).toContain('poza skalę');
+    expect(out).toContain('daleko poza paskiem');
     expect(out).not.toMatch(/drożej|taniej|drożs|tańsz|zawyż|%\s*(więcej|mniej)/i);
     const wSkali = html(cenyOkolicy(wycena(), rcn, null, false, 110)!);
     expect(wSkali).toContain('110 zł/m²');
-    expect(wSkali).not.toContain('poza skalę');
+    expect(wSkali).not.toContain('daleko poza paskiem');
     expect(html(cenyOkolicy(wycena(), rcn, null, false)!)).not.toContain('Ta oferta');
   });
 
@@ -134,14 +134,13 @@ describe('cenyOkolicy', () => {
     expect(out).toContain('02.2025');
     expect(out).toContain('130 zł/m²');
     expect(out).toContain('do 1 km');
+    expect(out).toContain('<details');
   });
-});
 
-describe('koniecSkali', () => {
-  it('okrągły koniec osi', () => {
-    expect(koniecSkali(187)).toBe(200);
-    expect(koniecSkali(217)).toBe(250);
-    expect(koniecSkali(1234)).toBe(1400);
-    expect(koniecSkali(64)).toBe(70);
+  it('przy przybliżonej lokalizacji nie podaje odległości do aktów', () => {
+    const akty = { ...rcn, najblizsze: [{ data: '2025-02-11T00:00:00.000Z', powierzchniaM2: 1271, cenaPln: 165000, zlM2: 130, km: 2.1 }] };
+    const out = html(cenyOkolicy(null, akty, null, false, null, false)!);
+    expect(out).toContain('130 zł/m²');
+    expect(out).not.toContain('2,1 km');
   });
 });

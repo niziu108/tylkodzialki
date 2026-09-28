@@ -154,7 +154,9 @@ export async function getRcnOkolica(
       rodzajTransakcji: 'wolnyRynek',
       udzial: '1/1',
       rodzajNieruchomosci: 'nieruchomoscGruntowaNiezabudowana',
-      dataTransakcji: { gte: od },
+      // Górna granica też: rejestr ma literówki w datach (w bazie siedzi akt z 2202 roku), a taki
+      // rekord dawał podpis „lata 2021-2202".
+      dataTransakcji: { gte: od, lte: teraz },
       ...(pasmoM2 ? { powierzchniaM2: { gte: pasmoM2.minM2, lte: pasmoM2.maxM2 } } : {}),
       lat: { gte: lat - dLat, lte: lat + dLat },
       lng: { gte: lng - dLng, lte: lng + dLng },

@@ -27,6 +27,8 @@ export type CenyOkolicyDane = {
   rolny: boolean;
   /** zł/m² oglądanej oferty (kropka na skali); null, gdy brak ceny albo powierzchni. */
   cenaOferty: number | null;
+  /** Czy punkt to działka/pinezka (true), czy środek miejscowości; bez tego nie podajemy odległości. */
+  dokladna: boolean;
 };
 
 /** Co z policzonych danych nadaje się do pokazania. `null` = sekcji nie ma (za mała próbka). */
@@ -35,7 +37,8 @@ export function cenyOkolicy(
   rcn: RcnOkolica | null,
   trend: AreaPriceTrend | null,
   rolny: boolean,
-  cenaOferty: number | null = null
+  cenaOferty: number | null = null,
+  dokladna = true
 ): CenyOkolicyDane | null {
   // Pula (podobna wielkość / budowlane / rolne) i „mediana czy widełki" jak w „Sprawdź działkę"
   // (lib/raportCena.ts). `value` = null, gdy porównywalnych ofert jest za mało: wtedy milczymy.
@@ -51,6 +54,7 @@ export function cenyOkolicy(
     trend: zOfert ? trend : null,
     rolny,
     cenaOferty: cenaOferty && cenaOferty > 0 ? Math.round(cenaOferty) : null,
+    dokladna,
   };
 }
 
@@ -59,7 +63,7 @@ function Brak({ children }: { children: React.ReactNode }) {
 }
 
 export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolicyDane; className?: string }) {
-  const { wycena, cena, rcn, trend, rolny, cenaOferty } = dane;
+  const { wycena, cena, rcn, trend, rolny, cenaOferty, dokladna } = dane;
   const rcnWidelki = !!rcn && rcnRozjechane(rcn);
   const v = cena?.value ?? null;
   const opisPuli =
@@ -80,8 +84,8 @@ export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolic
   const pula = rolny ? 'działek rolnych' : 'działek budowlanych';
 
   const pasy: Pas[] = [];
-  if (v && cena) pasy.push({ etykieta: 'Ogłoszenia', low: v.low, high: v.high, mediana: cena.mixed ? null : v.median });
-  if (rcn) pasy.push({ etykieta: 'Akty notarialne', low: rcn.low, high: rcn.high, mediana: rcnWidelki ? null : rcn.medianaZlM2 });
+  if (v && cena) pasy.push({ etykieta: 'Ceny w ogłoszeniach', low: v.low, high: v.high });
+  if (rcn) pasy.push({ etykieta: 'Ceny zapłacone u notariusza', low: rcn.low, high: rcn.high });
 
   return (
     <div className={className}>
@@ -147,101 +151,75 @@ export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolic
       </div>
 
       {pasy.length ? <Skala pasy={pasy} cenaOferty={cenaOferty} /> : null}
-      {rcn?.najblizsze?.length ? <NajblizszeAkty akty={rcn.najblizsze} /> : null}
+      {rcn?.najblizsze?.length ? <NajblizszeAkty akty={rcn.najblizsze} dokladna={dokladna} /> : null}
     </div>
   );
 }
 
-type Pas = { etykieta: string; low: number; high: number; mediana: number | null };
-
-// Okrągły koniec skali: 187 -> 200, 1234 -> 1500. Żeby oś nie kończyła się na „193 zł/m²".
-export function koniecSkali(x: number): number {
-  const rzad = Math.pow(10, Math.floor(Math.log10(Math.max(x, 1))));
-  const krok = x / rzad <= 2 ? rzad / 5 : x / rzad <= 5 ? rzad / 2 : rzad;
-  return Math.ceil(x / krok) * krok;
-}
-
-// Oferta dużo powyżej obu przedziałów zgniotłaby paski w kreskę przy lewej krawędzi. Wtedy kropka
-// staje na końcu skali ze strzałką i swoją kwotą, a paski zostają czytelne.
-const POZA_SKALA = 2.5;
+type Pas = { etykieta: string; low: number; high: number };
 
 // Skala od zera: długość paska to proporcja ceny, więc „dwa razy dalej" znaczy „dwa razy drożej".
-function Skala({ pasy, cenaOferty }: { pasy: Pas[]; cenaOferty: number | null }) {
+// Celowo bez median, percentyli i osi (uwaga Pauli 2026-09-28: pierwsza wersja była czytelna dla
+// wprawnych, nie dla każdego). Zostają trzy rzeczy: gdzie zwykle są ceny (pasek z kwotami na
+// końcach), gdzie jest ta oferta (kropka) i jedno zdanie, jak to czytać.
+const POZA_SKALA = 2.5;
+
+// Podpis przy samej krawędzi wyjechałby poza ekran telefonu, więc tam kotwiczymy go do brzegu.
+const kotwica = (pct: number) => (pct < 10 ? '' : pct > 90 ? '-translate-x-full' : '-translate-x-1/2');
+
+export function Skala({ pasy, cenaOferty }: { pasy: Pas[]; cenaOferty: number | null }) {
   const maxPasow = Math.max(...pasy.map((p) => p.high));
+  // Oferta dużo powyżej obu przedziałów zgniotłaby paski w kreskę przy lewej krawędzi. Wtedy kropka
+  // staje na końcu skali ze strzałką, a paski zostają czytelne.
   const poza = cenaOferty !== null && cenaOferty > maxPasow * POZA_SKALA;
-  const koniec = koniecSkali(Math.max(maxPasow, poza || cenaOferty === null ? 0 : cenaOferty) * 1.08);
+  const koniec = Math.max(maxPasow, poza || cenaOferty === null ? 0 : cenaOferty) * 1.12;
   const x = (zl: number) => Math.min(100, Math.max(0, (zl / koniec) * 100));
   const ofertaX = cenaOferty === null ? null : poza ? 100 : x(cenaOferty);
-  const etykietaZLewej = ofertaX !== null && ofertaX > 60;
 
-  const wiersz = 'grid grid-cols-[6.5rem_1fr] items-center gap-3 sm:grid-cols-[9rem_1fr]';
   return (
     <div className="mt-10 border-t border-fg/12 pt-8">
-      <Eyebrow>Na jednej skali</Eyebrow>
-      <div className="mt-5 max-w-3xl space-y-2">
+      <Eyebrow>{cenaOferty !== null ? 'Gdzie wypada ta oferta' : 'Typowe ceny w okolicy'}</Eyebrow>
+      {cenaOferty !== null ? (
+        <p className="mt-3 flex items-center gap-2 text-[15px] text-fg">
+          <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full bg-brand-bright" aria-hidden />
+          Ta oferta: <span className="font-semibold">{formatIntPL(cenaOferty)} zł/m²</span>
+        </p>
+      ) : null}
+
+      <div className="mt-6 max-w-3xl space-y-7">
         {pasy.map((p) => (
-          <div key={p.etykieta} className={wiersz}>
-            <span className="text-sm text-fg/65">{p.etykieta}</span>
-            <div className="relative h-8">
-              <div className="absolute inset-x-0 top-1/2 h-px bg-fg/15" />
+          <div key={p.etykieta}>
+            <div className="text-sm text-fg/70">{p.etykieta}</div>
+            <div className="relative mt-2 h-4">
+              <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-fg/8" />
               <div
-                className="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full bg-brand-bright/40"
-                style={{ left: `${x(p.low)}%`, width: `${Math.max(x(p.high) - x(p.low), 0.8)}%` }}
+                className="absolute top-1/2 h-3 -translate-y-1/2 rounded-full bg-brand-bright/35"
+                style={{ left: `${x(p.low)}%`, width: `${Math.max(x(p.high) - x(p.low), 1)}%` }}
               />
-              {p.mediana !== null ? (
+              {ofertaX !== null ? (
                 <div
-                  className="absolute top-1/2 h-4 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg/80"
-                  style={{ left: `${x(p.mediana)}%` }}
+                  className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg bg-brand-bright"
+                  style={{ left: `${ofertaX}%` }}
                 />
               ) : null}
-              {ofertaX !== null ? (
-                <div className="absolute inset-y-0 border-l border-dashed border-brand-bright" style={{ left: `${ofertaX}%` }} />
-              ) : null}
             </div>
-          </div>
-        ))}
-
-        {ofertaX !== null && cenaOferty !== null ? (
-          <div className={wiersz}>
-            <span className="text-sm font-medium text-fg">Ta oferta</span>
-            <div className="relative h-8">
-              <div
-                className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-bright"
-                style={{ left: `${ofertaX}%` }}
-              />
-              <span
-                className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-sm font-semibold text-fg ${
-                  etykietaZLewej ? '-translate-x-full pr-4' : 'pl-4'
-                }`}
-                style={{ left: `${ofertaX}%` }}
-              >
-                {formatIntPL(cenaOferty)} zł/m²{poza ? ' →' : ''}
+            {/* Kwoty pod końcami zielonego paska: to one są treścią, nie oś liczbowa. */}
+            <div className="relative mt-1.5 h-5 text-xs font-medium text-fg/70">
+              <span className={`absolute whitespace-nowrap ${kotwica(x(p.low))}`} style={{ left: `${x(p.low)}%` }}>
+                {formatIntPL(p.low)} zł/m²
+              </span>
+              <span className={`absolute whitespace-nowrap ${kotwica(x(p.high))}`} style={{ left: `${x(p.high)}%` }}>
+                {formatIntPL(p.high)} zł/m²
               </span>
             </div>
           </div>
-        ) : null}
-
-        <div className={wiersz}>
-          <span />
-          <div className="flex justify-between text-xs text-fg/45">
-            <span>0</span>
-            <span>{formatIntPL(koniec)} zł/m²</span>
-          </div>
-        </div>
+        ))}
       </div>
-      <p className="mt-4 max-w-3xl text-xs leading-6 text-fg/50">
-        {[
-          pasy.some((p) => p.etykieta === 'Ogłoszenia')
-            ? 'Pasek ogłoszeń obejmuje środkowe 80% ofert (bez skrajnych 10% z każdej strony).'
-            : null,
-          pasy.some((p) => p.etykieta === 'Akty notarialne')
-            ? 'Pasek aktów obejmuje środkową połowę transakcji.'
-            : null,
-          pasy.some((p) => p.mediana !== null) ? 'Pionowa kreska to mediana.' : null,
-          poza ? 'Cena tej oferty wychodzi daleko poza skalę, dlatego kropka stoi na jej końcu.' : null,
-        ]
-          .filter(Boolean)
-          .join(' ')}
+
+      <p className="mt-4 max-w-3xl text-sm leading-6 text-fg/60">
+        Zielony pasek pokazuje, w jakich cenach za metr mieści się większość działek w okolicy.
+        {cenaOferty !== null ? ' Kropka to cena tej działki.' : ''}
+        {poza ? ' Ta oferta jest daleko poza paskiem, dlatego kropka stoi na samym końcu.' : ''}
       </p>
     </div>
   );
@@ -259,29 +237,43 @@ function odleglosc(km: number): string {
 }
 
 // Najbliższe akty z tej samej puli, z której liczymy medianę. Jak „sprzedane w pobliżu" na dużych
-// portalach: liczbę da się sprawdzić, a nie trzeba wierzyć na słowo.
-function NajblizszeAkty({ akty }: { akty: RcnAkt[] }) {
+// portalach: liczbę da się sprawdzić. Zwinięte (natywne <details>, działa bez JS i zostaje w HTML
+// dla Google), bo większości wystarczy liczba, a lista jest dla dociekliwych.
+// Odległość tylko przy dokładnej lokalizacji: przy przybliżonej liczylibyśmy ją od środka
+// miejscowości, a „2,1 km" sugerowałoby precyzję, której nie mamy.
+function NajblizszeAkty({ akty, dokladna }: { akty: RcnAkt[]; dokladna: boolean }) {
   return (
-    <div className="mt-10 border-t border-fg/12 pt-8">
-      <Eyebrow>Najbliższe transakcje</Eyebrow>
-      <div className="mt-4 max-w-3xl border-t border-fg/10">
+    <details className="group mt-8 max-w-3xl border-t border-fg/12 pt-6">
+      <summary className="flex cursor-pointer list-none items-center gap-2 text-[15px] font-medium text-fg/80 hover:text-fg [&::-webkit-details-marker]:hidden">
+        <span className="inline-block transition group-open:rotate-90" aria-hidden>
+          ›
+        </span>
+        <span className="group-open:hidden">Pokaż {akty.length} najbliższych transakcji</span>
+        <span className="hidden group-open:inline">Najbliższe transakcje</span>
+      </summary>
+      <div className="mt-4 border-t border-fg/10">
         {akty.map((a, i) => (
           <div
             key={`${a.data}-${a.cenaPln}-${i}`}
-            className="grid grid-cols-[4.5rem_1fr_auto] items-baseline gap-x-4 border-b border-fg/10 py-2.5 text-sm sm:grid-cols-[5rem_7rem_8rem_1fr_auto]"
+            className={`grid items-baseline gap-x-4 border-b border-fg/10 py-2.5 text-sm ${
+              dokladna
+                ? 'grid-cols-[4.5rem_1fr_auto] sm:grid-cols-[5rem_7rem_8rem_1fr_auto]'
+                : 'grid-cols-[4.5rem_1fr_auto] sm:grid-cols-[5rem_7rem_1fr_auto]'
+            }`}
           >
             <span className="text-fg/55">{miesiacRok(a.data)}</span>
             <span className="text-fg/75">{formatIntPL(a.powierzchniaM2)} m²</span>
             <span className="hidden text-fg/75 sm:block">{formatIntPL(a.cenaPln)} zł</span>
-            <span className="hidden text-right text-fg/45 sm:block">{odleglosc(a.km)}</span>
+            {dokladna ? <span className="hidden text-right text-fg/45 sm:block">{odleglosc(a.km)}</span> : null}
             <span className="text-right font-medium text-fg">{formatIntPL(a.zlM2)} zł/m²</span>
           </div>
         ))}
       </div>
-      <p className="mt-3 max-w-3xl text-xs leading-6 text-fg/50">
-        Kwoty z aktów notarialnych za całe działki niezabudowane, sprzedane na wolnym rynku.
+      <p className="mt-3 text-xs leading-6 text-fg/50">
+        Kwoty z aktów notarialnych za całe działki niezabudowane, sprzedane na wolnym rynku
+        {dokladna ? ', odległość w linii prostej od działki.' : '.'}
       </p>
-    </div>
+    </details>
   );
 }
 
@@ -309,7 +301,7 @@ export function CenyOkolicySekcja({
 
         <p className="mt-10 max-w-3xl text-xs leading-6 text-fg/45">
           {przyblizona
-            ? 'Ogłoszenie podaje tylko miejscowość, więc promień i odległości liczymy od jej środka.'
+            ? 'Ogłoszenie podaje tylko miejscowość, więc promień liczymy od jej środka.'
             : 'Promień i odległości liczymy od miejsca oferty na mapie.'}{' '}
           Ceny liczone na bieżąco z ogłoszeń w naszym serwisie i z Rejestru Cen Nieruchomości.{' '}
           <Link href="/sprawdz-dzialke" className="text-fg/70 underline decoration-1 underline-offset-2 hover:text-fg">

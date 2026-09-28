@@ -275,7 +275,7 @@ export default async function Page({ params }: PageProps) {
       ? dzialka.cenaPln / dzialka.powierzchniaM2
       : null;
   const cenyBezRaportu = !raport
-    ? cenyOkolicy(wycenaOkolicy, rcnOkolicy, trendOkolicy, rolny, cenaOfertyZlM2)
+    ? cenyOkolicy(wycenaOkolicy, rcnOkolicy, trendOkolicy, rolny, cenaOfertyZlM2, dzialka?.locationMode !== 'APPROX')
     : null;
   // Etykiety z CRM bywają wersalikami i z powtórzeniem („KOSTOMŁOTY PIERWSZE, Kostomłoty pierwsze").
   const miejsceOkolicy = dzialka
