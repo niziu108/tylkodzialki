@@ -286,7 +286,13 @@ export function tytulAutomatyczny(dane: {
 
 // ── Podpowiedź ceny ──────────────────────────────────────────────────────────
 
+// Wersja reguł podpowiedzi. Podpowiedź siedzi w wersji roboczej ogłoszenia (localStorage), więc
+// po zmianie reguł stara zostawałaby na ekranie (2026-09-28: „4 oferty" sprzed progu 8 ofert).
+// Podbij przy każdej zmianie zasad; starsza wersja się nie wyświetla.
+export const WERSJA_PODPOWIEDZI = 2;
+
 export type PodpowiedzCeny = {
+  wersja?: number;
   // ceny z ogłoszeń w okolicy; ta sama pula i te same bramki pewności co w raporcie (lib/raportCena)
   ogloszenia: {
     etykieta: string;
@@ -310,6 +316,8 @@ export type PodpowiedzCeny = {
     odRoku: number;
     doRoku: number;
     rolne: boolean;
+    // rozrzut aktów za duży na jedną liczbę (jak rcnRozjechane w raporcie): pokazujemy widełki
+    widelki?: boolean;
   } | null;
 };
 
@@ -322,8 +330,13 @@ export function podpowiedzCeny(
   promienKm: number,
   rcn: RcnOkolica | null
 ): PodpowiedzCeny | null {
+  // Te same zasady co sekcja cen pod ofertą (CenyOkolicy): ogłoszenia tylko z działek podobnej
+  // wielkości, a dla gruntu rolnego z puli rolnych. „Wszystkie budowlane" mieszały działkę pod dom
+  // z wielohektarowymi. Etykieta „działki rolne" to jedyna pula rolna z raportCena.pickLead.
+  const porownywalna =
+    !!decyzja.lead && (decyzja.lead.kind === 'similar' || decyzja.lead.label === 'działki rolne');
   const ogloszenia =
-    decyzja.lead && decyzja.value
+    decyzja.lead && decyzja.value && porownywalna
       ? {
           etykieta: decyzja.lead.label,
           mediana: decyzja.value.median,
@@ -347,15 +360,21 @@ export function podpowiedzCeny(
           odRoku: rcn.odRoku,
           doRoku: rcn.doRoku,
           rolne: rcn.klasa === 'rolna',
+          // Próg jak RCN_ROZRZUT_WIDELKI w rcnStats (tu bez importu, bo moduł jest czysty).
+          widelki: rcn.low <= 0 || rcn.high / rcn.low >= 4,
         }
       : null;
 
   if (!ogloszenia && !transakcje) return null;
-  return { ogloszenia, transakcje };
+  return { wersja: WERSJA_PODPOWIEDZI, ogloszenia, transakcje };
 }
 
 // Różnica, przy której mówimy „mniej więcej tyle samo", zamiast straszyć procentem.
 export const PROG_TYLE_SAMO_PROC = 5;
+
+// Tyle razy od mediany podobnych działek to najczęściej literówka (zero za dużo, cena za metr
+// wpisana jako cała), a nie cena. Zamiast „o 2820% więcej" prosimy o sprawdzenie ceny.
+export const PROG_LITEROWKA_RAZY = 3;
 
 /**
  * Jak cena sprzedającego ma się do okolicy. Porównujemy wyłącznie z medianą ogłoszeń działek

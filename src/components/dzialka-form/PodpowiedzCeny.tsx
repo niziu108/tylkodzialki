@@ -3,7 +3,9 @@
 import {
   kwotaOrientacyjna,
   porownanieCeny,
+  PROG_LITEROWKA_RAZY,
   PROG_TYLE_SAMO_PROC,
+  WERSJA_PODPOWIEDZI,
   type PodpowiedzCeny,
 } from '@/lib/kreatorDzialki';
 import { plural } from '@/lib/plural';
@@ -28,6 +30,8 @@ export default function PodpowiedzCenyBox({
   cenaPln: number;
   powierzchniaM2: number;
 }) {
+  // Podpowiedź z wersji roboczej sprzed zmiany reguł: nie pokazujemy starych liczb.
+  if (podpowiedz.wersja !== WERSJA_PODPOWIEDZI) return null;
   const { ogloszenia, transakcje } = podpowiedz;
   const zlM2 =
     Number.isFinite(cenaPln) && cenaPln > 0 && Number.isFinite(powierzchniaM2) && powierzchniaM2 > 0
@@ -35,6 +39,9 @@ export default function PodpowiedzCenyBox({
       : null;
   const porownanie = zlM2 !== null ? porownanieCeny(zlM2, podpowiedz) : null;
   const podobne = ogloszenia && !ogloszenia.widelki && ogloszenia.podobnaWielkosc ? ogloszenia : null;
+  // Kilka razy od podobnych działek = prawie zawsze literówka w cenie, nie decyzja sprzedającego.
+  const razy = porownanie ? 1 + porownanie.procent / 100 : null;
+  const literowka = razy !== null && (razy >= PROG_LITEROWKA_RAZY || razy <= 1 / PROG_LITEROWKA_RAZY);
 
   return (
     <div className="rounded-2xl border border-fg/12 bg-fg/[0.03] px-4 py-3 md:px-5">
@@ -67,7 +74,11 @@ export default function PodpowiedzCenyBox({
                 {transakcje.promienKm} km)
               </span>
             </dt>
-            <dd className="font-semibold text-fg">{liczba(transakcje.mediana)} zł/m²</dd>
+            <dd className="font-semibold text-fg">
+              {transakcje.widelki
+                ? `${liczba(transakcje.low)}-${liczba(transakcje.high)} zł/m²`
+                : `${liczba(transakcje.mediana)} zł/m²`}
+            </dd>
           </div>
         ) : null}
       </dl>
@@ -75,7 +86,9 @@ export default function PodpowiedzCenyBox({
       {zlM2 !== null ? (
         <p className="mt-2 text-[14px] text-fg/80">
           Twoja cena: <span className="font-semibold text-fg">{liczba(zlM2)} zł/m²</span>
-          {porownanie
+          {literowka && razy !== null
+            ? `, ${razy > 1 ? 'kilka razy więcej' : 'kilka razy mniej'} niż podobne działki. Sprawdź, czy w cenie nie ma literówki${razy > 1 ? '' : ' i czy to cena za całą działkę'}.`
+            : porownanie
             ? Math.abs(porownanie.procent) < PROG_TYLE_SAMO_PROC
               ? ', tyle co podobne działki'
               : `, o ${Math.abs(porownanie.procent)}% ${porownanie.procent > 0 ? 'więcej' : 'mniej'} niż podobne działki`

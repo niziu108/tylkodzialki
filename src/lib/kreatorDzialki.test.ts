@@ -9,6 +9,7 @@ import {
   opisDzialkiEwidencyjnej,
   podpowiedzCeny,
   porownanieCeny,
+  WERSJA_PODPOWIEDZI,
   przeznaczeniaZPlanu,
   punktWDzialce,
   punktWewnatrzDzialki,
@@ -226,10 +227,20 @@ describe('podpowiedź ceny', () => {
     // Mediana tej puli razy powierzchnia hektara dałaby kwotę do obalenia.
     const rozneWielkosci: CenaDecision = { ...decyzja, lead: { ...decyzja.lead!, kind: 'type' } };
     const p = podpowiedzCeny(rozneWielkosci, 6, rcn) as PodpowiedzCeny;
-    expect(p.ogloszenia?.podobnaWielkosc).toBe(false);
+    // Od 2026-09-28 jak pod ofertą: pula „wszystkie budowlane" w ogóle się nie pokazuje.
+    expect(p.ogloszenia).toBeNull();
     expect(porownanieCeny(107, p)).toBeNull();
     const widelki = podpowiedzCeny({ ...decyzja, mixed: true }, 3, rcn) as PodpowiedzCeny;
     expect(porownanieCeny(143, widelki)).toBeNull();
+  });
+
+  it('pula rolna zostaje, akty z dużym rozrzutem jako widełki, wersja reguł w zapisie', () => {
+    const rolne: CenaDecision = { ...decyzja, lead: { ...decyzja.lead!, kind: 'type', label: 'działki rolne' } };
+    expect(podpowiedzCeny(rolne, 6, null)?.ogloszenia?.etykieta).toBe('działki rolne');
+    const p = podpowiedzCeny(decyzja, 3, { ...rcn, low: 20, high: 180 });
+    expect(p?.transakcje?.widelki).toBe(true);
+    expect(podpowiedzCeny(decyzja, 3, rcn)?.transakcje?.widelki).toBe(false);
+    expect(p?.wersja).toBe(WERSJA_PODPOWIEDZI);
   });
 
   it('kwota za całą działkę zaokrąglona po ludzku', () => {
