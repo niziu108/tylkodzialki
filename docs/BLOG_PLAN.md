@@ -56,6 +56,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Działka siedliskowa: dla kogo i jakie warunki (slug: dzialka-siedliskowa-dla-kogo-warunki)
 - [x] Jak rozpoznać działkę inwestycyjną (slug: jak-rozpoznac-dzialke-inwestycyjna)
 - [x] Jak sprawdzić planowane inwestycje w okolicy działki (slug: jak-sprawdzic-planowane-inwestycje-w-okolicy-dzialki)
+- [x] Ile kosztuje działka: od czego zależy cena i jak ją sprawdzić (slug: ile-kosztuje-dzialka-cena-jak-sprawdzic) [dopisany poza backlogiem; filar pod dane cenowe/RCN]
 - [ ] Jak sprawdzić dostępność przyłączy na działce
 - [x] Nasłonecznienie i ukształtowanie działki: jak ocenić (slug: naslonecznienie-i-uksztaltowanie-dzialki)
 
