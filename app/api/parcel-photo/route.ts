@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 // Geoportal WYMAGA nagłówka User-Agent (bez niego zwraca 404) i nie ma CORS, dlatego
 // robimy to serwerowo i oddajemy klientowi gotowy obraz do wgrania w pipeline zdjęć.
 export const runtime = 'nodejs';
-// Usługa składa kadr 1280 px w ok. 10 s (pomiar 18.09.2026), więc funkcja potrzebuje zapasu.
+// Usługa składa kadr w kilka do kilkunastu sekund (pomiary 18.09 i 29.09.2026), więc funkcja potrzebuje zapasu.
 export const maxDuration = 30;
 
 // Stary adres `WMS/StandardResolution` od września 2026 zwraca 404 (sprawdzone 18.09). Ta sama
@@ -38,16 +38,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: 'Punkt poza Polską.' }, { status: 400 });
   }
 
-  // Kadr: dopasowany do działki (bbox z klienta, EPSG:3857, kwadrat) albo domyślny ~250 m.
-  // Klient rysuje obrys w TYM SAMYM bboxie, więc muszą się zgadzać.
+  // Kadr 16:9: dopasowany do działki (bbox z klienta, EPSG:3857, proporcje 16:9) albo domyślny
+  // ok. 530 x 300 m wokół punktu. Klient rysuje obrys w TYM SAMYM bboxie, więc muszą się zgadzać.
   const bboxParam = searchParams.get('bbox');
   let bbox: string;
   if (bboxParam && /^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/.test(bboxParam)) {
     bbox = bboxParam;
   } else {
     const { x, y } = to3857(lat, lng);
-    const d = 125;
-    bbox = `${x - d},${y - d},${x + d},${y + d}`;
+    const dy = 150;
+    const dx = (dy * 16) / 9;
+    bbox = `${x - dx},${y - dy},${x + dx},${y + dy}`;
   }
 
   const params = new URLSearchParams({
@@ -58,10 +59,10 @@ export async function GET(req: Request) {
     STYLES: '',
     CRS: 'EPSG:3857',
     BBOX: bbox,
-    // Wyższa rozdzielczość = ostrzejsze auto-zdjęcie działki (kadr jest ciasny,
-    // więc każdy dodatkowy piksel realnie poprawia jakość ortofoto).
-    WIDTH: '1280',
-    HEIGHT: '1280',
+    // 1600x900 = mniej pikseli niż dawny kwadrat 1280x1280, więc usługa składa kadr szybciej
+    // (pomiar 29.09: ok. 4 s). Przy kadrze 300 m wysokości to ok. 0,33 m na piksel.
+    WIDTH: '1600',
+    HEIGHT: '900',
     FORMAT: 'image/jpeg',
   });
 

@@ -362,6 +362,10 @@ function to3857(lat: number, lng: number): { x: number; y: number } {
   return { x, y };
 }
 
+// Rozmiar auto-zdjęcia, spójny z /api/parcel-photo (tam WIDTH/HEIGHT dla WMS).
+const PARCEL_PHOTO_W = 1600;
+const PARCEL_PHOTO_H = 900;
+
 // Auto-zdjęcie z obrysem: pobieramy ortofoto dla bboxu działki i rysujemy jej granice
 // na canvasie (same-origin przez nasz proxy => brak taintu). Zwraca gotowy plik albo null.
 async function buildAerialFile(
@@ -376,12 +380,20 @@ async function buildAerialFile(
     const ys = pts.map((p) => p.y);
     const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
     const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-    let half = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2;
-    half = Math.max(half * 1.3, 70); // margines wokół działki + minimalny kadr
-    const bx0 = cx - half;
-    const by0 = cy - half;
-    const bx1 = cx + half;
-    const by1 = cy + half;
+    // Kadr 16:9 z okolicą: działka zajmuje ok. 40% wysokości, a kadr ma min. 300 m wysokości,
+    // żeby kupujący widział drogę, sąsiednią zabudowę i las, nie samo pole (uwaga Daniela 29.09).
+    const W = PARCEL_PHOTO_W;
+    const H = PARCEL_PHOTO_H;
+    const ext = Math.max(
+      Math.max(...ys) - Math.min(...ys),
+      ((Math.max(...xs) - Math.min(...xs)) * H) / W
+    );
+    const spanH = Math.max(ext * 2.5, 300);
+    const spanW = (spanH * W) / H;
+    const bx0 = cx - spanW / 2;
+    const by0 = cy - spanH / 2;
+    const bx1 = cx + spanW / 2;
+    const by1 = cy + spanH / 2;
 
     const res = await fetch(`/api/parcel-photo?lat=${lat}&lng=${lng}&bbox=${bx0},${by0},${bx1},${by1}`);
     if (!res.ok) return null;
@@ -389,30 +401,34 @@ async function buildAerialFile(
     if (!blob.type.startsWith('image/') || blob.size < 1500) return null;
 
     const bmp = await createImageBitmap(blob);
-    const S = 1280; // spójne z rozdzielczością ortofoto z /api/parcel-photo (ostrzejszy kadr)
     const canvas = document.createElement('canvas');
-    canvas.width = S;
-    canvas.height = S;
+    canvas.width = W;
+    canvas.height = H;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    ctx.drawImage(bmp, 0, 0, S, S);
+    ctx.drawImage(bmp, 0, 0, W, H);
 
     for (const ring of rings) {
       if (ring.length < 3) continue;
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = '#7aa333';
-      ctx.fillStyle = 'rgba(122,163,51,0.18)';
       ctx.lineJoin = 'round';
       ctx.beginPath();
       ring.forEach((p, i) => {
         const { x, y } = to3857(p.lat, p.lng);
-        const px = ((x - bx0) / (bx1 - bx0)) * S;
-        const py = ((by1 - y) / (by1 - by0)) * S;
+        const px = ((x - bx0) / (bx1 - bx0)) * W;
+        const py = ((by1 - y) / (by1 - by0)) * H;
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       });
       ctx.closePath();
+      ctx.fillStyle = 'rgba(122,163,51,0.22)';
       ctx.fill();
+      // Biała obwódka pod zieloną linią: w szerszym kadrze działka jest mniejsza,
+      // a sama zieleń ginie na trawie i polach.
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.stroke();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#7aa333';
       ctx.stroke();
     }
 
