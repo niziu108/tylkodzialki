@@ -2,8 +2,8 @@ import { Prisma, DzialkaStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { sendMail } from '@/lib/mailer';
 import { buildMailTemplate, mailLogoAttachment } from '@/lib/emailTemplate';
-import { buildSearchContext, getSearchMatchInfo } from '@/lib/dzialkiSearch';
-import { buildKupPathFromCriteria, type AlertCriteria } from '@/lib/alertCriteria';
+import { buildSearchContext, getSearchMatchInfo, haversineKm } from '@/lib/dzialkiSearch';
+import { buildAlertLabel, buildKupPathFromCriteria, type AlertCriteria } from '@/lib/alertCriteria';
 import { pluralCat } from '@/lib/plural';
 
 function baseUrl() {
@@ -45,6 +45,21 @@ function criteriaFromAlert(a: AlertWithUser): AlertCriteria {
 }
 
 const intFmt = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 });
+const kmFmt = new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// Odległość oferty od punktu alertu, np. „19,9 km". Tylko dla alertu z promieniem i oferty
+// ze współrzędnymi: widać od razu, że oferta z sąsiedniego miasta jest na skraju zasięgu.
+function distanceText(d: MatchOffer, c: AlertCriteria): string | null {
+  if (c.lat === null || c.lng === null || c.radiusKm === null) return null;
+  if (typeof d.lat !== 'number' || typeof d.lng !== 'number') return null;
+  return `${kmFmt.format(haversineKm(c.lat, c.lng, d.lat, d.lng))} km`;
+}
+
+// Lokalizacja + odległość w jednej linii: „Grabowa · 19,9 km".
+function locationLine(d: MatchOffer, c: AlertCriteria): string | null {
+  const bits = [d.locationLabel?.trim(), distanceText(d, c)].filter(Boolean);
+  return bits.length ? bits.join(' · ') : null;
+}
 
 function formatPLN(value: number) {
   return `${intFmt.format(value)} zł`;
@@ -120,7 +135,7 @@ ${countText} ${matchingWord(n)} do Twojego alertu „${label}":`;
   // jeden zielony przycisk do wyszukiwarki (żeby maila nie zawalić wieloma zielonymi klockami).
   if (n === 1) {
     const d = matches[0];
-    const loc = d.locationLabel?.trim();
+    const loc = locationLine(d, criteria);
     const bits = [`${intFmt.format(d.powierzchniaM2)} m²`, formatPLN(d.cenaPln)];
     if (loc) bits.push(loc);
 
@@ -142,7 +157,7 @@ ${countText} ${matchingWord(n)} do Twojego alertu „${label}":`;
 
   const offersRows = shown
     .map((d) => {
-      const loc = d.locationLabel?.trim();
+      const loc = locationLine(d, criteria);
       const head = `${intFmt.format(d.powierzchniaM2)} m² · ${formatPLN(d.cenaPln)}`;
       const url = `${baseUrl()}/dzialka/${d.id}`;
       const locHtml = loc
@@ -171,7 +186,10 @@ ${locHtml}
   });
 
   const offersText = shown
-    .map((d) => `- ${intFmt.format(d.powierzchniaM2)} m² · ${formatPLN(d.cenaPln)} — ${baseUrl()}/dzialka/${d.id}`)
+    .map((d) => {
+      const loc = locationLine(d, criteria);
+      return `- ${intFmt.format(d.powierzchniaM2)} m² · ${formatPLN(d.cenaPln)}${loc ? ` · ${loc}` : ''}: ${baseUrl()}/dzialka/${d.id}`;
+    })
     .join('\n');
   const searchUrl = `${baseUrl()}${buildKupPathFromCriteria(criteria)}`;
   const text = `${countText} ${matchingWord(n)} do Twojego alertu „${label}".\n\n${offersText}\n\nWszystkie oferty: ${searchUrl}`;
@@ -299,7 +317,8 @@ export async function runOfferAlerts() {
 
     try {
       const { subject, html, text } = buildAlertEmail({
-        label: alert.label,
+        // Etykieta liczona z kryteriów (nie z bazy): stare alerty też dostają „Bełchatów + 20 km".
+        label: buildAlertLabel(criteria),
         matches,
         userName: user?.name ?? null,
         criteria,

@@ -11,6 +11,7 @@
 import type { Przeznaczenie, TransakcjaTyp } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { haversineKm } from '@/lib/dzialkiSearch';
+import { alertDisplayLabel } from '@/lib/alertCriteria';
 import { SEO_CITIES } from '@/lib/seo-locations';
 
 // Dalej niż tyle od miasta SEO = nie przypisujemy na siłę (mamy 40 km promienia w wyszukiwarce).
@@ -211,7 +212,7 @@ export async function getAlertsAdminReport(
       cityKey: city.key,
       cityLabel: city.label,
       cityDistanceKm: city.distanceKm,
-      label: a.label,
+      label: alertDisplayLabel(a),
       queryText: a.query,
       criteriaLines: criteriaLinesOf(a),
       createdAt: a.createdAt,

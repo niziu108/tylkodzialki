@@ -9,6 +9,7 @@ import PanelAlertsList from "@/components/PanelAlertsList";
 import PanelStatystyki from "@/components/PanelStatystyki";
 import { getBiuroDailySeries } from "@/lib/biuroStats";
 import { getFavoriteOffers } from "@/lib/favorites";
+import { alertDisplayLabel } from "@/lib/alertCriteria";
 import UlubioneWidok from "../ulubione/UlubioneWidok";
 
 type PanelPageProps = {
@@ -179,7 +180,16 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           orderBy: { createdAt: "desc" },
           select: {
             id: true,
-            label: true,
+            query: true,
+            priceMin: true,
+            priceMax: true,
+            areaMin: true,
+            areaMax: true,
+            przeznaczenia: true,
+            transakcja: true,
+            lat: true,
+            lng: true,
+            radiusKm: true,
             isActive: true,
             createdAt: true,
             lastNotifiedAt: true,
@@ -198,7 +208,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
     activeTab === "alerty"
       ? alertsRaw.map((a) => ({
           id: a.id,
-          label: a.label,
+          label: alertDisplayLabel(a),
           isActive: a.isActive,
           createdAt: a.createdAt.toISOString(),
           lastNotifiedAt: a.lastNotifiedAt ? a.lastNotifiedAt.toISOString() : null,

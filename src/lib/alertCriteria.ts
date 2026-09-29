@@ -136,7 +136,19 @@ function fmtArea(v: number): string {
   return `${v.toLocaleString('pl-PL')} m²`;
 }
 
-// Czytelna etykieta, np. „Działki budowlane Bełchatów do 200 tys.".
+// Sama nazwa miejsca z tekstu geokodera: „97-400 Bełchatów, Polska" -> „Bełchatów".
+// Bez kodu pocztowego i kraju; fragment z numerem (ulica) pomijamy, jeśli jest coś innego.
+export function alertPlaceName(query: string): string {
+  const parts = query
+    .replace(/\b\d{2}-\d{3}\b/g, ' ')
+    .split(',')
+    .map((p) => p.replace(/\s+/g, ' ').trim())
+    .filter((p) => p && !/^(polska|poland)$/i.test(p));
+  const bezNumerow = parts.filter((p) => !/\d/.test(p));
+  return (bezNumerow[0] ?? parts[0] ?? query.trim()).slice(0, 80);
+}
+
+// Czytelna etykieta, np. „Działki budowlane Bełchatów + 20 km do 200 tys.".
 export function buildAlertLabel(c: AlertCriteria): string {
   let head = 'Działki';
   if (c.przeznaczenia.length === 1) {
@@ -149,10 +161,13 @@ export function buildAlertLabel(c: AlertCriteria): string {
 
   const parts: string[] = [head];
 
+  const hasGeo = c.lat !== null && c.lng !== null && c.radiusKm !== null;
   if (c.query) {
-    parts.push(c.query);
-  } else if (c.lat !== null && c.lng !== null && c.radiusKm !== null) {
-    parts.push('w wybranej okolicy');
+    // Promień w etykiecie: bez niego nie wiadomo, skąd w mailu oferta z sąsiedniego miasta.
+    const place = alertPlaceName(c.query);
+    parts.push(hasGeo ? `${place} + ${c.radiusKm} km` : place);
+  } else if (hasGeo) {
+    parts.push(`w promieniu ${c.radiusKm} km`);
   }
 
   if (c.priceMin !== null && c.priceMax !== null) {
@@ -193,4 +208,21 @@ export function buildKupPathFromCriteria(c: AlertCriteria): string {
 
   const qs = sp.toString();
   return qs ? `/kup?${qs}` : '/kup';
+}
+
+// Etykieta do wyświetlenia z rekordu alertu. Zapisana w bazie etykieta bywa sprzed zmiany
+// formatu („Działki 97-400 Bełchatów, Polska"), więc zawsze liczymy ją z kryteriów.
+export function alertDisplayLabel(a: AlertCriteria): string {
+  return buildAlertLabel({
+    query: a.query,
+    priceMin: a.priceMin,
+    priceMax: a.priceMax,
+    areaMin: a.areaMin,
+    areaMax: a.areaMax,
+    przeznaczenia: a.przeznaczenia,
+    transakcja: a.transakcja,
+    lat: a.lat,
+    lng: a.lng,
+    radiusKm: a.radiusKm,
+  });
 }
