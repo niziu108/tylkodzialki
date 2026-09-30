@@ -124,7 +124,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] ROI z działki: jak policzyć opłacalność (slug: roi-z-dzialki-jak-policzyc-oplacalnosc)
 - [ ] Jak znaleźć działki w okolicy planowanych inwestycji (UWAGA: możliwy duplikat „Jak sprawdzić planowane inwestycje w okolicy działki" — sprawdzić przed pisaniem)
 - [x] Działka uzbrojona a nieuzbrojona: co się bardziej opłaca (slug: dzialka-uzbrojona-a-nieuzbrojona)
-- [ ] Jak dywersyfikować portfel działkami
+- [x] Jak dywersyfikować portfel działkami (slug: jak-dywersyfikowac-portfel-dzialkami)
 - [x] Ryzyka inwestowania w działki i jak je ograniczyć (slug: ryzyka-inwestowania-w-dzialki)
 - [x] Działka pod glamping i domki na wynajem (slug: dzialka-pod-glamping-i-domki-na-wynajem)
 - [ ] Jak finansować zakup działki inwestycyjnej
