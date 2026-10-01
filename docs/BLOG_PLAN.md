@@ -112,7 +112,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Jak sprawdzić wiarygodność kupującego (slug: jak-sprawdzic-wiarygodnosc-kupujacego)
 
 ## Inwestowanie
-- [ ] Czy warto inwestować w działki w 2026
+- [x] Czy warto inwestować w działki w 2026 (slug: czy-warto-inwestowac-w-dzialki-2026)
 - [x] Działka jako lokata kapitału: plusy i minusy (slug: dzialka-jako-lokata-kapitalu-plusy-minusy)
 - [x] Jak zarabiać na podziale działki (slug: jak-zarabiac-na-podziale-dzialki)
 - [x] Flipping działek: na czym polega (slug: flipping-dzialek-na-czym-polega)
