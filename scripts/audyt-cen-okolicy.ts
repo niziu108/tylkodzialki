@@ -41,6 +41,9 @@ async function main() {
 
   type Wynik = {
     id: string; miejsce: string; tytul: string; zlM2: number | null; bezGminy: boolean;
+    // Czy bez granicy gminy (samo koło 10 km) dane by były: miara kosztu reguły „ta sama gmina".
+    oglBezGranicy: boolean; aktyBezGranicy: boolean;
+    oglBG?: { low: number; median: number; high: number };
     ogl: { low: number; median: number; high: number; n: number; km: number } | null;
     akty: { low: number; median: number; high: number; n: number } | null;
   };
@@ -55,6 +58,7 @@ async function main() {
       const zlM2 = o.cenaPln > 0 && o.powierzchniaM2 > 0 ? o.cenaPln / o.powierzchniaM2 : null;
       const w: Wynik = {
         id: o.id, miejsce: o.locationLabel ?? '', tytul: o.tytul ?? '', zlM2, bezGminy: !o.adminTeryt, ogl: null, akty: null,
+        oglBezGranicy: false, aktyBezGranicy: false,
       };
       if (o.adminTeryt && pula) {
         const [v, r] = await Promise.all([
@@ -68,6 +72,20 @@ async function main() {
         if (c?.cena?.value && c.cena.lead)
           w.ogl = { ...c.cena.value, n: c.cena.lead.stat.sampleCount, km: v!.radiusKm };
         if (c?.rcn) w.akty = { low: c.rcn.low, median: c.rcn.medianaZlM2, high: c.rcn.high, n: c.rcn.liczba };
+        if (!w.ogl || !w.akty) {
+          const [v2, r2] = await Promise.all([
+            w.ogl ? null : getPointValuation(o.lat!, o.lng!, o.powierzchniaM2, o.id).catch(() => null),
+            w.akty
+              ? null
+              : getRcnOkolica(o.lat!, o.lng!, rolny ? 'rolna' : 'budowlana', { powierzchniaM2: o.powierzchniaM2 }).catch(
+                  () => null
+                ),
+          ]);
+          const c2 = cenyOkolicy(v2, r2, null, rolny, zlM2);
+          w.oglBezGranicy = !w.ogl && !!c2?.cena;
+          if (w.oglBezGranicy && c2?.cena?.value) w.oglBG = c2.cena.value;
+          w.aktyBezGranicy = !w.akty && !!c2?.rcn;
+        }
       }
       wyniki.push(w);
       if (wyniki.length % 500 === 0) console.log(`  ${wyniki.length}/${oferty.length}`);
@@ -97,6 +115,21 @@ async function main() {
   console.log(`Z ceną z ogłoszeń: ${pct(zOgl.length, zCena.length)}`);
   console.log(`Z aktami: ${pct(zCena.filter((w) => w.akty).length, zCena.length)}`);
   console.log(`Bez sekcji: ${pct(zCena.filter((w) => !w.ogl && !w.akty).length, zCena.length)}`);
+  console.log('');
+  console.log('=== Koszt reguły „ta sama gmina" ===');
+  console.log(`Bez ogłoszeń tylko przez granicę gminy: ${pct(zCena.filter((w) => w.oglBezGranicy).length, zCena.length)}`);
+  {
+    // Jakość puli bez granicy pod tymi ofertami: czy oferta trafia na pasek tak często jak przy
+    // puli z gminy i czy pula nie jest systematycznie droższa/tańsza (mediana ilorazu ~1 = brak).
+    const bg = zCena.filter((w) => w.oglBG);
+    const naPaskuBG = bg.filter((w) => w.zlM2! >= w.oglBG!.low && w.zlM2! <= w.oglBG!.high).length;
+    const ilorazy = bg.map((w) => w.zlM2! / w.oglBG!.median).sort((a, b) => a - b);
+    const ilorazyG = zCena.filter((w) => w.ogl).map((w) => w.zlM2! / w.ogl!.median).sort((a, b) => a - b);
+    const med = (a: number[]) => a[Math.floor(a.length / 2)] ?? 0;
+    console.log(`  te oferty na pasku puli bez granicy: ${pct(naPaskuBG, bg.length)}`);
+    console.log(`  mediana oferta/mediana puli: bez granicy ${med(ilorazy).toFixed(2)}, w gminie ${med(ilorazyG).toFixed(2)}`);
+  }
+  console.log(`Bez aktów tylko przez granicę gminy: ${pct(zCena.filter((w) => w.aktyBezGranicy).length, zCena.length)}`);
   console.log('\n=== Gdzie wypada oferta względem paska ogłoszeń ===');
   console.log(`Na pasku: ${pct(naPasku, zOgl.length)}  nad: ${pct(ponad, zOgl.length)}  pod: ${pct(pod, zOgl.length)}`);
   console.log(`Odstaje ${ODSTAJE}x od mediany: ${pct(odstaje.length, zOgl.length)}`);
