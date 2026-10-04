@@ -30,6 +30,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Plan ogólny gminy: co zmienia reforma planowania (slug: plan-ogolny-gminy-co-zmienia-reforma)
 - [x] Warunki zabudowy do 31 sierpnia 2026: ostatni moment na starych zasadach (slug: warunki-zabudowy-do-31-sierpnia-2026) [dopisany, GORACY temat/deadline]
 - [x] Obszar uzupełnienia zabudowy: jak sprawdzić, czy obejmuje Twoją działkę (slug: obszar-uzupelnienia-zabudowy-jak-sprawdzic) [dopisany, reforma; źródła: rejestr-urbanistyczny.gov.pl, BIP gminy, geoportal, e-Wyrys mObywatel]
+- [x] Strefa planistyczna działki: co oznacza i jak ją sprawdzić (slug: strefa-planistyczna-dzialki-jak-sprawdzic) [dopisany, reforma; strefy SW/SJ/SZ = mieszkaniowe]
 - [x] Działka w obszarze Natura 2000: co wolno (slug: dzialka-natura-2000-co-wolno)
 - [x] Działka na terenie zalewowym: ryzyka i ograniczenia (slug: dzialka-na-terenie-zalewowym-ryzyka)
 - [x] Strefa ochronna linii energetycznej i gazociągu: co to znaczy (slug: strefa-ochronna-linii-energetycznej-i-gazociagu)
