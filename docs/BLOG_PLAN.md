@@ -60,6 +60,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Jak sprawdzić planowane inwestycje w okolicy działki (slug: jak-sprawdzic-planowane-inwestycje-w-okolicy-dzialki)
 - [x] Ile kosztuje działka: od czego zależy cena i jak ją sprawdzić (slug: ile-kosztuje-dzialka-cena-jak-sprawdzic) [dopisany poza backlogiem; filar pod dane cenowe/RCN]
 - [x] Rejestr cen nieruchomości: jak sprawdzić, za ile sprzedają się działki (slug: rejestr-cen-nieruchomosci-ceny-transakcyjne-dzialek) [dopisany; ceny transakcyjne/RCN, nasz moat]
+- [x] Jak obejrzeć działkę z lotu ptaka przed wyjazdem na oględziny (slug: dzialka-z-lotu-ptaka-ortofotomapa-przed-ogledzinami) [dopisany; ortofoto/satelita, nasz widok w Sprawdź działkę]
 - [ ] Jak sprawdzić dostępność przyłączy na działce
 - [x] Nasłonecznienie i ukształtowanie działki: jak ocenić (slug: naslonecznienie-i-uksztaltowanie-dzialki)
 
