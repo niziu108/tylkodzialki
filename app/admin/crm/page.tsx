@@ -4,11 +4,10 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
 import { integrationHealth, type IntegrationHealth } from "@/lib/crm/integration-health";
-import NoweKontoBiura from "./NoweKontoBiura";
 
-// Monitoring CRM (Sprint 3): tabele TYLKO do odczytu. Czytamy statystyki,
+// Monitoring CRM (Sprint 3): widok TYLKO do odczytu. Czytamy statystyki,
 // które silniki (domypl / asari / esticrm) i tak zapisują po każdym imporcie.
-// Jedyny zapis to formularz „Załóż konto biura" (NoweKontoBiura), bez wpływu na synchronizację.
+// Brak zapisów do bazy, brak wpływu na synchronizację.
 export const dynamic = "force-dynamic";
 
 // Reguły statusu (w tym próg „Nieświeże”) w src/lib/crm/integration-health.ts, tam też testy.
@@ -369,8 +368,6 @@ export default async function AdminCrmMonitoringPage({
             Wróć do admina
           </Link>
         </div>
-
-        <NoweKontoBiura />
 
         <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-fg/10 bg-fg/5 p-4">

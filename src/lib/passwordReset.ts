@@ -16,10 +16,7 @@ export async function requestPasswordReset(email: string) {
     select: { email: true, passwordHash: true },
   });
 
-  // Konto bez hasła też dostaje link: biuro założone przez admina (biuroZaproszenie.ts), któremu
-  // wygasło zaproszenie, inaczej nie miałoby żadnej drogi do panelu. Link idzie tylko na adres
-  // konta, więc ustawić hasło może wyłącznie właściciel skrzynki.
-  if (!user) {
+  if (!user || !user.passwordHash) {
     return;
   }
 
@@ -98,8 +95,7 @@ export async function resetPassword(token: string, newPassword: string) {
 
   await prisma.user.update({
     where: { email: user.email },
-    // Kliknięcie linku z maila potwierdza adres, także przy pierwszym haśle z zaproszenia.
-    data: { passwordHash, emailVerified: new Date() },
+    data: { passwordHash },
   });
 
   await prisma.passwordResetToken.deleteMany({

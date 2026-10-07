@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/auth-options";
 import { prisma } from "@/lib/prisma";
 import AdminCrmIntegrationEditor from "@/components/AdminCrmIntegrationEditor";
-import ZaproszenieBiura from "./ZaproszenieBiura";
 
 type PageProps = {
   params: Promise<{
@@ -39,7 +38,6 @@ export default async function AdminCrmUserPage({ params }: PageProps) {
       id: true,
       email: true,
       name: true,
-      passwordHash: true,
       crmIntegrations: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -80,20 +78,6 @@ export default async function AdminCrmUserPage({ params }: PageProps) {
   }
 
   const integration = user.crmIntegrations[0] ?? null;
-
-  // Do zaproszenia: konto bez hasła = założone przez admina i jeszcze nieprzyjęte.
-  const [liczbaDzialek, tokenHasla] = user.passwordHash
-    ? [0, null]
-    : await Promise.all([
-        prisma.dzialka.count({ where: { ownerId: user.id, status: "AKTYWNE" } }),
-        user.email
-          ? prisma.passwordResetToken.findFirst({
-              where: { email: user.email, expiresAt: { gt: new Date() } },
-              orderBy: { expiresAt: "desc" },
-              select: { expiresAt: true },
-            })
-          : null,
-      ]);
   const userLabel = user.name?.trim() || user.email || user.id;
 
   return (
@@ -126,14 +110,6 @@ export default async function AdminCrmUserPage({ params }: PageProps) {
             Wróć do admina
           </Link>
         </div>
-
-        <ZaproszenieBiura
-          userId={user.id}
-          email={user.email}
-          maHaslo={!!user.passwordHash}
-          liczbaDzialek={liczbaDzialek}
-          zaproszenieWazneDo={tokenHasla ? tokenHasla.expiresAt.toLocaleDateString("pl-PL") : null}
-        />
 
         <AdminCrmIntegrationEditor
           userId={user.id}
