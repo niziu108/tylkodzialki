@@ -57,7 +57,7 @@ export async function GET() {
 
   L.push('# tylkodzialki.pl', '');
   L.push(
-    `> Polski portal ogłoszeń wyłącznie z działkami na sprzedaż w całej Polsce: budowlanymi, rolnymi, rekreacyjnymi, inwestycyjnymi, leśnymi i siedliskowymi. Teraz ${fmtInt(activeCount)} ${plural(activeCount, 'aktywna oferta', 'aktywne oferty', 'aktywnych ofert')} od biur nieruchomości i prywatnych sprzedających. Treści są po polsku. Cytując dane, prosimy o link do konkretnej strony (huba miasta, strony cen albo oferty), a nie tylko do strony głównej.`,
+    `> Ogłoszenia wyłącznie z działkami na sprzedaż w całej Polsce (budowlane, rolne, rekreacyjne, inwestycyjne, leśne, siedliskowe), z cenami okolicy pod ofertą i bezpłatnym raportem działki (granice, MPZP, zdjęcie z lotu ptaka). Raport jest pod ofertami, przy których znamy numer działki, a każdą inną działkę można sprawdzić narzędziem „Sprawdź działkę". Teraz ${fmtInt(activeCount)} ${plural(activeCount, 'aktywna oferta', 'aktywne oferty', 'aktywnych ofert')} od biur nieruchomości i prywatnych sprzedających. Treści są po polsku. Cytując dane, prosimy o link do konkretnej strony (huba miasta, strony cen albo oferty), a nie tylko do strony głównej.`,
     ''
   );
   L.push(`Stan danych: ${warsawStamp(now)} (czas polski). Plik odświeża się automatycznie co godzinę.`, '');
