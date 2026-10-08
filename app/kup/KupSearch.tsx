@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTypewriterPlaceholder } from '@/lib/useTypewriterPlaceholder';
 import { flushSync } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
@@ -797,6 +798,13 @@ export default function KupSearch({
   const [mapMounted, setMapMounted] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // Na głównej pole lokalizacji samo „pisze" przykładowe miasta, żeby ściągnąć wzrok na start
+  // szukania. Bez przerysowań komponentu (atrybut przez ref), stop przy fokusie i treści.
+  useTypewriterPlaceholder(inputRef, {
+    enabled: navigationMode,
+    prefix: 'Wpisz lokalizację, np. ',
+    words: ['Warszawa', 'Kraków', 'Lublin', 'Wrocław', 'Gdańsk', 'Poznań', 'Bełchatów', 'Łódź'],
+  });
   const searchTopRef = useRef<HTMLDivElement | null>(null);
   const sortRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollRef = useRef(false);
