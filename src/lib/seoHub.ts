@@ -15,6 +15,7 @@ import { cache } from 'react';
 import {
   DzialkaStatus,
   SprzedajacyTyp,
+  TransakcjaTyp,
   type PradStatus,
   type Przeznaczenie,
   type WodaStatus,
@@ -225,6 +226,7 @@ type DetailRow = {
   lng: number;
   przeznaczenia: Przeznaczenie[];
   cenaPln: number;
+  transakcja: TransakcjaTyp;
   powierzchniaM2: number;
   sprzedajacyTyp: SprzedajacyTyp;
   prad: PradStatus;
@@ -260,6 +262,7 @@ function rangeStat(values: number[]): RangeStat | null {
 export type DetailStatRow = {
   przeznaczenia: Przeznaczenie[];
   cenaPln: number;
+  transakcja?: TransakcjaTyp;
   powierzchniaM2: number;
   sprzedajacyTyp: SprzedajacyTyp;
   prad: PradStatus;
@@ -285,6 +288,8 @@ export function computeDetail(rows: DetailStatRow[]): CategoryDetail {
   const totals: number[] = [];
   const areas: number[] = [];
   for (const r of rows) {
+    // Dzierżawa ma w cenie czynsz, nie cenę działki: liczy się do liczby ofert, ale nie do cen.
+    if (r.transakcja === TransakcjaTyp.WYNAJEM) continue;
     if (r.cenaPln > 0 && r.powierzchniaM2 > 0) {
       ppm2.push(Math.round(r.cenaPln / r.powierzchniaM2));
       totals.push(r.cenaPln);
@@ -329,6 +334,7 @@ const loadCityDetailRows = cache(async (citySlug: string): Promise<DetailRow[]> 
       lng: true,
       przeznaczenia: true,
       cenaPln: true,
+      transakcja: true,
       powierzchniaM2: true,
       sprzedajacyTyp: true,
       prad: true,
@@ -497,6 +503,8 @@ export const getPointValuation = cache(
       where: {
         ...(pominId ? { id: { not: pominId } } : {}),
         ...(gmina ? { adminTeryt: gmina } : {}),
+        // Wycena ceny SPRZEDAŻY: dzierżawy (czynsz zamiast ceny) nie wchodzą do puli.
+        transakcja: TransakcjaTyp.SPRZEDAZ,
         ownerId: { not: null },
         status: DzialkaStatus.AKTYWNE,
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
@@ -724,6 +732,7 @@ export async function loadActivePricePool(): Promise<PricePoolRow[]> {
       locationFull: true,
       przeznaczenia: true,
       cenaPln: true,
+      transakcja: true,
       powierzchniaM2: true,
       sprzedajacyTyp: true,
       prad: true,

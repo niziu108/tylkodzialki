@@ -10,6 +10,7 @@
 //   - To ceny OFERTOWE z aktywnych ogłoszeń, nie transakcyjne (RCN jest tylko przy działce).
 
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { normalizeText } from '@/lib/dzialkiSearch';
 import {
   computeDetail,
@@ -51,6 +52,7 @@ export function regionOfRow(row: {
 const isBudowlana = (r: PricePoolRow) => r.przeznaczenia.includes('BUDOWLANA');
 
 export type PolandPriceBoard = {
+  computedAt: string; // ISO, moment policzenia (do „stan na")
   national: CategoryDetail;
   regions: { region: SeoRegion; detail: CategoryDetail }[]; // kolejność jak SEO_REGIONS
   cities: { city: SeoCity; region: SeoRegion; detail: CategoryDetail }[];
@@ -69,6 +71,7 @@ export function computePolandPriceBoard(rows: PricePoolRow[]): PolandPriceBoard 
   }
 
   return {
+    computedAt: new Date().toISOString(),
     national: computeDetail(building),
     regions: SEO_REGIONS.map((region) => ({
       region,
@@ -84,7 +87,12 @@ export function computePolandPriceBoard(rows: PricePoolRow[]): PolandPriceBoard 
   };
 }
 
-// Cache na żądanie: generateMetadata i strona liczą raz; między żądaniami trzyma ISR strony.
-export const getPolandPriceBoard = cache(async (): Promise<PolandPriceBoard> =>
-  computePolandPriceBoard(await loadActivePricePool())
+// Liczone raz na godzinę i współdzielone przez stronę główną i /ceny (różne revalidate stron,
+// jeden odczyt bazy). React `cache` dokłada deduplikację w obrębie jednego renderu.
+const cachedBoard = unstable_cache(
+  async (): Promise<PolandPriceBoard> => computePolandPriceBoard(await loadActivePricePool()),
+  ['poland-price-board-v1'],
+  { revalidate: 3600 }
 );
+
+export const getPolandPriceBoard = cache(cachedBoard);

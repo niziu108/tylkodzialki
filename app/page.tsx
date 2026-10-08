@@ -19,6 +19,7 @@ import { getPointValuation } from "@/lib/seoHub";
 import { getRcnOkolica, rcnRozjechane } from "@/lib/rcnStats";
 import { decydujCene, looksRolny } from "@/lib/raportCena";
 import { formatIntPL } from "@/lib/format";
+import { getPolandPriceBoard, type PolandPriceBoard } from "@/lib/cenyPolska";
 
 // ISR zamiast force-dynamic: strona główna nie renderuje się od zera przy każdym
 // wejściu (szybciej dla użytkownika i Googlebota). Licznik/wyróżnione świeże do 5 min.
@@ -72,7 +73,40 @@ async function przykladRaportu() {
   }
 }
 
-function PopularSearchesSection() {
+// Pula cen jest dodatkiem: gdy baza nie odpowie, sekcja lokalizacji stoi dalej bez cen.
+async function cenyDoLokalizacji(): Promise<PolandPriceBoard | null> {
+  try {
+    return await getPolandPriceBoard();
+  } catch {
+    return null;
+  }
+}
+
+function zlM2(v: number): string {
+  return `${formatIntPL(v)} zł/m²`;
+}
+
+// Lokalizacje + ceny w jednej sekcji (2026-10-08). Szkielet 16 województw x miasta był tu od
+// dawna, więc mediana dochodzi do istniejących kart zamiast osobnego modułu: zielona pigułka
+// z ceną województwa w nagłówku karty i cena przy każdym mieście. Linki miast dalej prowadzą do
+// ofert (huby), a cały cennik i ranking żyją na /ceny. Liczby z tego samego silnika co /ceny.
+function PopularSearchesSection({ ceny }: { ceny: PolandPriceBoard | null }) {
+  const regionMedian = new Map(
+    (ceny?.regions ?? []).map((r) => [r.region.slug, r.detail.pricePerM2?.median ?? null])
+  );
+  const cityMedian = new Map(
+    (ceny?.cities ?? []).map((c) => [c.city.slug, c.detail.pricePerM2?.median ?? null])
+  );
+  const national = ceny?.national.pricePerM2 ?? null;
+  const stan = ceny
+    ? new Intl.DateTimeFormat("pl-PL", {
+        timeZone: "Europe/Warsaw",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date(ceny.computedAt))
+    : null;
+
   return (
     <section className="relative overflow-hidden bg-surface-2">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
@@ -81,25 +115,43 @@ function PopularSearchesSection() {
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
         <div>
           <div className="text-[12px] uppercase tracking-[0.18em] text-brand-bright">
-            Popularne lokalizacje
+            Lokalizacje i ceny
           </div>
 
           <h2 className="mt-3 max-w-4xl text-2xl font-semibold tracking-tight text-fg md:text-4xl">
-            Najpopularniejsze lokalizacje w województwach
+            Działki budowlane i ich ceny w województwach
           </h2>
 
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-fg/70 md:text-base">
-            Wybierz województwo i przejdź do najczęściej wyszukiwanych miast.
-            Każdy link prowadzi bezpośrednio do działek budowlanych w danej lokalizacji.
+          {national && ceny ? (
+            <p className="mt-4 max-w-3xl text-base leading-7 text-fg md:text-lg md:leading-8">
+              Działka budowlana kosztuje w Polsce średnio{" "}
+              <strong className="font-semibold text-brand-text">{zlM2(national.median)}</strong>{" "}
+              <span className="text-fg/60">
+                (mediana z {formatIntPL(ceny.national.count)} ofert, stan na {stan}).
+              </span>
+            </p>
+          ) : null}
+
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-fg/70 md:text-base">
+            Przy każdym mieście mediana zł/m² z aktywnych ofert w okolicy. Kliknij miasto, aby
+            zobaczyć działki na sprzedaż.
           </p>
+
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <Link href="/ceny" className="text-fg/72 transition hover:text-fg">
+              Ceny działek we wszystkich miastach →
+            </Link>
+          </div>
         </div>
 
         <div className="mt-10 [touch-action:pan-x_pan-y]">
           <HomeHorizontalSlider>
-            {SEO_REGIONS.map((region, index) => (
+            {SEO_REGIONS.map((region, index) => {
+              const regionCena = regionMedian.get(region.slug) ?? null;
+              return (
               <article
                 key={region.name}
-                className="group relative min-w-[86%] snap-start overflow-hidden rounded-[32px] border border-brand/30 bg-brand/20 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur transition hover:border-brand/55 md:min-w-[360px] xl:min-w-[390px]"
+                className="group relative min-w-[86%] snap-start overflow-hidden rounded-[32px] border border-brand/30 bg-brand/20 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur transition hover:border-brand/55 md:min-w-[380px] xl:min-w-[410px]"
               >
                 <div className="relative z-10">
                   <div className="flex items-start justify-between gap-4">
@@ -118,20 +170,42 @@ function PopularSearchesSection() {
                     </div>
                   </div>
 
-                  <div className="mt-7 grid gap-2">
-                    {region.cities.map((city) => (
-                      <Link
-                        key={city.slug}
-                        href={`/dzialki/${city.slug}/budowlane`}
-                        className="block rounded-2xl border border-brand/15 bg-surface/70 px-4 py-3 text-sm leading-5 text-fg/80 transition hover:border-brand/45 hover:bg-surface hover:text-fg"
-                      >
-                        Działki budowlane {city.name}
-                      </Link>
-                    ))}
+                  {regionCena ? (
+                    <Link
+                      href="/ceny"
+                      className="mt-4 inline-flex items-baseline gap-1.5 rounded-full border border-brand/30 bg-surface px-3.5 py-1.5 text-[13px] text-fg/60 transition hover:border-brand/55"
+                    >
+                      średnio
+                      <span className="font-semibold text-brand-text">{zlM2(regionCena)}</span>
+                    </Link>
+                  ) : null}
+
+                  <div className={`${regionCena ? "mt-5" : "mt-7"} grid gap-2`}>
+                    {region.cities.map((city) => {
+                      const cena = cityMedian.get(city.slug) ?? null;
+                      return (
+                        <Link
+                          key={city.slug}
+                          href={`/dzialki/${city.slug}/budowlane`}
+                          className="flex items-center justify-between gap-3 rounded-2xl border border-brand/15 bg-surface/70 px-4 py-3 text-sm leading-5 text-fg/80 transition hover:border-brand/45 hover:bg-surface hover:text-fg"
+                        >
+                          {/* Na telefonie sama nazwa miasta (karta jest wąska, a nagłówek sekcji
+                              mówi, że to działki budowlane); pełny tekst linku od tabletu wzwyż. */}
+                          <span className="min-w-0">
+                            <span className="hidden sm:inline">Działki budowlane </span>
+                            {city.name}
+                          </span>
+                          {cena ? (
+                            <span className="shrink-0 whitespace-nowrap text-[13px] text-fg/55">{zlM2(cena)}</span>
+                          ) : null}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </HomeHorizontalSlider>
         </div>
       </div>
@@ -147,7 +221,7 @@ export default async function HomePage() {
     OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
   };
 
-  const [featuredListings, latestArticles, listingCount, przyklad] = await Promise.all([
+  const [featuredListings, latestArticles, listingCount, przyklad, ceny] = await Promise.all([
     getFeaturedListings(8),
     prisma.article.findMany({
       where: { isPublished: true },
@@ -156,6 +230,7 @@ export default async function HomePage() {
     }),
     prisma.dzialka.count({ where: activeWhere }),
     przykladRaportu(),
+    cenyDoLokalizacji(),
   ]);
 
   // Mapujemy tylko bezpieczne pola (bez editToken/telefon itp.), bo lecą do
@@ -414,6 +489,10 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Lokalizacje i ceny nad blogiem (wcześniej na samym dole): kupujący pyta o miejsce i
+          cenę częściej niż o poradnik, a sekcja niesie linki do hubów miast i do /ceny. */}
+      <PopularSearchesSection ceny={ceny} />
+
       <section className="relative overflow-hidden">
         <ScrollFill />
 
@@ -486,7 +565,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <PopularSearchesSection />
     </main>
   );
 }
