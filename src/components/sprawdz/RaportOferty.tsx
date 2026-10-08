@@ -125,7 +125,7 @@ export default function RaportOferty({
                   <Row label="Obowiązuje od" value={plDate(mpzp.effectiveFrom)} />
                 </div>
                 {!przeznaczenie ? (
-                  <p className="mt-3 text-sm leading-6 text-fg/60">
+                  <p className="mt-3 text-sm leading-6 text-fg/62">
                     Przeznaczenia terenu gmina nie przesyła do krajowej integracji planów. Sprawdzisz je na
                     rysunku planu albo w gminie {parcel.commune}.
                   </p>

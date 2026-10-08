@@ -112,7 +112,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
     <div className="print-report w-full text-left">
       {/* Nagłówek wyłącznie na wydruku: kartka ma mówić, skąd pochodzi i z kiedy jest. */}
       <div className="mb-6 hidden border-b border-fg/25 pb-3 print:block">
-        <div className="flex items-baseline justify-between gap-4 text-[12px] uppercase tracking-[0.18em] text-fg/60">
+        <div className="flex items-baseline justify-between gap-4 text-[12px] uppercase tracking-[0.18em] text-fg/62">
           <span>tylkodzialki.pl · raport działki</span>
           <span>{new Date().toLocaleDateString('pl-PL')}</span>
         </div>
@@ -606,7 +606,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
           <h3 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
             Działki na sprzedaż w okolicy
           </h3>
-          <p className="mt-2 text-sm text-fg/60">
+          <p className="mt-2 text-sm text-fg/62">
             {valuation.offersNearby}{' '}
             {valuation.offersNearby === 1 ? 'oferta' : 'ofert'} w promieniu {valuation.radiusKm} km
             od sprawdzanej działki.{' '}

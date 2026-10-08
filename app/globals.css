@@ -29,7 +29,7 @@
   --brand: #7aa333;
   --brand-strong: #6f9a2e;
   --brand-bright: #7aa333;
-  --brand-text: #557d22; /* tekst: 4,5:1 na #f6f7f3 (WCAG AA); tła i przyciski zostają na --brand */
+  --brand-text: #4a6e1e; /* tekst: min. 4,6:1 na #f6f7f3 i na pigułkach bg-brand/10-20 (WCAG AA); tła i przyciski zostają na --brand */
   --ink: #14140f;
 
   --muted: rgba(20, 20, 18, 0.55);

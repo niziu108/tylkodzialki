@@ -68,7 +68,7 @@ function buildHref(params: { status?: AlertStatus | null; miasto?: string | null
 const STATUS_STYLE: Record<AlertStatus, string> = {
   aktywny: "bg-brand/20 text-brand-text",
   oczekuje: "bg-amber-400/15 text-amber-300",
-  wstrzymany: "bg-fg/10 text-fg/60",
+  wstrzymany: "bg-fg/10 text-fg/62",
 };
 
 export default async function PowiadomieniaPage({ searchParams }: PageProps) {
@@ -161,14 +161,14 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
           </div>
 
           {report.cities.length === 0 ? (
-            <div className="px-5 py-12 text-center text-sm text-fg/60">
+            <div className="px-5 py-12 text-center text-sm text-fg/62">
               Nikt jeszcze nie włączył powiadomień.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-sm">
                 <thead>
-                  <tr className="border-b border-fg/10 text-left text-fg/60">
+                  <tr className="border-b border-fg/10 text-left text-fg/62">
                     <th className="px-5 py-3 font-medium">#</th>
                     <th className="px-5 py-3 font-medium">Miasto</th>
                     <th className="px-5 py-3 text-right font-medium">Osoby</th>
@@ -207,7 +207,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
                         <td className="px-5 py-3 text-right text-brand-text">
                           {formatIntPL(city.aktywne)}
                         </td>
-                        <td className="px-5 py-3 text-right text-fg/60">
+                        <td className="px-5 py-3 text-right text-fg/62">
                           {formatIntPL(city.total)}
                         </td>
                       </tr>
@@ -292,7 +292,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
           </div>
 
           {report.rows.length === 0 ? (
-            <div className="px-5 py-12 text-center text-sm text-fg/60">
+            <div className="px-5 py-12 text-center text-sm text-fg/62">
               {hasFilters
                 ? "Brak alertów dla tych filtrów."
                 : "Nikt jeszcze nie włączył powiadomień."}
@@ -301,7 +301,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[980px] text-sm">
                 <thead>
-                  <tr className="border-b border-fg/10 text-left text-fg/60">
+                  <tr className="border-b border-fg/10 text-left text-fg/62">
                     <th className="px-5 py-3 font-medium">Odbiorca</th>
                     <th className="px-5 py-3 font-medium">Czego szuka</th>
                     <th className="px-5 py-3 font-medium">Miasto</th>
@@ -327,12 +327,12 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
                       <td className="px-5 py-4">
                         <div className="font-medium text-fg">{row.label}</div>
                         {row.queryText ? (
-                          <div className="mt-1 text-xs text-fg/60">
+                          <div className="mt-1 text-xs text-fg/62">
                             Wpisany obszar: {row.queryText}
                           </div>
                         ) : null}
                         {row.criteriaLines.length ? (
-                          <ul className="mt-2 space-y-0.5 text-xs text-fg/60">
+                          <ul className="mt-2 space-y-0.5 text-xs text-fg/62">
                             {row.criteriaLines.map((line) => (
                               <li key={line}>{line}</li>
                             ))}

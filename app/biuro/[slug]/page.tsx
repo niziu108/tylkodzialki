@@ -75,7 +75,7 @@ function skrocOpis(text: string, limit: number) {
 function DataRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1 border-b border-fg/10 py-3 text-left">
-      <span className="shrink-0 text-[13px] text-fg/60">{label}</span>
+      <span className="shrink-0 text-[13px] text-fg/62">{label}</span>
       <span className="min-w-0 text-right text-[15px] font-medium text-fg/90">{children}</span>
     </div>
   );
@@ -226,7 +226,7 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
                     >
                       {w.name}
                     </Link>
-                    <span className="text-[14px] font-medium text-fg/60">
+                    <span className="text-[14px] font-medium text-fg/62">
                       {formatIntPL(w.count)}
                     </span>
                   </div>

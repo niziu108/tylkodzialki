@@ -148,14 +148,14 @@ export default async function StatystykiPage({ searchParams }: StatystykiPagePro
           </div>
 
           {report.rows.length === 0 ? (
-            <div className="px-5 py-12 text-center text-sm text-fg/60">
+            <div className="px-5 py-12 text-center text-sm text-fg/62">
               Brak ofert z przypisanym właścicielem.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-sm">
                 <thead>
-                  <tr className="border-b border-fg/10 text-left text-fg/60">
+                  <tr className="border-b border-fg/10 text-left text-fg/62">
                     <th className="px-5 py-3 font-medium">#</th>
                     <th className="px-5 py-3 font-medium">Biuro</th>
                     <th className="px-5 py-3 text-right font-medium">Oferty</th>

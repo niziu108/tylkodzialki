@@ -127,7 +127,7 @@ export default async function AdminPerelkiPage({ searchParams }: PerelkiPageProp
         <div className="mb-6">
           <Link
             href="/admin"
-            className="text-sm font-semibold text-fg/60 no-underline transition hover:text-fg"
+            className="text-sm font-semibold text-fg/62 no-underline transition hover:text-fg"
           >
             &larr; Wróć do admina
           </Link>
@@ -177,7 +177,7 @@ export default async function AdminPerelkiPage({ searchParams }: PerelkiPageProp
         </div>
 
         {visible.length === 0 ? (
-          <p className="rounded-3xl border border-fg/10 bg-fg/5 p-8 text-center text-sm text-fg/60">
+          <p className="rounded-3xl border border-fg/10 bg-fg/5 p-8 text-center text-sm text-fg/62">
             Brak perełek przy tych filtrach. To normalne i lepsze niż post z byle działką.
           </p>
         ) : (
@@ -195,7 +195,7 @@ export default async function AdminPerelkiPage({ searchParams }: PerelkiPageProp
         <section className="mt-12">
           <Link
             href={buildHref({ uzyte: !showUzyte })}
-            className="text-sm font-semibold text-fg/60 no-underline transition hover:text-fg"
+            className="text-sm font-semibold text-fg/62 no-underline transition hover:text-fg"
           >
             {showUzyte ? "Ukryj użyte" : `Pokaż użyte (${uzyte.length})`}
           </Link>
@@ -279,7 +279,7 @@ function PerelkiTable({ rows }: { rows: PerelkaRow[] }) {
                   >
                     {r.tytul}
                   </a>
-                  <div className="mt-1 text-xs text-fg/60">
+                  <div className="mt-1 text-xs text-fg/62">
                     {[r.locationLabel, r.powiatLabel, r.wojSlug ? wojLabel(r.wojSlug) : null]
                       .filter(Boolean)
                       .join(" · ") || "brak lokalizacji"}
@@ -302,7 +302,7 @@ function PerelkiTable({ rows }: { rows: PerelkaRow[] }) {
                   {r.mpzp ? "MPZP" : r.wzWydane ? "WZ" : "brak"}
                 </td>
                 <td className="px-4 py-3 text-fg/70">{r.photoCount}</td>
-                <td className="px-4 py-3 text-xs text-fg/60">{formatDatePL(r.publishedAt)}</td>
+                <td className="px-4 py-3 text-xs text-fg/62">{formatDatePL(r.publishedAt)}</td>
                 <td className="px-4 py-3">
                   <form action={markPerelkaUsedAction}>
                     <input type="hidden" name="dzialkaId" value={r.id} />

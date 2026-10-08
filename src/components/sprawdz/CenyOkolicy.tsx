@@ -222,7 +222,7 @@ export function Skala({ pasy, cenaOferty }: { pasy: Pas[]; cenaOferty: number | 
         ))}
       </div>
 
-      <p className="mt-4 max-w-3xl text-sm leading-6 text-fg/60">
+      <p className="mt-4 max-w-3xl text-sm leading-6 text-fg/62">
         Zielony pasek pokazuje, w jakich cenach za metr mieści się większość działek w okolicy.
         {cenaOferty !== null ? ' Kropka to cena tej działki.' : ''}
         {poza ? ' Ta oferta jest daleko poza paskiem, dlatego kropka stoi na samym końcu.' : ''}

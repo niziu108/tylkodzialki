@@ -443,14 +443,14 @@ export default async function AdminCrmMonitoringPage({
                 Do odzyskania: {doOdzyskania.length}{" "}
                 {doOdzyskania.length === 1 ? "biuro" : "biur"} bez ani jednej oferty
               </h2>
-              <div className="text-xs text-fg/60">
+              <div className="text-xs text-fg/62">
                 {odzyskanieWgSilnika
                   .map(([prov, ile]) => `${providerLabel(prov)}: ${ile}`)
                   .join(" · ")}
               </div>
             </div>
 
-            <p className="mb-4 max-w-3xl text-xs text-fg/60">
+            <p className="mb-4 max-w-3xl text-xs text-fg/62">
               Włączone integracje, z których nie mamy ani jednej aktywnej działki. Kilka biur z tym
               samym objawem na jednym silniku to jedna diagnoza kanału, a nie tyle telefonów, ile
               wierszy.
@@ -493,7 +493,7 @@ export default async function AdminCrmMonitoringPage({
                       <td className="px-4 py-3 whitespace-nowrap text-fg/70">
                         {r.dniCzekania} dni
                       </td>
-                      <td className="px-4 py-3 text-xs text-fg/60">
+                      <td className="px-4 py-3 text-xs text-fg/62">
                         {r.ostatniBlad ? r.ostatniBlad.slice(0, 90) : "bez błędu, źródło milczy"}
                       </td>
                     </tr>
@@ -505,7 +505,7 @@ export default async function AdminCrmMonitoringPage({
         ) : null}
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs uppercase tracking-[0.14em] text-fg/60">
+          <span className="mr-1 text-xs uppercase tracking-[0.14em] text-fg/62">
             Sortuj
           </span>
 

@@ -1850,7 +1850,7 @@ export default function KupSearch({
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
-                className="flex items-center gap-1.5 text-[12px] uppercase tracking-[0.18em] text-fg/60 transition hover:text-fg"
+                className="flex items-center gap-1.5 text-[12px] uppercase tracking-[0.18em] text-fg/62 transition hover:text-fg"
               >
                 Zwiń
                 <span className="text-[8px]">▲</span>

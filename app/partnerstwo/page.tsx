@@ -296,7 +296,7 @@ export default async function PartnerstwoPage() {
                 key={s.n}
                 className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur"
               >
-                <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-text">
+                <div className="text-[40px] font-bold leading-none text-brand-strong transition-colors duration-200 group-hover:text-brand-text">
                   {s.n}
                 </div>
 

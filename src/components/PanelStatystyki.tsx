@@ -137,7 +137,7 @@ export default function PanelStatystyki({
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
             <div className="text-[19px] font-medium text-fg">Dzień po dniu</div>
-            <div className="mt-1 text-sm text-fg/60">
+            <div className="mt-1 text-sm text-fg/62">
               Ostatnie {windowDays} dni
               {hasChart ? (
                 <>

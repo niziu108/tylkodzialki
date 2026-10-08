@@ -223,7 +223,7 @@ export default function ParcelFinder({
                   className="w-full rounded-xl border border-fg/12 px-3 py-2.5 text-left transition hover:border-brand/60 hover:bg-brand/10"
                 >
                   <span className="block text-[14px] font-semibold text-fg">{k.commune || k.county}</span>
-                  <span className="mt-0.5 block text-[12px] leading-5 text-fg/60">
+                  <span className="mt-0.5 block text-[12px] leading-5 text-fg/62">
                     {powiatLabelFromUldk(k.county)}, {k.voivodeship} · obręb {k.region} · działka{' '}
                     {k.parcelNumber}
                   </span>

@@ -523,7 +523,7 @@ export default function SprawdzSearch({
                         <span className="block text-[14px] font-medium text-fg">
                           {c.commune || c.county}
                         </span>
-                        <span className="mt-0.5 block text-[12px] leading-5 text-fg/60">
+                        <span className="mt-0.5 block text-[12px] leading-5 text-fg/62">
                           {powiatLabelFromUldk(c.county)}, {c.voivodeship} · obręb {c.region} ·
                           działka {c.parcelNumber}
                         </span>

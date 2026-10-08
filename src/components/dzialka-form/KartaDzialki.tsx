@@ -108,7 +108,7 @@ export default function KartaDzialki({
 function Wiersz({ etykieta, wartosc }: { etykieta: string; wartosc: string }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-3">
-      <dt className="text-fg/60">{etykieta}</dt>
+      <dt className="text-fg/62">{etykieta}</dt>
       <dd className="min-w-0 break-words text-right font-medium text-fg">{wartosc}</dd>
     </div>
   );

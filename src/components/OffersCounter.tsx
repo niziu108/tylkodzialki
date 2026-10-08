@@ -13,7 +13,7 @@ export default function OffersCounter({ target }: { target: number }) {
         W bazie już
       </span>
 
-      <span className="mt-2 tabular-nums text-[72px] font-bold text-brand md:text-[110px] lg:text-[140px]">
+      <span className="mt-2 tabular-nums text-[72px] font-bold text-brand-strong md:text-[110px] lg:text-[140px]">
         {fmt(target)}
       </span>
 

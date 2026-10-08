@@ -306,7 +306,7 @@ export default function CrmIntegrationPanel({
               key={s.n}
               className="rounded-2xl border border-fg/10 bg-surface p-5"
             >
-              <div className="text-2xl font-bold leading-none text-brand-text/50">
+              <div className="text-2xl font-bold leading-none text-brand-strong">
                 {s.n}
               </div>
               <h3 className="mt-3 text-base font-semibold text-fg">

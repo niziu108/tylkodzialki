@@ -1187,7 +1187,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       ›
                     </button>
 
-                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[12px] text-white/85 border border-white/10 backdrop-blur-sm">
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[12px] text-white border border-white/10 backdrop-blur-sm">
                       {idx + 1}/{photos.length}
                     </div>
                   </>
@@ -1471,7 +1471,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   {loc ? (
                     <div className="mt-2 min-w-0 text-fg/90 text-[14px] leading-snug whitespace-normal break-words">
                       {loc}
-                      {isApproxLocation ? <span className="text-fg/60"> (przybliżona)</span> : null}
+                      {isApproxLocation ? <span className="text-fg/62"> (przybliżona)</span> : null}
                     </div>
                   ) : null}
 
@@ -1693,7 +1693,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             <button
               type="button"
               onClick={() => setMsgOpen(false)}
-              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-fg/12 text-fg/60 transition hover:border-fg/30 hover:text-fg"
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-fg/12 text-fg/62 transition hover:border-fg/30 hover:text-fg"
               aria-label="Zamknij"
             >
               <span className="relative top-[-1px] text-[18px] leading-none">×</span>
@@ -1704,7 +1704,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <div className="pr-10 text-[20px] font-semibold tracking-tight text-fg">
                   Napisz do opiekuna
                 </div>
-                <p className="mt-2 text-[13px] leading-relaxed text-fg/60">
+                <p className="mt-2 text-[13px] leading-relaxed text-fg/62">
                   Zeskanuj kod telefonem, a otworzy się gotowy SMS do opiekuna oferty
                   {numerOferty ? ` (nr ${numerOferty})` : ''}. Wyślesz go w sekundę.
                 </p>
@@ -1727,7 +1727,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 </div>
 
                 {telefon ? (
-                  <p className="mt-6 text-center text-[13px] leading-relaxed text-fg/60">
+                  <p className="mt-6 text-center text-[13px] leading-relaxed text-fg/62">
                     Wolisz zadzwonić?{' '}
                     <a
                       href={`tel:${telefon.replace(/\s+/g, '')}`}
@@ -1771,7 +1771,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <div className="pr-10 text-[20px] font-semibold tracking-tight text-fg">
                   Napisz wiadomość
                 </div>
-                <p className="mt-2 text-[13px] leading-relaxed text-fg/60">
+                <p className="mt-2 text-[13px] leading-relaxed text-fg/62">
                   Pytanie trafi prosto do sprzedającego
                   {numerOferty ? ` (oferta nr ${numerOferty})` : ''}.
                 </p>

@@ -63,7 +63,7 @@ export default async function AdminRynekPage() {
         <div className="mb-6">
           <Link
             href="/admin"
-            className="text-sm font-semibold text-fg/60 no-underline transition hover:text-fg"
+            className="text-sm font-semibold text-fg/62 no-underline transition hover:text-fg"
           >
             &larr; Wróć do admina
           </Link>
@@ -133,7 +133,7 @@ export default async function AdminRynekPage() {
               <div className="text-4xl font-semibold text-fg">
                 {dni(report.czasSprzedazy.ogolem!)}
               </div>
-              <p className="mt-2 text-sm text-fg/60">
+              <p className="mt-2 text-sm text-fg/62">
                 Mediana czasu sprzedaży działki, {num.format(report.czasSprzedazy.n)} obserwacji.
               </p>
             </div>
@@ -182,7 +182,7 @@ export default async function AdminRynekPage() {
           </div>
 
           {report.obnizki.najwieksze.length === 0 ? (
-            <div className={`${CARD} p-6 text-sm text-fg/60`}>
+            <div className={`${CARD} p-6 text-sm text-fg/62`}>
               Żadna obserwowana oferta nie zmieniła jeszcze ceny. Pierwsze ruchy zobaczymy po
               kilku tygodniach zbierania.
             </div>
@@ -215,7 +215,7 @@ export default async function AdminRynekPage() {
                             {o.locationLabel ?? "brak lokalizacji"}
                           </div>
                         </td>
-                        <td className={`${TD} text-fg/60 line-through`}>{pln(o.cenaOd)}</td>
+                        <td className={`${TD} text-fg/62 line-through`}>{pln(o.cenaOd)}</td>
                         <td className={`${TD} font-semibold text-fg`}>{pln(o.cenaDo)}</td>
                         <td className={TD}>
                           <span
@@ -281,7 +281,7 @@ function Sekcja({
   return (
     <section className="mb-12">
       <h2 className="text-xl font-semibold tracking-tight text-fg">{tytul}</h2>
-      <p className="mt-1 mb-4 max-w-3xl text-sm text-fg/60">{opis}</p>
+      <p className="mt-1 mb-4 max-w-3xl text-sm text-fg/62">{opis}</p>
       {children}
     </section>
   );

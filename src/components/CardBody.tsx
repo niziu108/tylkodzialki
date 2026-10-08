@@ -184,7 +184,7 @@ export function CardBody({
             <span className="min-w-0 truncate text-[13px] text-brand-text">
               Partner strategiczny
               {horizontal ? (
-                <span className="hidden text-fg/60 lg:inline">
+                <span className="hidden text-fg/62 lg:inline">
                   {' | '}
                   Oferta biura nieruchomości
                 </span>

@@ -23,7 +23,7 @@ function formatDatePL(d: Date) {
 const INPUT =
   "h-11 w-full rounded-xl border border-fg/12 bg-surface-2 px-3 text-[14px] text-fg outline-none transition placeholder:text-fg/40 focus:border-brand/60";
 
-const LABEL = "mb-2 block text-[13px] text-fg/60";
+const LABEL = "mb-2 block text-[13px] text-fg/62";
 
 export default async function AdminWizytowkaEdytorPage({ params, searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
@@ -71,7 +71,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
     <main className="mx-auto w-full max-w-3xl px-6 py-14 md:px-10">
       <Link
         href="/admin/wizytowki"
-        className="text-[13px] text-fg/60 underline decoration-fg/20 underline-offset-8 transition hover:text-fg"
+        className="text-[13px] text-fg/62 underline decoration-fg/20 underline-offset-8 transition hover:text-fg"
       >
         Wróć do listy wizytówek
       </Link>
@@ -80,7 +80,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
         {u.defaultBiuroNazwa || u.email || u.id}
       </h1>
 
-      <p className="mt-3 text-[14px] text-fg/60">
+      <p className="mt-3 text-[14px] text-fg/62">
         {u.email} · {u._count.dzialki} {u._count.dzialki === 1 ? "oferta" : "ofert"}
         {u.name ? ` · konto założył(a): ${u.name}` : ""}
       </p>
@@ -338,7 +338,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
           Wyróżnienia na koncie
         </h2>
 
-        <p className="mt-2 text-[13px] leading-6 text-fg/60">
+        <p className="mt-2 text-[13px] leading-6 text-fg/62">
           Saldo:{" "}
           <span className="font-semibold text-fg">{u.featuredCredits}</span>
           {u.featuredCreditsExpiresAt ? (

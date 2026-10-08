@@ -115,7 +115,7 @@ export default function GlobalNav() {
   const navBtnWhite = 'text-fg/65 hover:text-fg';
 
   // W jasnym motywie brand-text == brand-bright, więc hover przyciemnia zieleń.
-  const navBtnGreen = 'text-brand-text hover:text-[#5f8526]';
+  const navBtnGreen = 'text-brand-text hover:text-[#3f621a]';
 
   const linkMobile =
     'w-full py-5 text-[clamp(20px,5.5vw,28px)] font-medium leading-none text-fg transition-colors hover:text-brand-text';

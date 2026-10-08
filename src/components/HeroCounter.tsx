@@ -21,7 +21,7 @@ export default function HeroCounter({
       <span
         className={`tabular-nums text-[44px] font-bold md:text-[40px] ${
           isLight
-            ? 'text-brand'
+            ? 'text-brand-strong'
             : 'text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.45)]'
         }`}
       >

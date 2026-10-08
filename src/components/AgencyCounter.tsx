@@ -13,7 +13,7 @@ export default function AgencyCounter({ target }: { target: number }) {
         Zaufało nam
       </span>
 
-      <span className="mt-2 tabular-nums text-[88px] font-bold text-brand md:text-[120px] lg:text-[150px]">
+      <span className="mt-2 tabular-nums text-[88px] font-bold text-brand-strong md:text-[120px] lg:text-[150px]">
         {fmt(target)}
       </span>
 

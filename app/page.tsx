@@ -126,7 +126,7 @@ function PopularSearchesSection({ ceny }: { ceny: PolandPriceBoard | null }) {
             <p className="mt-4 max-w-3xl text-base leading-7 text-fg md:text-lg md:leading-8">
               Działka budowlana kosztuje w Polsce średnio{" "}
               <strong className="font-semibold text-brand-text">{zlM2(national.median)}</strong>{" "}
-              <span className="text-fg/60">
+              <span className="text-fg/62">
                 (mediana z {formatIntPL(ceny.national.count)} ofert, stan na {stan}).
               </span>
             </p>
@@ -173,7 +173,7 @@ function PopularSearchesSection({ ceny }: { ceny: PolandPriceBoard | null }) {
                   {regionCena ? (
                     <Link
                       href="/ceny"
-                      className="mt-4 inline-flex items-baseline gap-1.5 rounded-full border border-brand/30 bg-surface px-3.5 py-1.5 text-[13px] text-fg/60 transition hover:border-brand/55"
+                      className="mt-4 inline-flex items-baseline gap-1.5 rounded-full border border-brand/30 bg-surface px-3.5 py-1.5 text-[13px] text-fg/62 transition hover:border-brand/55"
                     >
                       średnio
                       <span className="font-semibold text-brand-text">{zlM2(regionCena)}</span>
@@ -407,7 +407,7 @@ export default async function HomePage() {
                   Sprawdź swoją działkę
                 </Link>
 
-                <p className="mt-3 text-sm text-fg/60">
+                <p className="mt-3 text-sm text-fg/62">
                   Wpisujesz adres albo wskazujesz działkę na mapie. Za darmo i bez konta.
                 </p>
               </div>
@@ -426,7 +426,7 @@ export default async function HomePage() {
                 <div className="mt-2 text-[26px] font-semibold tracking-tight text-fg md:text-[32px]">
                   {formatIntPL(DEMO_PARCEL.areaM2)} m² · {Math.round(DEMO_PARCEL.areaM2 / 100)} ar
                 </div>
-                <div className="mt-2 text-[15px] text-fg/60">
+                <div className="mt-2 text-[15px] text-fg/62">
                   {[DEMO_PARCEL.commune, DEMO_PARCEL.county, DEMO_PARCEL.voivodeship]
                     .filter(Boolean)
                     .join(' · ')}

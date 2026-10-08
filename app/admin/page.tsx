@@ -595,7 +595,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </form>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-xs uppercase tracking-[0.14em] text-fg/60">
+            <span className="mr-1 text-xs uppercase tracking-[0.14em] text-fg/62">
               Sortuj
             </span>
 

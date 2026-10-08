@@ -471,7 +471,7 @@ function AuthPageContent() {
 
                 <div className="mt-6 h-px w-full bg-fg/10" />
 
-                <p className="mt-5 text-[13px] leading-6 text-fg/60">
+                <p className="mt-5 text-[13px] leading-6 text-fg/62">
                   Jesteś biurem nieruchomości?{' '}
                   <a
                     href="/dla-biur"

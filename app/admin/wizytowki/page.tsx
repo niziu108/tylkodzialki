@@ -68,7 +68,7 @@ export default async function AdminWizytowkiPage({ searchParams }: PageProps) {
       <div className="mb-10">
         <Link
           href="/admin"
-          className="text-[13px] text-fg/60 underline decoration-fg/20 underline-offset-8 transition hover:text-fg"
+          className="text-[13px] text-fg/62 underline decoration-fg/20 underline-offset-8 transition hover:text-fg"
         >
           Wróć do panelu
         </Link>
@@ -105,7 +105,7 @@ export default async function AdminWizytowkiPage({ searchParams }: PageProps) {
           {q ? (
             <Link
               href="/admin/wizytowki"
-              className="inline-flex h-11 shrink-0 items-center rounded-xl px-3 text-[13px] text-fg/60 transition hover:text-fg"
+              className="inline-flex h-11 shrink-0 items-center rounded-xl px-3 text-[13px] text-fg/62 transition hover:text-fg"
             >
               Wyczyść
             </Link>
@@ -141,7 +141,7 @@ export default async function AdminWizytowkiPage({ searchParams }: PageProps) {
                 <Link
                   href={`/biuro/${u.biuroSlug}`}
                   target="_blank"
-                  className="text-[13px] text-fg/60 underline decoration-fg/20 underline-offset-8 transition hover:text-fg"
+                  className="text-[13px] text-fg/62 underline decoration-fg/20 underline-offset-8 transition hover:text-fg"
                 >
                   Podejrzyj
                 </Link>
@@ -158,7 +158,7 @@ export default async function AdminWizytowkiPage({ searchParams }: PageProps) {
         ))}
 
         {rows.length === 0 ? (
-          <p className="py-6 text-[15px] text-fg/60">Nie znaleziono kont dla „{q}”.</p>
+          <p className="py-6 text-[15px] text-fg/62">Nie znaleziono kont dla „{q}”.</p>
         ) : null}
       </div>
     </main>

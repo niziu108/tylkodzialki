@@ -32,7 +32,7 @@ export default function ArticleToc({ headings }: { headings: TocHeading[] }) {
       >
         {headings.map((h, i) => (
           <li key={h.id} className="flex gap-3">
-            <span className="text-sm font-semibold text-brand-text/70">
+            <span className="text-sm font-semibold text-brand-text">
               {String(i + 1).padStart(2, "0")}
             </span>
             <a

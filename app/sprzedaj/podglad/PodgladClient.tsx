@@ -107,7 +107,7 @@ export default function PodgladClient() {
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--fg)' }}>
       <div className="mx-auto max-w-6xl px-3 py-6 md:px-4 md:py-8">
-        <div className="mb-4 text-[13px] text-fg/60">
+        <div className="mb-4 text-[13px] text-fg/62">
           Tak wygląda Twoja oferta na liście. Kliknij kartę, aby wejść w ofertę.
         </div>
 
