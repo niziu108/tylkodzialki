@@ -1,18 +1,20 @@
 /** /llms.txt: opis serwisu dla asystentów AI (ChatGPT, Perplexity, Claude), markdown jako text/plain.
  *
  * Liczby i listy miast liczone z bazy tą samą logiką co sitemapa i /ceny (getHubSitemapEntries,
- * computeCityPriceSnapshots), więc linki prowadzą tylko do stron z treścią i `index`.
+ * getPolandPriceBoard), więc linki prowadzą tylko do stron z treścią i `index`.
  * Celowo bez nazw systemów CRM i biur partnerskich. */
 
 import { prisma } from '@/lib/prisma';
 import { plural } from '@/lib/plural';
 import { SEO_REGIONS, SEO_TYPES, inCity } from '@/lib/seo-locations';
-import { CITY_RADIUS_KM, MIN_SAMPLE, computeCityPriceSnapshots, getHubSitemapEntries } from '@/lib/seoHub';
+import { CITY_RADIUS_KM, MIN_OFERT_DO_CENY, MIN_SAMPLE, getHubSitemapEntries } from '@/lib/seoHub';
+import { getPolandPriceBoard } from '@/lib/cenyPolska';
 import { SITE_URL, indexableOfferWhere } from '@/lib/sitemapy';
 
 export const revalidate = 3600;
 
 const fmtInt = (n: number) => n.toLocaleString('pl-PL').replace(/\s/g, ' ');
+const ofertGen = (n: number) => `${fmtInt(n)} ${plural(n, 'oferty', 'ofert', 'ofert')}`;
 const ofert = (n: number) => `${fmtInt(n)} ${plural(n, 'oferta', 'oferty', 'ofert')}`;
 // Starsze wpisy bloga mają półpauzy w tytułach i zajawkach, a w naszych tekstach ich nie używamy.
 const noDash = (t: string) => t.replace(/\s+[–—]\s+/g, ': ');
@@ -31,10 +33,10 @@ function warsawStamp(d: Date): string {
 export async function GET() {
   const now = new Date();
 
-  const [activeCount, hubEntries, priceSnaps, articles] = await Promise.all([
+  const [activeCount, hubEntries, priceBoard, articles] = await Promise.all([
     prisma.dzialka.count({ where: indexableOfferWhere(now) }),
     getHubSitemapEntries(),
-    computeCityPriceSnapshots(),
+    getPolandPriceBoard(),
     prisma.article.findMany({
       where: { isPublished: true },
       select: { slug: true, title: true, excerpt: true },
@@ -44,7 +46,12 @@ export async function GET() {
   ]);
 
   const hubBySlug = new Map(hubEntries.map((e) => [e.citySlug, e]));
-  const medianBySlug = new Map(priceSnaps.map((s) => [s.citySlug, s]));
+  // W tym pliku medianę miasta podajemy od tej samej próby co ranking na /ceny, mniejsze pule tylko linkujemy.
+  const medianBySlug = new Map(
+    priceBoard.cities
+      .filter((c) => c.detail.pricePerM2 && c.detail.count >= MIN_OFERT_DO_CENY)
+      .map((c) => [c.city.slug, { median: c.detail.pricePerM2!.median, count: c.detail.count }])
+  );
 
   // Miasta z realną podażą budowlanych (próg jak na /ceny), od największej podaży.
   const cities = SEO_REGIONS.flatMap((r) => r.cities.map((c) => ({ city: c })))
@@ -105,11 +112,24 @@ export async function GET() {
   L.push('## Metodologia cen', '');
   L.push(
     `- Mediana zł/m² liczona z aktywnych ofert działek budowlanych w promieniu ok. ${CITY_RADIUS_KM} km od miasta (dla dużych miast także w granicach miasta).`,
-    `- Zakres to 10. i 90. percentyl, żeby pojedyncze nietypowe ogłoszenia nie zniekształcały wyniku. Poniżej ${MIN_SAMPLE} ofert nie podajemy mediany.`,
+    `- Zakres to 10. i 90. percentyl, żeby pojedyncze nietypowe ogłoszenia nie zniekształcały wyniku. W tym pliku medianę miasta podajemy od ${MIN_OFERT_DO_CENY} ofert, przy mniejszej próbie tylko linkujemy stronę.`,
     '- To ceny ofertowe (ile chcą sprzedający), nie ceny transakcyjne. Ceny transakcyjne pokazujemy osobno, pod ofertami, z Rejestru Cen Nieruchomości (GUGiK).',
     '- Dane aktualizują się na bieżąco wraz z ofertami, a strony cen zapisują dodatkowo dzienny trend mediany.',
     ''
   );
+
+  const nat = priceBoard.national;
+  if (nat.pricePerM2) {
+    L.push('## Ceny działek budowlanych w Polsce i województwach', '');
+    L.push(
+      `- Polska: mediana ofertowa ${fmtInt(nat.pricePerM2.median)} zł/m², typowo od ${fmtInt(nat.pricePerM2.low)} do ${fmtInt(nat.pricePerM2.high)} zł/m² (z ${ofertGen(nat.count)}): ${u('/ceny')}`
+    );
+    for (const { region, detail } of priceBoard.regions) {
+      if (!detail.pricePerM2 || detail.count < MIN_OFERT_DO_CENY) continue;
+      L.push(`- ${region.name}: mediana ${fmtInt(detail.pricePerM2.median)} zł/m² (z ${ofertGen(detail.count)})`);
+    }
+    L.push('');
+  }
 
   L.push('## Pytania ogólne i strony, które na nie odpowiadają', '');
   L.push(
@@ -149,7 +169,7 @@ export async function GET() {
       `- Działki na sprzedaż ${where} i okolicach (${ofert(total)}): ${u(`/dzialki/${city.slug}`)}`,
       `- Działki budowlane ${where} i okolicach (${ofert(building)}): ${u(`/dzialki/${city.slug}/budowlane`)}`,
       snap
-        ? `- Ile kosztuje działka budowlana ${where}? Mediana ofertowa ${fmtInt(snap.medianPricePerM2)} zł/m², z ${fmtInt(snap.sampleCount)} ${plural(snap.sampleCount, 'oferty', 'ofert', 'ofert')}: ${u(`/ceny/${city.slug}`)}`
+        ? `- Ile kosztuje działka budowlana ${where}? Mediana ofertowa ${fmtInt(snap.median)} zł/m², z ${fmtInt(snap.count)} ${plural(snap.count, 'oferty', 'ofert', 'ofert')}: ${u(`/ceny/${city.slug}`)}`
         : `- Ile kosztuje działka budowlana ${where}? ${u(`/ceny/${city.slug}`)}`
     );
     if (others.length > 0) L.push(`- Inne przeznaczenia (liczba ofert): ${others.join(', ')}`);
