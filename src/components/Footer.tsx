@@ -137,6 +137,11 @@ export default function Footer() {
                 >
                   Ustawienia cookies
                 </button>
+
+                {/* Zwykły <a>: to plik tekstowy z trasy, nie strona do nawigacji klienckiej. */}
+                <a href="/llms.txt" className="transition hover:text-fg">
+                  Dla agentów AI
+                </a>
               </nav>
             </div>
           </div>
