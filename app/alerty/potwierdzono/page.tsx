@@ -17,7 +17,7 @@ export default async function AlertConfirmedPage({ searchParams }: Props) {
   return (
     <main className="flex min-h-[70vh] items-center justify-center bg-bg px-6 text-fg">
       <div className="w-full max-w-md rounded-3xl border border-fg/10 bg-fg/[0.03] px-8 py-10 text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/12 text-2xl text-brand-bright">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand/35 bg-brand/12 text-2xl text-brand-text">
           {notFound ? '?' : '✓'}
         </div>
 

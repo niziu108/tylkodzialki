@@ -543,7 +543,7 @@ function PagerResponsive({
                   onClick={() => onGo(x)}
                   className={[
                     'shrink-0 min-w-[25px] px-1 text-center text-[13px] tracking-[0.04em] transition',
-                    active ? 'font-semibold text-brand' : 'text-fg/72 hover:text-fg',
+                    active ? 'font-semibold text-brand-text' : 'text-fg/72 hover:text-fg',
                   ].join(' ')}
                   style={{
                     // tylko `color` w przejściu — animacja text-decoration-color
@@ -598,7 +598,7 @@ function PagerResponsive({
           </button>
 
           <div className="text-fg/70 text-[12px] tracking-[0.22em] uppercase">
-            <span className="font-semibold text-brand">{page}</span>/{totalPages}
+            <span className="font-semibold text-brand-text">{page}</span>/{totalPages}
           </div>
 
           <button
@@ -622,7 +622,7 @@ function PagerResponsive({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-fg/62 text-[11px] tracking-[0.22em] uppercase">Idź do</div>
+          <div className="text-fg/62 text-[12px] tracking-[0.22em] uppercase">Idź do</div>
 
           <input
             value={val}
@@ -638,7 +638,7 @@ function PagerResponsive({
           <button
             type="button"
             onClick={go}
-            className="rounded-xl border border-fg/20 px-3 py-2 text-[11px] tracking-[0.22em] uppercase text-fg/75 transition hover:border-fg/40"
+            className="rounded-xl border border-fg/20 px-3 py-2 text-[12px] tracking-[0.22em] uppercase text-fg/75 transition hover:border-fg/40"
           >
             Idź
           </button>
@@ -1482,7 +1482,7 @@ export default function KupSearch({
             />
           </div>
           {locError && (
-            <p className="mt-2 text-[11px] tracking-[0.10em] text-red-400/80">{locError}</p>
+            <p className="mt-2 text-[12px] tracking-[0.10em] text-red-400/80">{locError}</p>
           )}
         </div>
 
@@ -1507,7 +1507,7 @@ export default function KupSearch({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-fg/85 transition hover:text-fg"
+          className="flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-fg/85 transition hover:text-fg"
         >
           <span className="text-[8px]">{expanded ? '▲' : '▼'}</span>
           {expanded ? 'Mniej filtrów' : 'Więcej filtrów'}
@@ -1598,7 +1598,7 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-brand bg-brand/20 text-brand-bright'
+                        ? 'border-brand bg-brand/20 text-brand-text'
                         : 'border-fg/25 text-fg/70 hover:border-fg/45',
                     ].join(' ')}
                   >
@@ -1624,7 +1624,7 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-brand bg-brand/20 text-brand-bright'
+                        ? 'border-brand bg-brand/20 text-brand-text'
                         : 'border-fg/25 text-fg/70 hover:border-fg/45',
                     ].join(' ')}
                   >
@@ -1650,7 +1650,7 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-brand bg-brand/20 text-brand-bright'
+                        ? 'border-brand bg-brand/20 text-brand-text'
                         : 'border-fg/25 text-fg/70 hover:border-fg/45',
                     ].join(' ')}
                   >
@@ -1680,7 +1680,7 @@ export default function KupSearch({
                     className={[
                       'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
                       active
-                        ? 'border-brand bg-brand/20 text-brand-bright'
+                        ? 'border-brand bg-brand/20 text-brand-text'
                         : 'border-fg/25 text-fg/70 hover:border-fg/45',
                     ].join(' ')}
                   >
@@ -1850,7 +1850,7 @@ export default function KupSearch({
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
-                className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-fg/60 transition hover:text-fg"
+                className="flex items-center gap-1.5 text-[12px] uppercase tracking-[0.18em] text-fg/60 transition hover:text-fg"
               >
                 Zwiń
                 <span className="text-[8px]">▲</span>
@@ -1892,7 +1892,7 @@ export default function KupSearch({
                       setSortOpen(false);
                     }}
                     className={[
-                      'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.18em] transition',
+                      'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[12px] uppercase tracking-[0.18em] transition',
                       active ? 'text-fg' : 'text-fg/70 hover:text-fg/85',
                     ].join(' ')}
                   >
@@ -1950,7 +1950,7 @@ export default function KupSearch({
                   {wider.radiusKm} km
                 </button>
               ) : canWiden && !widerChecked ? (
-                <span className="text-fg/55">Sprawdzam większy promień…</span>
+                <span className="text-fg/62">Sprawdzam większy promień…</span>
               ) : applied.center || applied.bbox || scopeLoc ? (
                 <button type="button" className={linkClass} onClick={searchWholeCountry}>
                   Szukaj w całej Polsce

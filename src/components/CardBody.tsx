@@ -85,7 +85,7 @@ export function CardBody({
                 {isRent ? <span className="text-[13px] font-normal text-fg/72">/mc</span> : null}
               </span>
             ) : (
-              <span className="rounded-full bg-brand/15 px-3 py-1 text-[14px] font-medium leading-none text-brand-bright">
+              <span className="rounded-full bg-brand/15 px-3 py-1 text-[14px] font-medium leading-none text-brand-text">
                 Zapytaj o cenę
               </span>
             )}
@@ -125,7 +125,7 @@ export function CardBody({
           {typeof distanceKm === 'number' ? (
             // Poza `truncate`, żeby przy długiej nazwie miejscowości ucinał się adres, a nie
             // odległość — w raporcie to ona jest powodem, dla którego ta oferta tu jest.
-            <span className="shrink-0 whitespace-nowrap text-fg/50">
+            <span className="shrink-0 whitespace-nowrap text-fg/62">
               · {distanceKm < 1
                 ? `${Math.max(50, Math.round((distanceKm * 1000) / 50) * 50)} m`
                 : `${distanceKm.toLocaleString('pl-PL', { maximumFractionDigits: 1 })} km`}

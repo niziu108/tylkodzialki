@@ -115,7 +115,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
             <LogoPreview src={u.defaultBiuroLogoUrl} defaultGreen={u.defaultBiuroLogoBg} />
           </div>
         ) : (
-          <p className="mt-4 text-[13px] leading-6 text-fg/55">
+          <p className="mt-4 text-[13px] leading-6 text-fg/62">
             To konto nie ma jeszcze logo. Wgraj plik (PNG, JPG, WEBP lub SVG, do 2 MB) albo
             wklej adres URL.
           </p>
@@ -165,7 +165,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
               />
               <span>
                 Logo zawiera już nazwę, nie powtarzaj jej pod spodem
-                <span className="mt-1 block text-[12px] leading-6 text-fg/50">
+                <span className="mt-1 block text-[12px] leading-6 text-fg/62">
                   Na wizytówce zostaje sam logotyp. Działa tylko przy wgranym logo. Nazwa
                   dalej pracuje w tytule strony i w wynikach Google.
                 </span>
@@ -277,7 +277,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
             />
             <span>
               Partner strategiczny
-              <span className="mt-1.5 block text-[12px] leading-6 text-fg/55">
+              <span className="mt-1.5 block text-[12px] leading-6 text-fg/62">
                 Znak pojawi się na wizytówce, przy każdej z {u._count.dzialki}{" "}
                 {u._count.dzialki === 1 ? "oferty" : "ofert"} tego konta na liście wyników
                 oraz na stronie każdego ogłoszenia. Nadawaj wyłącznie sieciom z realną
@@ -319,7 +319,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
           </div>
         </div>
 
-        <p className="mt-4 text-[12px] leading-6 text-fg/50">
+        <p className="mt-4 text-[12px] leading-6 text-fg/62">
           Dopóki pole „Wizytówka włączona” jest odznaczone, strona nie istnieje: dane możesz
           spokojnie uzupełniać wcześniej i włączyć ją dopiero po akceptacji biura.
         </p>
@@ -386,7 +386,7 @@ export default async function AdminWizytowkaEdytorPage({ params, searchParams }:
         </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-[12px] leading-6 text-fg/50">
+          <p className="text-[12px] leading-6 text-fg/62">
             {statusWyroznien === "ok"
               ? "Zapisano saldo wyróżnień."
               : statusWyroznien === "blad"

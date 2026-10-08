@@ -154,7 +154,7 @@ export default async function CityTypePage({ params }: PageProps) {
                     key={row.label}
                     className="flex items-baseline justify-between gap-4 border-b border-fg/10 py-2.5"
                   >
-                    <dt className="text-[13px] text-fg/55">{row.label}</dt>
+                    <dt className="text-[13px] text-fg/62">{row.label}</dt>
                     <dd className="text-right text-sm font-medium text-fg">{row.value}</dd>
                   </div>
                 ))}

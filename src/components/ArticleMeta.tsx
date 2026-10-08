@@ -21,7 +21,7 @@ export default function ArticleMeta({
   return (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 ${className}`}>
       {label ? (
-        <span className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-2.5 py-1 text-[11px] font-semibold text-brand-bright">
+        <span className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-2.5 py-1 text-[12px] font-semibold text-brand-text">
           {label}
         </span>
       ) : null}

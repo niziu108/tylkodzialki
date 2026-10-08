@@ -53,7 +53,7 @@ const HEALTH_META: Record<
   },
   OK: {
     label: "OK",
-    badge: "border-brand/30 bg-brand/20 text-brand-bright",
+    badge: "border-brand/30 bg-brand/20 text-brand-text",
     dot: "bg-brand-bright",
     order: 4,
   },
@@ -371,7 +371,7 @@ export default async function AdminCrmMonitoringPage({
 
         <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-fg/10 bg-fg/5 p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+            <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
               Integracje
             </div>
             <div className="mt-2 text-2xl font-semibold text-fg">{total}</div>
@@ -387,7 +387,7 @@ export default async function AdminCrmMonitoringPage({
                 <span
                   className={`inline-block h-2.5 w-2.5 rounded-full ${HEALTH_META[card.health].dot}`}
                 />
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+                <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
                   {card.label}
                 </div>
               </div>
@@ -425,7 +425,7 @@ export default async function AdminCrmMonitoringPage({
                     <span className="text-amber-200">Brak danych {stat.NO_DATA}</span>
                     <span className="text-amber-300">Nieświeże {stat.STALE}</span>
                     <span className="text-sky-300">Czeka na 1. paczkę {stat.WAITING}</span>
-                    <span className="text-brand-bright">OK {stat.OK}</span>
+                    <span className="text-brand-text">OK {stat.OK}</span>
                     {stat.DISABLED > 0 ? (
                       <span className="text-fg/68">Wył. {stat.DISABLED}</span>
                     ) : null}
@@ -458,7 +458,7 @@ export default async function AdminCrmMonitoringPage({
 
             <div className="overflow-auto rounded-2xl border border-fg/10 bg-surface">
               <table className="w-full min-w-[720px] text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-fg/50">
+                <thead className="text-left text-xs uppercase tracking-wide text-fg/62">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Biuro</th>
                     <th className="px-4 py-3 font-semibold">CRM</th>
@@ -473,7 +473,7 @@ export default async function AdminCrmMonitoringPage({
                       <td className="px-4 py-3">
                         <Link
                           href={`/admin/crm/${r.userId}`}
-                          className="font-semibold text-fg no-underline transition hover:text-brand"
+                          className="font-semibold text-fg no-underline transition hover:text-brand-text"
                         >
                           {r.kontakt}
                         </Link>
@@ -521,7 +521,7 @@ export default async function AdminCrmMonitoringPage({
                 title={option.hint}
                 className={`inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition ${
                   active
-                    ? "border-brand bg-brand/15 text-brand-bright"
+                    ? "border-brand bg-brand/15 text-brand-text"
                     : "border-fg/12 bg-fg/[0.03] text-fg/70 hover:border-fg/25 hover:text-fg"
                 }`}
               >
@@ -600,7 +600,7 @@ export default async function AdminCrmMonitoringPage({
                         <td className="px-4 py-4 align-top">
                           <Link
                             href={`/admin/crm/${row.user.id}`}
-                            className="font-medium text-fg transition hover:text-brand-bright"
+                            className="font-medium text-fg transition hover:text-brand-text"
                           >
                             {row.user.email || row.user.name || "Brak emaila"}
                           </Link>
@@ -644,7 +644,7 @@ export default async function AdminCrmMonitoringPage({
                           {row.lastImportedOffers}
                         </td>
 
-                        <td className="px-4 py-4 align-top text-right text-brand-bright">
+                        <td className="px-4 py-4 align-top text-right text-brand-text">
                           {row.lastCreatedCount}
                         </td>
 

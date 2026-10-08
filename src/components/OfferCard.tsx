@@ -363,7 +363,7 @@ function Carousel({
 
           {featured ? (
             <div className="absolute left-4 top-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-brand/35 bg-brand/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
+              <span className="inline-flex items-center rounded-full border border-brand/35 bg-brand/85 px-3 py-1 text-[12px] font-semibold tracking-[0.16em] text-black shadow-lg">
                 WYRÓŻNIONE
               </span>
             </div>
@@ -371,7 +371,7 @@ function Carousel({
 
           {rent ? (
             <div className="absolute bottom-4 left-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
+              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[12px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
                 NA WYNAJEM
               </span>
             </div>
@@ -394,7 +394,7 @@ function Carousel({
                 ›
               </button>
 
-              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-sm">
+              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[12px] font-medium tabular-nums text-white backdrop-blur-sm">
                 <IconCamera className="h-3.5 w-3.5" />
                 {i + 1}/{list.length}
               </div>
@@ -403,7 +403,7 @@ function Carousel({
         </>
       ) : (
         <div className="flex h-full items-center justify-center bg-surface">
-          <span className="text-[12px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
+          <span className="text-[12px] tracking-[0.12em] text-fg/62">Zdjęcie wkrótce</span>
         </div>
       )}
     </div>

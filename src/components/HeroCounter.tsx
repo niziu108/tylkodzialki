@@ -28,7 +28,7 @@ export default function HeroCounter({
         {fmt(target)}
       </span>
       <span
-        className={`mt-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] ${
+        className={`mt-1.5 text-[12px] font-semibold uppercase tracking-[0.28em] ${
           isLight
             ? 'text-fg/70'
             : 'text-white/95 [text-shadow:0_1px_4px_rgba(0,0,0,0.55)]'

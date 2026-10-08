@@ -106,7 +106,7 @@ export default function RadiusSelect({
           viewBox="0 0 24 24"
           fill="none"
           aria-hidden="true"
-          className={`shrink-0 text-fg/50 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`shrink-0 text-fg/62 transition-transform ${open ? 'rotate-180' : ''}`}
         >
           <path
             d="M6 9l6 6 6-6"

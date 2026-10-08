@@ -199,7 +199,7 @@ export default async function BlogArticlePage({
 
       <section className="mx-auto max-w-5xl px-6 pb-12 md:px-8 md:pb-16">
         <div className="rounded-[30px] border border-brand/20 bg-fg/[0.03] p-8 md:p-10">
-          <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+          <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
             Szukasz działki?
           </div>
 
@@ -262,7 +262,7 @@ export default async function BlogArticlePage({
                           "Przeczytaj artykuł i poznaj ważne informacje o działkach."}
                       </p>
 
-                      <div className="mt-4 text-sm font-semibold text-brand-bright">
+                      <div className="mt-4 text-sm font-semibold text-brand-text">
                         Czytaj →
                       </div>
                     </div>

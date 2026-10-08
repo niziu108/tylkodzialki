@@ -113,13 +113,13 @@ export default async function AdminRynekPage() {
           {report.czasSprzedazy.powod ? (
             <div className={`${CARD} p-6`}>
               <p className="text-sm text-fg/70">{report.czasSprzedazy.powod}</p>
-              <p className="mt-3 text-xs text-fg/50">
+              <p className="mt-3 text-xs text-fg/62">
                 Zegar ruszył 18.08.2026, od naprawy sygnału zdejmowania ofert. Do wiarygodnej
                 mediany potrzeba {MIN_PROBA} zamkniętych ofert i {MIN_OKNO_DNI} dni obserwacji.
                 Zebrane dotąd: {report.czasSprzedazy.n} ofert, {p.oknoDni} dni.
               </p>
               {report.czasSprzedazy.n > 0 && (
-                <p className="mt-3 text-xs text-fg/40">
+                <p className="mt-3 text-xs text-fg/62">
                   Podgląd roboczy (nie na posta): mediana z tego, co już jest, to{" "}
                   {report.czasSprzedazy.surowa === null
                     ? "brak"
@@ -190,7 +190,7 @@ export default async function AdminRynekPage() {
             <div className={CARD}>
               <div className="overflow-auto">
                 <table className="w-full min-w-[760px] text-sm">
-                  <thead className="bg-surface text-left text-xs uppercase tracking-wide text-fg/50">
+                  <thead className="bg-surface text-left text-xs uppercase tracking-wide text-fg/62">
                     <tr>
                       <th className={TH}>Oferta</th>
                       <th className={TH}>Było</th>
@@ -207,11 +207,11 @@ export default async function AdminRynekPage() {
                             href={`/dzialka/${o.dzialkaId}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-semibold text-fg no-underline transition hover:text-brand"
+                            className="font-semibold text-fg no-underline transition hover:text-brand-text"
                           >
                             {o.tytul}
                           </a>
-                          <div className="mt-1 text-xs text-fg/50">
+                          <div className="mt-1 text-xs text-fg/62">
                             {o.locationLabel ?? "brak lokalizacji"}
                           </div>
                         </td>
@@ -237,7 +237,7 @@ export default async function AdminRynekPage() {
           )}
         </Sekcja>
 
-        <p className="mt-10 text-xs text-fg/40">
+        <p className="mt-10 text-xs text-fg/62">
           Historia zbiera się sama po każdym imporcie CRM. Ręcznie: <code>npm run spells</code>.
         </p>
       </div>
@@ -262,9 +262,9 @@ function Kafel({
         accent ? "border-brand/30 bg-brand/10" : "border-fg/10 bg-fg/5"
       }`}
     >
-      <div className="text-xs uppercase tracking-wide text-fg/50">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-fg/62">{label}</div>
       <div className="mt-2 text-2xl font-semibold text-fg">{value}</div>
-      {hint && <div className="mt-1 text-xs text-fg/50">{hint}</div>}
+      {hint && <div className="mt-1 text-xs text-fg/62">{hint}</div>}
     </div>
   );
 }
@@ -301,7 +301,7 @@ function TabelaMediana({
       <div className="border-b border-fg/10 px-4 py-3 text-sm font-semibold text-fg">{tytul}</div>
       <div className="overflow-auto">
         <table className="w-full text-sm">
-          <thead className="bg-surface text-left text-xs uppercase tracking-wide text-fg/50">
+          <thead className="bg-surface text-left text-xs uppercase tracking-wide text-fg/62">
             <tr>
               <th className={TH}>{kolumna}</th>
               <th className={TH}>Ofert</th>
@@ -315,7 +315,7 @@ function TabelaMediana({
                 <td className={`${TD} text-fg/70`}>{num.format(r.n)}</td>
                 <td className={TD}>
                   {r.medianaDni === null ? (
-                    <span className="text-xs text-fg/40">za mało danych</span>
+                    <span className="text-xs text-fg/62">za mało danych</span>
                   ) : (
                     <span className="font-semibold text-fg">{dni(r.medianaDni)}</span>
                   )}
@@ -336,7 +336,7 @@ function TabelaPodaz({ rows }: { rows: PodazRow[] }) {
     <div className={CARD}>
       <div className="overflow-auto">
         <table className="w-full min-w-[720px] text-sm">
-          <thead className="bg-surface text-left text-xs uppercase tracking-wide text-fg/50">
+          <thead className="bg-surface text-left text-xs uppercase tracking-wide text-fg/62">
             <tr>
               <th className={TH}>Województwo</th>
               <th className={TH}>Ofert</th>

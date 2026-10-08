@@ -66,7 +66,7 @@ function buildHref(params: { status?: AlertStatus | null; miasto?: string | null
 }
 
 const STATUS_STYLE: Record<AlertStatus, string> = {
-  aktywny: "bg-brand/20 text-brand-bright",
+  aktywny: "bg-brand/20 text-brand-text",
   oczekuje: "bg-amber-400/15 text-amber-300",
   wstrzymany: "bg-fg/10 text-fg/60",
 };
@@ -109,7 +109,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-bright">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.22em] text-brand-text">
               Popyt
             </div>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
@@ -135,12 +135,12 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
             <div key={card.label} className="rounded-3xl border border-fg/10 bg-fg/5 px-6 py-6">
               <div
                 className={`text-[34px] font-semibold leading-none md:text-[40px] ${
-                  card.accent ? "text-brand-bright" : "text-fg"
+                  card.accent ? "text-brand-text" : "text-fg"
                 }`}
               >
                 {formatIntPL(card.value)}
               </div>
-              <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/55">
+              <div className="mt-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/62">
                 {card.label}
               </div>
             </div>
@@ -152,9 +152,9 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
           <div className="border-b border-fg/10 px-5 py-4">
             <h2 className="text-lg font-semibold text-fg">
               Kupujący wg miast{" "}
-              <span className="text-sm font-normal text-fg/50">({report.cities.length})</span>
+              <span className="text-sm font-normal text-fg/62">({report.cities.length})</span>
             </h2>
-            <p className="mt-1 text-xs text-fg/55">
+            <p className="mt-1 text-xs text-fg/62">
               Miasto = najbliższy punkt alertu z naszej listy miast (do 60 km). Kliknij wiersz,
               żeby zawęzić listę poniżej.
             </p>
@@ -186,7 +186,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
                           selected ? "bg-brand/[0.08]" : "hover:bg-fg/[0.03]"
                         }`}
                       >
-                        <td className="px-5 py-3 text-fg/45">{i + 1}</td>
+                        <td className="px-5 py-3 text-fg/62">{i + 1}</td>
                         <td className="px-5 py-3">
                           <Link
                             href={buildHref({
@@ -195,7 +195,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
                               miasto: selected ? null : city.key,
                             })}
                             className={`font-medium underline-offset-4 hover:underline ${
-                              selected ? "text-brand-bright" : "text-fg"
+                              selected ? "text-brand-text" : "text-fg"
                             }`}
                           >
                             {city.label}
@@ -204,7 +204,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
                         <td className="px-5 py-3 text-right font-semibold text-fg">
                           {formatIntPL(city.osoby)}
                         </td>
-                        <td className="px-5 py-3 text-right text-brand-bright">
+                        <td className="px-5 py-3 text-right text-brand-text">
                           {formatIntPL(city.aktywne)}
                         </td>
                         <td className="px-5 py-3 text-right text-fg/60">
@@ -229,7 +229,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
                 href={buildHref({ status: f.key === "all" ? null : f.key, miasto, q })}
                 className={`inline-flex h-10 items-center justify-center rounded-full border px-5 text-sm font-semibold transition ${
                   isActive
-                    ? "border-brand bg-brand/15 text-brand-bright"
+                    ? "border-brand bg-brand/15 text-brand-text"
                     : "border-fg/12 bg-fg/[0.03] text-fg/70 hover:border-fg/25 hover:text-fg"
                 }`}
               >
@@ -261,7 +261,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
           {hasFilters ? (
             <Link
               href="/admin/powiadomienia"
-              className="text-sm text-fg/55 underline-offset-4 hover:text-fg hover:underline"
+              className="text-sm text-fg/62 underline-offset-4 hover:text-fg hover:underline"
             >
               Wyczyść filtry
             </Link>
@@ -273,7 +273,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
           <div className="border-b border-fg/10 px-5 py-4">
             <h2 className="text-lg font-semibold text-fg">
               Alerty{" "}
-              <span className="text-sm font-normal text-fg/50">
+              <span className="text-sm font-normal text-fg/62">
                 ({formatIntPL(report.rows.length)}
                 {report.rows.length !== report.summary.total
                   ? ` z ${formatIntPL(report.summary.total)}`
@@ -282,7 +282,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
               </span>
             </h2>
             {activeCity ? (
-              <p className="mt-1 text-xs text-fg/55">
+              <p className="mt-1 text-xs text-fg/62">
                 Filtr miasta: <strong className="text-fg/80">{activeCity.label}</strong>
                 {activeCity.key === NO_CITY_KEY
                   ? " (alerty bez współrzędnych, np. same widełki ceny)"
@@ -319,7 +319,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
                     >
                       <td className="px-5 py-4">
                         <div className="font-medium text-fg">{row.email}</div>
-                        <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-fg/45">
+                        <div className="mt-1 text-[12px] uppercase tracking-[0.14em] text-fg/62">
                           {row.source}
                         </div>
                       </td>
@@ -343,7 +343,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
                       <td className="px-5 py-4">
                         <div className="text-fg/80">{row.cityLabel}</div>
                         {row.cityDistanceKm !== null ? (
-                          <div className="mt-1 text-xs text-fg/45">
+                          <div className="mt-1 text-xs text-fg/62">
                             {row.cityDistanceKm} km od centrum
                           </div>
                         ) : null}
@@ -351,7 +351,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
 
                       <td className="px-5 py-4">
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase tracking-[0.14em] ${
                             STATUS_STYLE[row.status]
                           }`}
                         >
@@ -367,7 +367,7 @@ export default async function PowiadomieniaPage({ searchParams }: PageProps) {
                           <input type="hidden" name="id" value={row.id} />
                           <button
                             type="submit"
-                            className="rounded-xl border border-red-400/25 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-400/85 transition hover:border-red-400/55 hover:text-red-400"
+                            className="rounded-xl border border-red-400/25 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-red-400/85 transition hover:border-red-400/55 hover:text-red-400"
                           >
                             Usuń
                           </button>

@@ -172,7 +172,7 @@ export default function DecisionChain() {
           <Fragment key={s.label}>
             <div className="group flex flex-col items-center gap-3">
               <span
-                className="text-fg/45 transition-colors duration-200 group-hover:text-brand"
+                className="text-fg/62 transition-colors duration-200 group-hover:text-brand-text"
                 aria-hidden="true"
               >
                 {s.icon('h-11 w-11')}

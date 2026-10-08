@@ -108,7 +108,7 @@ export default function PanelStatystyki({
       {/* Duże liczby — od początku, ze wszystkich ofert */}
       <div>
         <div className="mb-3 flex items-center gap-3">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fg/64">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-fg/64">
             Łącznie ze wszystkich ofert
           </span>
           <span className="h-px flex-1 bg-fg/10" />
@@ -118,15 +118,15 @@ export default function PanelStatystyki({
             <div key={h.key} className="border-b border-fg/10 pb-2.5">
               <div
                 className={`text-[30px] font-semibold leading-none tabular-nums md:text-[36px] ${
-                  h.accent ? "text-brand-bright" : "text-fg"
+                  h.accent ? "text-brand-text" : "text-fg"
                 }`}
               >
                 {formatIntPL(allTime[h.key])}
               </div>
-              <div className="mt-2 text-[11px] font-medium leading-tight text-fg/80">
+              <div className="mt-2 text-[12px] font-medium leading-tight text-fg/80">
                 {h.label}
               </div>
-              <div className="text-[10px] leading-tight text-fg/55">{h.hint}</div>
+              <div className="text-[12px] leading-tight text-fg/62">{h.hint}</div>
             </div>
           ))}
         </div>
@@ -142,7 +142,7 @@ export default function PanelStatystyki({
               {hasChart ? (
                 <>
                   {" · "}
-                  <span className="font-semibold text-brand-bright">
+                  <span className="font-semibold text-brand-text">
                     {formatIntPL(windowSum)}
                   </span>{" "}
                   {activeMetric.label.toLowerCase()} w tym okresie
@@ -163,7 +163,7 @@ export default function PanelStatystyki({
                   className={`border-b-2 pb-1 transition ${
                     active
                       ? "border-brand text-fg"
-                      : "border-transparent text-fg/55 hover:text-fg"
+                      : "border-transparent text-fg/62 hover:text-fg"
                   }`}
                 >
                   {m.label}
@@ -188,7 +188,7 @@ export default function PanelStatystyki({
                       <div className="text-[13px] font-semibold tabular-nums text-fg">
                         {formatIntPL(value)} {activeMetric.label.toLowerCase()}
                       </div>
-                      <div className="text-[10px] text-fg/55">
+                      <div className="text-[12px] text-fg/62">
                         {formatDayLong(p.date)}
                       </div>
                     </div>
@@ -209,7 +209,7 @@ export default function PanelStatystyki({
               {points.map((p, i) => (
                 <div
                   key={p.date}
-                  className="flex-1 text-center text-[10px] tabular-nums text-fg/45"
+                  className="flex-1 text-center text-[12px] tabular-nums text-fg/62"
                 >
                   {i % labelEvery === 0 ? formatDayShort(p.date) : ""}
                 </div>

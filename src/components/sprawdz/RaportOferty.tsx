@@ -75,7 +75,7 @@ export default function RaportOferty({
   return (
     <section id="raport-dzialki" aria-labelledby="raport-dzialki-tytul" className="scroll-mt-24 border-t border-fg/5">
       <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
-        <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">Raport działki</div>
+        <div className="text-[12px] uppercase tracking-[0.16em] text-brand-text">Raport działki</div>
 
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
@@ -136,7 +136,7 @@ export default function RaportOferty({
                       href={mpzp.resolutionUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                      className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-text"
                     >
                       Tekst uchwały (PDF)
                     </a>
@@ -164,7 +164,7 @@ export default function RaportOferty({
                 warunki zabudowy.{' '}
                 <Link
                   href="/blog/warunki-zabudowy-wz-co-to-jest"
-                  className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                  className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-text"
                 >
                   Czym są warunki zabudowy
                 </Link>
@@ -222,7 +222,7 @@ export default function RaportOferty({
           </div>
         </div>
 
-        <p className="mt-10 max-w-3xl text-xs leading-6 text-fg/45">
+        <p className="mt-10 max-w-3xl text-xs leading-6 text-fg/62">
           {zrodlo === 'OPIS'
             ? 'Działkę wskazał numer podany w ogłoszeniu i sprawdzony w ewidencji gruntów: zgadza się gmina, położenie i powierzchnia. Przed zakupem potwierdź numer u sprzedającego.'
             : 'Działkę wskazał ogłoszeniodawca, stawiając pinezkę na mapie.'}{' '}

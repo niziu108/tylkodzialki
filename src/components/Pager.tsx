@@ -81,7 +81,7 @@ export default function Pager({
                   onClick={() => onGo(x)}
                   className={[
                     "shrink-0 min-w-[25px] px-1 text-center text-[13px] tracking-[0.04em] transition",
-                    active ? "font-semibold text-brand" : "text-fg/72 hover:text-fg",
+                    active ? "font-semibold text-brand-text" : "text-fg/72 hover:text-fg",
                   ].join(" ")}
                   style={{
                     // tylko `color` w przejściu — animacja text-decoration-color
@@ -136,7 +136,7 @@ export default function Pager({
           </button>
 
           <div className="text-fg/70 text-[12px] tracking-[0.22em] uppercase">
-            <span className="font-semibold text-brand">{page}</span>/{totalPages}
+            <span className="font-semibold text-brand-text">{page}</span>/{totalPages}
           </div>
 
           <button
@@ -160,7 +160,7 @@ export default function Pager({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-fg/62 text-[11px] tracking-[0.22em] uppercase">Idź do</div>
+          <div className="text-fg/62 text-[12px] tracking-[0.22em] uppercase">Idź do</div>
 
           <input
             value={val}
@@ -176,7 +176,7 @@ export default function Pager({
           <button
             type="button"
             onClick={go}
-            className="rounded-xl border border-fg/20 px-3 py-2 text-[11px] tracking-[0.22em] uppercase text-fg/75 transition hover:border-fg/40"
+            className="rounded-xl border border-fg/20 px-3 py-2 text-[12px] tracking-[0.22em] uppercase text-fg/75 transition hover:border-fg/40"
           >
             Idź
           </button>

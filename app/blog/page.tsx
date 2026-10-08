@@ -41,7 +41,7 @@ export default async function BlogPage() {
         <div className="mx-auto max-w-7xl px-6 py-14 md:px-8 md:py-16">
           <div className="rounded-[32px] border border-brand/20 bg-fg/[0.03] p-8 md:p-10">
             <div className="max-w-3xl">
-              <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+              <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
                 Masz działkę na sprzedaż?
               </div>
 

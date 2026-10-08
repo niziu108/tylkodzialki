@@ -140,7 +140,7 @@ export default async function AdminPerelkiPage({ searchParams }: PerelkiPageProp
             potem kliknij „Użyta" — zniknie z listy i wejdzie następna. To kandydaci, nie pewniaki:
             niska cena bywa od braku dojazdu, kształtu działki albo błędu w ogłoszeniu.
           </p>
-          <p className="mt-3 max-w-3xl text-xs text-fg/50">
+          <p className="mt-3 max-w-3xl text-xs text-fg/62">
             Kryterium: działka na sprzedaż, czysto budowlana, {PERELKA_AREA_MIN_M2}–
             {plnFmt.format(PERELKA_AREA_MAX_M2)} m², co najmniej{" "}
             {Math.round((1 - PERELKA_MAX_RATIO) * 100)}% poniżej mediany zł/m² wśród podobnych
@@ -184,7 +184,7 @@ export default async function AdminPerelkiPage({ searchParams }: PerelkiPageProp
           <>
             <PerelkiTable rows={visible} />
             {matching.length > visible.length && (
-              <p className="mt-3 text-xs text-fg/50">
+              <p className="mt-3 text-xs text-fg/62">
                 W kolejce czeka jeszcze {matching.length - visible.length}. Wejdą tu same, kiedy
                 oznaczysz te wyżej jako użyte.
               </p>
@@ -213,11 +213,11 @@ export default async function AdminPerelkiPage({ searchParams }: PerelkiPageProp
                         href={`/dzialka/${u.dzialkaId}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-sm font-semibold text-fg no-underline transition hover:text-brand"
+                        className="text-sm font-semibold text-fg no-underline transition hover:text-brand-text"
                       >
                         {u.tytul}
                       </a>
-                      <div className="mt-1 text-xs text-fg/50">
+                      <div className="mt-1 text-xs text-fg/62">
                         {[u.locationLabel, `użyta ${formatDatePL(u.usedAt)}`]
                           .filter(Boolean)
                           .join(" · ")}
@@ -239,7 +239,7 @@ export default async function AdminPerelkiPage({ searchParams }: PerelkiPageProp
           )}
 
           {showUzyte && uzyte.length === 0 && (
-            <p className="mt-4 text-sm text-fg/50">Nic jeszcze nie poszło na posta.</p>
+            <p className="mt-4 text-sm text-fg/62">Nic jeszcze nie poszło na posta.</p>
           )}
         </section>
       </div>
@@ -252,7 +252,7 @@ function PerelkiTable({ rows }: { rows: PerelkaRow[] }) {
     <div className="rounded-3xl border border-fg/10 bg-fg/5">
       <div className="overflow-auto">
         <table className="w-full min-w-[1040px] text-sm">
-          <thead className="bg-surface text-left text-xs uppercase tracking-wide text-fg/50">
+          <thead className="bg-surface text-left text-xs uppercase tracking-wide text-fg/62">
             <tr>
               <th className="px-4 py-3 font-semibold">Oferta</th>
               <th className="px-4 py-3 font-semibold">Taniej</th>
@@ -275,7 +275,7 @@ function PerelkiTable({ rows }: { rows: PerelkaRow[] }) {
                     href={`/dzialka/${r.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-semibold text-fg no-underline transition hover:text-brand"
+                    className="font-semibold text-fg no-underline transition hover:text-brand-text"
                   >
                     {r.tytul}
                   </a>
@@ -293,7 +293,7 @@ function PerelkiTable({ rows }: { rows: PerelkaRow[] }) {
                 <td className="px-4 py-3 font-semibold text-fg">{formatPln(r.pricePerM2)}</td>
                 <td className="px-4 py-3 text-fg/70">
                   {formatPln(r.localMedian)}
-                  <div className="mt-1 text-xs text-fg/50">z {r.localSample} ofert</div>
+                  <div className="mt-1 text-xs text-fg/62">z {r.localSample} ofert</div>
                 </td>
                 <td className="px-4 py-3 text-fg/80">{formatPln(r.cenaPln)}</td>
                 <td className="px-4 py-3 text-fg/70">{plnFmt.format(r.powierzchniaM2)} m²</td>

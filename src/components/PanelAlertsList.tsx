@@ -82,8 +82,8 @@ export default function PanelAlertsList({ initialAlerts }: { initialAlerts: Pane
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span
-                className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
-                  a.isActive ? 'bg-brand/20 text-brand-bright' : 'bg-fg/10 text-fg/70'
+                className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase tracking-[0.14em] ${
+                  a.isActive ? 'bg-brand/20 text-brand-text' : 'bg-fg/10 text-fg/70'
                 }`}
               >
                 {a.isActive ? 'Aktywny' : 'Wstrzymany'}
@@ -101,7 +101,7 @@ export default function PanelAlertsList({ initialAlerts }: { initialAlerts: Pane
               type="button"
               onClick={() => toggle(a.id, !a.isActive)}
               disabled={busyId === a.id}
-              className="rounded-xl border border-fg/14 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/75 transition hover:border-fg/30 hover:text-fg disabled:opacity-50"
+              className="rounded-xl border border-fg/14 px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/75 transition hover:border-fg/30 hover:text-fg disabled:opacity-50"
             >
               {a.isActive ? 'Wstrzymaj' : 'Wznów'}
             </button>
@@ -109,7 +109,7 @@ export default function PanelAlertsList({ initialAlerts }: { initialAlerts: Pane
               type="button"
               onClick={() => remove(a.id)}
               disabled={busyId === a.id}
-              className="rounded-xl border border-red-400/25 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-300/85 transition hover:border-red-400/55 hover:text-red-300 disabled:opacity-50"
+              className="rounded-xl border border-red-400/25 px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-red-300/85 transition hover:border-red-400/55 hover:text-red-300 disabled:opacity-50"
             >
               Usuń
             </button>

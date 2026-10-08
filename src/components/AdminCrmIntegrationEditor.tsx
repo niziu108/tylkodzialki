@@ -365,7 +365,7 @@ export default function AdminCrmIntegrationEditor({
       {!currentIntegration ? (
         <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
           <div className="max-w-3xl">
-            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
               Brak integracji
             </div>
 
@@ -394,7 +394,7 @@ export default function AdminCrmIntegrationEditor({
           <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="max-w-3xl">
-                <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+                <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
                   CRM użytkownika
                 </div>
 
@@ -412,7 +412,7 @@ export default function AdminCrmIntegrationEditor({
                 <div
                   className={`mt-1 font-semibold ${
                     currentIntegration.isActive
-                      ? "text-brand-bright"
+                      ? "text-brand-text"
                       : "text-red-300"
                   }`}
                 >
@@ -423,7 +423,7 @@ export default function AdminCrmIntegrationEditor({
 
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+                <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
                   Ostatnia synchronizacja
                 </div>
                 <div className="mt-2 text-base font-semibold text-fg">
@@ -432,7 +432,7 @@ export default function AdminCrmIntegrationEditor({
               </div>
 
               <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+                <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
                   Ostatni sukces
                 </div>
                 <div className="mt-2 text-base font-semibold text-fg">
@@ -441,7 +441,7 @@ export default function AdminCrmIntegrationEditor({
               </div>
 
               <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+                <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
                   Ostatnio zaimportowano
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-fg">
@@ -450,7 +450,7 @@ export default function AdminCrmIntegrationEditor({
               </div>
 
               <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+                <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
                   Błędy
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-fg">
@@ -678,7 +678,7 @@ export default function AdminCrmIntegrationEditor({
           </div>
 
           <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
-            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
               Logi synchronizacji
             </div>
 
@@ -723,7 +723,7 @@ export default function AdminCrmIntegrationEditor({
                             <span
                               className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                                 log.status === "SUCCESS"
-                                  ? "bg-brand/20 text-brand-bright"
+                                  ? "bg-brand/20 text-brand-text"
                                   : "bg-red-500/15 text-red-300"
                               }`}
                             >

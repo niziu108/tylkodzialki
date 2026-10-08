@@ -16,7 +16,7 @@ export function Hr({ className }: { className?: string }) {
 // Nagłówek sekcji = ten sam styl co etykiety pól (UnderlineField), żeby cały kreator był
 // typograficznie spójny: jedna, cicha mikro-etykieta wersalikami nad każdą grupą.
 export function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="text-[11px] uppercase tracking-[0.18em] text-fg/70">{children}</h2>;
+  return <h2 className="text-[12px] uppercase tracking-[0.18em] text-fg/70">{children}</h2>;
 }
 
 export function UnderlineField({
@@ -54,14 +54,14 @@ export function UnderlineField({
     <label className="block" data-field-error={error ? 'true' : undefined}>
       <div className="flex items-end justify-between gap-4">
         <div className={cx(
-          'text-[11px] uppercase tracking-[0.18em]',
+          'text-[12px] uppercase tracking-[0.18em]',
           error ? 'text-red-400/90' : 'text-fg/70'
         )}>
           {label}
-          {required ? <span className={error ? 'text-red-400' : 'text-brand-bright'}> *</span> : null}
+          {required ? <span className={error ? 'text-red-400' : 'text-brand-text'}> *</span> : null}
         </div>
         {showCounter && typeof maxLength === 'number' ? (
-          <div className="text-[11px] tracking-[0.12em] text-fg/64">
+          <div className="text-[12px] tracking-[0.12em] text-fg/64">
             {value.length}/{maxLength}
           </div>
         ) : null}
@@ -123,7 +123,7 @@ export function UnderlineField({
 // okazji daje porządny cel dotyku na telefonie), tekst wyśrodkowany.
 const CHIP_BASE =
   'flex min-h-[48px] items-center justify-center rounded-full border px-2.5 py-2 text-center text-[12px] uppercase leading-[1.25] tracking-[0.06em] transition';
-const CHIP_ON = 'border-brand bg-brand/20 text-brand-bright';
+const CHIP_ON = 'border-brand bg-brand/20 text-brand-text';
 const CHIP_OFF = 'border-fg/25 text-fg/70 hover:border-fg/45';
 
 export function Tabs({

@@ -236,7 +236,7 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
           </div>
 
           {zasieg.powiaty.length > 1 ? (
-            <p className="mt-6 text-[13px] leading-6 text-fg/55">
+            <p className="mt-6 text-[13px] leading-6 text-fg/62">
               Najwięcej ofert w:{' '}
               {zasieg.powiaty
                 .slice(0, 6)
@@ -371,7 +371,7 @@ export default async function BiuroPage({ params, searchParams }: PageProps) {
           <h2 className="mb-8 text-[19px] font-semibold tracking-tight text-fg md:text-[22px]">
             Działki w ofercie
             {biuro.stronLacznie > 1 ? (
-              <span className="ml-3 text-[14px] font-normal text-fg/55">
+              <span className="ml-3 text-[14px] font-normal text-fg/62">
                 strona {biuro.strona} z {biuro.stronLacznie}
               </span>
             ) : null}

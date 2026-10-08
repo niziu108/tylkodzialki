@@ -252,7 +252,7 @@ export default function BlogSearchSection({
                         "Przeczytaj artykuł i sprawdź najważniejsze informacje dotyczące działek, formalności i sprzedaży."}
                     </p>
 
-                    <div className="mt-5 inline-flex items-center text-sm font-semibold text-brand-bright">
+                    <div className="mt-5 inline-flex items-center text-sm font-semibold text-brand-text">
                       Czytaj artykuł →
                     </div>
                   </div>

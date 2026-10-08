@@ -64,7 +64,7 @@ export default function KartaDzialki({
       </div>
 
       <div className="p-5 md:p-7">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-brand-text">Znaleźliśmy Twoją działkę</div>
+        <div className="text-[12px] uppercase tracking-[0.18em] text-brand-text">Znaleźliśmy Twoją działkę</div>
         <h2 className="mt-2 text-xl font-semibold tracking-tight text-fg md:text-2xl">
           Działka {dzialka.parcelNumber}
           {miejscowosc ? `, ${miejscowosc}` : ''}

@@ -63,7 +63,7 @@ export default async function StatystykiPage({ searchParams }: StatystykiPagePro
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-bright">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.22em] text-brand-text">
               Raport leadów
             </div>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
@@ -94,7 +94,7 @@ export default async function StatystykiPage({ searchParams }: StatystykiPagePro
                 href={href}
                 className={`inline-flex h-10 items-center justify-center rounded-full border px-5 text-sm font-semibold transition ${
                   active
-                    ? "border-brand bg-brand/15 text-brand-bright"
+                    ? "border-brand bg-brand/15 text-brand-text"
                     : "border-fg/12 bg-fg/[0.03] text-fg/70 hover:border-fg/25 hover:text-fg"
                 }`}
               >
@@ -102,7 +102,7 @@ export default async function StatystykiPage({ searchParams }: StatystykiPagePro
               </Link>
             );
           })}
-          <span className="ml-1 text-xs text-fg/50">
+          <span className="ml-1 text-xs text-fg/62">
             Dane: {zakres}
           </span>
         </div>
@@ -124,12 +124,12 @@ export default async function StatystykiPage({ searchParams }: StatystykiPagePro
             >
               <div
                 className={`text-[34px] font-semibold leading-none md:text-[40px] ${
-                  card.accent ? "text-brand-bright" : "text-fg"
+                  card.accent ? "text-brand-text" : "text-fg"
                 }`}
               >
                 {formatIntPL(card.value)}
               </div>
-              <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/55">
+              <div className="mt-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/62">
                 {card.label}
               </div>
             </div>
@@ -141,7 +141,7 @@ export default async function StatystykiPage({ searchParams }: StatystykiPagePro
           <div className="border-b border-fg/10 px-5 py-4">
             <h2 className="text-lg font-semibold text-fg">
               Ranking biur{" "}
-              <span className="text-sm font-normal text-fg/50">
+              <span className="text-sm font-normal text-fg/62">
                 ({report.rows.length})
               </span>
             </h2>
@@ -173,20 +173,20 @@ export default async function StatystykiPage({ searchParams }: StatystykiPagePro
                         key={row.ownerId}
                         className="border-b border-fg/5 last:border-0 hover:bg-fg/[0.03]"
                       >
-                        <td className="px-5 py-4 align-middle font-semibold text-fg/50">
+                        <td className="px-5 py-4 align-middle font-semibold text-fg/62">
                           {i + 1}
                         </td>
                         <td className="px-5 py-4 align-middle">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-fg">{row.label}</span>
                             {row.isBiuro ? (
-                              <span className="inline-flex shrink-0 rounded-full bg-brand/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-bright">
+                              <span className="inline-flex shrink-0 rounded-full bg-brand/15 px-2 py-0.5 text-[12px] font-semibold uppercase tracking-wide text-brand-text">
                                 Biuro
                               </span>
                             ) : null}
                           </div>
                           {row.email ? (
-                            <div className="mt-0.5 text-xs text-fg/45">{row.email}</div>
+                            <div className="mt-0.5 text-xs text-fg/62">{row.email}</div>
                           ) : null}
                         </td>
                         <td className="px-5 py-4 text-right align-middle text-fg/75">
@@ -195,10 +195,10 @@ export default async function StatystykiPage({ searchParams }: StatystykiPagePro
                         <td className="px-5 py-4 text-right align-middle text-fg/75">
                           {formatIntPL(c.detailViews)}
                         </td>
-                        <td className="px-5 py-4 text-right align-middle font-semibold text-brand-bright">
+                        <td className="px-5 py-4 text-right align-middle font-semibold text-brand-text">
                           {formatIntPL(c.phoneClicks)}
                         </td>
-                        <td className="px-5 py-4 text-right align-middle font-semibold text-brand-bright">
+                        <td className="px-5 py-4 text-right align-middle font-semibold text-brand-text">
                           {formatIntPL(c.messageClicks)}
                         </td>
                         <td className="px-5 py-4 text-right align-middle text-base font-bold text-fg">
@@ -213,7 +213,7 @@ export default async function StatystykiPage({ searchParams }: StatystykiPagePro
           )}
         </div>
 
-        <p className="mt-4 text-xs text-fg/45">
+        <p className="mt-4 text-xs text-fg/62">
           Lead = telefon lub wiadomość (sygnał intencji zakupu). Sumy „od początku”
           liczone na żywo z liczników ofert; okna 7/30 dni z dziennych snapshotów
           (BiuroDailyStat). P16b doda biurom wykresy „dzień po dniu” w ich panelu.

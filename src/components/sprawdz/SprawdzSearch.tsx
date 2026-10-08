@@ -463,7 +463,7 @@ export default function SprawdzSearch({
                   />
                 </div>
               </div>
-              <p className="mt-3 text-[13px] leading-6 text-fg/55">
+              <p className="mt-3 text-[13px] leading-6 text-fg/62">
                 Obręb i numer działki znajdziesz w akcie notarialnym, w księdze wieczystej albo w
                 wypisie z ewidencji gruntów. Możesz też wkleić cały identyfikator, np.
                 100102_2.0006.100.
@@ -474,7 +474,7 @@ export default function SprawdzSearch({
               <button
                 type="button"
                 onClick={() => setMapOpen(true)}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-brand/60 px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-brand-text transition hover:border-brand hover:text-brand-bright"
+                className="inline-flex h-12 items-center justify-center rounded-xl border border-brand/60 px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-brand-text transition hover:border-brand hover:text-brand-text"
               >
                 Wskaż na mapie
               </button>
@@ -533,7 +533,7 @@ export default function SprawdzSearch({
                 </ul>
 
                 {widoczniKandydaci.length === 0 ? (
-                  <p className="mt-3 text-[13px] leading-6 text-fg/55">
+                  <p className="mt-3 text-[13px] leading-6 text-fg/62">
                     Żadna z {candidates.length} znalezionych działek nie pasuje do tego zawężenia.
                     Wpisz samą nazwę gminy albo powiatu.
                   </p>
@@ -649,7 +649,7 @@ export default function SprawdzSearch({
                 miejscu pojawi się raport Twojej działki.
               </p>
               {demoZebrano ? (
-                <p className="mt-2 text-[13px] leading-6 text-fg/50">
+                <p className="mt-2 text-[13px] leading-6 text-fg/62">
                   Dane z ewidencji i planu pobrane {demoZebrano}. Ceny i oferty poniżej są
                   aktualne, liczone przy każdym otwarciu strony.
                 </p>

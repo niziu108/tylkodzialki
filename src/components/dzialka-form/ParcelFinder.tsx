@@ -144,7 +144,7 @@ export default function ParcelFinder({
     <div className="space-y-6" data-field-error={error ? 'true' : undefined}>
       <div>
         <SectionTitle>
-          Numer działki {oznaczWymagane ? <span className="text-brand-bright">*</span> : null}
+          Numer działki {oznaczWymagane ? <span className="text-brand-text">*</span> : null}
         </SectionTitle>
         <p className="mt-2 text-[14px] leading-6 text-fg/65">Znajdziesz go w akcie notarialnym.</p>
       </div>
@@ -233,7 +233,7 @@ export default function ParcelFinder({
           </ul>
 
           {widoczni.length === 0 ? (
-            <p className="mt-3 text-[13px] leading-6 text-fg/55">Żadna nie pasuje. Wpisz samą nazwę gminy.</p>
+            <p className="mt-3 text-[13px] leading-6 text-fg/62">Żadna nie pasuje. Wpisz samą nazwę gminy.</p>
           ) : null}
         </div>
       ) : null}

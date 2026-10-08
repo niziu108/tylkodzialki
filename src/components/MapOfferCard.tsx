@@ -169,7 +169,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
                 <div className="flex h-full items-center justify-center bg-surface-2">
                   {/* Dopóki szczegóły lecą, nie twierdzimy, że zdjęć nie ma. */}
                   {detail && (
-                    <span className="text-[11px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
+                    <span className="text-[12px] tracking-[0.12em] text-fg/62">Zdjęcie wkrótce</span>
                   )}
                 </div>
               )}
@@ -206,7 +206,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
                   >
                     ›
                   </button>
-                  <div className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium tabular-nums text-white backdrop-blur-sm">
+                  <div className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[12px] font-medium tabular-nums text-white backdrop-blur-sm">
                     <IconCamera className="h-3 w-3" />
                     {i + 1}/{total}
                   </div>
@@ -249,7 +249,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
               }
               extra={
                 pin.approx ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/12 px-2.5 py-1 text-[10px] text-brand-bright">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/12 px-2.5 py-1 text-[12px] text-brand-text">
                     ◎ Lokalizacja przybliżona
                   </span>
                 ) : undefined

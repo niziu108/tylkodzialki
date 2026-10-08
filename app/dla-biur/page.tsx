@@ -132,7 +132,7 @@ export default async function DlaBiurPage() {
             {/* Hasło ma mieścić się w jednej linii także na wąskim telefonie, więc jest
                 krótkie; twarda spacja trzyma „bez wyłączności” razem, gdyby kiedyś
                 musiało się złamać. */}
-            <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand/12 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text md:text-[12px]">
+            <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand/12 px-3.5 py-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text md:text-[12px]">
               Bezpłatnie, bez wyłączności
             </span>
 
@@ -170,7 +170,7 @@ export default async function DlaBiurPage() {
       {logotypy.length >= 6 ? (
         <section className="relative border-b border-fg/10 bg-surface-2/40">
           <div className="mx-auto max-w-7xl px-6 py-9 md:px-10 md:py-11">
-            <p className="text-center text-[11px] uppercase tracking-[0.22em] text-fg/45">
+            <p className="text-center text-[12px] uppercase tracking-[0.22em] text-fg/62">
               Publikują u nas między innymi
             </p>
 
@@ -205,7 +205,7 @@ export default async function DlaBiurPage() {
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="max-w-3xl">
-            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
               Integracje
             </div>
 
@@ -227,7 +227,7 @@ export default async function DlaBiurPage() {
                 key={f.title}
                 className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-7 backdrop-blur transition hover:border-brand/35"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10 text-base font-semibold text-brand-bright">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10 text-base font-semibold text-brand-text">
                   {String(i + 1).padStart(2, '0')}
                 </div>
 
@@ -251,7 +251,7 @@ export default async function DlaBiurPage() {
         <ScrollFill className="md:hidden" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
-          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
             Jak to działa
           </div>
 
@@ -265,7 +265,7 @@ export default async function DlaBiurPage() {
                 key={s.n}
                 className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur transition duration-200 hover:border-brand/50 hover:bg-brand/[0.05]"
               >
-                <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
+                <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-text">
                   {s.n}
                 </div>
 
@@ -287,7 +287,7 @@ export default async function DlaBiurPage() {
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="max-w-3xl">
-            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
               Twój klient
             </div>
 
@@ -311,7 +311,7 @@ export default async function DlaBiurPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
                   <svg
                     viewBox="0 0 20 20"
-                    className="h-5 w-5 text-brand-bright"
+                    className="h-5 w-5 text-brand-text"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.2"
@@ -339,7 +339,7 @@ export default async function DlaBiurPage() {
         <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 md:px-10 md:py-28">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
             <div>
-              <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+              <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
                 Kontakt
               </div>
 
@@ -365,7 +365,7 @@ export default async function DlaBiurPage() {
                 Wolisz e-mail? Napisz na{' '}
                 <a
                   href="mailto:biuro@tylkodzialki.pl"
-                  className="text-brand-bright transition hover:opacity-80"
+                  className="text-brand-text transition hover:opacity-80"
                 >
                   biuro@tylkodzialki.pl
                 </a>

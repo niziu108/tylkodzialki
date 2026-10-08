@@ -54,13 +54,13 @@ function SimilarCard({ d }: { d: SimilarDzialka }) {
           </>
         ) : (
           <div className="flex h-full items-center justify-center bg-surface">
-            <span className="text-[12px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
+            <span className="text-[12px] tracking-[0.12em] text-fg/62">Zdjęcie wkrótce</span>
           </div>
         )}
 
         {distance ? (
           <div className="absolute left-4 top-4 z-10">
-            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/55 px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-white/85 backdrop-blur-sm">
+            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/55 px-3 py-1 text-[12px] font-medium tracking-[0.04em] text-white/85 backdrop-blur-sm">
               {distance}
             </span>
           </div>
@@ -104,7 +104,7 @@ export default function SimilarOffers({ items }: { items: SimilarDzialka[] }) {
   return (
     <section aria-labelledby="podobne-oferty" className="border-t border-fg/5">
       <div className="mx-auto max-w-7xl px-6 py-8 md:px-10 md:py-12">
-        <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">Zobacz też</div>
+        <div className="text-[12px] uppercase tracking-[0.16em] text-brand-text">Zobacz też</div>
 
         <h2
           id="podobne-oferty"

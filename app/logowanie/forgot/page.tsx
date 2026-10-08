@@ -56,7 +56,7 @@ export default function ForgotPage() {
         ) : (
           <form onSubmit={submit} className="mt-6 space-y-5">
             <label className="block">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Email</div>
+              <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">Email</div>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

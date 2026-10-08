@@ -262,7 +262,7 @@ function AuthPageContent() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {mode === 'register' && (
                     <label className="block">
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">
+                      <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
                         Imię
                       </div>
                       <input
@@ -280,7 +280,7 @@ function AuthPageContent() {
                   )}
 
                   <label className="block">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">
+                    <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
                       Email
                     </div>
                     <input
@@ -297,7 +297,7 @@ function AuthPageContent() {
                   </label>
 
                   <label className="block">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">
+                    <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
                       Hasło
                     </div>
                     <input
@@ -437,7 +437,7 @@ function AuthPageContent() {
 
             <div className="relative z-10 flex h-full w-full items-center px-8 py-14 lg:px-14 lg:py-0">
               <div className="w-full max-w-md">
-                <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+                <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
                   Twoje konto
                 </div>
 
@@ -454,7 +454,7 @@ function AuthPageContent() {
                         i > 0 && 'border-t border-fg/10'
                       )}
                     >
-                      <span className="mt-0.5 shrink-0 text-brand-bright">
+                      <span className="mt-0.5 shrink-0 text-brand-text">
                         <CheckIcon />
                       </span>
                       <div>

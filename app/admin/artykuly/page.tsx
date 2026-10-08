@@ -115,7 +115,7 @@ export default async function AdminArticlesPage({
 
           <div className="rounded-3xl border border-fg/10 bg-fg/5 p-5">
             <p className="text-sm text-fg/70">Opublikowane</p>
-            <p className="mt-2 text-3xl font-semibold text-brand-bright">
+            <p className="mt-2 text-3xl font-semibold text-brand-text">
               {publishedCount}
             </p>
           </div>
@@ -213,7 +213,7 @@ export default async function AdminArticlesPage({
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                             article.isPublished
-                              ? "bg-brand/20 text-brand-bright"
+                              ? "bg-brand/20 text-brand-text"
                               : "bg-fg/10 text-fg/85"
                           }`}
                         >

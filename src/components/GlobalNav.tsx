@@ -118,10 +118,10 @@ export default function GlobalNav() {
   const navBtnGreen = 'text-brand-text hover:text-[#5f8526]';
 
   const linkMobile =
-    'w-full py-5 text-[clamp(20px,5.5vw,28px)] font-medium leading-none text-fg transition-colors hover:text-brand-bright';
+    'w-full py-5 text-[clamp(20px,5.5vw,28px)] font-medium leading-none text-fg transition-colors hover:text-brand-text';
 
   const linkMobileGreen =
-    'w-full py-5 text-[clamp(20px,5.5vw,28px)] font-medium leading-none text-brand-bright transition-colors hover:text-fg';
+    'w-full py-5 text-[clamp(20px,5.5vw,28px)] font-medium leading-none text-brand-text transition-colors hover:text-fg';
 
   return (
     <>
@@ -203,7 +203,7 @@ export default function GlobalNav() {
                       className="absolute right-0 top-[62px] w-60 overflow-hidden rounded-2xl border border-fg/12 bg-surface-2/95 shadow-[0_12px_40px_rgba(0,0,0,0.10)] backdrop-blur-md"
                     >
                       <div className="border-b border-fg/10 px-4 py-3">
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-fg/68">
+                        <div className="text-[12px] uppercase tracking-[0.18em] text-fg/68">
                           Zalogowano
                         </div>
 

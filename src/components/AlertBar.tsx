@@ -108,7 +108,7 @@ export default function AlertBar({
 
   if (state === 'ok' || state === 'exists') {
     return (
-      <div className="flex items-center gap-2 text-[13px] text-brand-bright">
+      <div className="flex items-center gap-2 text-[13px] text-brand-text">
         <BellIcon />
         <span>{state === 'exists' ? 'Masz już takie powiadomienie.' : 'Powiadomienia włączone.'}</span>
       </div>
@@ -117,7 +117,7 @@ export default function AlertBar({
 
   if (state === 'pending') {
     return (
-      <div className="flex items-start gap-2 text-[13px] text-brand-bright">
+      <div className="flex items-start gap-2 text-[13px] text-brand-text">
         <BellIcon className="mt-0.5 h-4 w-4 shrink-0" />
         <span className="leading-snug text-fg/80">
           Sprawdź skrzynkę i potwierdź adres, żeby włączyć powiadomienia.
@@ -133,9 +133,9 @@ export default function AlertBar({
           type="button"
           onClick={handleClick}
           disabled={state === 'sending'}
-          className="inline-flex items-center gap-2 text-[13px] font-medium text-brand-text transition hover:text-brand-bright disabled:opacity-60"
+          className="inline-flex items-center gap-2 text-[13px] font-medium text-brand-text transition hover:text-brand-text disabled:opacity-60"
         >
-          <span className="text-brand-bright">
+          <span className="text-brand-text">
             <BellIcon />
           </span>
           {state === 'sending' ? 'Włączam…' : 'Powiadom mnie o nowych ofertach'}
@@ -144,7 +144,7 @@ export default function AlertBar({
         <div className="flex w-full max-w-sm flex-col gap-2">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2 text-[13px] font-medium text-fg/75">
-              <span className="text-brand-bright">
+              <span className="text-brand-text">
                 <BellIcon />
               </span>
               Podaj e-mail, wyślemy Ci powiadomienia o nowych ofertach

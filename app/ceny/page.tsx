@@ -62,9 +62,9 @@ function changeOf(monthAgo: MonthAgo, key: string, detail: CategoryDetail): numb
 }
 
 function Change({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-fg/30">b.d.</span>;
+  if (value === null) return <span className="text-fg/62">b.d.</span>;
   return (
-    <span className={value > 0 ? 'text-brand-text' : value < 0 ? 'text-fg/70' : 'text-fg/45'}>
+    <span className={value > 0 ? 'text-brand-text' : value < 0 ? 'text-fg/70' : 'text-fg/62'}>
       {pct(value)}
     </span>
   );
@@ -205,26 +205,26 @@ export default async function CenyIndexPage() {
             </p>
             <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-3 border-t border-fg/10 pt-4 text-sm">
               <div>
-                <dt className="text-[13px] text-fg/55">Typowy zakres</dt>
+                <dt className="text-[13px] text-fg/62">Typowy zakres</dt>
                 <dd className="mt-0.5 font-medium text-fg">
                   {formatIntPL(nationalPrice.low)} do {zlM2(nationalPrice.high)}
                 </dd>
               </div>
               {national.totalPrice ? (
                 <div>
-                  <dt className="text-[13px] text-fg/55">Za całą działkę (mediana)</dt>
+                  <dt className="text-[13px] text-fg/62">Za całą działkę (mediana)</dt>
                   <dd className="mt-0.5 font-medium text-fg">{formatPLN(national.totalPrice.median)}</dd>
                 </div>
               ) : null}
               {national.areaM2 ? (
                 <div>
-                  <dt className="text-[13px] text-fg/55">Powierzchnia (mediana)</dt>
+                  <dt className="text-[13px] text-fg/62">Powierzchnia (mediana)</dt>
                   <dd className="mt-0.5 font-medium text-fg">{formatIntPL(national.areaM2.median)} m²</dd>
                 </div>
               ) : null}
               {nationalChange !== null ? (
                 <div>
-                  <dt className="text-[13px] text-fg/55">Zmiana w 30 dni</dt>
+                  <dt className="text-[13px] text-fg/62">Zmiana w 30 dni</dt>
                   <dd className="mt-0.5 font-medium">
                     <Change value={nationalChange} />
                   </dd>
@@ -234,7 +234,7 @@ export default async function CenyIndexPage() {
           </>
         ) : null}
 
-        <p className="mt-5 max-w-3xl text-[13px] leading-6 text-fg/50">
+        <p className="mt-5 max-w-3xl text-[13px] leading-6 text-fg/62">
           Ceny ofertowe z aktywnych ogłoszeń na tylkodzialki.pl, liczone automatycznie co godzinę.
         </p>
 
@@ -259,7 +259,7 @@ export default async function CenyIndexPage() {
         <h2 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
           Ceny działek budowlanych wg województw
         </h2>
-        <p className="mt-2 text-[13px] leading-6 text-fg/50">
+        <p className="mt-2 text-[13px] leading-6 text-fg/62">
           Mediana zł/m² ofert działek budowlanych w granicach województwa, od najdroższego. Obok
           liczba ofert{anyRegionChange ? ' i zmiana mediany w ostatnich 30 dniach' : ''}.
         </p>
@@ -275,7 +275,7 @@ export default async function CenyIndexPage() {
                     href={`/dzialki/wojewodztwo/${region.slug}`}
                     className="group flex items-baseline gap-3 border-b border-fg/10 py-2.5 transition hover:bg-fg/[0.02]"
                   >
-                    <span className="w-5 shrink-0 text-right text-[13px] text-fg/35">
+                    <span className="w-5 shrink-0 text-right text-[13px] text-fg/62">
                       {ci * half + i + 1}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg group-hover:text-brand-text md:text-[15px]">
@@ -285,10 +285,10 @@ export default async function CenyIndexPage() {
                       {detail.pricePerM2 ? (
                         zlM2(detail.pricePerM2.median)
                       ) : (
-                        <span className="font-normal text-fg/40">za mało danych</span>
+                        <span className="font-normal text-fg/62">za mało danych</span>
                       )}
                     </span>
-                    <span className="w-24 shrink-0 whitespace-nowrap text-right text-[13px] text-fg/45">
+                    <span className="w-24 shrink-0 whitespace-nowrap text-right text-[13px] text-fg/62">
                       {formatIntPL(detail.count)} {ofert(detail.count)}
                     </span>
                     {anyRegionChange ? (
@@ -320,14 +320,14 @@ export default async function CenyIndexPage() {
                         href={`/ceny/${city.slug}`}
                         className="group flex items-baseline gap-3 border-b border-fg/10 py-2.5 transition hover:bg-fg/[0.02]"
                       >
-                        <span className="w-5 shrink-0 text-right text-[13px] text-fg/35">{i + 1}</span>
+                        <span className="w-5 shrink-0 text-right text-[13px] text-fg/62">{i + 1}</span>
                         <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg group-hover:text-brand-text md:text-[15px]">
                           {city.name}
                         </span>
                         <span className="whitespace-nowrap text-sm font-medium text-fg md:text-[15px]">
                           {zlM2(median)}
                         </span>
-                        <span className="w-24 shrink-0 whitespace-nowrap text-right text-[13px] text-fg/45">
+                        <span className="w-24 shrink-0 whitespace-nowrap text-right text-[13px] text-fg/62">
                           {formatIntPL(detail.count)} {ofert(detail.count)}
                         </span>
                       </Link>
@@ -337,7 +337,7 @@ export default async function CenyIndexPage() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[13px] leading-6 text-fg/45">
+          <p className="mt-3 text-[13px] leading-6 text-fg/62">
             Mediana zł/m² ofert działek budowlanych w okolicy miasta (ok. 40 km) i liczba ofert. W
             rankingu miasta z co najmniej {MIN_OFERT_DO_CENY} ofertami.
           </p>
@@ -370,16 +370,16 @@ export default async function CenyIndexPage() {
         <h2 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
           Ceny działek we wszystkich miastach
         </h2>
-        <p className="mt-2 text-[13px] leading-6 text-fg/50">
+        <p className="mt-2 text-[13px] leading-6 text-fg/62">
           Mediana zł/m² ofert działek budowlanych w okolicy miasta (ok. 40 km). W mieście zobaczysz
           zakres cen, ceny wg typu działki i trend.
         </p>
         <div className="mt-6 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {regionsWithCities.map(({ region, cities }) => (
             <div key={region.slug}>
-              <h3 className="flex items-baseline justify-between gap-4 text-[13px] font-semibold uppercase tracking-wide text-fg/45">
+              <h3 className="flex items-baseline justify-between gap-4 text-[13px] font-semibold uppercase tracking-wide text-fg/62">
                 {region.name}
-                <span className="text-[12px] font-normal normal-case tracking-normal text-fg/40">
+                <span className="text-[12px] font-normal normal-case tracking-normal text-fg/62">
                   mediana
                 </span>
               </h3>
@@ -393,7 +393,7 @@ export default async function CenyIndexPage() {
                       <span className="text-sm font-medium text-fg group-hover:text-brand-text">
                         Ceny działek {city.name}
                       </span>
-                      <span className="whitespace-nowrap text-[13px] text-fg/45">
+                      <span className="whitespace-nowrap text-[13px] text-fg/62">
                         {detail.pricePerM2 ? zlM2(detail.pricePerM2.median) : 'b.d.'}
                       </span>
                     </Link>

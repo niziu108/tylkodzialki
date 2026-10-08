@@ -83,7 +83,7 @@ export default async function AdminWizytowkiPage({ searchParams }: PageProps) {
           mailem.
         </p>
 
-        <p className="mt-3 text-[13px] text-fg/55">
+        <p className="mt-3 text-[13px] text-fg/62">
           Włączone: {wlaczone} z {rows.length}
           {q ? " znalezionych kont" : " kont"}.
         </p>
@@ -124,13 +124,13 @@ export default async function AdminWizytowkiPage({ searchParams }: PageProps) {
                 <span className="text-[15px] text-fg/90">{u.email || u.id}</span>
 
                 {u.biuroWizytowkaOn ? (
-                  <span className="inline-flex rounded-full bg-brand/20 px-3 py-1 text-[11px] font-semibold text-brand-bright">
+                  <span className="inline-flex rounded-full bg-brand/20 px-3 py-1 text-[12px] font-semibold text-brand-text">
                     Wizytówka
                   </span>
                 ) : null}
               </div>
 
-              <div className="mt-1 text-[13px] text-fg/50">
+              <div className="mt-1 text-[13px] text-fg/62">
                 {u.defaultBiuroNazwa ? `${u.defaultBiuroNazwa} · ` : ""}
                 {u._count.dzialki} {u._count.dzialki === 1 ? "oferta" : "ofert"}
               </div>

@@ -80,7 +80,7 @@ function getStatusBadge(integration: NonNullable<Integration>): {
     return { label: "Błąd synchronizacji", cls: "text-red-300" };
   }
   if (integration.isActive) {
-    return { label: "Aktywna", cls: "text-brand-bright" };
+    return { label: "Aktywna", cls: "text-brand-text" };
   }
   return { label: "Nieaktywna", cls: "text-fg/70" };
 }
@@ -248,7 +248,7 @@ export default function CrmIntegrationPanel({
       return (
         <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
           <div className="max-w-3xl">
-            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
               Integracja CRM
             </div>
 
@@ -276,7 +276,7 @@ export default function CrmIntegrationPanel({
       <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div className="max-w-2xl">
-            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
               Integracja CRM
             </div>
 
@@ -346,7 +346,7 @@ export default function CrmIntegrationPanel({
       <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div className="max-w-3xl">
-            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
               Integracja CRM
             </div>
 
@@ -371,7 +371,7 @@ export default function CrmIntegrationPanel({
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+            <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
               Provider
             </div>
             <div className="mt-2 text-base font-semibold text-fg">
@@ -380,7 +380,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+            <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
               Ostatnia synchronizacja
             </div>
             <div className="mt-2 text-base font-semibold text-fg">
@@ -389,7 +389,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+            <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
               Ostatni sukces
             </div>
             <div className="mt-2 text-base font-semibold text-fg">
@@ -398,7 +398,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+            <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
               Ostatnie użycie
             </div>
             <div className="mt-2 text-base font-semibold text-fg">
@@ -409,7 +409,7 @@ export default function CrmIntegrationPanel({
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+            <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
               Ostatnio zaimportowano
             </div>
             <div className="mt-2 text-2xl font-semibold text-fg">
@@ -418,7 +418,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+            <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
               Utworzone / zaktualizowane
             </div>
             <div className="mt-2 text-2xl font-semibold text-fg">
@@ -427,7 +427,7 @@ export default function CrmIntegrationPanel({
           </div>
 
           <div className="rounded-2xl border border-fg/10 bg-surface p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-fg/68">
+            <div className="text-[12px] uppercase tracking-[0.14em] text-fg/68">
               Zakończone / pominięte / błędy
             </div>
             <div className="mt-2 text-2xl font-semibold text-fg">
@@ -494,7 +494,7 @@ export default function CrmIntegrationPanel({
       </div>
 
       <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
-        <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-bright">
+        <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
           Logi synchronizacji
         </div>
 
@@ -540,7 +540,7 @@ export default function CrmIntegrationPanel({
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                             log.status === "SUCCESS"
-                              ? "bg-brand/20 text-brand-bright"
+                              ? "bg-brand/20 text-brand-text"
                               : "bg-red-500/15 text-red-300"
                           }`}
                         >

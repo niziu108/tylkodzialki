@@ -95,7 +95,7 @@ function getBuyerTypeBadgeClass(buyerType?: InvoiceBuyerType | null) {
 function getInvoiceStatusBadgeClass(status: InvoiceStatus) {
   switch (status) {
     case "PAID":
-      return "bg-brand/20 text-brand-bright border border-brand/20";
+      return "bg-brand/20 text-brand-text border border-brand/20";
     case "PENDING":
       return "bg-fg/10 text-fg/80 border border-fg/10";
     case "FAILED":
@@ -114,7 +114,7 @@ function getKsefStatusBadgeClass(status: KsefStatus) {
     case "SENT":
       return "bg-sky-500/15 text-sky-300 border border-sky-500/20";
     case "ACCEPTED":
-      return "bg-brand/20 text-brand-bright border border-brand/20";
+      return "bg-brand/20 text-brand-text border border-brand/20";
     case "ERROR":
       return "bg-red-500/15 text-red-300 border border-red-500/20";
     default:

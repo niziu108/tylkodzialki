@@ -45,14 +45,14 @@ export default function PodpowiedzCenyBox({
 
   return (
     <div className="rounded-2xl border border-fg/12 bg-fg/[0.03] px-4 py-3 md:px-5">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Ceny w okolicy</div>
+      <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">Ceny w okolicy</div>
 
       <dl className="mt-2 space-y-1 text-[14px]">
         {ogloszenia ? (
           <div className="flex flex-wrap items-baseline justify-between gap-x-4">
             <dt className="text-fg/70">
               Ogłoszenia{' '}
-              <span className="text-fg/45">
+              <span className="text-fg/62">
                 ({ogloszenia.liczba} {plural(ogloszenia.liczba, 'oferta', 'oferty', 'ofert')},{' '}
                 {ogloszenia.promienKm} km)
               </span>
@@ -69,7 +69,7 @@ export default function PodpowiedzCenyBox({
           <div className="flex flex-wrap items-baseline justify-between gap-x-4">
             <dt className="text-fg/70">
               Akty notarialne{' '}
-              <span className="text-fg/45">
+              <span className="text-fg/62">
                 ({transakcje.liczba} {plural(transakcje.liczba, 'transakcja', 'transakcje', 'transakcji')},{' '}
                 {transakcje.promienKm} km)
               </span>
@@ -103,7 +103,7 @@ export default function PodpowiedzCenyBox({
         </p>
       ) : null}
 
-      <p className="mt-1.5 text-[12px] text-fg/50">
+      <p className="mt-1.5 text-[12px] text-fg/62">
         {podobne ? 'Orientacyjnie, nie wycena rzeczoznawcy.' : 'Orientacyjnie: działki różnej wielkości.'}
       </p>
     </div>

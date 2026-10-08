@@ -188,7 +188,7 @@ function FieldBlock({
 }) {
   return (
     <div className="py-5">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">{label}</div>
+      <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">{label}</div>
       <div className="mt-2">{children}</div>
     </div>
   );
@@ -252,7 +252,7 @@ function OpisBlok({
 
   return (
     <div ref={blokRef} className={cx('scroll-mt-24', className)}>
-      <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Opis</div>
+      <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">Opis</div>
       <div
         ref={tekstRef}
         className={cx(
@@ -267,7 +267,7 @@ function OpisBlok({
         <button
           type="button"
           onClick={() => setRozwiniety(!rozwiniety)}
-          className="mt-4 flex w-fit text-[12px] uppercase tracking-[0.18em] text-brand-text underline decoration-brand/40 underline-offset-8 transition hover:text-brand-bright"
+          className="mt-4 flex w-fit text-[12px] uppercase tracking-[0.18em] text-brand-text underline decoration-brand/40 underline-offset-8 transition hover:text-brand-text"
         >
           {rozwiniety ? 'Zwiń opis' : 'Pokaż cały opis'}
         </button>
@@ -1096,7 +1096,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 type="button"
                 onClick={openMessage}
                 aria-label="Napisz wiadomość"
-                className="group hidden h-9 w-9 items-center justify-center text-brand-text transition hover:text-brand-bright md:flex"
+                className="group hidden h-9 w-9 items-center justify-center text-brand-text transition hover:text-brand-text md:flex"
               >
                 <MailIcon className="h-[20px] w-[20px]" />
               </button>
@@ -1120,7 +1120,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               type="button"
               onClick={shareOffer}
               aria-label="Udostępnij ofertę"
-              className="group flex h-9 w-9 items-center justify-center text-brand-text transition hover:text-brand-bright"
+              className="group flex h-9 w-9 items-center justify-center text-brand-text transition hover:text-brand-text"
             >
               <ShareIcon className="h-[21px] w-[21px]" />
             </button>
@@ -1187,7 +1187,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       ›
                     </button>
 
-                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-white/85 border border-white/10 backdrop-blur-sm">
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[12px] text-white/85 border border-white/10 backdrop-blur-sm">
                       {idx + 1}/{photos.length}
                     </div>
                   </>
@@ -1239,7 +1239,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           <aside className="min-w-0 -mx-4 rounded-none bg-surface-2/20 lg:mx-0 lg:rounded-3xl">
             <div ref={parametryRef} className="px-4 pb-6 pt-0 lg:p-7">
               {isRent ? (
-                <span className="mb-1 flex w-fit items-center rounded-full border border-fg/30 bg-fg/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-fg/90 lg:mb-0">
+                <span className="mb-1 flex w-fit items-center rounded-full border border-fg/30 bg-fg/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/90 lg:mb-0">
                   Na wynajem
                 </span>
               ) : null}
@@ -1271,7 +1271,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 {priceInsight ? (
                   <div
                     className={`mt-1.5 inline-flex items-center gap-1.5 text-[12px] font-medium ${
-                      priceInsight.dropped ? 'text-brand-text' : 'text-fg/55'
+                      priceInsight.dropped ? 'text-brand-text' : 'text-fg/62'
                     }`}
                   >
                     <span className="text-[13px] leading-none">{priceInsight.dropped ? '↓' : '↑'}</span>
@@ -1464,7 +1464,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
               {(loc || showMap || isApproxLocation) ? (
                 <div className="py-5">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-fg/70">Lokalizacja</div>
+                  <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">Lokalizacja</div>
 
                   {/* Sam adres, bez linku: do ofert w okolicy prowadzi podgląd mapy niżej.
                       Wcześniej stały tu trzy podobne wiersze z tą samą nazwą miejscowości. */}
@@ -1486,7 +1486,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         e.preventDefault();
                         cel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }}
-                      className="mt-3 flex w-fit text-[12px] uppercase tracking-[0.18em] text-brand-text underline decoration-brand/40 underline-offset-8 transition hover:text-brand-bright"
+                      className="mt-3 flex w-fit text-[12px] uppercase tracking-[0.18em] text-brand-text underline decoration-brand/40 underline-offset-8 transition hover:text-brand-text"
                     >
                       Raport działki nr {raportDzialki.numer} ↓
                     </a>
@@ -1525,7 +1525,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
       {/* Sygnał, że podgląd jest klikalny i prowadzi do mapy z ofertami w okolicy. */}
       <div className="pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-90 transition group-hover:opacity-100">
-        <span className="m-3 inline-flex items-center gap-2 rounded-full border border-brand/60 bg-bg/90 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-fg backdrop-blur">
+        <span className="m-3 inline-flex items-center gap-2 rounded-full border border-brand/60 bg-bg/90 px-4 py-2 text-[12px] font-medium uppercase tracking-[0.14em] text-fg backdrop-blur">
           Zobacz oferty w okolicy
         </span>
       </div>
@@ -1720,7 +1720,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       fgColor="#233a0e"
                     />
                   </div>
-                  <div className="mt-4 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.16em] text-fg/55">
+                  <div className="mt-4 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.16em] text-fg/62">
                     <span className="h-1.5 w-1.5 rounded-full bg-brand" />
                     Zeskanuj aparatem telefonu
                   </div>
@@ -1814,7 +1814,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         className="mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/68"
                         htmlFor="msg-email"
                       >
-                        E-mail <span className="text-brand-bright">*</span>
+                        E-mail <span className="text-brand-text">*</span>
                       </label>
                       <input
                         id="msg-email"
@@ -1850,7 +1850,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       className="mb-2 block text-[12px] uppercase tracking-[0.16em] text-fg/68"
                       htmlFor="msg-body"
                     >
-                      Wiadomość <span className="text-brand-bright">*</span>
+                      Wiadomość <span className="text-brand-text">*</span>
                     </label>
                     <textarea
                       id="msg-body"
@@ -1875,7 +1875,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     {msgSending ? 'Wysyłanie…' : 'Wyślij wiadomość'}
                   </button>
 
-                  <p className="text-[11px] leading-relaxed text-fg/55">
+                  <p className="text-[12px] leading-relaxed text-fg/62">
                     Wysyłając wiadomość, zgadzasz się na kontakt w sprawie tej oferty.
                   </p>
                 </form>

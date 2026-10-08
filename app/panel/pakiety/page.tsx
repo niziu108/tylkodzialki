@@ -75,7 +75,7 @@ function Check() {
   return (
     <svg
       viewBox="0 0 20 20"
-      className="mt-[3px] h-4 w-4 flex-none text-brand-bright"
+      className="mt-[3px] h-4 w-4 flex-none text-brand-text"
       fill="none"
       stroke="currentColor"
       strokeWidth={2.4}
@@ -213,7 +213,7 @@ export default function PakietyPage() {
           </p>
 
           {credits && credits.listingCredits > 0 ? (
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/12 px-5 py-2 text-sm font-semibold text-brand-bright">
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/12 px-5 py-2 text-sm font-semibold text-brand-text">
               Dostępne publikacje: {credits.listingCredits}
               {credits.listingCreditsExpiresAt
                 ? ` · ważne do ${formatDatePL(credits.listingCreditsExpiresAt)}`
@@ -397,7 +397,7 @@ export default function PakietyPage() {
           </div>
 
           <div className="relative overflow-hidden rounded-[28px] border border-brand/35 bg-[linear-gradient(180deg,rgba(122,163,51,0.16),rgba(255,255,255,0.04))] p-6 text-center shadow-[0_0_0_1px_rgba(122,163,51,0.08)] transition duration-300 hover:-translate-y-1">
-            <div className="absolute right-4 top-4 rounded-full border border-brand/30 bg-brand/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-bright">
+            <div className="absolute right-4 top-4 rounded-full border border-brand/30 bg-brand/15 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text">
               Najczęściej wybierany
             </div>
 
@@ -415,13 +415,13 @@ export default function PakietyPage() {
                 {formatPrice(pack10Price)}
               </span>
               {singlePrice * 10 > pack10Price ? (
-                <span className="text-xl font-medium text-fg/40 line-through">
+                <span className="text-xl font-medium text-fg/62 line-through">
                   {formatPrice(singlePrice * 10)}
                 </span>
               ) : null}
             </div>
 
-            <div className="text-sm font-semibold text-brand-bright">
+            <div className="text-sm font-semibold text-brand-text">
               {formatUnitPrice(pack10Price / 10)} za publikację
             </div>
 
@@ -470,13 +470,13 @@ export default function PakietyPage() {
                 {formatPrice(pack40Price)}
               </span>
               {singlePrice * 40 > pack40Price ? (
-                <span className="text-xl font-medium text-fg/40 line-through">
+                <span className="text-xl font-medium text-fg/62 line-through">
                   {formatPrice(singlePrice * 40)}
                 </span>
               ) : null}
             </div>
 
-            <div className="text-sm font-semibold text-brand-bright">
+            <div className="text-sm font-semibold text-brand-text">
               {formatUnitPrice(pack40Price / 40)} za publikację
             </div>
 

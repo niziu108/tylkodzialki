@@ -301,7 +301,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               {/* Jeden tytul zamiast dwoch: drobne „Panel klienta" nad wielkim „Panel
                   uzytkownika" bylo tym samym napisem dwa razy. Zostaje zielony naglowek,
                   a pod nim samo konto (nazwa, jesli jest, i mail). */}
-              <div className="text-[15px] font-semibold uppercase tracking-[0.22em] text-brand-bright md:text-[18px]">
+              <div className="text-[15px] font-semibold uppercase tracking-[0.22em] text-brand-text md:text-[18px]">
                 Panel klienta
               </div>
               <div className="mt-3 h-px w-12 bg-brand/55" />
@@ -403,8 +403,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 href="/panel?tab=ulubione"
                 className={`pb-4 transition ${
                   activeTab === "ulubione"
-                    ? "border-b-2 border-brand text-brand-bright"
-                    : "text-brand-bright/85 hover:text-brand-bright"
+                    ? "border-b-2 border-brand text-brand-text"
+                    : "text-brand-text/85 hover:text-brand-text"
                 }`}
               >
                 Ulubione
@@ -414,8 +414,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 href="/panel?tab=alerty"
                 className={`pb-4 transition ${
                   activeTab === "alerty"
-                    ? "border-b-2 border-brand text-brand-bright"
-                    : "text-brand-bright/85 hover:text-brand-bright"
+                    ? "border-b-2 border-brand text-brand-text"
+                    : "text-brand-text/85 hover:text-brand-text"
                 }`}
               >
                 Alerty
@@ -430,7 +430,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 }`}
               >
                 Integracje CRM{" "}
-                <span className="text-[12px] font-normal text-fg/45">
+                <span className="text-[12px] font-normal text-fg/62">
                   (dla biur)
                 </span>
               </Link>
@@ -443,11 +443,11 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             <div className="mb-8 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
               <div>
                 <div className="flex min-h-[34px] items-end">
-                  <span className="text-[28px] font-semibold leading-none text-brand-bright">
+                  <span className="text-[28px] font-semibold leading-none text-brand-text">
                     {activeCount}
                   </span>
                 </div>
-                <div className="mt-3 inline-block whitespace-nowrap border-b border-brand/55 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-bright/80">
+                <div className="mt-3 inline-block whitespace-nowrap border-b border-brand/55 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text/80">
                   Aktywne oferty
                 </div>
               </div>
@@ -458,10 +458,10 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                     {paymentsEnabled ? user.listingCredits : "∞"}
                   </span>
                   {!paymentsEnabled ? (
-                    <span className="text-[11px] leading-none text-brand-bright">bez limitu</span>
+                    <span className="text-[12px] leading-none text-brand-text">bez limitu</span>
                   ) : null}
                 </div>
-                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/68">
+                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/68">
                   Publikacje
                 </div>
               </div>
@@ -472,7 +472,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                     {user.featuredCredits}
                   </span>
                 </div>
-                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/68">
+                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/68">
                   Wyróżnienia
                 </div>
               </div>
@@ -483,7 +483,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                     {formatDatePL(user.createdAt)}
                   </span>
                 </div>
-                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg/68">
+                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/68">
                   Konto od
                 </div>
               </div>
@@ -581,7 +581,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                             <span
                               className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
                                 invoice.status === "PAID"
-                                  ? "bg-brand/20 text-brand-bright"
+                                  ? "bg-brand/20 text-brand-text"
                                   : invoice.status === "PENDING"
                                   ? "bg-fg/10 text-fg/70"
                                   : "bg-red-500/15 text-red-300"
@@ -653,7 +653,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           <>
             <div className="mb-5 text-[19px] font-medium text-fg">
               Integracje CRM{" "}
-              <span className="text-[15px] font-normal text-fg/45">
+              <span className="text-[15px] font-normal text-fg/62">
                 (dla biur)
               </span>
             </div>

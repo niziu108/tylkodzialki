@@ -63,7 +63,7 @@ export function cenyOkolicy(
 }
 
 function Brak({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 text-[15px] leading-7 text-fg/55">{children}</p>;
+  return <p className="mt-3 text-[15px] leading-7 text-fg/62">{children}</p>;
 }
 
 export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolicyDane; className?: string }) {
@@ -104,8 +104,8 @@ export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolic
                 <span className="text-[30px] font-semibold tracking-tight text-fg">
                   {cena.mixed ? `${formatIntPL(v.low)}-${formatIntPL(v.high)}` : formatIntPL(v.median)}
                 </span>
-                <span className="text-base font-medium text-fg/55">zł/m²</span>
-                <span className="text-[12px] uppercase tracking-[0.1em] text-fg/45">{cena.lead.label}</span>
+                <span className="text-base font-medium text-fg/62">zł/m²</span>
+                <span className="text-[12px] uppercase tracking-[0.1em] text-fg/62">{cena.lead.label}</span>
               </div>
               <p className="mt-2 text-sm leading-6 text-fg/65">
                 {opisPuli} Liczone z {cena.lead.stat.sampleCount} ofert w naszym serwisie, bez tej oferty. To
@@ -130,8 +130,8 @@ export default function CenyOkolicy({ dane, className = '' }: { dane: CenyOkolic
                 <span className="text-[30px] font-semibold tracking-tight text-fg">
                   {rcnWidelki ? `${formatIntPL(rcn.low)}-${formatIntPL(rcn.high)}` : formatIntPL(rcn.medianaZlM2)}
                 </span>
-                <span className="text-base font-medium text-fg/55">zł/m²</span>
-                <span className="text-[12px] uppercase tracking-[0.1em] text-fg/45">
+                <span className="text-base font-medium text-fg/62">zł/m²</span>
+                <span className="text-[12px] uppercase tracking-[0.1em] text-fg/62">
                   {rcn.klasa === 'rolna' ? 'grunty rolne' : 'działki budowlane'}
                 </span>
               </div>
@@ -267,15 +267,15 @@ function NajblizszeAkty({ akty, dokladna }: { akty: RcnAkt[]; dokladna: boolean 
                 : 'grid-cols-[4.5rem_1fr_auto] sm:grid-cols-[5rem_7rem_1fr_auto]'
             }`}
           >
-            <span className="text-fg/55">{miesiacRok(a.data)}</span>
+            <span className="text-fg/62">{miesiacRok(a.data)}</span>
             <span className="text-fg/75">{formatIntPL(a.powierzchniaM2)} m²</span>
             <span className="hidden text-fg/75 sm:block">{formatIntPL(a.cenaPln)} zł</span>
-            {dokladna ? <span className="hidden text-right text-fg/45 sm:block">{odleglosc(a.km)}</span> : null}
+            {dokladna ? <span className="hidden text-right text-fg/62 sm:block">{odleglosc(a.km)}</span> : null}
             <span className="text-right font-medium text-fg">{formatIntPL(a.zlM2)} zł/m²</span>
           </div>
         ))}
       </div>
-      <p className="mt-3 text-xs leading-6 text-fg/50">
+      <p className="mt-3 text-xs leading-6 text-fg/62">
         Kwoty z aktów notarialnych za całe działki niezabudowane, sprzedane na wolnym rynku
         {dokladna ? ', odległość w linii prostej od działki.' : '.'}
       </p>
@@ -298,14 +298,14 @@ export function CenyOkolicySekcja({
   return (
     <section id="ceny-okolicy" aria-labelledby="ceny-okolicy-tytul" className="scroll-mt-24 border-t border-fg/5">
       <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
-        <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">Ceny działek</div>
+        <div className="text-[12px] uppercase tracking-[0.16em] text-brand-text">Ceny działek</div>
         <h2 id="ceny-okolicy-tytul" className="mt-2 text-2xl font-semibold tracking-tight text-fg md:text-3xl">
           {miejsce ? `${miejsce} i okolice` : 'Ceny działek w okolicy'}
         </h2>
 
         <CenyOkolicy dane={dane} className="mt-8 border-t border-fg/12 pt-8" />
 
-        <p className="mt-10 max-w-3xl text-xs leading-6 text-fg/45">
+        <p className="mt-10 max-w-3xl text-xs leading-6 text-fg/62">
           {przyblizona
             ? 'Ogłoszenie podaje tylko miejscowość, więc promień liczymy od jej środka.'
             : 'Promień i odległości liczymy od miejsca oferty na mapie.'}{' '}

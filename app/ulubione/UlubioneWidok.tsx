@@ -37,10 +37,10 @@ export default function UlubioneWidok({ items }: { items: FavoriteOffer[] }) {
   return (
     <>
       <div className="mb-10 border-b border-fg/10 pb-8">
-        <div className="text-[64px] font-semibold leading-none text-brand-bright md:text-[88px]">
+        <div className="text-[64px] font-semibold leading-none text-brand-text md:text-[88px]">
           {items.length}
         </div>
-        <div className="mt-4 inline-block border-b border-brand/55 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-bright/80 md:text-[12px]">
+        <div className="mt-4 inline-block border-b border-brand/55 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text/80 md:text-[12px]">
           {odmianaOfert(items.length)}
         </div>
       </div>

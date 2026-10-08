@@ -24,7 +24,7 @@ export default function Footer() {
 
               <Link
                 href="/partnerstwo"
-                className="inline-flex w-fit items-center gap-1.5 text-[15px] font-medium text-brand-text transition hover:text-brand-bright"
+                className="inline-flex w-fit items-center gap-1.5 text-[15px] font-medium text-brand-text transition hover:text-brand-text"
               >
                 Zostań partnerem
                 <span aria-hidden="true">&rarr;</span>

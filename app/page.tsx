@@ -114,7 +114,7 @@ function PopularSearchesSection({ ceny }: { ceny: PolandPriceBoard | null }) {
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">
         <div>
-          <div className="text-[12px] uppercase tracking-[0.18em] text-brand-bright">
+          <div className="text-[12px] uppercase tracking-[0.18em] text-brand-text">
             Lokalizacje i ceny
           </div>
 
@@ -156,7 +156,7 @@ function PopularSearchesSection({ ceny }: { ceny: PolandPriceBoard | null }) {
                 <div className="relative z-10">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-fg/62">
+                      <div className="text-[12px] uppercase tracking-[0.22em] text-fg/62">
                         Województwo
                       </div>
 
@@ -165,7 +165,7 @@ function PopularSearchesSection({ ceny }: { ceny: PolandPriceBoard | null }) {
                       </h3>
                     </div>
 
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand/30 bg-surface text-[13px] font-semibold text-brand-bright">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand/30 bg-surface text-[13px] font-semibold text-brand-text">
                       {String(index + 1).padStart(2, "0")}
                     </div>
                   </div>
@@ -196,7 +196,7 @@ function PopularSearchesSection({ ceny }: { ceny: PolandPriceBoard | null }) {
                             {city.name}
                           </span>
                           {cena ? (
-                            <span className="shrink-0 whitespace-nowrap text-[13px] text-fg/55">{zlM2(cena)}</span>
+                            <span className="shrink-0 whitespace-nowrap text-[13px] text-fg/62">{zlM2(cena)}</span>
                           ) : null}
                         </Link>
                       );
@@ -325,7 +325,7 @@ export default async function HomePage() {
               className="text-sm text-fg/70 transition hover:text-fg"
             >
               Sprzedajesz działkę?{" "}
-              <span className="text-brand-bright underline decoration-1 underline-offset-4">
+              <span className="text-brand-text underline decoration-1 underline-offset-4">
                 Dodaj ogłoszenie
               </span>{" "}
               →
@@ -382,7 +382,7 @@ export default async function HomePage() {
               {/* Etykieta w tym samym wzorcu co „Blog tylkodzialki.pl" nad Wiedzą o działkach:
                   bez niej sekcja stała naga na tle pozostałych. Nagłówek to nazwa narzędzia,
                   ta sama co w menu i we frazie, na którą chcemy wchodzić z Google. */}
-              <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">
+              <div className="text-[12px] uppercase tracking-[0.16em] text-brand-text">
                 Narzędzie tylkodzialki.pl
               </div>
 
@@ -435,7 +435,7 @@ export default async function HomePage() {
                 <dl className="mt-7 border-t border-fg/12">
                   {DEMO_MPZP?.functionName ? (
                     <div className="border-b border-fg/10 py-4">
-                      <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
+                      <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/62">
                         Plan miejscowy
                       </dt>
                       <dd className="mt-1.5 text-[15px] leading-6 text-fg/85">
@@ -447,7 +447,7 @@ export default async function HomePage() {
 
                   {przyklad.ofertyZlM2 ? (
                     <div className="border-b border-fg/10 py-4">
-                      <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
+                      <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/62">
                         Ceny z ogłoszeń w okolicy
                       </dt>
                       <dd className="mt-1.5 text-[15px] font-medium text-fg">
@@ -458,7 +458,7 @@ export default async function HomePage() {
 
                   {przyklad.rcn ? (
                     <div className="border-b border-fg/10 py-4">
-                      <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/45">
+                      <dt className="text-[12px] uppercase tracking-[0.12em] text-fg/62">
                         Realnie zapłacono u notariusza
                       </dt>
                       <dd className="mt-1.5 text-[15px] font-medium text-brand-text">
@@ -466,7 +466,7 @@ export default async function HomePage() {
                           ? `${formatIntPL(przyklad.rcn.low)}–${formatIntPL(przyklad.rcn.high)}`
                           : formatIntPL(przyklad.rcn.medianaZlM2)}{' '}
                         zł/m²
-                        <span className="ml-2 text-[13px] font-normal text-fg/45">
+                        <span className="ml-2 text-[13px] font-normal text-fg/62">
                           z {przyklad.rcn.liczba} aktów
                         </span>
                       </dd>
@@ -499,7 +499,7 @@ export default async function HomePage() {
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-14 md:px-10">
           <div className="flex items-end justify-between">
             <div>
-              <div className="text-[12px] uppercase tracking-[0.16em] text-brand-bright">
+              <div className="text-[12px] uppercase tracking-[0.16em] text-brand-text">
                 Blog tylkodzialki.pl
               </div>
 
@@ -543,7 +543,7 @@ export default async function HomePage() {
                           {article.excerpt}
                         </p>
 
-                        <div className="mt-auto pt-4 text-sm font-semibold text-brand-bright">
+                        <div className="mt-auto pt-4 text-sm font-semibold text-brand-text">
                           Czytaj →
                         </div>
                       </div>

@@ -55,7 +55,7 @@ export function Row({ label, value }: { label: string; value: string | null }) {
   if (!value) return null;
   return (
     <div className="grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-b border-fg/10 py-3 md:grid-cols-[14rem_1fr]">
-      <span className="text-[13px] uppercase tracking-[0.1em] text-fg/45">{label}</span>
+      <span className="text-[13px] uppercase tracking-[0.1em] text-fg/62">{label}</span>
       <span className="text-[15px] font-medium text-fg">{value}</span>
     </div>
   );
@@ -67,13 +67,13 @@ function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat
   return (
     <div className="grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-t border-fg/10 py-3 md:grid-cols-[14rem_1fr]">
       <span
-        className={`text-[13px] uppercase tracking-[0.1em] text-fg/45 ${sub ? 'normal-case tracking-normal' : ''}`}
+        className={`text-[13px] uppercase tracking-[0.1em] text-fg/62 ${sub ? 'normal-case tracking-normal' : ''}`}
       >
         {label}
       </span>
       <span className="text-[15px] font-medium text-fg">
         {formatIntPL(stat.pricePerM2.median)} zł/m²
-        <span className="ml-2 text-[13px] font-normal text-fg/45">
+        <span className="ml-2 text-[13px] font-normal text-fg/62">
           z {stat.sampleCount} {stat.sampleCount === 1 ? 'oferty' : 'ofert'}
         </span>
       </span>
@@ -112,7 +112,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
     <div className="print-report w-full text-left">
       {/* Nagłówek wyłącznie na wydruku: kartka ma mówić, skąd pochodzi i z kiedy jest. */}
       <div className="mb-6 hidden border-b border-fg/25 pb-3 print:block">
-        <div className="flex items-baseline justify-between gap-4 text-[11px] uppercase tracking-[0.18em] text-fg/60">
+        <div className="flex items-baseline justify-between gap-4 text-[12px] uppercase tracking-[0.18em] text-fg/60">
           <span>tylkodzialki.pl · raport działki</span>
           <span>{new Date().toLocaleDateString('pl-PL')}</span>
         </div>
@@ -182,8 +182,8 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
               <span className="text-[34px] font-semibold tracking-tight text-fg md:text-[46px]">
                 {mixed ? `${formatIntPL(v.low)}–${formatIntPL(v.high)}` : formatIntPL(v.median)}
               </span>
-              <span className="text-lg font-medium text-fg/55">zł/m²</span>
-              <span className="text-[13px] uppercase tracking-[0.1em] text-fg/45">{lead.label}</span>
+              <span className="text-lg font-medium text-fg/62">zł/m²</span>
+              <span className="text-[13px] uppercase tracking-[0.1em] text-fg/62">{lead.label}</span>
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-fg/65">
               {lead.kind === 'similar' && valuation.similarSizeBand
@@ -200,7 +200,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                 obok siebie liczby z dwóch różnych rynków): jedno zdanie o tym, czego ta średnia
                 NIE uwzględnia. Uczciwiej powiedzieć „może być zupełnie inaczej" niż wyliczać
                 procenty, które i tak nie trafią w konkretną działkę ([[feedback-prostota-nad-modulami]]). */}
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-fg/55">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-fg/62">
               Konkretna działka potrafi kosztować zupełnie inaczej niż ta średnia. Decyduje
               odległość od miasta, prąd i woda na działce, dojazd i kształt. Nawet działka
               oddalona o kilometr bywa dwa razy droższa, bo leży bliżej zabudowy.
@@ -229,7 +229,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                     {formatIntPL(trend.medianNow)} zł/m²).
                   </>
                 )}{' '}
-                <span className="text-fg/55">
+                <span className="text-fg/62">
                   Liczone na {trend.sampleCount}{' '}
                   {trend.sampleCount === 1 ? 'ofercie, która wisiała' : 'ofertach, które wisiały'}{' '}
                   wtedy i wiszą dziś, więc nie myli zmiany cen ze zmianą tego, co akurat jest na
@@ -266,8 +266,8 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
             <span className="text-[34px] font-semibold tracking-tight text-fg md:text-[46px]">
               {rcnWidelki ? `${formatIntPL(rcn.low)}–${formatIntPL(rcn.high)}` : formatIntPL(rcn.medianaZlM2)}
             </span>
-            <span className="text-lg font-medium text-fg/55">zł/m²</span>
-            <span className="text-[13px] uppercase tracking-[0.1em] text-fg/45">
+            <span className="text-lg font-medium text-fg/62">zł/m²</span>
+            <span className="text-[13px] uppercase tracking-[0.1em] text-fg/62">
               {rcn.klasa === 'rolna' ? 'grunty rolne' : 'działki budowlane'}
             </span>
           </div>
@@ -315,7 +315,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                     {Math.abs(roznica)}% {roznica > 0 ? 'więcej' : 'mniej'} niż wynosi mediana
                     zapłaconych kwot.
                   </span>{' '}
-                  <span className="text-fg/55">
+                  <span className="text-fg/62">
                     Obie liczby liczą się z innych zbiorów (ogłoszenia z promienia{' '}
                     {valuation.radiusKm} km i z dziś, akty z {rcn.promienKm} km i z lat{' '}
                     {rcn.odRoku}-{rcn.doRoku}), więc to nie jest gotowa odpowiedź, ile da się
@@ -361,7 +361,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                   {parcel.commune}.{' '}
                   <Link
                     href="/blog/jak-sprawdzic-mpzp-dzialki-przed-zakupem"
-                    className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                    className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-text"
                   >
                     Zobacz, jak sprawdzić plan miejscowy
                   </Link>
@@ -410,7 +410,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                   </div>
                 ) : null}
                 {!hasPurpose ? (
-                  <p className="mt-4 max-w-2xl text-[13px] leading-7 text-fg/55">
+                  <p className="mt-4 max-w-2xl text-[13px] leading-7 text-fg/62">
                     Samo przeznaczenie dla tego punktu nie zostało udostępnione przez gminę w
                     krajowej integracji. Dopytaj w gminie o zapis dla tej działki.
                   </p>
@@ -424,7 +424,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                     wprost. Pierwsze zdanie składa się z `podaje`, żeby przy planie bez
                     przeznaczenia nie twierdzić, że integracja je podaje. */}
                 {!mpzp.maxHeight && !mpzp.intensity ? (
-                  <p className="mt-4 max-w-2xl text-[13px] leading-7 text-fg/55">
+                  <p className="mt-4 max-w-2xl text-[13px] leading-7 text-fg/62">
                     {podaje
                       ? `Krajowa integracja planów podaje dla tego terenu ${podaje}, ale nie parametry zabudowy.`
                       : 'Krajowa integracja planów nie podaje dla tego terenu parametrów zabudowy.'}{' '}
@@ -437,7 +437,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                         href={mpzp.resolutionUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                        className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-text"
                       >
                         Otwórz tekst uchwały (PDF)
                       </a>
@@ -457,7 +457,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+                          className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-text"
                         >
                           Znajdź tekst uchwały
                         </a>{' '}
@@ -478,7 +478,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
             {parcel.commune}.{' '}
             <Link
               href="/blog/jak-sprawdzic-mpzp-dzialki-przed-zakupem"
-              className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+              className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-text"
             >
               Zobacz, jak sprawdzić plan miejscowy
             </Link>
@@ -490,7 +490,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
             zabudowie decydują warunki zabudowy (WZ).{' '}
             <Link
               href="/blog/warunki-zabudowy-wz-co-to-jest"
-              className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-bright"
+              className="text-brand-text underline decoration-1 underline-offset-2 hover:text-brand-text"
             >
               Sprawdź, czym są warunki zabudowy
             </Link>{' '}
@@ -570,13 +570,13 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
           </p>
 
           {pog.srodmiejska ? (
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-fg/55">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-fg/62">
               Teren leży w obszarze zabudowy śródmiejskiej, gdzie obowiązują luźniejsze standardy
               dostępu do terenów zieleni i infrastruktury społecznej.
             </p>
           ) : null}
 
-          <p className="mt-3 max-w-2xl text-xs leading-6 text-fg/45">
+          <p className="mt-3 max-w-2xl text-xs leading-6 text-fg/62">
             Dane z planów ogólnych gmin (GUGiK). Plan ogólny nie zastępuje planu miejscowego:
             wyznacza ramy, w których gmina uchwala plany i wydaje decyzje o warunkach zabudowy.
           </p>
@@ -594,7 +594,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
           <Row label="Powiat" value={parcel.county} />
           <Row label="Województwo" value={parcel.voivodeship} />
         </div>
-        <p className="mt-3 text-xs leading-6 text-fg/45">
+        <p className="mt-3 text-xs leading-6 text-fg/62">
           Granice, powierzchnia i numer z ewidencji gruntów (ULDK, GUGiK) dla wskazanego punktu.
         </p>
       </div>
@@ -638,7 +638,7 @@ export default function Raport({ data, przyklad = false }: { data: RaportData; p
               className="group flex items-center justify-between gap-4 border-b border-fg/10 py-3.5 text-[15px] text-fg/85 transition hover:text-fg"
             >
               {s.label}
-              <span aria-hidden className="text-fg/35 transition group-hover:translate-x-0.5">
+              <span aria-hidden className="text-fg/62 transition group-hover:translate-x-0.5">
                 →
               </span>
             </Link>

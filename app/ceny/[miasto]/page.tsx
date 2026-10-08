@@ -168,7 +168,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
 
       {/* Hero: PROWADZIMY liczbą — mediana zł/m² od razu, nie pod listą ofert. */}
       <section className="mx-auto mt-8 max-w-6xl px-3 md:px-4">
-        <p className="text-[13px] font-medium uppercase tracking-wide text-fg/50">
+        <p className="text-[13px] font-medium uppercase tracking-wide text-fg/62">
           Ceny działek {inCity(city)}
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
@@ -178,7 +178,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
         {heroPrice ? (
           <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-end md:gap-12">
             <div>
-              <div className="text-[13px] text-fg/55">Przeciętna cena</div>
+              <div className="text-[13px] text-fg/62">Przeciętna cena</div>
               <div className="mt-1 text-5xl font-semibold tracking-tight text-brand-text md:text-6xl">
                 {zlM2(heroPrice.median)}
               </div>
@@ -188,7 +188,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
             </div>
             {heroDetail.totalPrice ? (
               <div className="md:pb-1">
-                <div className="text-[13px] text-fg/55">Za całą działkę</div>
+                <div className="text-[13px] text-fg/62">Za całą działkę</div>
                 <div className="mt-1 text-2xl font-semibold tracking-tight text-fg md:text-3xl">
                   {range(heroDetail.totalPrice, formatPLN)}
                 </div>
@@ -203,7 +203,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
           </p>
         )}
 
-        <p className="mt-6 text-[13px] text-fg/45">
+        <p className="mt-6 text-[13px] text-fg/62">
           {heroPrice
             ? `Policzone z ${formatIntPL(heroDetail.count)} aktywnych ofert działek budowlanych w okolicy ${city.gen} (w promieniu ok. 40 km). Stan na ${dateStr}. Liczymy z realnych, aktywnych ogłoszeń, nie z cenników.`
             : `Stan na ${dateStr}.`}
@@ -231,7 +231,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
         <section className="mx-auto mt-10 max-w-6xl px-3 md:px-4">
           <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-2xl border border-fg/10 bg-fg/[0.02] px-5 py-4">
             <div>
-              <div className="text-[13px] text-fg/55">Trend mediany zł/m²</div>
+              <div className="text-[13px] text-fg/62">Trend mediany zł/m²</div>
               <div
                 className={`mt-0.5 text-sm font-medium ${
                   trend.changePct !== null && trend.changePct >= 0
@@ -287,14 +287,14 @@ export default async function CenyMiastoPage({ params }: PageProps) {
                   <span className="text-sm text-fg/85 md:text-[15px]">
                     {detail.pricePerM2 ? zlM2(detail.pricePerM2.median) : 'za mało danych'}
                   </span>
-                  <span className="hidden w-24 text-right text-[13px] text-fg/45 sm:inline">
+                  <span className="hidden w-24 text-right text-[13px] text-fg/62 sm:inline">
                     {formatIntPL(detail.count)} {detail.count === 1 ? 'oferta' : 'ofert'}
                   </span>
                 </span>
               </Link>
             ))}
           </div>
-          <p className="mt-3 text-[13px] text-fg/45">
+          <p className="mt-3 text-[13px] text-fg/62">
             Przeciętna cena zł/m². „Za mało danych" oznacza próbkę zbyt małą na wiarygodną liczbę.
           </p>
         </section>
@@ -318,7 +318,7 @@ export default async function CenyMiastoPage({ params }: PageProps) {
                   key={row.label}
                   className="flex items-baseline justify-between gap-4 border-b border-fg/10 py-2.5"
                 >
-                  <dt className="text-[13px] text-fg/55">{row.label}</dt>
+                  <dt className="text-[13px] text-fg/62">{row.label}</dt>
                   <dd className="text-right text-sm font-medium text-fg">{row.value}</dd>
                 </div>
               ))}

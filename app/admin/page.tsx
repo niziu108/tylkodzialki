@@ -122,7 +122,7 @@ function getInvoiceStatusLabel(status: string) {
 function getInvoiceStatusBadgeClass(status: string) {
   switch (status) {
     case "PAID":
-      return "bg-brand/20 text-brand-bright";
+      return "bg-brand/20 text-brand-text";
     case "PENDING":
       return "bg-fg/10 text-fg/70";
     case "FAILED":
@@ -391,7 +391,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <span
                 className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                   config.paymentsEnabled
-                    ? "bg-brand/20 text-brand-bright"
+                    ? "bg-brand/20 text-brand-text"
                     : "bg-fg/10 text-fg/85"
                 }`}
               >
@@ -532,9 +532,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </div>
 
                     <span
-                      className={`inline-flex shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${
+                      className={`inline-flex shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold ${
                         article.isPublished
-                          ? "bg-brand/20 text-brand-bright"
+                          ? "bg-brand/20 text-brand-text"
                           : "bg-fg/10 text-fg/85"
                       }`}
                     >
@@ -551,7 +551,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                     <Link
                       href="/admin/artykuly"
-                      className="font-semibold text-fg transition hover:text-brand-bright"
+                      className="font-semibold text-fg transition hover:text-brand-text"
                     >
                       Zarządzaj →
                     </Link>
@@ -608,7 +608,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   href={buildAdminHref(q, option.key)}
                   className={`inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition ${
                     active
-                      ? "border-brand bg-brand/15 text-brand-bright"
+                      ? "border-brand bg-brand/15 text-brand-text"
                       : "border-fg/12 bg-fg/[0.03] text-fg/70 hover:border-fg/25 hover:text-fg"
                   }`}
                 >
@@ -680,7 +680,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         {user.phoneFromListings ? (
                           <a
                             href={`tel:${user.phoneFromListings}`}
-                            className="font-medium text-fg transition hover:text-brand-bright"
+                            className="font-medium text-fg transition hover:text-brand-text"
                           >
                             {user.phoneFromListings}
                           </a>
@@ -694,7 +694,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                               user.crmIntegration.isActive
-                                ? "bg-brand/20 text-brand-bright"
+                                ? "bg-brand/20 text-brand-text"
                                 : "bg-red-500/15 text-red-300"
                             }`}
                           >
@@ -713,7 +713,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                             user.activeListings > 0
-                              ? "bg-brand/20 text-brand-bright"
+                              ? "bg-brand/20 text-brand-text"
                               : "bg-fg/10 text-fg/70"
                           }`}
                         >
@@ -779,11 +779,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         {user.totalDetailViews}
                       </td>
 
-                      <td className="px-4 py-4 align-middle font-semibold text-brand-bright">
+                      <td className="px-4 py-4 align-middle font-semibold text-brand-text">
                         {user.totalPhoneClicks}
                       </td>
 
-                      <td className="px-4 py-4 align-middle font-semibold text-brand-bright">
+                      <td className="px-4 py-4 align-middle font-semibold text-brand-text">
                         {user.totalMessageClicks}
                       </td>
 
@@ -796,7 +796,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <td className="px-4 py-4 align-middle">
                         <Link
                           href={`/admin/crm/${user.id}`}
-                          className="inline-flex h-11 min-w-[138px] items-center justify-center rounded-2xl border border-brand/35 bg-brand/10 px-4 text-xs font-semibold text-fg shadow-[0_0_18px_rgba(122,163,51,0.08)] transition hover:border-brand-bright/70 hover:bg-brand/20 hover:text-brand-bright"
+                          className="inline-flex h-11 min-w-[138px] items-center justify-center rounded-2xl border border-brand/35 bg-brand/10 px-4 text-xs font-semibold text-fg shadow-[0_0_18px_rgba(122,163,51,0.08)] transition hover:border-brand-bright/70 hover:bg-brand/20 hover:text-brand-text"
                         >
                           Konfiguruj CRM
                         </Link>

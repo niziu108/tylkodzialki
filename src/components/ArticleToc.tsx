@@ -14,7 +14,7 @@ export default function ArticleToc({ headings }: { headings: TocHeading[] }) {
   return (
     <nav className="mb-10 rounded-2xl border border-fg/10 bg-fg/[0.03] p-5">
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-brand-bright">
+        <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-brand-text">
           Spis treści
         </span>
         <button

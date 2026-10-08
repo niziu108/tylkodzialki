@@ -163,7 +163,7 @@ function PanelPager({
 
       {pages.map((p, i) =>
         p === '…' ? (
-          <span key={`dots-${i}`} className="px-1 text-[13px] text-fg/55">
+          <span key={`dots-${i}`} className="px-1 text-[13px] text-fg/62">
             …
           </span>
         ) : (
@@ -173,7 +173,7 @@ function PanelPager({
             onClick={() => onGo(p)}
             aria-current={p === page ? 'page' : undefined}
             className={`min-w-[34px] rounded-lg px-2 py-1.5 text-center text-[13px] tabular-nums transition ${
-              p === page ? 'font-semibold text-brand' : 'text-fg/72 hover:text-fg'
+              p === page ? 'font-semibold text-brand-text' : 'text-fg/72 hover:text-fg'
             }`}
             style={{
               transitionProperty: 'color',
@@ -326,7 +326,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
       <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-4 md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="w-full xl:max-w-md">
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/68">
+            <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/68">
               Szukaj ogłoszenia
             </label>
 
@@ -341,7 +341,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-end">
             <div className="min-w-[190px]">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/68">
+              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/68">
                 Status
               </label>
 
@@ -370,7 +370,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
             </div>
 
             <div className="min-w-[250px]">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-fg/68">
+              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/68">
                 Sortowanie
               </label>
 
@@ -413,7 +413,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
           <span>
             Znaleziono: <span className="font-semibold text-fg">{filteredItems.length}</span>
             {totalPages > 1 ? (
-              <span className="text-fg/55">
+              <span className="text-fg/62">
                 {' '}
                 · strona {currentPage} z {totalPages}
               </span>
@@ -427,7 +427,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
           ) : null}
 
           {status !== 'all' ? (
-            <span className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] text-brand-bright">
+            <span className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] text-brand-text">
               Filtr aktywny
             </span>
           ) : null}
@@ -765,7 +765,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
         onClick={() => setStatsOpen((v) => !v)}
         className="flex w-full items-center gap-3 border-t border-fg/10 px-5 py-3 text-left transition hover:bg-fg/[0.03] md:px-6"
       >
-        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-fg/64">
+        <span className="shrink-0 text-[12px] font-semibold uppercase tracking-[0.2em] text-fg/64">
           Wyniki
         </span>
         <span className="min-w-0 truncate text-[12px] tabular-nums text-fg/72">
@@ -773,7 +773,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           {formatIntPL(favoritesCount)} zapisów
         </span>
         <Chevron
-          className={`ml-auto h-4 w-4 shrink-0 text-fg/55 transition ${
+          className={`ml-auto h-4 w-4 shrink-0 text-fg/62 transition ${
             statsOpen ? 'rotate-180' : ''
           }`}
         />
@@ -873,13 +873,13 @@ function StatCell({
     <div className="border-b border-fg/10 pb-2.5">
       <div
         className={`text-[20px] font-semibold leading-none tabular-nums ${
-          accent ? 'text-brand-bright' : 'text-fg'
+          accent ? 'text-brand-text' : 'text-fg'
         }`}
       >
         {formatIntPL(value)}
       </div>
-      <div className="mt-2 text-[11px] font-medium leading-tight text-fg/80">{label}</div>
-      <div className="text-[10px] leading-tight text-fg/55">{hint}</div>
+      <div className="mt-2 text-[12px] font-medium leading-tight text-fg/80">{label}</div>
+      <div className="text-[12px] leading-tight text-fg/62">{hint}</div>
     </div>
   );
 }
@@ -949,7 +949,7 @@ function ActionBtn({
         danger
           ? 'border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-400/35 hover:bg-red-500/15'
           : accent
-          ? 'border-brand/30 bg-brand/12 text-brand-bright hover:border-brand/50 hover:bg-brand/18'
+          ? 'border-brand/30 bg-brand/12 text-brand-text hover:border-brand/50 hover:bg-brand/18'
           : 'border-fg/14 bg-fg/[0.03] text-fg/80 hover:border-fg/28 hover:bg-fg/[0.05] hover:text-fg'
       }`}
     >
@@ -1067,7 +1067,7 @@ function Carousel({
 
           {featured ? (
             <div className="absolute left-4 top-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-brand/35 bg-brand/85 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-black shadow-lg">
+              <span className="inline-flex items-center rounded-full border border-brand/35 bg-brand/85 px-3 py-1 text-[12px] font-semibold tracking-[0.16em] text-black shadow-lg">
                 WYRÓŻNIONE
               </span>
             </div>
@@ -1075,7 +1075,7 @@ function Carousel({
 
           {status ? (
             <div className="absolute right-4 top-4 z-10">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/60 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/60 px-3 py-1 text-[12px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
                     status === 'AKTYWNE' ? 'bg-green-400' : 'bg-red-400'
@@ -1088,7 +1088,7 @@ function Carousel({
 
           {rent ? (
             <div className="absolute bottom-4 left-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
+              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[12px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
                 NA WYNAJEM
               </span>
             </div>
@@ -1112,7 +1112,7 @@ function Carousel({
                 ›
               </button>
 
-              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-sm">
+              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[12px] font-medium tabular-nums text-white backdrop-blur-sm">
                 <IconCamera className="h-3.5 w-3.5" />
                 {i + 1}/{list.length}
               </div>
@@ -1121,7 +1121,7 @@ function Carousel({
         </>
       ) : (
         <div className="flex h-full items-center justify-center bg-surface">
-          <span className="text-[12px] tracking-[0.12em] text-fg/30">Zdjęcie wkrótce</span>
+          <span className="text-[12px] tracking-[0.12em] text-fg/62">Zdjęcie wkrótce</span>
         </div>
       )}
     </div>

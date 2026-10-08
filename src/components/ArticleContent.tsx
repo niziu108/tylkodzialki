@@ -78,7 +78,7 @@ const components: Components = {
     const url = href || "#";
     const isInternal = url.startsWith("/") || url.startsWith("#");
     const cls =
-      "font-medium text-brand-bright underline decoration-brand/40 underline-offset-4 transition hover:decoration-brand-bright";
+      "font-medium text-brand-text underline decoration-brand/40 underline-offset-4 transition hover:decoration-brand-bright";
 
     if (isInternal) {
       return (
@@ -122,7 +122,7 @@ const components: Components = {
     <td className="border-b border-fg/5 px-4 py-3">{children}</td>
   ),
   code: ({ children }) => (
-    <code className="rounded bg-fg/10 px-1.5 py-0.5 text-[15px] text-brand-bright">
+    <code className="rounded bg-fg/10 px-1.5 py-0.5 text-[15px] text-brand-text">
       {children}
     </code>
   ),

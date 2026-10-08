@@ -144,7 +144,7 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
       <div className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
         <div>
           <label className={labelClass} htmlFor="email">
-            E-mail <span className="text-brand-bright">*</span>
+            E-mail <span className="text-brand-text">*</span>
           </label>
           <input
             id="email"
@@ -243,7 +243,7 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
       </div>
 
       {status === 'ok' ? (
-        <p className="rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-brand-bright">
+        <p className="rounded-2xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-brand-text">
           Wiadomość wysłana. Odezwiemy się na podany adres e-mail.
         </p>
       ) : null}

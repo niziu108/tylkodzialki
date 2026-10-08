@@ -42,7 +42,7 @@ export default function FaqSection({
               {it.question}
               <span
                 aria-hidden
-                className="shrink-0 text-fg/40 transition group-open:rotate-45"
+                className="shrink-0 text-fg/62 transition group-open:rotate-45"
               >
                 +
               </span>

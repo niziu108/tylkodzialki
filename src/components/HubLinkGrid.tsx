@@ -43,7 +43,7 @@ export default function HubLinkGrid({
           </span>
 
           {typeof item.count === 'number' ? (
-            <span className="shrink-0 rounded-full border border-brand/25 bg-brand/10 px-2.5 py-1 text-[12px] font-medium text-brand-bright">
+            <span className="shrink-0 rounded-full border border-brand/25 bg-brand/10 px-2.5 py-1 text-[12px] font-medium text-brand-text">
               {item.count}
             </span>
           ) : null}

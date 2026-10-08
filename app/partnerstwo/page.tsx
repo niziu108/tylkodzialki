@@ -116,7 +116,7 @@ export default async function PartnerstwoPage() {
           ) : null}
 
           <div className={hasCount ? '' : 'lg:col-span-2'}>
-            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
               Partnerstwo
             </div>
 
@@ -153,7 +153,7 @@ export default async function PartnerstwoPage() {
       <section className="relative overflow-hidden">
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
           <div className="max-w-3xl">
-            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+            <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
               Łańcuch decyzji
             </div>
 
@@ -180,7 +180,7 @@ export default async function PartnerstwoPage() {
         <ScrollFill />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
-          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
             Dla kogo
           </div>
 
@@ -220,7 +220,7 @@ export default async function PartnerstwoPage() {
         <ScrollFill />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
-          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
             Formaty współpracy
           </div>
 
@@ -232,7 +232,7 @@ export default async function PartnerstwoPage() {
             {FORMATY.map((f) => (
               <div key={f.title} className="group border-t border-fg/15 pt-6">
                 {f.featured ? (
-                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-bright">
+                  <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text">
                     Wyłączność
                   </div>
                 ) : null}
@@ -259,7 +259,7 @@ export default async function PartnerstwoPage() {
       {/* MANIFEST JAKOŚCI */}
       <section className="relative overflow-hidden">
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
-          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
             Nasza zasada
           </div>
 
@@ -282,7 +282,7 @@ export default async function PartnerstwoPage() {
         <ScrollFill />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
-          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
             Jak zacząć
           </div>
 
@@ -296,7 +296,7 @@ export default async function PartnerstwoPage() {
                 key={s.n}
                 className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur"
               >
-                <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-bright">
+                <div className="text-[40px] font-bold leading-none text-brand-text/40 transition-colors duration-200 group-hover:text-brand-text">
                   {s.n}
                 </div>
 
@@ -315,7 +315,7 @@ export default async function PartnerstwoPage() {
         <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 md:px-10 md:py-28">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
             <div>
-              <div className="text-[12px] uppercase tracking-[0.22em] text-brand-bright">
+              <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
                 Kontakt
               </div>
 
@@ -333,7 +333,7 @@ export default async function PartnerstwoPage() {
                 Wolisz e-mail? Napisz na{' '}
                 <a
                   href="mailto:biuro@tylkodzialki.pl"
-                  className="text-brand-bright transition hover:opacity-80"
+                  className="text-brand-text transition hover:opacity-80"
                 >
                   biuro@tylkodzialki.pl
                 </a>
