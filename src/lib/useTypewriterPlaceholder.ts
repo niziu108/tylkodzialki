@@ -33,9 +33,11 @@ export function useTypewriterPlaceholder(
 
     const original = input.placeholder;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    // Gdy pole startuje już z pierwszą frazą (placeholder z serwera), nie piszemy jej od nowa:
+    // stoi chwilę, kasuje się i dopiero potem lecą kolejne.
     let wordIdx = 0;
-    let chars = 0;
-    let erasing = false;
+    let erasing = original === staticText;
+    let chars = erasing ? words[0].length : 0;
 
     // Animujemy tylko, gdy nikt nie pisze i strona jest widoczna.
     const idle = () => document.activeElement !== input && input.value === '' && !document.hidden;
@@ -43,8 +45,12 @@ export function useTypewriterPlaceholder(
     const tick = () => {
       if (!idle()) {
         // Ktoś pisze albo karta w tle: pełna podpowiedź i ponowna próba za chwilę.
+        // Po powrocie zaczynamy od pełnej pierwszej frazy, a nie od połowy miasta.
         input.placeholder = staticText;
-        timer = setTimeout(tick, 1000);
+        wordIdx = 0;
+        erasing = true;
+        chars = words[0].length;
+        timer = setTimeout(tick, HOLD_MS);
         return;
       }
 
@@ -72,7 +78,7 @@ export function useTypewriterPlaceholder(
       timer = setTimeout(tick, ERASE_MS);
     };
 
-    timer = setTimeout(tick, START_DELAY_MS);
+    timer = setTimeout(tick, erasing ? HOLD_MS : START_DELAY_MS);
     return () => {
       if (timer) clearTimeout(timer);
       input.placeholder = original;

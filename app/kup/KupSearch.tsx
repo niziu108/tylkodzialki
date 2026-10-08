@@ -802,8 +802,9 @@ export default function KupSearch({
   // szukania. Bez przerysowań komponentu (atrybut przez ref), stop przy fokusie i treści.
   useTypewriterPlaceholder(inputRef, {
     enabled: navigationMode,
-    prefix: 'Wpisz lokalizację, np. ',
-    words: ['Warszawa', 'Kraków', 'Lublin', 'Wrocław', 'Gdańsk', 'Poznań', 'Bełchatów', 'Łódź'],
+    // Pierwsza fraza = placeholder z serwera; po niej same nazwy miast, potem znów od początku.
+    prefix: '',
+    words: ['Wpisz lokalizację', 'Warszawa', 'Kraków', 'Lublin', 'Wrocław', 'Gdańsk', 'Poznań', 'Bełchatów', 'Łódź'],
   });
   const searchTopRef = useRef<HTMLDivElement | null>(null);
   const sortRef = useRef<HTMLDivElement | null>(null);
