@@ -241,13 +241,13 @@ export default async function CenyIndexPage() {
         <div className="mt-7 flex flex-wrap gap-3">
           <Link
             href="/sprawdz-dzialke"
-            className="rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-ink transition hover:opacity-90"
+            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-brand bg-brand px-6 text-sm font-medium text-ink transition hover:opacity-90 sm:w-72"
           >
             Sprawdź cenę swojej działki
           </Link>
           <Link
             href="/kup?przeznaczenia=BUDOWLANA"
-            className="rounded-full border border-fg/15 px-5 py-2.5 text-sm font-medium text-fg transition hover:border-fg/30"
+            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-fg/15 px-6 text-sm font-medium text-fg transition hover:border-fg/30 sm:w-72"
           >
             Zobacz oferty działek budowlanych
           </Link>
@@ -359,7 +359,7 @@ export default async function CenyIndexPage() {
           </div>
           <Link
             href="/sprawdz-dzialke"
-            className="shrink-0 self-start rounded-full bg-brand px-6 py-3 text-sm font-medium text-ink transition hover:opacity-90 md:self-auto"
+            className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-full border border-brand bg-brand px-6 text-sm font-medium text-ink transition hover:opacity-90 sm:w-72"
           >
             Sprawdź swoją działkę
           </Link>

@@ -212,13 +212,13 @@ export default async function CenyMiastoPage({ params }: PageProps) {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href={`/dzialki/${city.slug}/budowlane`}
-            className="rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-ink transition hover:opacity-90"
+            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-brand bg-brand px-6 text-sm font-medium text-ink transition hover:opacity-90 sm:w-72"
           >
             Zobacz oferty działek budowlanych
           </Link>
           <Link
             href="/sprawdz-dzialke"
-            className="rounded-full border border-fg/15 px-5 py-2.5 text-sm font-medium text-fg transition hover:border-fg/30"
+            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-fg/15 px-6 text-sm font-medium text-fg transition hover:border-fg/30 sm:w-72"
           >
             Sprawdź cenę konkretnej działki
           </Link>
