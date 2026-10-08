@@ -339,7 +339,7 @@ export default async function CenyIndexPage() {
 
       <section className="mx-auto mt-16 max-w-6xl px-3 md:px-4">
         <h2 className="text-xl font-semibold tracking-tight text-fg md:text-2xl">
-          Ceny działek w miastach
+          Ceny działek we wszystkich miastach
         </h2>
         <div className="mt-6 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {regionsWithCities.map(({ region, cities }) => (
@@ -358,7 +358,7 @@ export default async function CenyIndexPage() {
                         Ceny działek {city.name}
                       </span>
                       <span className="whitespace-nowrap text-[13px] text-fg/45">
-                        {detail.pricePerM2 ? zlM2(detail.pricePerM2.median) : `${detail.count}`}
+                        {detail.pricePerM2 ? zlM2(detail.pricePerM2.median) : 'b.d.'}
                       </span>
                     </Link>
                   </li>
