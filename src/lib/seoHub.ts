@@ -698,29 +698,30 @@ export const getHubSitemapEntries = cache(async (): Promise<HubCityEntry[]> => {
   return entries;
 });
 
-// ── Trend cen: batch do dziennego snapshotu mediany zł/m² per miasto ─────────────
-// JEDEN odczyt całej puli, dopasowanie per miasto w pamięci (jak getHubSitemapEntries),
-// mediana WSZYSTKICH działek budowlanych per miasto — ta sama podstawa co liczba na stronie.
-// Miasta bez wiarygodnej próbki pomijamy — nie zapisujemy zmyślonych liczb.
-export type CityPriceSnapshotRow = {
-  citySlug: string;
-  medianPricePerM2: number;
-  sampleCount: number;
+// ── Pula cenowa całego kraju: jeden odczyt pod /ceny i dzienny snapshot trendu ─────
+// JEDEN odczyt całej aktywnej puli (z cechami do computeDetail i osią województwa), a dopasowanie
+// miast w pamięci TĄ SAMĄ logiką co loadCityDetailRows (prostokąt kandydatów + getSearchMatchInfo).
+// Dzięki temu mediana miasta policzona tutaj jest identyczna z liczbą na /ceny/[miasto].
+export type PricePoolRow = DetailStatRow & {
+  lat: number | null;
+  lng: number | null;
+  adminWoj: string | null;
+  locationFull: string | null;
 };
 
-export async function computeCityPriceSnapshots(): Promise<CityPriceSnapshotRow[]> {
+export async function loadActivePricePool(): Promise<PricePoolRow[]> {
   const now = new Date();
-  const rows = await prisma.dzialka.findMany({
+  return prisma.dzialka.findMany({
     where: {
       ownerId: { not: null },
       status: DzialkaStatus.AKTYWNE,
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      lat: { not: null },
-      lng: { not: null },
     },
     select: {
       lat: true,
       lng: true,
+      adminWoj: true,
+      locationFull: true,
       przeznaczenia: true,
       cenaPln: true,
       powierzchniaM2: true,
@@ -731,28 +732,25 @@ export async function computeCityPriceSnapshots(): Promise<CityPriceSnapshotRow[
       wzWydane: true,
     },
   });
+}
 
-  const detailRows = rows.filter(
-    (r): r is typeof r & { lat: number; lng: number } => r.lat !== null && r.lng !== null
-  );
-
-  const out: CityPriceSnapshotRow[] = [];
-  for (const region of SEO_REGIONS) {
-    for (const c of region.cities) {
-      const ctx = cityContext(c);
-      const matched = detailRows.filter((r) => getSearchMatchInfo(r, ctx).anyMatch);
-      // Ta sama podstawa co liczba na stronie: pełna pula działek budowlanych (bez okna metrażu),
-      // żeby trend śledził dokładnie tę medianę, którą pokazujemy.
-      const building = matched.filter((r) => r.przeznaczenia.includes('BUDOWLANA'));
-      const detail = computeDetail(building);
-      if (detail.pricePerM2) {
-        out.push({
-          citySlug: c.slug,
-          medianPricePerM2: detail.pricePerM2.median,
-          sampleCount: building.length,
-        });
-      }
-    }
-  }
-  return out;
+// Pula miasta z gotowych wierszy: dokładnie to, co loadCityDetailRows bierze z bazy.
+export function matchCityPool<T extends { lat: number | null; lng: number | null }>(
+  rows: T[],
+  city: SeoCity
+): (T & { lat: number; lng: number })[] {
+  const ctx = cityContext(city);
+  const radiusBox = boxAround(city.lat, city.lng, CITY_RADIUS_KM);
+  const box = ctx.cityBBox ? unionBox(radiusBox, ctx.cityBBox) : radiusBox;
+  return rows
+    .filter(
+      (r): r is T & { lat: number; lng: number } =>
+        r.lat !== null &&
+        r.lng !== null &&
+        r.lat >= box.minLat &&
+        r.lat <= box.maxLat &&
+        r.lng >= box.minLng &&
+        r.lng <= box.maxLng
+    )
+    .filter((r) => getSearchMatchInfo(r, ctx).anyMatch);
 }
