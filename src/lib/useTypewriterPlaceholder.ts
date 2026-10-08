@@ -15,7 +15,7 @@ const TYPE_MS = 85;
 const ERASE_MS = 40;
 const HOLD_MS = 1600;
 const GAP_MS = 350;
-const START_DELAY_MS = 1200;
+const START_DELAY_MS = 600;
 
 export function useTypewriterPlaceholder(
   inputRef: RefObject<HTMLInputElement | null>,

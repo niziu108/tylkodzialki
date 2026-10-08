@@ -802,9 +802,20 @@ export default function KupSearch({
   // szukania. Bez przerysowań komponentu (atrybut przez ref), stop przy fokusie i treści.
   useTypewriterPlaceholder(inputRef, {
     enabled: navigationMode,
-    // Pierwsza fraza = placeholder z serwera; po niej same nazwy miast, potem znów od początku.
-    prefix: '',
-    words: ['Wpisz lokalizację', 'Warszawa', 'Kraków', 'Lublin', 'Wrocław', 'Gdańsk', 'Poznań', 'Bełchatów', 'Łódź'],
+    // Stałe „np. " + pisane przykłady: samo miasto i miasto z dzielnicą, czyli to, co realnie
+    // przyjmuje geokodowanie. „np." jest celowo: szary adres bez niego wygląda jak wpisana już
+    // wartość. Do ~24 znaków, żeby mieściło się w polu na telefonie.
+    prefix: 'np. ',
+    words: [
+      'Warszawa',
+      'Kraków, Bronowice',
+      'Piaseczno',
+      'Lublin, Sławin',
+      'Wieliczka',
+      'Wrocław, Krzyki',
+      'Bełchatów',
+      'Gdańsk, Osowa',
+    ],
   });
   const searchTopRef = useRef<HTMLDivElement | null>(null);
   const sortRef = useRef<HTMLDivElement | null>(null);
@@ -1460,7 +1471,9 @@ export default function KupSearch({
                 setCenter(null);
                 if (locError) setLocError(null);
               }}
-              placeholder="Wpisz lokalizację"
+              // Na głównej podpowiedź pisze się sama (useTypewriterPlaceholder), więc startuje pusta.
+              placeholder={navigationMode ? '' : 'Wpisz lokalizację'}
+              aria-label="Lokalizacja"
               className="w-full bg-transparent px-4 py-3 text-fg/90 outline-none placeholder:text-fg/62"
               onFocus={ensureLocationAutocomplete}
               onKeyDown={(e) => {
