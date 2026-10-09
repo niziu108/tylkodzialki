@@ -20,6 +20,11 @@ export default function OffersCounter({ target }: { target: number }) {
       <span className="mt-1 text-[13px] uppercase tracking-[0.26em] text-brand-text md:text-[16px] lg:text-[18px]">
         ofert działek
       </span>
+
+      {/* Reklamodawca kupuje odbiorców, a nie liczbę ofert: dopowiadamy, co ludzie z nimi robią. */}
+      <span className="mt-4 max-w-[22rem] text-[14px] leading-6 text-fg/70 md:text-[15px]">
+        które kupujący codziennie przeglądają, sprawdzają w raporcie działki i zapisują.
+      </span>
     </div>
   );
 }

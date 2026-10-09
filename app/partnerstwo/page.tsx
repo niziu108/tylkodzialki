@@ -228,7 +228,74 @@ export default async function PartnerstwoPage() {
             Reklama natywna, nie banery.
           </h2>
 
-          <div className="mt-12 grid gap-x-12 gap-y-10 sm:grid-cols-2">
+          {/* PODGLĄD: reklamodawca kupuje miejsce, które widzi. Zamiast opisu formatu pokazujemy,
+              jak polecenie partnera stoi pod ofertą działki. Firma jest celowo „Twoja firma",
+              żeby podgląd nie udawał prawdziwego klienta. */}
+          <div className="mt-12 grid items-center gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+            <div>
+              <h3 className="text-[20px] font-semibold tracking-tight text-fg md:text-[24px]">
+                Tak wygląda polecenie przy ofercie.
+              </h3>
+              <p className="mt-4 max-w-md text-[15px] leading-7 text-fg/72">
+                Kupujący ogląda konkretną działkę, z konkretną gminą i metrażem. Pod nią widzi jedną
+                firmę, która pomoże mu w następnym kroku. Bez migających banerów i bez kilku
+                konkurentów obok.
+              </p>
+              <ul className="mt-6 space-y-2.5 text-[14px] text-fg/80">
+                {[
+                  'Dopasowane do gminy albo powiatu oferty',
+                  'Telefon prosto do Twojej firmy',
+                  'Jedna firma z branży na raz',
+                ].map((t) => (
+                  <li key={t} className="flex items-start gap-2.5">
+                    <svg viewBox="0 0 20 20" className="mt-0.5 h-4 w-4 shrink-0 text-brand-text" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 10.5 8 14.5 16 6" />
+                    </svg>
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div aria-label="Przykład polecenia partnera pod ofertą działki" className="relative">
+              <div className="absolute -top-3 left-5 z-10 rounded-full bg-fg px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-bg">
+                Przykład
+              </div>
+              <div className="rounded-[28px] border border-fg/12 bg-surface p-5 shadow-[0_30px_80px_-40px_rgba(35,58,14,0.45)] md:p-6">
+                {/* Skrót oferty działki */}
+                <div className="flex gap-4">
+                  <div className="h-20 w-28 shrink-0 rounded-xl bg-[linear-gradient(135deg,#9fbf6a,#5f7d2a)] opacity-80" />
+                  <div className="min-w-0">
+                    <div className="text-[20px] font-semibold leading-none text-fg">189 000 zł</div>
+                    <div className="mt-2 text-[14px] font-medium text-fg/85">Działka budowlana 1 200 m²</div>
+                    <div className="mt-1 text-[13px] text-fg/62">Nowa Wieś, gm. Pasłęk</div>
+                  </div>
+                </div>
+
+                {/* Polecenie partnera */}
+                <div className="mt-5 rounded-2xl border border-brand/30 bg-brand/[0.07] p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text">
+                    Polecane w gminie Pasłęk
+                  </div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-fg/12 bg-surface text-[13px] font-bold text-fg/75">
+                      TF
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[15px] font-semibold text-fg">Twoja firma</div>
+                      <div className="text-[13px] text-fg/65">Geodeta: wytyczenie granic i podział działki</div>
+                    </div>
+                    <span className="shrink-0 rounded-xl bg-brand px-4 py-2.5 text-[13px] font-semibold text-ink">
+                      Zadzwoń
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-2.5 text-right text-[11px] text-fg/55">Partner tylkodzialki.pl</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-20 grid gap-x-12 gap-y-10 sm:grid-cols-2">
             {FORMATY.map((f) => (
               <div key={f.title} className="group border-t border-fg/15 pt-6">
                 {f.featured ? (
