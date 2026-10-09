@@ -211,7 +211,8 @@ function WyroznieniaPageContent() {
           </h1>
 
           <p className="mx-auto mt-3 max-w-xl text-[15px] leading-7 text-fg/70">
-            Kupione wyróżnienia są przypisane do Twojego konta i nie wygasają.
+            Wyróżniona oferta stoi wyżej na liście i ma zieloną ramkę przez 7 dni. Kupione
+            wyróżnienia zostają na koncie i nie przepadają.
           </p>
 
           {credits && credits.featuredCredits > 0 ? (
@@ -225,13 +226,157 @@ function WyroznieniaPageContent() {
         </div>
 
         {checkoutError ? (
-          <div className="mx-auto mb-6 max-w-[920px] rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="mx-auto mb-6 max-w-[920px] rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-600">
             {checkoutError}
           </div>
         ) : null}
 
-        <div className="mx-auto mb-6 max-w-[920px]">
+        {/* Podgląd efektu: kupujący wyróżnienie chce zobaczyć, za co płaci, zanim kliknie „Kup". */}
+        <div className="mx-auto mb-8 grid max-w-[920px] gap-4 sm:grid-cols-2">
+          {([false, true] as const).map((wyr) => (
+            <div key={String(wyr)}>
+              <div className="mb-2 text-[13px] text-fg/65">{wyr ? 'Oferta wyróżniona' : 'Zwykła oferta'}</div>
+              <div
+                className={`flex gap-3 rounded-2xl border bg-surface p-3 ${
+                  wyr
+                    ? 'border-brand/60 shadow-[0_0_0_1px_rgba(122,163,51,0.30),0_0_24px_rgba(122,163,51,0.22)]'
+                    : 'border-fg/12'
+                }`}
+              >
+                <div className={`h-16 w-20 shrink-0 rounded-xl ${wyr ? 'bg-brand/25' : 'bg-fg/10'}`} />
+                <div className="min-w-0 flex-1 space-y-2 pt-1">
+                  <div className="h-3 w-24 rounded bg-fg/25" />
+                  <div className="h-2.5 w-40 max-w-full rounded bg-fg/12" />
+                  <div className="h-2.5 w-28 rounded bg-fg/12" />
+                </div>
+                {wyr ? (
+                  <span className="self-start rounded-full bg-brand px-2.5 py-1 text-[11px] font-semibold text-ink">
+                    Wyżej na liście
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="relative overflow-hidden rounded-[28px] border border-fg/10 bg-fg/5 p-6 text-center transition duration-300 hover:-translate-y-1 hover:border-fg/20 hover:bg-fg/[0.07]">
+            <div className="mb-4">
+              <h3 className="text-[32px] font-semibold leading-none text-fg">
+                1 wyróżnienie
+              </h3>
+              <p className="mt-3 text-sm text-fg/70">
+                Dobry wybór, jeśli chcesz wyróżnić jedno ogłoszenie.
+              </p>
+            </div>
+
+            <div className="mb-2 text-5xl font-bold tracking-tight text-fg">
+              {formatPrice(pricing.featuredSinglePriceGrossPln)}
+            </div>
+
+            <p className="mx-auto max-w-[240px] text-sm leading-relaxed text-fg/70">
+              Jedno wyróżnienie gotowe do użycia od razu po zakupie.
+            </p>
+
+            <div className="mt-6 border-t border-fg/10 pt-5 text-left">
+              <ul className="space-y-2.5 text-sm text-fg/75">
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>1 wyróżnienie ogłoszenia</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>aktywne przez 7 dni</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>zielona ramka premium</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>wyższa pozycja na liście ofert</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => handleCheckout('featured_1')}
+              disabled={loadingKey !== null}
+              className="mt-5 h-12 w-full rounded-2xl bg-brand text-base font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
+            >
+              {loadingKey === 'featured_1' ? 'Przekierowanie…' : 'Kup pakiet'}
+            </button>
+          </div>
+
+          <div className="relative overflow-hidden rounded-[28px] border border-brand/35 bg-[linear-gradient(180deg,rgba(122,163,51,0.16),rgba(255,255,255,0.04))] p-6 text-center shadow-[0_0_0_1px_rgba(122,163,51,0.08)] transition duration-300 hover:-translate-y-1">
+            <div className="absolute right-4 top-4 rounded-full border border-brand/30 bg-brand/15 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text">
+              Najczęściej wybierany
+            </div>
+
+            <div className="mb-4 pt-5">
+              <h3 className="text-[32px] font-semibold leading-none text-fg">
+                3 wyróżnienia
+              </h3>
+              <p className="mt-3 text-sm text-brand-text">
+                Dla osób, które chcą promować więcej ofert i taniej.
+              </p>
+            </div>
+
+            <div className="mb-2 flex items-baseline justify-center gap-2.5">
+              <span className="text-5xl font-bold tracking-tight text-fg">
+                {formatPrice(pricing.featuredPack3PriceGrossPln)}
+              </span>
+              {pricing.featuredSinglePriceGrossPln * 3 >
+              pricing.featuredPack3PriceGrossPln ? (
+                <span className="text-xl font-medium text-fg/62 line-through">
+                  {formatPrice(pricing.featuredSinglePriceGrossPln * 3)}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="text-sm font-semibold text-brand-text">
+              {formatUnitPrice(pricing.featuredPack3PriceGrossPln / 3)} za wyróżnienie
+            </div>
+
+            <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-brand-text">
+              Najlepszy balans ceny i liczby wyróżnień.
+            </p>
+
+            <div className="mt-6 border-t border-brand/20 pt-5 text-left">
+              <ul className="space-y-2.5 text-sm text-fg/80">
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>3 wyróżnienia do wykorzystania</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>każde działa przez 7 dni</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>wyższe pozycje na liście ofert</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check />
+                  <span>kredyty nie wygasają</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => handleCheckout('featured_3')}
+              disabled={loadingKey !== null}
+              className="mt-5 h-12 w-full rounded-2xl bg-brand text-base font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
+            >
+              {loadingKey === 'featured_3' ? 'Przekierowanie…' : 'Kup pakiet'}
+            </button>
+          </div>
+        </div>
+
+        <div className="mx-auto mt-8 max-w-[920px]">
           <div className="rounded-[28px] border border-fg/10 bg-fg/[0.04] p-4 md:p-5">
+            {/* Rodzaj dokumentu dopiero po wyborze pakietu: najpierw „co kupuję", potem „na kogo". */}
+            <div className="mb-3 text-center text-[13px] text-fg/65">Dokument zakupu wystawiamy na:</div>
             <div className="mx-auto flex max-w-[520px] gap-3">
               <button
                 type="button"
@@ -351,119 +496,6 @@ function WyroznieniaPageContent() {
           </div>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <div className="relative overflow-hidden rounded-[28px] border border-fg/10 bg-fg/5 p-6 text-center transition duration-300 hover:-translate-y-1 hover:border-fg/20 hover:bg-fg/[0.07]">
-            <div className="mb-4">
-              <h3 className="text-[32px] font-semibold leading-none text-fg">
-                Pakiet 1
-              </h3>
-              <p className="mt-3 text-sm text-fg/70">
-                Dobry wybór, jeśli chcesz wyróżnić jedno ogłoszenie.
-              </p>
-            </div>
-
-            <div className="mb-2 text-5xl font-bold tracking-tight text-fg">
-              {formatPrice(pricing.featuredSinglePriceGrossPln)}
-            </div>
-
-            <p className="mx-auto max-w-[240px] text-sm leading-relaxed text-fg/70">
-              Jedno wyróżnienie gotowe do użycia od razu po zakupie.
-            </p>
-
-            <div className="mt-6 border-t border-fg/10 pt-5 text-left">
-              <ul className="space-y-2.5 text-sm text-fg/75">
-                <li className="flex items-start gap-2.5">
-                  <Check />
-                  <span>1 wyróżnienie ogłoszenia</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <Check />
-                  <span>aktywne przez 7 dni</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <Check />
-                  <span>zielona ramka premium</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <Check />
-                  <span>wyższa pozycja na liście ofert</span>
-                </li>
-              </ul>
-            </div>
-
-            <button
-              onClick={() => handleCheckout('featured_1')}
-              disabled={loadingKey !== null}
-              className="mt-5 h-12 w-full rounded-2xl bg-brand text-base font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
-            >
-              {loadingKey === 'featured_1' ? 'Przekierowanie…' : 'Kup pakiet'}
-            </button>
-          </div>
-
-          <div className="relative overflow-hidden rounded-[28px] border border-brand/35 bg-[linear-gradient(180deg,rgba(122,163,51,0.16),rgba(255,255,255,0.04))] p-6 text-center shadow-[0_0_0_1px_rgba(122,163,51,0.08)] transition duration-300 hover:-translate-y-1">
-            <div className="absolute right-4 top-4 rounded-full border border-brand/30 bg-brand/15 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text">
-              Najczęściej wybierany
-            </div>
-
-            <div className="mb-4 pt-5">
-              <h3 className="text-[32px] font-semibold leading-none text-fg">
-                Pakiet 3
-              </h3>
-              <p className="mt-3 text-sm text-brand-text">
-                Dla osób, które chcą promować więcej ofert i taniej.
-              </p>
-            </div>
-
-            <div className="mb-2 flex items-baseline justify-center gap-2.5">
-              <span className="text-5xl font-bold tracking-tight text-fg">
-                {formatPrice(pricing.featuredPack3PriceGrossPln)}
-              </span>
-              {pricing.featuredSinglePriceGrossPln * 3 >
-              pricing.featuredPack3PriceGrossPln ? (
-                <span className="text-xl font-medium text-fg/62 line-through">
-                  {formatPrice(pricing.featuredSinglePriceGrossPln * 3)}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="text-sm font-semibold text-brand-text">
-              {formatUnitPrice(pricing.featuredPack3PriceGrossPln / 3)} za wyróżnienie
-            </div>
-
-            <p className="mx-auto mt-3 max-w-[250px] text-sm leading-relaxed text-brand-text">
-              Najlepszy balans ceny i liczby wyróżnień.
-            </p>
-
-            <div className="mt-6 border-t border-brand/20 pt-5 text-left">
-              <ul className="space-y-2.5 text-sm text-fg/80">
-                <li className="flex items-start gap-2.5">
-                  <Check />
-                  <span>3 wyróżnienia do wykorzystania</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <Check />
-                  <span>każde działa przez 7 dni</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <Check />
-                  <span>wyższe pozycje na liście ofert</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <Check />
-                  <span>kredyty nie wygasają</span>
-                </li>
-              </ul>
-            </div>
-
-            <button
-              onClick={() => handleCheckout('featured_3')}
-              disabled={loadingKey !== null}
-              className="mt-5 h-12 w-full rounded-2xl bg-brand text-base font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
-            >
-              {loadingKey === 'featured_3' ? 'Przekierowanie…' : 'Kup pakiet'}
-            </button>
-          </div>
-        </div>
       </div>
     </main>
   );

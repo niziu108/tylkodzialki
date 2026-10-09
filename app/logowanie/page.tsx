@@ -26,8 +26,8 @@ const BENEFITS = [
     body: 'Odkładasz ciekawe oferty na konto i wracasz do nich, kiedy chcesz.',
   },
   {
-    title: 'Zarządzaj ofertami z panelu',
-    body: 'Edytujesz i aktualizujesz swoje ogłoszenia w każdej chwili.',
+    title: 'Powiadomienia o nowych działkach',
+    body: 'Wybierasz okolicę i budżet, a nowe działki przychodzą na e-mail raz dziennie.',
   },
 ];
 
@@ -83,9 +83,9 @@ function AuthPageContent() {
   }, [sp]);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [rodo, setRodo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>('');
@@ -136,7 +136,7 @@ function AuthPageContent() {
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: cleanEmail, password: pass, name: name.trim() }),
+          body: JSON.stringify({ email: cleanEmail, password: pass }),
         });
 
         const data = await res.json().catch(() => ({}));
@@ -260,25 +260,8 @@ function AuthPageContent() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  {mode === 'register' && (
-                    <label className="block">
-                      <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
-                        Imię
-                      </div>
-                      <input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        type="text"
-                        autoComplete="name"
-                        className={cx(
-                          'mt-2 w-full bg-transparent text-[18px] text-fg/90',
-                          'field-line pb-2',
-                          'placeholder:text-fg/62 outline-none'
-                        )}
-                      />
-                    </label>
-                  )}
-
+                  {/* Rejestracja bez imienia: e-mail i hasło wystarczą, a każde pole więcej to mniej
+                      założonych kont. Imię sprzedający podaje w kreatorze ogłoszenia. */}
                   <label className="block">
                     <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
                       Email
@@ -296,23 +279,46 @@ function AuthPageContent() {
                     />
                   </label>
 
-                  <label className="block">
-                    <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
-                      Hasło
+                  <div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <label htmlFor="haslo" className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
+                        Hasło
+                      </label>
+                      {mode === 'login' ? (
+                        <a
+                          href="/logowanie/forgot"
+                          className="text-[13px] text-fg/70 underline decoration-fg/25 underline-offset-4 transition hover:text-fg"
+                        >
+                          Nie pamiętasz hasła?
+                        </a>
+                      ) : null}
                     </div>
-                    <input
-                      value={pass}
-                      onChange={(e) => setPass(e.target.value)}
-                      type="password"
-                      autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                      placeholder="••••••••"
-                      className={cx(
-                        'mt-2 w-full bg-transparent text-[18px] text-fg/90',
-                        'field-line pb-2',
-                        'placeholder:text-fg/62 outline-none'
-                      )}
-                    />
-                  </label>
+                    <div className="relative">
+                      <input
+                        id="haslo"
+                        value={pass}
+                        onChange={(e) => setPass(e.target.value)}
+                        type={showPass ? 'text' : 'password'}
+                        autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                        className={cx(
+                          'mt-2 w-full bg-transparent pr-16 text-[18px] text-fg/90',
+                          'field-line pb-2',
+                          'placeholder:text-fg/62 outline-none'
+                        )}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPass((v) => !v)}
+                        aria-label={showPass ? 'Ukryj hasło' : 'Pokaż hasło'}
+                        className="absolute bottom-2 right-0 text-[13px] text-fg/65 transition hover:text-fg"
+                      >
+                        {showPass ? 'Ukryj' : 'Pokaż'}
+                      </button>
+                    </div>
+                    {mode === 'register' ? (
+                      <p className="mt-2 text-[12px] text-fg/62">Minimum 8 znaków.</p>
+                    ) : null}
+                  </div>
 
                   {mode === 'register' && (
                     <label className="flex items-start gap-3 text-[12px] leading-relaxed text-fg/70">
@@ -323,22 +329,22 @@ function AuthPageContent() {
                         className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
                       />
                       <span>
-                        Zapoznałem się i akceptuję{' '}
+                        Akceptuję{' '}
                         <a
                           href="/polityka-prywatnosci"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline decoration-white/25 underline-offset-4 transition hover:text-fg/85"
+                          className="underline decoration-current/30 underline-offset-4 transition hover:text-fg/85"
                           style={{ color: GREEN }}
                         >
                           politykę prywatności
                         </a>{' '}
-                        oraz{' '}
+                        i{' '}
                         <a
                           href="/regulamin"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline decoration-white/25 underline-offset-4 transition hover:text-fg/85"
+                          className="underline decoration-current/30 underline-offset-4 transition hover:text-fg/85"
                           style={{ color: GREEN }}
                         >
                           regulamin
@@ -349,20 +355,10 @@ function AuthPageContent() {
                   )}
 
                   {error && (
-                    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+                    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-700">
                       {error}
                     </div>
                   )}
-
-                  <div className="pt-1">
-                    <a
-                      href="/logowanie/forgot"
-                      className="text-[12px] text-fg/70 underline decoration-white/25 underline-offset-4 transition hover:text-fg/85"
-                      style={{ textTransform: 'none' }}
-                    >
-                      zapomniałem hasła
-                    </a>
-                  </div>
 
                   <button
                     type="submit"
@@ -372,7 +368,7 @@ function AuthPageContent() {
                       busy && 'cursor-not-allowed opacity-60'
                     )}
                   >
-                    {busy ? '...' : mode === 'login' ? 'Zaloguj się' : 'Zarejestruj się'}
+                    {busy ? (mode === 'login' ? 'Logowanie…' : 'Zakładanie konta…') : mode === 'login' ? 'Zaloguj się' : 'Załóż konto'}
                   </button>
                 </form>
 
@@ -386,7 +382,7 @@ function AuthPageContent() {
                           setMode('register');
                           setError('');
                         }}
-                        className="underline decoration-white/25 underline-offset-4 transition hover:text-fg/70"
+                        className="underline decoration-current/30 underline-offset-4 transition hover:text-fg/70"
                         style={{ color: GREEN }}
                       >
                         Zarejestruj się
@@ -401,7 +397,7 @@ function AuthPageContent() {
                           setMode('login');
                           setError('');
                         }}
-                        className="underline decoration-white/25 underline-offset-4 transition hover:text-fg/70"
+                        className="underline decoration-current/30 underline-offset-4 transition hover:text-fg/70"
                         style={{ color: GREEN }}
                       >
                         Zaloguj się

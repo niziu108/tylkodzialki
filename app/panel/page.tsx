@@ -287,23 +287,18 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               ) : null}
             </div>
 
-            {/* Jedno główne działanie i spokojne linki obok, zamiast czterech równych przycisków. */}
+            {/* Bez przycisku zakupu w nagłówku: wyróżnienie kupuje się przy konkretnej ofercie
+                („Wyróżnij" w wierszu), a nagłówek ma być spokojny. Duży przycisk tylko dla konta
+                bez ogłoszeń, bo wtedy jedynym sensownym krokiem jest wystawić działkę. */}
             <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
-              {liczbaOfert > 0 ? (
-                <Link
-                  href="/panel/wyroznienia"
-                  className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-6 text-[14px] font-semibold text-ink transition hover:bg-brand-strong"
-                >
-                  Wyróżnij ogłoszenie
-                </Link>
-              ) : (
+              {liczbaOfert === 0 ? (
                 <Link
                   href="/sprzedaj"
                   className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-6 text-[14px] font-semibold text-ink transition hover:bg-brand-strong"
                 >
                   Sprzedaj działkę
                 </Link>
-              )}
+              ) : null}
 
               <div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
                 {liczbaOfert > 0 && user.featuredCredits > 0 ? (
