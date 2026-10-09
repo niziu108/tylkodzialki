@@ -17,6 +17,7 @@ import { findParcels, getAdminByXY, getParcelById, getParcelByXY, type ParcelRep
 import { getMpzpAtPoint, MPZP_WERSJA, ponowOdczytMpzp, type MpzpInfo } from '@/lib/mpzp';
 import { getPogAtPoint, type PogInfo } from '@/lib/pog';
 import { haversineKm } from '@/lib/dzialkiSearch';
+import { trybLokalizacji } from '@/lib/trybLokalizacji';
 import {
   kluczZOpisu,
   miejscowoscZEtykiety,
@@ -52,6 +53,7 @@ export const OFERTA_DO_RAPORTU_SELECT = {
   id: true,
   opis: true,
   locationMode: true,
+  placeId: true,
   lat: true,
   lng: true,
   locationLabel: true,
@@ -63,6 +65,7 @@ export type OfertaDoRaportu = {
   id: string;
   opis: string | null;
   locationMode: string;
+  placeId?: string | null;
   lat: number | null;
   lng: number | null;
   locationLabel: string | null;
@@ -81,7 +84,7 @@ function isNum(v: unknown): v is number {
 
 /** Skąd możemy znać działkę tej oferty. Tanie, bez sieci: wołane przy każdym renderze oferty. */
 export function wejscieRaportu(o: OfertaDoRaportu): { zrodlo: ZrodloDzialki; klucz: string } | null {
-  if (o.locationMode === 'EXACT' && isNum(o.lat) && isNum(o.lng)) {
+  if (trybLokalizacji(o) === 'EXACT' && isNum(o.lat) && isNum(o.lng)) {
     return { zrodlo: 'PINEZKA', klucz: `xy:${o.lat.toFixed(5)},${o.lng.toFixed(5)}` };
   }
   const z = numeryZOpisu(o.opis);

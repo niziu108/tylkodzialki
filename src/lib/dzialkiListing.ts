@@ -19,6 +19,7 @@ import { MEDIA_AVAILABLE } from '@/lib/media';
 import { DOJAZD_FILTR_KEYS, type DojazdKey } from '@/lib/dojazd';
 import { dolaczObnizki } from '@/lib/dzialkaPriceHistory';
 import { publicznaOferta } from '@/lib/publicznaOferta';
+import { trybLokalizacji } from '@/lib/trybLokalizacji';
 
 function isFeaturedActive(d: any) {
   return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
@@ -340,6 +341,7 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
       isFeatured: true,
       featuredUntil: true,
       locationMode: true,
+      placeId: true,
       // Pola tekstowe tylko wtedy, gdy trzeba dopasować zapytanie w JS (ta sama funkcja
       // co lista i alerty). Przy zwykłym przeglądaniu z filtrami nie płacimy za nie w ogóle.
       ...(needsInfo ? { locationLabel: true, locationFull: true, parcelText: true } : {}),
@@ -354,6 +356,7 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
       isFeatured: boolean;
       featuredUntil: Date | null;
       locationMode: LocationMode;
+      placeId: string | null;
       locationLabel?: string | null;
       locationFull?: string | null;
       parcelText?: string | null;
@@ -367,7 +370,7 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
         cena: r.cenaPln,
         transakcja: r.transakcja,
         featured: isFeaturedActive(r),
-        approx: r.locationMode === LocationMode.APPROX,
+        approx: trybLokalizacji(r) === 'APPROX',
       }));
 
     // ŚCIEŻKA Z WYSZUKIWANIEM: dopasowanie liczy JS na polach opisowych (ta sama funkcja

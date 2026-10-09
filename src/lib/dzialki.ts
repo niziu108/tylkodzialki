@@ -20,6 +20,7 @@ const SELLER_OWNER_SELECT = {
 } as const;
 import { prisma } from '@/lib/prisma';
 import { getObnizkiCen } from '@/lib/dzialkaPriceHistory';
+import { trybLokalizacji } from '@/lib/trybLokalizacji';
 
 // Wyjątek per-konto: w miejscu „Opiekun" (domyślnie imię i nazwisko agenta z feedu)
 // pokazujemy nazwę biura. Prośba biura Grupa Vero — nie chcą personaliów w ofertach.
@@ -67,6 +68,8 @@ export const getDzialkaById = cache(async (id: string) => {
 
   return {
     ...item,
+    // Pinezka z podpowiedzi Google sprzed 09.10 to środek miejscowości: pokazujemy ją jako przybliżoną.
+    locationMode: trybLokalizacji(item),
     biuroLogoUrl: item.biuroLogoUrl || item.owner?.defaultBiuroLogoUrl || null,
     biuroLogoBg: item.owner?.defaultBiuroLogoBg ?? false,
     biuroNazwa: item.biuroNazwa || item.owner?.defaultBiuroNazwa || null,
