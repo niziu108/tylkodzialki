@@ -4,12 +4,6 @@ import { useState } from 'react';
 
 type Status = 'idle' | 'sending' | 'ok' | 'error';
 
-const GOALS = [
-  { value: 'crm', label: 'Integracja z CRM' },
-  { value: 'wspolpraca', label: 'Współpraca / partnerstwo' },
-  { value: 'inne', label: 'Pytanie ogólne' },
-];
-
 // Systemy, z których biura eksportują do nas oferty. Pytamy o to od razu w formularzu,
 // bo konto FTP zakładamy ręcznie — znając system, odsyłamy dane bez rundy dopytywania.
 const CRMS = [
@@ -111,6 +105,9 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
         </label>
       </div>
 
+      {/* Cztery pola i wiadomość. Imię i „czego potrzebujesz" wypadły: agent i tak pisze
+          w sprawie integracji (współpraca reklamowa ma osobny formularz na /partnerstwo),
+          a każde dodatkowe pole przed „Wyślij" obniża liczbę zgłoszeń. */}
       <div className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
         <div>
           <label className={labelClass} htmlFor="agency">
@@ -127,19 +124,38 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
         </div>
 
         <div>
-          <label className={labelClass} htmlFor="name">
-            Imię i nazwisko
+          <label className={labelClass} htmlFor="crm">
+            System CRM
           </label>
-          <input
-            id="name"
-            type="text"
-            className={inputClass}
-            value={form.name}
-            onChange={set('name')}
-            autoComplete="name"
-          />
+          <div className="relative">
+            <select
+              id="crm"
+              className={`${inputClass} appearance-none pr-7`}
+              value={form.crm}
+              onChange={set('crm')}
+            >
+              <option value="" className="bg-bg">
+                Wybierz system
+              </option>
+              {CRMS.map((c) => (
+                <option key={c.value} value={c.value} className="bg-bg">
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-fg/64">
+              ▾
+            </span>
+          </div>
         </div>
       </div>
+
+      {form.crm === 'inny' ? (
+        <p className="-mt-3 text-[12px] leading-relaxed text-fg/64">
+          Napisz w wiadomości, jak nazywa się Wasz system. Dostosujemy się do formatu, w jakim
+          generuje pliki.
+        </p>
+      ) : null}
 
       <div className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
         <div>
@@ -173,69 +189,12 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
       </div>
 
       <div>
-        <label className={labelClass} htmlFor="goal">
-          Czego potrzebujesz?
-        </label>
-        <div className="relative">
-          <select
-            id="goal"
-            className={`${inputClass} appearance-none pr-7`}
-            value={form.goal}
-            onChange={set('goal')}
-          >
-            {GOALS.map((g) => (
-              <option key={g.value} value={g.value} className="bg-bg">
-                {g.label}
-              </option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-fg/64">
-            ▾
-          </span>
-        </div>
-      </div>
-
-      {form.goal === 'crm' ? (
-        <div>
-          <label className={labelClass} htmlFor="crm">
-            Z jakiego systemu korzystacie?
-          </label>
-          <div className="relative">
-            <select
-              id="crm"
-              className={`${inputClass} appearance-none pr-7`}
-              value={form.crm}
-              onChange={set('crm')}
-            >
-              <option value="" className="bg-bg">
-                Wybierz system
-              </option>
-              {CRMS.map((c) => (
-                <option key={c.value} value={c.value} className="bg-bg">
-                  {c.label}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-fg/64">
-              ▾
-            </span>
-          </div>
-          {form.crm === 'inny' ? (
-            <p className="mt-2 text-[12px] leading-relaxed text-fg/64">
-              Napisz w wiadomości, jak nazywa się Wasz system. Dostosujemy się do formatu, w jakim
-              generuje pliki.
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div>
         <label className={labelClass} htmlFor="message">
           Wiadomość
         </label>
         <textarea
           id="message"
-          rows={4}
+          rows={3}
           className={`${inputClass} resize-y leading-relaxed`}
           value={form.message}
           onChange={set('message')}
@@ -249,7 +208,7 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
       ) : null}
 
       {status === 'error' ? (
-        <p className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <p className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700">
           {errorMsg}
         </p>
       ) : null}

@@ -20,29 +20,17 @@ type PanelPageProps = {
   }>;
 };
 
-function formatDatePL(value?: string | Date | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleDateString("pl-PL");
-}
-
 export default async function PanelPage({ searchParams }: PanelPageProps) {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email;
 
   const params = await searchParams;
 
-  const activeTab =
-    params?.tab === "statystyki"
-      ? "statystyki"
-      : params?.tab === "faktury"
-      ? "faktury"
-      : params?.tab === "crm"
-      ? "crm"
-      : params?.tab === "alerty"
-      ? "alerty"
-      : params?.tab === "ulubione"
-      ? "ulubione"
-      : "ogloszenia";
+  const zakladki = ["ogloszenia", "statystyki", "crm", "faktury", "ulubione", "alerty"] as const;
+  type Zakladka = (typeof zakladki)[number];
+  const zadanaZakladka: Zakladka | null = zakladki.includes(params?.tab as Zakladka)
+    ? (params?.tab as Zakladka)
+    : null;
 
   // Powrót ze Stripe po zakupie wyróżnienia (app/api/stripe/checkout-featured). Samo
   // session_id niczego nie przesądza: akcja sprawdza sesję u Stripe i jej właściciela.
@@ -89,6 +77,12 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
   const paymentsEnabled = config?.paymentsEnabled ?? false;
 
+  // Ten sam panel mają biura i zwykli klienci. Kto ma ogłoszenia, startuje od części
+  // „Sprzedaję", kto nie ma (kupujący), od „Kupuję": ulubionych i alertów.
+  const liczbaOfert = await prisma.dzialka.count({ where: { ownerId: rawUser.id } });
+  const activeTab: Zakladka = zadanaZakladka ?? (liczbaOfert > 0 ? "ogloszenia" : "ulubione");
+  const czescKupuje = activeTab === "ulubione" || activeTab === "alerty";
+
   const user = {
     id: rawUser.id,
     name: rawUser.name,
@@ -115,6 +109,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
             powierzchniaM2: true,
             transakcja: true,
             locationLabel: true,
+            adminGmina: true,
             przeznaczenia: true,
             prad: true,
             woda: true,
@@ -199,7 +194,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
     activeTab === "ulubione"
       ? getFavoriteOffers(user.id)
       : Promise.resolve([]),
-    activeTab === "statystyki"
+    // Ostatnie 30 dni także na zakładce ogłoszeń: tam stoją najważniejsze liczby panelu.
+    activeTab === "statystyki" || (activeTab === "ogloszenia" && liczbaOfert > 0)
       ? getBiuroDailySeries(user.id, 30)
       : Promise.resolve(null),
   ]);
@@ -264,34 +260,6 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
         }).length
       : 0;
 
-  const endedCount =
-    activeTab === "ogloszenia" ? items.length - activeCount : 0;
-
-  const totalViews =
-    activeTab === "ogloszenia"
-      ? items.reduce((sum, item) => sum + (item.viewsCount ?? 0), 0)
-      : 0;
-
-  const totalDetailViews =
-    activeTab === "ogloszenia"
-      ? items.reduce((sum, item) => sum + (item.detailViewsCount ?? 0), 0)
-      : 0;
-
-  const totalFavorites =
-    activeTab === "ogloszenia"
-      ? items.reduce((sum, item) => sum + ((item as any)._count?.favoritedBy ?? 0), 0)
-      : 0;
-
-  const totalPhoneClicks =
-    activeTab === "ogloszenia"
-      ? items.reduce((sum, item) => sum + ((item as any).phoneClicksCount ?? 0), 0)
-      : 0;
-
-  const totalMessageClicks =
-    activeTab === "ogloszenia"
-      ? items.reduce((sum, item) => sum + ((item as any).messageClicksCount ?? 0), 0)
-      : 0;
-
   return (
     <main className="min-h-screen bg-bg text-fg/85">
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-8">
@@ -319,42 +287,53 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               ) : null}
             </div>
 
-            <div className="flex shrink-0 flex-wrap gap-3">
-              {/* Tylko partnerzy z włączoną wizytówką. Reszta kont nawet nie wie, że coś takiego
-                  istnieje — wizytówka jest przyznawana, nie dostępna z automatu. */}
-              {user.biuroWizytowkaOn && user.biuroSlug ? (
+            {/* Jedno główne działanie i spokojne linki obok, zamiast czterech równych przycisków. */}
+            <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
+              {liczbaOfert > 0 ? (
                 <Link
-                  href={`/biuro/${user.biuroSlug}`}
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-fg/14 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-fg/28 hover:bg-fg/[0.05]"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/panel/wyroznienia"
+                  className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-6 text-[14px] font-semibold text-ink transition hover:bg-brand-strong"
                 >
-                  Twoja wizytówka
+                  Wyróżnij ogłoszenie
                 </Link>
-              ) : null}
-
-              <Link
-                href="/sprzedaj"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-brand/35 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-brand/60 hover:bg-fg/[0.05]"
-              >
-                Dodaj działkę
-              </Link>
-
-              {paymentsEnabled ? (
+              ) : (
                 <Link
-                  href="/panel/pakiety"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-fg/14 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-fg/28 hover:bg-fg/[0.05]"
+                  href="/sprzedaj"
+                  className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-6 text-[14px] font-semibold text-ink transition hover:bg-brand-strong"
                 >
-                  Kup pakiet
+                  Sprzedaj działkę
                 </Link>
-              ) : null}
+              )}
 
-              <Link
-                href="/panel/wyroznienia"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-brand/35 bg-fg/[0.03] px-6 py-3 text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-fg transition hover:border-brand/60 hover:bg-fg/[0.05]"
-              >
-                Kup wyróżnienie
-              </Link>
+              <div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
+                {liczbaOfert > 0 && user.featuredCredits > 0 ? (
+                  <span className="text-brand-text">
+                    Masz {user.featuredCredits} {user.featuredCredits === 1 ? "wyróżnienie" : user.featuredCredits < 5 ? "wyróżnienia" : "wyróżnień"} do wykorzystania
+                  </span>
+                ) : null}
+                {liczbaOfert > 0 ? (
+                  <Link href="/sprzedaj" className="text-fg/75 underline decoration-fg/20 underline-offset-4 transition hover:text-fg">
+                    Sprzedaj działkę
+                  </Link>
+                ) : null}
+                {/* Tylko partnerzy z włączoną wizytówką. Reszta kont nawet nie wie, że coś takiego
+                    istnieje — wizytówka jest przyznawana, nie dostępna z automatu. */}
+                {user.biuroWizytowkaOn && user.biuroSlug ? (
+                  <Link
+                    href={`/biuro/${user.biuroSlug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-fg/75 underline decoration-fg/20 underline-offset-4 transition hover:text-fg"
+                  >
+                    Twoja wizytówka
+                  </Link>
+                ) : null}
+                {paymentsEnabled ? (
+                  <Link href="/panel/pakiety" className="text-fg/75 underline decoration-fg/20 underline-offset-4 transition hover:text-fg">
+                    Kup pakiet
+                  </Link>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
@@ -363,147 +342,94 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           <AutoFeaturedAfterPurchase sessionId={zakupSessionId} />
         ) : null}
 
+        {/* Przełącznik części panelu: „Sprzedaję" (ogłoszenia, wyniki, CRM, faktury) i „Kupuję"
+            (ulubione, alerty). Biuro i kupujący widzą każdy swoją część, bez mieszania zakładek. */}
+        <div className="mb-5 inline-flex rounded-full border border-fg/12 bg-fg/[0.03] p-1 text-[14px]">
+          {(
+            [
+              ["Sprzedaję", "/panel?tab=ogloszenia", !czescKupuje],
+              ["Kupuję", "/panel?tab=ulubione", czescKupuje],
+            ] as const
+          ).map(([label, href, on]) => (
+            <Link
+              key={label}
+              href={href}
+              aria-current={on ? "page" : undefined}
+              className={`rounded-full px-5 py-2 font-medium transition ${
+                on ? "bg-surface text-fg shadow-[0_2px_10px_rgba(0,0,0,0.06)]" : "text-fg/65 hover:text-fg"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+
         <div className="mb-8 border-b border-fg/12">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="flex flex-wrap gap-7 text-[15px] md:text-[16px]">
+          <div className="flex flex-wrap gap-x-7 gap-y-2 text-[15px] md:text-[16px]">
+            {(czescKupuje
+              ? ([
+                  ["ulubione", "Ulubione"],
+                  ["alerty", "Alerty"],
+                ] as const)
+              : ([
+                  ["ogloszenia", "Twoje ogłoszenia"],
+                  ["statystyki", "Statystyki"],
+                  ["crm", "Integracja CRM"],
+                  ["faktury", "Faktury"],
+                ] as const)
+            ).map(([tab, label]) => (
               <Link
-                href="/panel"
-                className={`pb-4 transition ${
-                  activeTab === "ogloszenia"
-                    ? "border-b-2 border-brand text-fg"
-                    : "text-fg/68 hover:text-fg"
+                key={tab}
+                href={`/panel?tab=${tab}`}
+                className={`-mb-px border-b-2 pb-4 transition ${
+                  activeTab === tab ? "border-brand text-fg" : "border-transparent text-fg/65 hover:text-fg"
                 }`}
               >
-                Twoje ogłoszenia
+                {label}
               </Link>
-
-              <Link
-                href="/panel?tab=statystyki"
-                className={`pb-4 transition ${
-                  activeTab === "statystyki"
-                    ? "border-b-2 border-brand text-fg"
-                    : "text-fg/68 hover:text-fg"
-                }`}
-              >
-                Statystyki
-              </Link>
-
-              <Link
-                href="/panel?tab=faktury"
-                className={`pb-4 transition ${
-                  activeTab === "faktury"
-                    ? "border-b-2 border-brand text-fg"
-                    : "text-fg/68 hover:text-fg"
-                }`}
-              >
-                Faktury
-              </Link>
-
-              <Link
-                href="/panel?tab=ulubione"
-                className={`pb-4 transition ${
-                  activeTab === "ulubione"
-                    ? "border-b-2 border-brand text-brand-text"
-                    : "text-brand-text/85 hover:text-brand-text"
-                }`}
-              >
-                Ulubione
-              </Link>
-
-              <Link
-                href="/panel?tab=alerty"
-                className={`pb-4 transition ${
-                  activeTab === "alerty"
-                    ? "border-b-2 border-brand text-brand-text"
-                    : "text-brand-text/85 hover:text-brand-text"
-                }`}
-              >
-                Alerty
-              </Link>
-
-              <Link
-                href="/panel?tab=crm"
-                className={`pb-4 transition ${
-                  activeTab === "crm"
-                    ? "border-b-2 border-brand text-fg"
-                    : "text-fg/68 hover:text-fg"
-                }`}
-              >
-                Integracje CRM{" "}
-                <span className="text-[12px] font-normal text-fg/62">
-                  (dla biur)
-                </span>
-              </Link>
-            </div>
+            ))}
           </div>
         </div>
 
         {activeTab === "ogloszenia" ? (
           <>
-            <div className="mb-8 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
-              <div>
-                <div className="flex min-h-[34px] items-end">
-                  <span className="text-[28px] font-semibold leading-none text-brand-text">
-                    {activeCount}
-                  </span>
+            {/* Najważniejsze liczby panelu: czy oferty pracują. Ostatnie 30 dni ze snapshotów,
+                a dopóki snapshotów jest za mało, liczby od początku z żywych liczników. */}
+            {(() => {
+              const ma30 = !!statsSeries && statsSeries.snapshotDaysInWindow >= 2;
+              const z = ma30 ? statsSeries!.windowTotals : statsSeries?.allTime ?? null;
+              const dopisek = ma30 ? "ostatnie 30 dni" : "łącznie";
+              const kafle: Array<[string, number | null, string, boolean]> = [
+                ["Aktywne oferty", activeCount, `z ${items.length} ogłoszeń`, false],
+                ["Wyświetlenia", z ? z.views : null, dopisek, false],
+                ["Wejścia w ofertę", z ? z.detailViews : null, dopisek, false],
+                ["Kontakty", z ? z.leads : null, `telefon i SMS, ${dopisek}`, true],
+              ];
+              return (
+                <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {kafle.map(([label, value, hint, zielony]) => (
+                    <div key={label} className="rounded-2xl border border-fg/10 bg-surface px-5 py-4">
+                      <div className="text-[13px] text-fg/65">{label}</div>
+                      <div className={`mt-1.5 text-[28px] font-semibold leading-none tabular-nums ${zielony ? "text-brand-text" : "text-fg"}`}>
+                        {value == null ? "—" : value.toLocaleString("pl-PL")}
+                      </div>
+                      <div className="mt-1.5 text-[12px] text-fg/62">{hint}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="mt-3 inline-block whitespace-nowrap border-b border-brand/55 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text/80">
-                  Aktywne oferty
-                </div>
-              </div>
+              );
+            })()}
 
-              <div>
-                <div className="flex min-h-[34px] items-end gap-2">
-                  <span className="text-[28px] font-semibold leading-none text-fg">
-                    {paymentsEnabled ? user.listingCredits : "∞"}
-                  </span>
-                  {!paymentsEnabled ? (
-                    <span className="text-[12px] leading-none text-brand-text">bez limitu</span>
-                  ) : null}
-                </div>
-                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/68">
-                  Publikacje
-                </div>
-              </div>
-
-              <div>
-                <div className="flex min-h-[34px] items-end">
-                  <span className="text-[28px] font-semibold leading-none text-fg">
-                    {user.featuredCredits}
-                  </span>
-                </div>
-                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/68">
-                  Wyróżnienia
-                </div>
-              </div>
-
-              <div>
-                <div className="flex min-h-[34px] items-end">
-                  <span className="text-[19px] font-medium leading-none text-fg/90 md:text-[21px]">
-                    {formatDatePL(user.createdAt)}
-                  </span>
-                </div>
-                <div className="mt-3 inline-block border-b border-fg/15 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/68">
-                  Konto od
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-              <div className="text-[19px] font-medium text-fg">
-                Twoje ogłoszenia
-              </div>
-              <div className="flex flex-wrap gap-4 text-sm text-fg/70">
-                <div>
-                  Ogłoszenia: <span className="text-fg">{items.length}</span>
-                </div>
-                <div>
-                  Aktywne: <span className="text-brand-text">{activeCount}</span>
-                </div>
-                <div>
-                  Zakończone: <span className="text-red-300">{endedCount}</span>
-                </div>
-              </div>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h2 className="text-[19px] font-semibold tracking-tight text-fg">Twoje ogłoszenia</h2>
+              {liczbaOfert > 0 ? (
+                <Link
+                  href="/panel?tab=statystyki"
+                  className="text-[14px] text-brand-text underline decoration-brand/30 underline-offset-4 transition hover:decoration-brand"
+                >
+                  Pełne statystyki
+                </Link>
+              ) : null}
             </div>
 
             <PanelDzialkiList items={items as any} />

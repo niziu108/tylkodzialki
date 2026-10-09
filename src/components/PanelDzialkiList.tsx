@@ -11,9 +11,8 @@ import type {
   GazStatus,
   DzialkaSourceType,
 } from '@prisma/client';
-import { CardBody } from './CardBody';
 import { IconCamera } from './CardIcons';
-import { parcelMediaLabel } from '@/lib/media';
+import { pelnaLokalizacja } from '@/lib/lokalizacjaOferty';
 import {
   przedluzOgloszenieAction,
   zakonczOgloszenieAction,
@@ -41,6 +40,7 @@ export type Dzialka = {
   powierzchniaM2: number;
   transakcja?: TransakcjaTyp | null;
   locationLabel?: string | null;
+  adminGmina?: string | null;
   przeznaczenia?: Przeznaczenie[];
   prad?: PradStatus | null;
   woda?: WodaStatus | null;
@@ -105,7 +105,6 @@ function labelPrzeznaczenie(p: Przeznaczenie) {
   return map[p] ?? String(p);
 }
 
-const GREEN = 'var(--brand)';
 
 function SelectChevron() {
   return (
@@ -322,121 +321,67 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
   }
 
   return (
-    <div ref={listTopRef} className="space-y-6 scroll-mt-24">
-      <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-4 md:p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="w-full xl:max-w-md">
-            <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/68">
-              Szukaj ogłoszenia
-            </label>
-
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Np. tytuł ogłoszenia, lokalizacja..."
-              className="h-[54px] w-full rounded-2xl border border-fg/12 bg-surface px-4 text-base text-fg outline-none transition placeholder:text-fg/62 focus:border-brand/60 focus:bg-black/30 md:text-sm"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-end">
-            <div className="min-w-[190px]">
-              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/68">
-                Status
-              </label>
-
-              <div className="relative">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as FilterStatus)}
-                  className="h-[54px] w-full appearance-none rounded-2xl border border-fg/12 bg-surface px-4 pr-10 text-base font-medium text-fg outline-none transition focus:border-brand/60 md:text-sm"
-                  style={{ colorScheme: 'dark' }}
-                >
-                  <option value="all" className="bg-surface text-fg">
-                    Wszystkie
-                  </option>
-                  <option value="active" className="bg-surface text-fg">
-                    Aktywne
-                  </option>
-                  <option value="ended" className="bg-surface text-fg">
-                    Zakończone
-                  </option>
-                  <option value="featured" className="bg-surface text-fg">
-                    Wyróżnione
-                  </option>
-                </select>
-                <SelectChevron />
-              </div>
-            </div>
-
-            <div className="min-w-[250px]">
-              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/68">
-                Sortowanie
-              </label>
-
-              <div className="relative">
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortOption)}
-                  className="h-[54px] w-full appearance-none rounded-2xl border border-fg/12 bg-surface px-4 pr-10 text-base font-medium text-fg outline-none transition focus:border-brand/60 md:text-sm"
-                  style={{ colorScheme: 'dark' }}
-                >
-                  <option value="newest" className="bg-surface text-fg">
-                    Najnowsze
-                  </option>
-                  <option value="oldest" className="bg-surface text-fg">
-                    Najstarsze
-                  </option>
-                  <option value="price_high" className="bg-surface text-fg">
-                    Cena: od najwyższej
-                  </option>
-                  <option value="price_low" className="bg-surface text-fg">
-                    Cena: od najniższej
-                  </option>
-                  <option value="area_high" className="bg-surface text-fg">
-                    Powierzchnia: od największej
-                  </option>
-                  <option value="area_low" className="bg-surface text-fg">
-                    Powierzchnia: od najmniejszej
-                  </option>
-                  <option value="expiring" className="bg-surface text-fg">
-                    Wygasają najszybciej
-                  </option>
-                </select>
-                <SelectChevron />
-              </div>
-            </div>
-          </div>
+    <div ref={listTopRef} className="space-y-4 scroll-mt-24">
+      {/* Jeden pasek: szukaj, status jako pigułki (zielona = wybrana, jak filtry /kup), sortowanie. */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative lg:w-[300px]">
+          <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-fg/50" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Szukaj po tytule lub miejscowości"
+            aria-label="Szukaj ogłoszenia"
+            className="h-11 w-full rounded-xl border border-fg/12 bg-surface pl-10 pr-3 text-[16px] text-fg outline-none transition placeholder:text-fg/55 focus:border-brand/60 md:text-[14px]"
+          />
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-fg/8 pt-4 text-sm text-fg/70">
-          <span>
-            Znaleziono: <span className="font-semibold text-fg">{filteredItems.length}</span>
-            {totalPages > 1 ? (
-              <span className="text-fg/62">
-                {' '}
-                · strona {currentPage} z {totalPages}
-              </span>
-            ) : null}
-          </span>
+        <div className="flex flex-wrap gap-1.5">
+          {(
+            [
+              ['all', 'Wszystkie', items.length],
+              ['active', 'Aktywne', items.filter((d) => getEffectiveStatus(d.status, d.expiresAt) === 'AKTYWNE').length],
+              ['ended', 'Zakończone', items.filter((d) => getEffectiveStatus(d.status, d.expiresAt) === 'ZAKONCZONE').length],
+              ['featured', 'Wyróżnione', items.filter((d) => isFeaturedNow(d)).length],
+            ] as const
+          ).map(([val, label, n]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setStatus(val)}
+              aria-pressed={status === val}
+              className={`rounded-full border px-3.5 py-2 text-[13px] transition ${
+                status === val
+                  ? 'border-brand bg-brand/20 text-brand-text'
+                  : 'border-fg/15 text-fg/72 hover:border-fg/35 hover:text-fg'
+              }`}
+            >
+              {label} <span className="tabular-nums opacity-70">{n}</span>
+            </button>
+          ))}
+        </div>
 
-          {query.trim() ? (
-            <span className="inline-flex rounded-full border border-fg/10 bg-fg/[0.04] px-3 py-1 text-[12px] text-fg/70">
-              Szukasz: {query}
-            </span>
-          ) : null}
-
-          {status !== 'all' ? (
-            <span className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] text-brand-text">
-              Filtr aktywny
-            </span>
-          ) : null}
+        <div className="relative lg:ml-auto lg:w-[230px]">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+            aria-label="Sortowanie"
+            className="h-11 w-full appearance-none rounded-xl border border-fg/12 bg-surface px-3.5 pr-10 text-[16px] text-fg outline-none transition focus:border-brand/60 md:text-[14px]"
+          >
+            <option value="newest">Najnowsze</option>
+            <option value="oldest">Najstarsze</option>
+            <option value="price_high">Cena: od najwyższej</option>
+            <option value="price_low">Cena: od najniższej</option>
+            <option value="area_high">Powierzchnia: od największej</option>
+            <option value="area_low">Powierzchnia: od najmniejszej</option>
+            <option value="expiring">Wygasają najszybciej</option>
+          </select>
+          <SelectChevron />
         </div>
       </div>
-
-      {totalPages > 1 ? (
-        <PanelPager page={currentPage} totalPages={totalPages} onGo={goToPage} />
-      ) : null}
 
       {!filteredItems.length ? (
         <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6 text-fg/70">
@@ -444,7 +389,7 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-5">
+          <div className="grid grid-cols-1 gap-3">
             {pageItems.map((d) => (
               <PanelDzialkaCard key={d.id} d={d} />
             ))}
@@ -462,19 +407,17 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
 function PanelDzialkaCard({ d }: { d: Dzialka }) {
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
-  // Wyniki zwinięte domyślnie — karta ma być krótka jak ogłoszenie na liście.
-  const [statsOpen, setStatsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const photos = (d.zdjecia ?? [])
-    .slice()
-    .sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0));
-
-  const coverFallback = photos[0]?.url ?? null;
-  const loc = d.locationLabel?.trim() || 'Lokalizacja niepodana';
+  const cover =
+    (d.zdjecia ?? []).slice().sort((a, b) => (a.kolejnosc ?? 0) - (b.kolejnosc ?? 0))[0]?.url ?? null;
+  const photoCount = d.zdjecia?.length ?? 0;
+  const loc = pelnaLokalizacja({ label: d.locationLabel?.trim() || '', gmina: d.adminGmina }) || 'Lokalizacja niepodana';
   const area = d.powierzchniaM2 ?? 0;
   const isRent = d.transakcja === 'WYNAJEM';
-  const przezn = d.przeznaczenia?.length ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ') : '—';
-  const media = parcelMediaLabel(d);
+  const przezn = d.przeznaczenia?.length ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ') : null;
+  const zlM2 = !isRent && area > 0 && d.cenaPln > 0 ? Math.round(d.cenaPln / area) : 0;
 
   const effectiveStatus = getEffectiveStatus(d.status, d.expiresAt);
   const daysLeft = getDaysLeft(d.expiresAt);
@@ -488,8 +431,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
   const viewsCount = d.viewsCount ?? 0;
   const detailViewsCount = d.detailViewsCount ?? 0;
   const favoritesCount = d.favoritesCount ?? 0;
-  const phoneClicksCount = d.phoneClicksCount ?? 0;
-  const messageClicksCount = d.messageClicksCount ?? 0;
+  const leadsCount = (d.phoneClicksCount ?? 0) + (d.messageClicksCount ?? 0);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -540,7 +482,25 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
     };
   }, [d.id]);
 
+  // Menu „Więcej" zamyka klik poza nim i Esc.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
   function runAction(action: () => Promise<PanelActionResult>, errorText: string) {
+    setMenuOpen(false);
     startTransition(async () => {
       setActionError(null);
 
@@ -564,98 +524,116 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
     });
   }
 
+  const ended = effectiveStatus === 'ZAKONCZONE';
+
   return (
     <div
       ref={cardRef}
-      className={`group overflow-hidden rounded-3xl border bg-surface transition ${
-        effectiveStatus === 'ZAKONCZONE'
-          ? 'border-fg/10 opacity-85'
+      className={`rounded-2xl border bg-surface transition ${
+        ended
+          ? 'border-fg/10'
           : isFeaturedActive
-          ? 'border-brand/55 shadow-[0_0_0_1px_rgba(122,163,51,0.30),0_0_24px_rgba(122,163,51,0.20)] hover:border-brand/80 hover:shadow-[0_0_0_1px_rgba(122,163,51,0.45),0_0_30px_rgba(122,163,51,0.30)]'
-          : 'border-fg/14 hover:border-fg/30'
+          ? 'border-brand/55 shadow-[0_0_0_1px_rgba(122,163,51,0.25)]'
+          : 'border-fg/12 hover:border-fg/25'
       }`}
     >
-      {/* GÓRA KARTY = dokładnie to, co widzi kupujący na liście /kup: te same
-          proporcje zdjęcia (42% szerokości, 256 px wysokości na desktopie) i to
-          samo CardBody. Wcześniej panel miał własny, wyższy układ i właściciel
-          nie poznawał w nim swojego ogłoszenia. Klik otwiera ofertę. */}
-      <div className="block lg:flex lg:h-[256px] lg:items-stretch">
+      {/* Wiersz oferty jak w panelach dużych portali: miniatura, najważniejsze dane, wyniki
+          i dwie główne akcje. Pełna karta zajmowała cały ekran na ofertę, a przy kilkudziesięciu
+          ogłoszeniach panel był długim przewijaniem. Klik w zdjęcie lub tytuł otwiera ofertę. */}
+      <div className="flex gap-4 p-3 sm:gap-5 sm:p-4">
         <Link
           href={`/dzialka/${d.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="block lg:w-[42%] lg:shrink-0"
+          className="relative block h-[92px] w-[112px] shrink-0 overflow-hidden rounded-xl bg-fg/5 sm:h-[120px] sm:w-[180px]"
         >
-          <Carousel
-            photos={photos}
-            coverFallback={coverFallback}
-            title={d.tytul}
-            featured={isFeaturedActive}
-            rent={isRent}
-            horizontal
-            status={effectiveStatus}
-          />
+          {cover ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={cover}
+              alt={d.tytul}
+              loading="lazy"
+              decoding="async"
+              className={`h-full w-full object-cover ${ended ? 'grayscale-[60%] opacity-70' : ''}`}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-[12px] text-fg/62">Brak zdjęć</div>
+          )}
+          {photoCount > 1 ? (
+            <span className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+              <IconCamera className="h-3 w-3" />
+              {photoCount}
+            </span>
+          ) : null}
         </Link>
 
-        <Link
-          href={`/dzialka/${d.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block lg:min-w-0 lg:flex-1"
-        >
-          <CardBody
-            cena={d.cenaPln}
-            isRent={isRent}
-            tytul={d.tytul}
-            loc={loc}
-            area={area}
-            przezn={przezn}
-            media={media}
-            horizontal
-          />
-        </Link>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="text-[18px] font-semibold leading-none text-fg sm:text-[20px]">
+                  {d.cenaPln > 0 ? `${formatIntPL(d.cenaPln)} zł` : 'Zapytaj o cenę'}
+                  {isRent ? <span className="text-[13px] font-normal text-fg/70">/mc</span> : null}
+                </span>
+                {zlM2 ? <span className="text-[13px] text-fg/65">{formatIntPL(zlM2)} zł/m²</span> : null}
+              </div>
+              <Link
+                href={`/dzialka/${d.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1.5 line-clamp-1 text-[15px] font-medium text-fg/90 hover:underline sm:text-[16px]"
+              >
+                {d.tytul}
+              </Link>
+              <div className="mt-1 truncate text-[13px] text-fg/65">
+                {loc}
+                {area ? ` · ${formatIntPL(area)} m²` : ''}
+                {przezn ? ` · ${przezn}` : ''}
+              </div>
+            </div>
+
+            <StatusPill ended={ended} featured={isFeaturedActive} wygaslo={d.status !== 'ZAKONCZONE'} />
+          </div>
+
+          {/* Wyniki zawsze na widoku: biuro ocenia portal po tym, czy oferta ma wejścia i telefony. */}
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] tabular-nums text-fg/70">
+            <Liczba value={viewsCount} label="wyświetleń" />
+            <Liczba value={detailViewsCount} label="wejść" />
+            <Liczba value={leadsCount} label="kontaktów" mocno />
+            <Liczba value={favoritesCount} label="zapisów" />
+          </div>
+        </div>
       </div>
 
-      {/* DÓŁ: narzędzia właściciela. Poza <Link>, żeby klik w przycisk nie
-          otwierał oferty. */}
-      <div className="border-t border-fg/10 px-5 pb-4 pt-4 md:px-6">
-        <div className="text-[12px]">
-          {effectiveStatus === 'AKTYWNE' ? (
-            isIndefinite ? (
-              <span className="text-fg/68">Widoczne bezterminowo</span>
-            ) : (
-              <span className="text-fg/68">
-                Widoczne do: {formatDatePL(d.expiresAt)}
-                {typeof daysLeft === 'number' && daysLeft >= 0
-                  ? ` (${daysLeft} dni)`
-                  : ''}
-              </span>
-            )
-          ) : (
-            <span className="text-red-400/80">
-              {d.status === 'ZAKONCZONE'
-                ? 'Ogłoszenie zakończone'
-                : 'Ogłoszenie wygasło'}
+      <div className="flex flex-wrap items-center gap-2 border-t border-fg/8 px-3 py-2.5 sm:px-4">
+        <span className="mr-auto text-[12px] text-fg/62">
+          {isCrm ? (
+            <span className="inline-flex items-center gap-1.5">
+              <IconSync className="h-3.5 w-3.5 text-brand" />
+              Z Twojego CRM, aktualizuje się samo
             </span>
+          ) : ended ? (
+            d.status === 'ZAKONCZONE' ? 'Ogłoszenie zakończone' : 'Ogłoszenie wygasło'
+          ) : isIndefinite ? (
+            'Widoczne bezterminowo'
+          ) : (
+            `Widoczne do ${formatDatePL(d.expiresAt)}${
+              typeof daysLeft === 'number' && daysLeft >= 0 ? ` (${daysLeft} dni)` : ''
+            }`
           )}
-        </div>
-
-        {actionError ? (
-          <div className="mt-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-500">
-            {actionError}
-          </div>
-        ) : null}
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {!isCrm ? (
-            <ActionBtnAsLink
-              href={`/panel/ogloszenia/${d.id}/edytuj`}
-              label="Edytuj"
-              title="Zmień zdjęcia, cenę, opis i dane ogłoszenia"
-              disabled={isPending}
-            />
+          {isFeaturedActive ? (
+            <span className="text-brand-text"> · wyróżnione do {formatDatePL(d.featuredUntil)}</span>
           ) : null}
+        </span>
 
+        {!isCrm ? (
+          <ActionBtnAsLink
+            href={`/panel/ogloszenia/${d.id}/edytuj`}
+            label="Edytuj"
+            title="Zmień zdjęcia, cenę, opis i dane ogłoszenia"
+            disabled={isPending}
+          />
+        ) : (
           <ActionBtnAsLink
             href={`/dzialka/${d.id}`}
             label="Zobacz"
@@ -663,134 +641,166 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
             target="_blank"
             rel="noopener noreferrer"
           />
+        )}
 
-          {!isCrm ? (
-            <ActionBtn
-              label={
-                isPending
-                  ? 'Trwa...'
-                  : effectiveStatus === 'AKTYWNE'
-                  ? 'Przedłuż'
-                  : 'Aktywuj'
-              }
-              title={
-                effectiveStatus === 'AKTYWNE'
-                  ? 'Odśwież ważność, żeby ogłoszenie pozostało widoczne na portalu'
-                  : 'Przywróć zakończone ogłoszenie na portal'
-              }
-              disabled={isPending}
-              onClick={() =>
-                runAction(
-                  () => przedluzOgloszenieAction(d.id),
-                  effectiveStatus === 'AKTYWNE'
-                    ? 'Nie udało się przedłużyć ogłoszenia.'
-                    : 'Nie udało się aktywować ogłoszenia.'
-                )
-              }
-            />
-          ) : null}
+        {!isFeaturedActive && !ended ? (
+          <ActionBtn
+            label={isPending ? 'Trwa...' : 'Wyróżnij'}
+            title="Pokazuj ogłoszenie wyżej na liście i z zieloną ramką (7 dni)"
+            disabled={isPending}
+            accent
+            onClick={() =>
+              runAction(
+                () => wyroznijOgloszenieAction(d.id),
+                'Nie udało się wyróżnić ogłoszenia.'
+              )
+            }
+          />
+        ) : null}
 
-          {!isCrm && effectiveStatus === 'AKTYWNE' ? (
-            <ActionBtn
-              label={isPending ? 'Trwa...' : 'Zakończ'}
-              title="Zdejmij ogłoszenie z portalu (możesz je później aktywować)"
-              disabled={isPending}
-              onClick={() => {
-                const ok = window.confirm('Na pewno zakończyć to ogłoszenie?');
-                if (!ok) return;
+        {/* Rzadziej używane akcje w jednym menu, zamiast sześciu przycisków w rzędzie. */}
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label="Więcej akcji"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="inline-flex min-h-[40px] items-center justify-center gap-1 rounded-full border border-fg/14 bg-fg/[0.03] px-3.5 text-[12px] font-semibold text-fg/80 transition hover:border-fg/28 hover:text-fg"
+          >
+            Więcej
+            <Chevron className={`h-3.5 w-3.5 transition ${menuOpen ? 'rotate-180' : ''}`} />
+          </button>
 
-                runAction(
-                  () => zakonczOgloszenieAction(d.id),
-                  'Nie udało się zakończyć ogłoszenia.'
-                );
-              }}
-            />
-          ) : null}
-
-          {isFeaturedActive ? (
-            <span
-              className="inline-flex min-h-[40px] items-center rounded-full border border-brand/30 bg-brand/12 px-4 text-[12px] font-semibold text-brand-text"
-              title="Ogłoszenie jest aktualnie wyróżnione"
+          {menuOpen ? (
+            <div
+              role="menu"
+              className="absolute right-0 top-full z-30 mt-1.5 min-w-[210px] overflow-hidden rounded-xl border border-fg/12 bg-surface py-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.14)]"
             >
-              Wyróżnione do: {formatDatePL(d.featuredUntil)}
-            </span>
-          ) : (
-            <ActionBtn
-              label={isPending ? 'Trwa...' : 'Wyróżnij'}
-              title="Pokazuj ogłoszenie wyżej na liście i z zieloną ramką (7 dni)"
-              disabled={isPending}
-              accent
-              onClick={() =>
-                runAction(
-                  () => wyroznijOgloszenieAction(d.id),
-                  'Nie udało się wyróżnić ogłoszenia.'
-                )
-              }
-            />
-          )}
-
-          {isCrm ? (
-            <p className="flex basis-full items-start gap-2 text-[12px] leading-5 text-fg/62 lg:basis-auto">
-              <IconSync className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-              Ofertą zarządzasz w swoim CRM. Tam ją edytujesz, zakończysz lub wznowisz,
-              a portal zaktualizuje się sam.
-            </p>
-          ) : (
-            <ActionBtn
-              label={isPending ? 'Trwa...' : 'Usuń'}
-              title="Trwale usuń ogłoszenie i jego zdjęcia (bez możliwości cofnięcia)"
-              disabled={isPending}
-              onClick={() => {
-                const ok = window.confirm(
-                  'Czy na pewno chcesz trwale usunąć to ogłoszenie? Tej operacji nie można cofnąć. Ogłoszenie i jego zdjęcia zostaną usunięte na zawsze.'
-                );
-                if (!ok) return;
-
-                runAction(
-                  () => usunOgloszenieAction(d.id),
-                  'Nie udało się usunąć ogłoszenia.'
-                );
-              }}
-            />
-          )}
+              {!isCrm ? (
+                <MenuLink href={`/dzialka/${d.id}`} label="Zobacz ogłoszenie" newTab />
+              ) : null}
+              {!isCrm ? (
+                <MenuItem
+                  label={effectiveStatus === 'AKTYWNE' ? 'Przedłuż ważność' : 'Aktywuj ponownie'}
+                  disabled={isPending}
+                  onClick={() =>
+                    runAction(
+                      () => przedluzOgloszenieAction(d.id),
+                      effectiveStatus === 'AKTYWNE'
+                        ? 'Nie udało się przedłużyć ogłoszenia.'
+                        : 'Nie udało się aktywować ogłoszenia.'
+                    )
+                  }
+                />
+              ) : null}
+              {!isCrm && effectiveStatus === 'AKTYWNE' ? (
+                <MenuItem
+                  label="Zakończ"
+                  disabled={isPending}
+                  onClick={() => {
+                    if (!window.confirm('Na pewno zakończyć to ogłoszenie?')) return;
+                    runAction(() => zakonczOgloszenieAction(d.id), 'Nie udało się zakończyć ogłoszenia.');
+                  }}
+                />
+              ) : null}
+              {!isCrm ? (
+                <MenuItem
+                  label="Usuń na zawsze"
+                  danger
+                  disabled={isPending}
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        'Czy na pewno chcesz trwale usunąć to ogłoszenie? Tej operacji nie można cofnąć. Ogłoszenie i jego zdjęcia zostaną usunięte na zawsze.'
+                      )
+                    )
+                      return;
+                    runAction(() => usunOgloszenieAction(d.id), 'Nie udało się usunąć ogłoszenia.');
+                  }}
+                />
+              ) : null}
+              {isCrm ? (
+                <p className="px-4 py-2.5 text-[12px] leading-5 text-fg/62">
+                  Ofertą zarządzasz w swoim CRM. Tam ją edytujesz, zakończysz lub wznowisz, a portal
+                  zaktualizuje się sam.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      {/* Wyniki zwinięte do jednego paska: w spoczynku karta jest krótka jak
-          ogłoszenie, a liczby są na jedno kliknięcie. Pasek jest OSTATNI, więc
-          rozwijanie nie przesuwa przycisków akcji. */}
-      <button
-        type="button"
-        aria-expanded={statsOpen}
-        onClick={() => setStatsOpen((v) => !v)}
-        className="flex w-full items-center gap-3 border-t border-fg/10 px-5 py-3 text-left transition hover:bg-fg/[0.03] md:px-6"
-      >
-        <span className="shrink-0 text-[12px] font-semibold uppercase tracking-[0.2em] text-fg/64">
-          Wyniki
-        </span>
-        <span className="min-w-0 truncate text-[12px] tabular-nums text-fg/72">
-          {formatIntPL(viewsCount)} wyświetleń · {formatIntPL(detailViewsCount)} wejść ·{' '}
-          {formatIntPL(favoritesCount)} zapisów
-        </span>
-        <Chevron
-          className={`ml-auto h-4 w-4 shrink-0 text-fg/62 transition ${
-            statsOpen ? 'rotate-180' : ''
-          }`}
-        />
-      </button>
-
-      {statsOpen ? (
-        <div className="border-t border-fg/10 px-5 pb-5 pt-4 md:px-6">
-          <PanelStats
-            viewsCount={viewsCount}
-            detailViewsCount={detailViewsCount}
-            favoritesCount={favoritesCount}
-            phoneClicksCount={phoneClicksCount}
-            messageClicksCount={messageClicksCount}
-          />
+      {actionError ? (
+        <div className="mx-3 mb-3 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-600 sm:mx-4">
+          {actionError}
         </div>
       ) : null}
     </div>
+  );
+}
+
+function StatusPill({ ended, featured, wygaslo }: { ended: boolean; featured: boolean; wygaslo: boolean }) {
+  const [label, cls] = ended
+    ? [wygaslo ? 'Wygasło' : 'Zakończone', 'border-fg/15 bg-fg/[0.04] text-fg/62']
+    : featured
+    ? ['Wyróżnione', 'border-brand/40 bg-brand/15 text-brand-text']
+    : ['Aktywne', 'border-brand/25 bg-brand/[0.07] text-brand-text'];
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium ${cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${ended ? 'bg-fg/35' : 'bg-brand'}`} />
+      {label}
+    </span>
+  );
+}
+
+function Liczba({ value, label, mocno = false }: { value: number; label: string; mocno?: boolean }) {
+  return (
+    <span>
+      <span className={`font-semibold ${mocno && value > 0 ? 'text-brand-text' : 'text-fg'}`}>{formatIntPL(value)}</span>{' '}
+      {label}
+    </span>
+  );
+}
+
+function MenuLink({ href, label, newTab, noPrefetch }: { href: string; label: string; newTab?: boolean; noPrefetch?: boolean }) {
+  return (
+    <Link
+      href={href}
+      role="menuitem"
+      target={newTab ? '_blank' : undefined}
+      rel={newTab ? 'noopener noreferrer' : undefined}
+      prefetch={noPrefetch ? false : undefined}
+      className="block px-4 py-2.5 text-[14px] text-fg/85 transition hover:bg-fg/[0.04] hover:text-fg"
+    >
+      {label}
+    </Link>
+  );
+}
+
+function MenuItem({
+  label,
+  onClick,
+  danger,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      disabled={disabled}
+      onClick={onClick}
+      className={`block w-full px-4 py-2.5 text-left text-[14px] transition disabled:opacity-40 ${
+        danger ? 'text-red-600 hover:bg-red-500/[0.06]' : 'text-fg/85 hover:bg-fg/[0.04] hover:text-fg'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -830,57 +840,6 @@ function IconSync({ className }: { className?: string }) {
       <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
       <path d="M8 16H3v5" />
     </svg>
-  );
-}
-
-function PanelStats({
-  viewsCount,
-  detailViewsCount,
-  favoritesCount,
-  phoneClicksCount,
-  messageClicksCount,
-}: {
-  viewsCount: number;
-  detailViewsCount: number;
-  favoritesCount: number;
-  phoneClicksCount: number;
-  messageClicksCount: number;
-}) {
-  // Nagłówek jest w pasku rozwijającym — tu zostaje sama siatka liczb.
-  return (
-    <div className="grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
-      <StatCell label="Wyświetlenia" hint="lista i mapa" value={viewsCount} />
-      <StatCell label="Wejścia" hint="otwarcia oferty" value={detailViewsCount} />
-      <StatCell label="Ulubione" hint="zapisali ofertę" value={favoritesCount} accent />
-      <StatCell label="Telefony" hint="kliknięcia w numer" value={phoneClicksCount} />
-      <StatCell label="Wiadomości" hint="otwarcia kontaktu" value={messageClicksCount} />
-    </div>
-  );
-}
-
-function StatCell({
-  label,
-  hint,
-  value,
-  accent = false,
-}: {
-  label: string;
-  hint: string;
-  value: number;
-  accent?: boolean;
-}) {
-  return (
-    <div className="border-b border-fg/10 pb-2.5">
-      <div
-        className={`text-[20px] font-semibold leading-none tabular-nums ${
-          accent ? 'text-brand-text' : 'text-fg'
-        }`}
-      >
-        {formatIntPL(value)}
-      </div>
-      <div className="mt-2 text-[12px] font-medium leading-tight text-fg/80">{label}</div>
-      <div className="text-[12px] leading-tight text-fg/62">{hint}</div>
-    </div>
   );
 }
 
@@ -955,175 +914,5 @@ function ActionBtn({
     >
       {label}
     </button>
-  );
-}
-
-function Carousel({
-  photos,
-  coverFallback,
-  title,
-  featured,
-  rent = false,
-  horizontal = false,
-  status,
-}: {
-  photos: { url: string }[];
-  coverFallback: string | null;
-  title: string;
-  featured: boolean;
-  rent?: boolean;
-  /** Desktop: zdjęcie wypełnia wysokość karty (układ poziomy jak na liście /kup). */
-  horizontal?: boolean;
-  /** Status oferty — plakietka w prawym górnym rogu zdjęcia. */
-  status?: DzialkaStatus;
-}) {
-  const list = photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : [];
-  const has = list.length > 0;
-  const [i, setI] = useState(0);
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
-
-  useEffect(() => {
-    setI(0);
-  }, [photos, coverFallback]);
-
-  const goPrev = () => {
-    if (list.length < 2) return;
-    setI((v) => (v - 1 + list.length) % list.length);
-  };
-
-  const goNext = () => {
-    if (list.length < 2) return;
-    setI((v) => (v + 1) % list.length);
-  };
-
-  const prev = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    goPrev();
-  };
-
-  const next = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    goNext();
-  };
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (list.length < 2) return;
-    touchStartX.current = e.changedTouches[0]?.clientX ?? null;
-    touchEndX.current = null;
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (list.length < 2) return;
-    touchEndX.current = e.changedTouches[0]?.clientX ?? null;
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (list.length < 2) return;
-
-    const start = touchStartX.current;
-    const end = touchEndX.current ?? e.changedTouches[0]?.clientX ?? null;
-
-    if (start == null || end == null) return;
-
-    const diff = start - end;
-    const threshold = 40;
-
-    if (Math.abs(diff) < threshold) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (diff > 0) {
-      goNext();
-    } else {
-      goPrev();
-    }
-  };
-
-  return (
-    <div
-      className={`relative aspect-[16/10] overflow-hidden bg-fg/5 md:aspect-video ${
-        horizontal ? 'lg:aspect-auto lg:h-full' : ''
-      }`}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      style={{ touchAction: 'pan-y' }}
-    >
-      {has ? (
-        <>
-          <img
-            src={list[i] ?? list[0]}
-            alt={title}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            draggable={false}
-          />
-
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
-
-          {featured ? (
-            <div className="absolute left-4 top-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-brand/35 bg-brand/85 px-3 py-1 text-[12px] font-semibold tracking-[0.16em] text-black shadow-lg">
-                WYRÓŻNIONE
-              </span>
-            </div>
-          ) : null}
-
-          {status ? (
-            <div className="absolute right-4 top-4 z-10">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/60 px-3 py-1 text-[12px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    status === 'AKTYWNE' ? 'bg-green-400' : 'bg-red-400'
-                  }`}
-                />
-                {status === 'AKTYWNE' ? 'AKTYWNE' : 'ZAKOŃCZONE'}
-              </span>
-            </div>
-          ) : null}
-
-          {rent ? (
-            <div className="absolute bottom-4 left-4 z-10">
-              <span className="inline-flex items-center rounded-full border border-white/30 bg-black/65 px-3 py-1 text-[12px] font-semibold tracking-[0.16em] text-white shadow-lg backdrop-blur-sm">
-                NA WYNAJEM
-              </span>
-            </div>
-          ) : null}
-
-          {list.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={prev}
-                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
-              >
-                ‹
-              </button>
-
-              <button
-                type="button"
-                onClick={next}
-                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
-              >
-                ›
-              </button>
-
-              <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[12px] font-medium tabular-nums text-white backdrop-blur-sm">
-                <IconCamera className="h-3.5 w-3.5" />
-                {i + 1}/{list.length}
-              </div>
-            </>
-          )}
-        </>
-      ) : (
-        <div className="flex h-full items-center justify-center bg-surface">
-          <span className="text-[12px] tracking-[0.12em] text-fg/62">Zdjęcie wkrótce</span>
-        </div>
-      )}
-    </div>
   );
 }

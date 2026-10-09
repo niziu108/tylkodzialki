@@ -56,6 +56,10 @@ const LEAD_POINTS = [
     body: 'Nie mamy skrzynki na zapytania i nie odsprzedajemy leadów. Rozmowa jest Twoja.',
   },
   {
+    title: 'Nic nie obsługujesz u nas',
+    body: 'Nie musisz logować się na portal ani niczego tu odpisywać. Oferty prowadzisz w swoim CRM, a kupujący dzwoni na telefon agenta.',
+  },
+  {
     title: 'Twoja marka przy ofercie',
     body: 'Logo i nazwa biura widoczne na liście, na mapie i na stronie każdej działki.',
   },
@@ -76,6 +80,35 @@ const STEPS = [
     n: '03',
     title: 'Oferty zawsze aktualne',
     body: 'Działki importują się i synchronizują automatycznie. Ty zajmujesz się sprzedażą.',
+  },
+];
+
+// Pytania, które agent zadaje przed wysłaniem formularza. Krótko i konkretnie; te same
+// treści idą do danych strukturalnych FAQPage.
+const FAQ = [
+  {
+    q: 'Ile to kosztuje?',
+    a: 'Publikacja ofert jest bezpłatna i bez limitu. Płacisz tylko wtedy, gdy sam zechcesz wyróżnić wybraną ofertę.',
+  },
+  {
+    q: 'Czy wymagacie wyłączności?',
+    a: 'Nie. Twoje oferty mogą być w tym samym czasie na innych portalach.',
+  },
+  {
+    q: 'Czy muszę coś instalować albo prowadzić oferty u Was?',
+    a: 'Nie. Dostajesz od nas dane do eksportu, które wpisujesz w swoim systemie, a resztę konfigurujemy my. Oferty dalej prowadzisz w CRM, portal sam się aktualizuje.',
+  },
+  {
+    q: 'Kto odbiera zapytania od kupujących?',
+    a: 'Agent prowadzący ofertę. Telefon i SMS z ogłoszenia idą prosto na jego numer, bez naszego pośrednictwa.',
+  },
+  {
+    q: 'Co dzieje się z ofertami sprzedanymi?',
+    a: 'Gdy oferta zniknie z eksportu albo zostanie zakończona w CRM, zdejmujemy ją z portalu automatycznie.',
+  },
+  {
+    q: 'Czy importujecie też domy i mieszkania?',
+    a: 'Nie. Bierzemy wyłącznie działki, więc pozostała część oferty biura nie trafia do nas.',
   },
 ];
 
@@ -302,7 +335,7 @@ export default async function DlaBiurPage() {
             </p>
           </div>
 
-          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {LEAD_POINTS.map((p) => (
               <li
                 key={p.title}
@@ -329,6 +362,47 @@ export default async function DlaBiurPage() {
               </li>
             ))}
           </ul>
+        </div>
+      </section>
+
+      {/* FAQ: odpowiedzi na wątpliwości, które blokują zgłoszenie. Natywne <details>, bez JS. */}
+      <section className="relative border-t border-fg/10 bg-surface-2/40">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: FAQ.map((f) => ({
+                '@type': 'Question',
+                name: f.q,
+                acceptedAnswer: { '@type': 'Answer', text: f.a },
+              })),
+            }).replace(/</g, '\\u003c'),
+          }}
+        />
+        <div className="relative z-10 mx-auto max-w-4xl px-6 py-20 md:px-10 md:py-24">
+          <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">Pytania</div>
+          <h2 className="mt-4 text-[24px] font-semibold tracking-tight text-fg md:text-[34px] md:leading-[1.1]">
+            Zanim napiszesz.
+          </h2>
+
+          <div className="mt-10 border-t border-fg/12">
+            {FAQ.map((f) => (
+              <details key={f.q} className="group border-b border-fg/12 py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-[17px] font-medium text-fg [&::-webkit-details-marker]:hidden">
+                  {f.q}
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-fg/15 text-[18px] leading-none text-fg/70 transition group-open:rotate-45"
+                  >
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 max-w-2xl text-[15px] leading-7 text-fg/72">{f.a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
