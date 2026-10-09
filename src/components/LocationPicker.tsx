@@ -73,6 +73,20 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
   // kliknięcie po przełączeniu na „Przybliżona" nadal zgłaszałoby tryb z pierwszego renderu.
   const modeRef = useRef(mode);
   modeRef.current = mode;
+  // Czy sprzedający sam wskazał punkt na mapie (klik albo przeciągnięcie pinezki). Adres
+  // z podpowiedzi to środek miejscowości albo ulicy, a nie działka: zapisany jako „dokładny"
+  // pokazywał kupującym zły punkt, a raport pod ofertą liczył się dla cudzej działki
+  // (np. „Bełchatów" = środek miasta). Dopóki punktu nie ma, zapisujemy lokalizację jako
+  // przybliżoną, nawet przy wybranej „Dokładnej". Wersja robocza i edycja z dokładną
+  // pinezką już ją mają.
+  const recznyPunktRef = useRef(value?.locationMode === 'EXACT' && value?.lat != null && value?.lng != null);
+  const [recznyPunkt, setRecznyPunkt] = useState(recznyPunktRef.current);
+  const ustawRecznyPunkt = (v: boolean) => {
+    recznyPunktRef.current = v;
+    setRecznyPunkt(v);
+  };
+  const trybDoZapisu = (): LocationMode =>
+    modeRef.current === 'EXACT' && !recznyPunktRef.current ? 'APPROX' : modeRef.current;
   const onDokladnyPunktRef = useRef(onDokladnyPunkt);
   onDokladnyPunktRef.current = onDokladnyPunkt;
   // Bieżąca wartość z zewnątrz. Mapa wczytuje się asynchronicznie, więc przy jej tworzeniu bierzemy
@@ -116,7 +130,7 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
       lat,
       lng,
       mapsUrl: partial.mapsUrl ?? mapsUrl(lat, lng),
-      locationMode: partial.locationMode ?? mode,
+      locationMode: partial.locationMode ?? trybDoZapisu(),
       parcelText: (partial.parcelText ?? parcelText ?? '').trim() || null,
     });
   }
@@ -198,6 +212,7 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         const lat = e.latLng.lat();
         const lng = e.latLng.lng();
 
+        ustawRecznyPunkt(true);
         emit({ lat, lng, locationMode: modeRef.current, parcelText });
         if (modeRef.current === 'EXACT') onDokladnyPunktRef.current?.({ lat, lng });
       });
@@ -211,6 +226,7 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         const lat = pos.lat();
         const lng = pos.lng();
 
+        ustawRecznyPunkt(true);
         emit({ lat, lng, locationMode: modeRef.current, parcelText });
         if (modeRef.current === 'EXACT') onDokladnyPunktRef.current?.({ lat, lng });
       });
@@ -218,6 +234,8 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
       if (inputRef.current) {
         const ac = new google.maps.places.Autocomplete(inputRef.current, {
           componentRestrictions: { country: 'pl' },
+          // Same miejscowości i adresy. Bez tego podpowiadało firmy („Bełchatowskie Centrum Medyczne").
+          types: ['geocode'],
           fields: ['place_id', 'formatted_address', 'geometry', 'name'],
         });
 
@@ -236,13 +254,15 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
 
           const label = (place.name ?? place.formatted_address ?? '').trim();
 
+          // Nowy adres przesuwa pinezkę w środek miejscowości: działkę trzeba wskazać od nowa.
+          ustawRecznyPunkt(false);
           emit({
             lat,
             lng,
             placeId: place.place_id ?? null,
             locationFull: place.formatted_address ?? null,
             locationLabel: label || fallbackLabel(lat, lng, inputRef.current?.value),
-            locationMode: modeRef.current,
+            locationMode: trybDoZapisu(),
             parcelText,
           });
         });
@@ -267,6 +287,8 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
     if (lat == null || lng == null || !map || !marker || !window.google?.maps) return;
     const pos = marker.getPosition();
     if (pos && Math.abs(pos.lat() - lat) < 1e-7 && Math.abs(pos.lng() - lng) < 1e-7) return;
+    // Punkt z zewnątrz w trybie dokładnym (działka z linku) to działka wskazana z ewidencji.
+    if (value?.locationMode === 'EXACT') ustawRecznyPunkt(true);
     marker.setPosition({ lat, lng });
     circleRef.current?.setCenter({ lat, lng });
     map.setCenter({ lat, lng });
@@ -301,14 +323,14 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
     marker.setOpacity(isApprox ? 0.7 : 1);
 
     if (value?.lat != null && value?.lng != null) {
-      emit({ lat: value.lat, lng: value.lng, locationMode: mode, parcelText });
+      emit({ lat: value.lat, lng: value.lng, locationMode: trybDoZapisu(), parcelText });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   useEffect(() => {
     if (value?.lat != null && value?.lng != null) {
-      emit({ lat: value.lat, lng: value.lng, locationMode: mode, parcelText });
+      emit({ lat: value.lat, lng: value.lng, locationMode: trybDoZapisu(), parcelText });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parcelText]);
@@ -338,7 +360,7 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
       if (status !== 'OK' || !results || results.length === 0) return;
       const town = pickLocalityLabel(results);
       if (!town) return;
-      emit({ lat, lng, locationLabel: town, locationMode: mode, parcelText });
+      emit({ lat, lng, locationLabel: town, locationMode: trybDoZapisu(), parcelText });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value?.lat, value?.lng, value?.locationLabel]);
@@ -349,6 +371,11 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         ref={inputRef}
         placeholder="Wpisz miejscowość lub adres…"
         defaultValue={value?.locationLabel ?? ''}
+        // Enter wybiera podpowiedź Google, a nie wysyła kroku (wcześniej wyskakiwał błąd
+        // „Wybierz lokalizację", zanim podpowiedź zdążyła się zapisać).
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.preventDefault();
+        }}
         className="field-line w-full bg-transparent pb-2 text-[18px] text-fg/90 outline-none placeholder:text-fg/62 focus:ring-0 md:text-[19px]"
       />
 
@@ -362,23 +389,42 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         ]}
       />
 
-      {/* Zielony przycisk otwiera mapę na cały ekran (mapa inicjuje się w tle). */}
-      <button
-        type="button"
-        onClick={() => setMapOpen(true)}
-        className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-6 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright"
-      >
-        <PinGlyph />
-        {value?.lat != null && value?.lng != null ? 'Popraw na mapie' : 'Wskaż na mapie'}
-      </button>
+      {/* Przycisk mapy jest zielony, dopóki mapa to następny krok (dokładna lokalizacja bez
+          wskazanej działki). Potem obrysowany, żeby nie konkurował z „Dalej". */}
+      {(() => {
+        const maPunkt = value?.lat != null && value?.lng != null;
+        const mapaToNastepnyKrok = mode === 'EXACT' && !recznyPunkt;
+        return (
+          <>
+            <button
+              type="button"
+              onClick={() => setMapOpen(true)}
+              className={
+                mapaToNastepnyKrok
+                  ? 'inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-6 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright'
+                  : 'inline-flex h-12 items-center gap-2 rounded-xl border border-brand/60 px-6 text-[12px] font-medium uppercase tracking-[0.18em] text-brand-text transition hover:bg-brand/10'
+              }
+            >
+              <PinGlyph />
+              {mode === 'EXACT' && !recznyPunkt
+                ? 'Wskaż działkę na mapie'
+                : maPunkt
+                  ? 'Popraw na mapie'
+                  : 'Wskaż na mapie'}
+            </button>
 
-      {value?.lat != null && value?.lng != null && (
-        <p className="text-xs text-fg/68">
-          {mode === 'EXACT'
-            ? 'Pinezka ustawiona. Na mapie ogłoszenia pokażemy dokładny punkt.'
-            : 'Pinezka ustawiona. Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}
-        </p>
-      )}
+            <p className="text-[13px] leading-relaxed text-fg/68">
+              {mode === 'EXACT'
+                ? recznyPunkt
+                  ? 'Pinezka stoi na Twojej działce. Na mapie ogłoszenia pokażemy dokładny punkt, a pod ogłoszeniem raport działki.'
+                  : maPunkt
+                    ? 'Teraz kliknij swoją działkę na mapie. Do tego czasu pokażemy kupującym tylko okolicę.'
+                    : 'Wpisz miejscowość, a potem kliknij swoją działkę na mapie. Uzupełnimy jej dane z ewidencji.'
+                : 'Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}
+            </p>
+          </>
+        );
+      })()}
 
       {/* MAPA NA CAŁY EKRAN — spójna ze „Sprawdź działkę". Zawsze zamontowana (mapa inicjuje
           się w pełnym rozmiarze), zamknięta chowa się przez opacity/-z bez display:none. */}

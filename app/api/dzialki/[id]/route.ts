@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDzialkaById } from '@/lib/dzialki';
+import { publicznaOferta } from '@/lib/publicznaOferta';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export async function GET(
       return NextResponse.json({ error: 'Nie znaleziono ogłoszenia.' }, { status: 404 });
     }
 
-    return NextResponse.json(item);
+    return NextResponse.json(publicznaOferta(item));
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || 'Błąd serwera.' },

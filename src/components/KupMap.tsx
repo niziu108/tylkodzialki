@@ -53,8 +53,29 @@ type Props = {
   onClose?: () => void;
   /** Etykieta przycisku zamknięcia mapy (domyślnie „Lista"); np. „Wróć do oferty". */
   closeLabel?: string;
+  /** Otwiera panel filtrów nad mapą (bez zamykania mapy). */
+  onOpenFilters?: () => void;
+  /** Liczba aktywnych filtrów, pokazywana przy przycisku „Filtry". */
+  filtersCount?: number;
   className?: string;
 };
+
+/* Wyciszony styl mapy. Domyślna mapa Google krzyczy restauracjami, przystankami i ikonkami
+   firm (pod Warszawą np. „Legia Training Center"), więc piny ofert ginęły w tle. Chowamy
+   punkty usług i komunikację, przygaszamy kolory, a zostawiamy to, co kupujący działkę
+   chce widzieć: miejscowości, drogi, lasy, wodę. Satelity styl nie dotyczy. */
+const MAP_STYLE: google.maps.MapTypeStyle[] = [
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ visibility: 'on' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+  { elementType: 'geometry', stylers: [{ saturation: -35 }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ saturation: -80 }, { lightness: 25 }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c6dbe3' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#55594f' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#f6f7f3' }, { weight: 3 }] },
+];
 
 const POLAND_CENTER = { lat: 52.07, lng: 19.48 };
 // Kadr ustala się dopiero po `idle`, ale przy szybkim przesuwaniu zdarzeń jest kilka —
@@ -230,6 +251,8 @@ export default function KupMap({
   onSearchArea,
   onClose,
   closeLabel,
+  onOpenFilters,
+  filtersCount = 0,
   className,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -471,8 +494,9 @@ export default function KupMap({
           center: center ?? POLAND_CENTER,
           zoom: center ? zoomForRadius(radiusKm) : 6,
           backgroundColor: '#e5e3df',
-          // Oryginalna mapa Google (bez własnego stylu), z przełącznikiem Mapa/Satelita
+          // Mapa Google z wyciszonym stylem (MAP_STYLE) i przełącznikiem Mapa/Satelita
           // — satelita jest świetna do oglądania działek.
+          styles: MAP_STYLE,
           disableDefaultUI: true,
           zoomControl: true,
           mapTypeControl: true,
@@ -672,16 +696,32 @@ export default function KupMap({
         </div>
       )}
 
-      {/* Zamknij mapę: powrót do listy, albo do oferty gdy weszliśmy z niej. */}
-      {onClose && (
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-3 top-3 z-[6] flex items-center gap-1.5 rounded-full border border-fg/20 bg-bg/95 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.1em] text-fg shadow-lg backdrop-blur transition hover:border-fg/40 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.16em]"
-        >
-          <span className="text-[15px] leading-none">{closeLabel ? '←' : '×'}</span> {closeLabel ?? 'Lista'}
-        </button>
-      )}
+      {/* Prawy górny róg: filtry (bez wychodzenia z mapy) i powrót do listy albo do oferty. */}
+      <div className="absolute right-3 top-3 z-[6] flex items-center gap-2">
+        {onOpenFilters && (
+          <button
+            type="button"
+            onClick={onOpenFilters}
+            className="flex items-center gap-2 rounded-full border border-fg/20 bg-bg/95 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.1em] text-fg shadow-lg backdrop-blur transition hover:border-fg/40 sm:px-4 sm:py-2.5 sm:tracking-[0.16em]"
+          >
+            Filtry
+            {filtersCount > 0 ? (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-semibold leading-none tracking-normal text-ink">
+                {filtersCount}
+              </span>
+            ) : null}
+          </button>
+        )}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center gap-1.5 rounded-full border border-fg/20 bg-bg/95 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.1em] text-fg shadow-lg backdrop-blur transition hover:border-fg/40 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.16em]"
+          >
+            <span className="text-[15px] leading-none">{closeLabel ? '←' : '×'}</span> {closeLabel ?? 'Lista'}
+          </button>
+        )}
+      </div>
 
       {error && (
         <div className="absolute inset-0 z-[7] flex items-center justify-center bg-bg p-6 text-center text-sm text-fg/72">

@@ -18,6 +18,7 @@ import { listDzialkiPaginated, PAGE_INCLUDE, FEATURED_TOP_CAP, type ListSort } f
 import { MEDIA_AVAILABLE } from '@/lib/media';
 import { DOJAZD_FILTR_KEYS, type DojazdKey } from '@/lib/dojazd';
 import { dolaczObnizki } from '@/lib/dzialkaPriceHistory';
+import { publicznaOferta } from '@/lib/publicznaOferta';
 
 function isFeaturedActive(d: any) {
   return !!d.isFeatured && !!d.featuredUntil && new Date(d.featuredUntil).getTime() > Date.now();
@@ -59,6 +60,12 @@ export type DzialkiMapBody = {
 // przy pierwszym renderze i zero przy kolejnych (pula markerów), a jednocześnie
 // gęstość, przy której pojedyncze piny są jeszcze czytelne.
 const PIN_MAX = 600;
+// Od tego przybliżenia (ok. skala wsi i ulic) zawsze rysujemy same piny z ceną. Niżej piny
+// leżące bliżej siebie niż szerokość pinu łączą się w bąbel: wcześniej przy kilkuset ofertach
+// w kadrze (np. pod Warszawą) ceny nachodziły na siebie w czarną plamę. Od 15 w górę bąbel
+// mógłby już nigdy się nie rozpaść (oferty z tej samej miejscowości mają wspólny punkt),
+// więc tam rozsuwa je pierścień po stronie mapy (spreadOverlapping w KupMap).
+const PIN_ZOOM = 15;
 // Górny limit bąbli — gdyby siatka wyszła zbyt drobna, powiększamy komórkę.
 const CLUSTER_MAX = 400;
 
@@ -369,7 +376,7 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
       const rows = (await prisma.dzialka.findMany({ where: mapWhere, select: pinSelect })) as PinRow[];
       const matched = rows.filter((r) => getSearchMatchInfo(r, ctx).anyMatch);
 
-      if (matched.length <= PIN_MAX) {
+      if (matched.length <= PIN_MAX && (zoom >= PIN_ZOOM || matched.length <= 1)) {
         return { ok: true, total: matched.length, points: toPins(matched), clusters: [], bounds };
       }
       const { clusters, singles } = clusterize(matched, zoom);
@@ -387,8 +394,8 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
 
     if (!coords.length) return { ok: true, total: 0, points: [], clusters: [], bounds };
 
-    // Mało ofert w kadrze → wszystkie jako piny, bez siatki.
-    if (coords.length <= PIN_MAX) {
+    // Mało ofert w kadrze i duże przybliżenie → wszystkie jako piny, bez siatki.
+    if (coords.length <= PIN_MAX && (zoom >= PIN_ZOOM || coords.length <= 1)) {
       const rows = (await prisma.dzialka.findMany({
         where: { id: { in: coords.map((c) => c.id) } },
         select: pinSelect,
@@ -428,7 +435,7 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
       take,
     });
 
-    return { ok: true, total, count: total, items: await dolaczObnizki(items), meta: buildMeta(total) };
+    return { ok: true, total, count: total, items: (await dolaczObnizki(items)).map(publicznaOferta), meta: buildMeta(total) };
   }
 
   // ŚCIEŻKA Z WYSZUKIWANIEM (tekst/promień): dopasowanie geo/tekst jest w JS (wspólna logika
@@ -556,7 +563,7 @@ export async function queryDzialkiList(searchParams: URLSearchParams): Promise<D
   const byId = new Map(hydrated.map((d) => [d.id, d]));
   const items = pageIds.map((id) => byId.get(id)).filter((d): d is NonNullable<typeof d> => Boolean(d));
 
-  return { ok: true, total, count: total, items: await dolaczObnizki(items), meta: buildMeta(total) };
+  return { ok: true, total, count: total, items: (await dolaczObnizki(items)).map(publicznaOferta), meta: buildMeta(total) };
 }
 
 // Pierwsza strona wyników dla huba SEO, policzona na serwerze.

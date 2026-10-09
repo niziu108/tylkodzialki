@@ -1,5 +1,6 @@
 'use client';
 
+import { ladnaLokalizacja } from '@/lib/lokalizacjaOferty';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -247,7 +248,7 @@ const FIELD_STEP: Record<FieldKey, number> = {
   tytul: 1,
   cenaPln: 1,
   powierzchniaM2: 1,
-  telefon: 1,
+  telefon: 4,
   przeznaczenia: 1,
   photos: 2,
   sprzedajacyImie: 4,
@@ -1270,6 +1271,26 @@ export default function DzialkaForm({
     });
   }
 
+  // Podpowiedź tytułu z przeznaczenia, metrażu i miejscowości (jak na dużych portalach).
+  // Nadpisujemy tylko tytuł pusty albo nasz własny; wpisany ręcznie zostaje.
+  useEffect(() => {
+    if (mode !== 'create') return;
+    const m2 = parseFormattedNumber(powierzchniaM2);
+    if (!przeznaczenia.length && !(m2 > 0)) return;
+    const etykieta = (location?.locationLabel ?? '').trim();
+    const propozycja = tytulAutomatyczny({
+      przeznaczenia,
+      powierzchniaM2: m2,
+      miejscowosc: etykieta.startsWith('Punkt:') ? '' : ladnaLokalizacja(etykieta.split(',')[0]),
+    }).slice(0, MAX_TITLE_CHARS);
+    const auto = autoRef.current;
+    if (!tytul.trim() || tytul === auto.tytul) {
+      auto.tytul = propozycja;
+      if (propozycja !== tytul) setTytul(propozycja);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, przeznaczenia, powierzchniaM2, location?.locationLabel]);
+
   function validateStep(targetStep: number): boolean {
     const issues = collectContentIssues().filter((i) => FIELD_STEP[i.field] === targetStep);
 
@@ -1949,10 +1970,11 @@ export default function DzialkaForm({
           {mode === 'create' ? (
             <div className="mb-6">
               <h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">
-                Dodaj działkę
+                Sprzedaj działkę
               </h1>
               <p className="mt-3 max-w-[42rem] text-[15px] leading-7 text-fg/72">
-                Wystawienie jest bezpłatne. Konto zakładasz dopiero przy publikacji.
+                Wystawienie jest bezpłatne, a konto zakładasz dopiero przy publikacji. Ogłoszenie
+                zobaczą kupujący, którzy szukają wyłącznie działek.
               </p>
             </div>
           ) : null}
@@ -2019,23 +2041,6 @@ export default function DzialkaForm({
               </ul>
             </div>
           ) : null}
-
-          {stepKey === 'basics' && (
-          <div className="space-y-6">
-            <UnderlineField
-              label="Tytuł ogłoszenia"
-              required
-              multiline
-              value={tytul}
-              onChange={(v) => { setTytul(v.replace(/\n/g, ' ').slice(0, MAX_TITLE_CHARS)); clearFieldError('tytul'); }}
-              placeholder="Np. Działka budowlana"
-              maxLength={MAX_TITLE_CHARS}
-              showCounter
-              error={fieldErrors.has('tytul')}
-            />
-          </div>
-
-          )}
 
           {stepKey === 'photos' && (
           <div className="space-y-6">
@@ -2237,18 +2242,6 @@ export default function DzialkaForm({
 
             <div className="grid gap-8 md:grid-cols-2">
               <UnderlineField
-                label="Telefon"
-                value={telefon}
-                onChange={(v) => { setTelefon(v); clearFieldError('telefon'); }}
-                placeholder="Np. 605 000 000"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                required
-                error={fieldErrors.has('telefon')}
-              />
-
-              <UnderlineField
                 label={transakcja === 'WYNAJEM' ? 'Czynsz (PLN / miesiąc)' : 'Cena (PLN)'}
                 value={cenaPln}
                 onChange={(v) => { setCenaPln(formatThousandsSpaces(v)); clearFieldError('cenaPln'); }}
@@ -2399,6 +2392,23 @@ export default function DzialkaForm({
 
           )}
 
+          {stepKey === 'seller' && (
+          <div className="max-w-xl">
+            <UnderlineField
+              label="Telefon do kontaktu"
+              value={telefon}
+              onChange={(v) => { setTelefon(v); clearFieldError('telefon'); }}
+              placeholder="Np. 605 000 000"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              required
+              error={fieldErrors.has('telefon')}
+            />
+            <p className="mt-2 text-[13px] text-fg/62">Na ten numer kupujący zadzwonią albo napiszą SMS-a.</p>
+          </div>
+          )}
+
           {stepKey === 'basics' && (
           <div className="space-y-3" data-field-error={fieldErrors.has('przeznaczenia') ? 'true' : undefined}>
             <SectionTitle>
@@ -2421,6 +2431,25 @@ export default function DzialkaForm({
             {fieldErrors.has('przeznaczenia') ? (
               <div className="text-[12px] text-red-400/90">Wybierz minimum 1 przeznaczenie.</div>
             ) : null}
+
+            {/* Tytuł na końcu kroku i od razu podpowiedziany z przeznaczenia, metrażu i miejscowości:
+                pusty tytuł jako pierwsze pole kroku był miejscem, w którym ludzie się zatrzymywali. */}
+            <div className="pt-6">
+              <UnderlineField
+                label="Tytuł ogłoszenia"
+                required
+                multiline
+                value={tytul}
+                onChange={(v) => { setTytul(v.replace(/\n/g, ' ').slice(0, MAX_TITLE_CHARS)); clearFieldError('tytul'); }}
+                placeholder="Np. Działka budowlana 1 200 m², Bełchatów"
+                maxLength={MAX_TITLE_CHARS}
+                showCounter
+                error={fieldErrors.has('tytul')}
+              />
+              {mode === 'create' ? (
+                <p className="mt-2 text-[13px] text-fg/62">Podpowiadamy tytuł z danych powyżej. Możesz go zmienić.</p>
+              ) : null}
+            </div>
 
             <Hr className="mt-6" />
           </div>
@@ -2740,7 +2769,9 @@ export default function DzialkaForm({
 
             {/* Jedna krótka linijka zamiast objaśnień: dane uzupełniają się same po dokładnym
                 wskazaniu działki na mapie (tylko przy dodawaniu i dokładnej lokalizacji). */}
-            {mode === 'create' && location?.locationMode !== 'APPROX' ? (
+            {mode === 'create' &&
+            location?.locationMode !== 'APPROX' &&
+            (daneDzialkiStan !== 'idle' || (pinezkaNaDzialce && dzialka)) ? (
               <p
                 className={cx(
                   'text-[13px] leading-6',
@@ -2759,7 +2790,7 @@ export default function DzialkaForm({
                       ? 'Nie udało się pobrać danych działki. Uzupełnisz je w kolejnym kroku.'
                       : pinezkaNaDzialce && dzialka
                         ? `Działka ${dzialka.parcelNumber}, ${formatThousandsSpaces(String(dzialka.areaM2))} m². Dane uzupełnione.`
-                        : 'Zaznacz dokładnie swoją działkę na mapie, a uzupełnimy jej dane.'}
+                        : null}
               </p>
             ) : null}
 
@@ -2788,8 +2819,10 @@ export default function DzialkaForm({
                   disabled={step === 0 || loading}
                   className={cx(
                     'inline-flex items-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold transition',
+                    // Na pierwszym kroku nie ma dokąd wrócić: przycisk znika, ale trzyma miejsce,
+                    // żeby „Dalej" nie skakał.
                     step === 0
-                      ? 'cursor-not-allowed border-fg/10 text-fg/30'
+                      ? 'invisible border-fg/10 text-fg/30'
                       : 'border-fg/15 bg-fg/[0.03] text-fg hover:border-fg/30 hover:bg-fg/[0.05]'
                   )}
                 >

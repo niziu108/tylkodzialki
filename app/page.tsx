@@ -221,7 +221,10 @@ export default async function HomePage() {
     OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
   };
 
-  const [featuredListings, latestArticles, listingCount, przyklad, ceny] = await Promise.all([
+  // „+N nowych w tym tygodniu" pod licznikiem: oferty opublikowane u nas w ostatnich 7 dniach.
+  const tydzienTemu = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const [featuredListings, latestArticles, listingCount, przyklad, ceny, noweTydzien] = await Promise.all([
     getFeaturedListings(8),
     prisma.article.findMany({
       where: { isPublished: true },
@@ -231,6 +234,7 @@ export default async function HomePage() {
     prisma.dzialka.count({ where: activeWhere }),
     przykladRaportu(),
     cenyDoLokalizacji(),
+    prisma.dzialka.count({ where: { ...activeWhere, publishedAt: { gte: tydzienTemu } } }).catch(() => 0),
   ]);
 
   // Mapujemy tylko bezpieczne pola (bez editToken/telefon itp.), bo lecą do
@@ -313,7 +317,7 @@ export default async function HomePage() {
             Znajdź swoją działkę
           </h1>
 
-          <HeroCounter target={listingCount} tone="onLight" />
+          <HeroCounter target={listingCount} tone="onLight" noweTydzien={noweTydzien} />
 
           <div className="mt-6 w-full max-w-4xl">
             <KupSearch navigationMode={true} />

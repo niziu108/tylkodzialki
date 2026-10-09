@@ -3,6 +3,10 @@
 // zera po stronie klienta (animacja), przez co duża liczba pojawiała się dopiero po
 // doładowaniu JS i podbijała LCP na wolnym mobile. Świadomie bez animacji count-up.
 
+// Poniżej tego progu linijki o nowych ofertach nie pokazujemy: mała liczba nic nie mówi
+// kupującemu, a liczba zawsze jest prawdziwa (ostatnie 7 dni), nie wybieramy „ładnych".
+const PROG_NOWYCH = 50;
+
 function fmt(n: number): string {
   return n.toLocaleString('pl-PL');
 }
@@ -10,9 +14,11 @@ function fmt(n: number): string {
 export default function HeroCounter({
   target,
   tone = 'onDark',
+  noweTydzien = 0,
 }: {
   target: number;
   tone?: 'onDark' | 'onLight';
+  noweTydzien?: number;
 }) {
   const isLight = tone === 'onLight';
 
@@ -36,6 +42,11 @@ export default function HeroCounter({
       >
         ofert w całej Polsce
       </span>
+      {noweTydzien >= PROG_NOWYCH ? (
+        <span className={`mt-2.5 text-[13px] font-medium ${isLight ? 'text-brand-text' : 'text-white/90'}`}>
+          +{fmt(noweTydzien)} nowych w tym tygodniu
+        </span>
+      ) : null}
     </div>
   );
 }

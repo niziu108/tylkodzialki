@@ -816,6 +816,10 @@ export default function KupSearch({
   const [activeId, setActiveId] = useState<string | null>(initialFocusId);
   const [mapOpen, setMapOpen] = useState(false);
   const [mapMounted, setMapMounted] = useState(false);
+  // Filtry otwarte z mapy: panel wysuwa się nad mapą (na komputerze z prawej), mapa zostaje.
+  const [filtryNaMapie, setFiltryNaMapie] = useState(false);
+  // Otwarta mapa siedzi w adresie (?widok=mapa): odświeżenie i powrót z oferty wracają na mapę.
+  const mapOpenRef = useRef(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   // Na głównej pole lokalizacji samo „pisze" przykładowe miasta, żeby ściągnąć wzrok na start
@@ -862,7 +866,8 @@ export default function KupSearch({
     // sesja huba zaśmiecałaby stan przywracany na /kup.
     if (seoMode) return;
 
-    const url = buildUrlFromState(filters, nextPage);
+    const base = buildUrlFromState(filters, nextPage);
+    const url = mapOpenRef.current ? `${base}${base.includes('?') ? '&' : '?'}widok=mapa` : base;
 
     try {
       if (replace) window.history.replaceState(null, '', url);
@@ -1312,6 +1317,7 @@ export default function KupSearch({
       // Mobile: po wyszukaniu zwiń pasek, żeby od razu było widać wyniki (desktop
       // i tak trzyma kartę otwartą przez `md:block`, więc stan tu nie szkodzi).
       setSearchOpen(false);
+      setFiltryNaMapie(false);
       // Wróć na górę strony — po zwinięciu karty user widzi skondensowany pasek
       // + pierwsze oferty, a nie środek listy w miejscu, gdzie był przycisk. Skok
       // (instant, jak przy nowych wynikach w Google/Amazon) po zwinięciu karty —
@@ -1436,6 +1442,20 @@ export default function KupSearch({
     setMapMounted(true);
     setMapOpen(true);
   }, []);
+
+  useEffect(() => {
+    mapOpenRef.current = mapOpen;
+    if (navigationMode || seoMode) return;
+    try {
+      const u = new URL(window.location.href);
+      if (mapOpen) u.searchParams.set('widok', 'mapa');
+      else u.searchParams.delete('widok');
+      const next = `${u.pathname}${u.search}`;
+      if (next !== `${window.location.pathname}${window.location.search}`) {
+        window.history.replaceState(window.history.state, '', next);
+      }
+    } catch {}
+  }, [mapOpen, navigationMode, seoMode]);
 
   // Wejście z oferty (?focus=…) — od razu otwieramy pełnoekranową mapę ofert,
   // wyśrodkowaną na działce; jej pin jest podświetlony (activeId = initialFocusId).
@@ -1612,7 +1632,7 @@ export default function KupSearch({
   const filterContent = (
     <div className="text-left">
       {/* Row 1: Lokalizacja + Zasięg — always visible */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_200px]">
+      <div className={`grid grid-cols-1 gap-4 ${filtryNaMapie ? 'md:grid-cols-[1fr_150px]' : 'md:grid-cols-[1fr_200px]'}`}>
         <div>
           <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
             Lokalizacja
@@ -1658,7 +1678,7 @@ export default function KupSearch({
       </div>
 
       {/* Row 2: Toggle only. Na telefonie filtry są pełnym ekranem i zawsze rozwinięte. */}
-      <div className="mt-4 hidden md:block">
+      <div className={`mt-4 hidden ${filtryNaMapie ? '' : 'md:block'}`}>
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
@@ -1672,7 +1692,8 @@ export default function KupSearch({
       {/* Expanded: Powierzchnia + Cena + Przeznaczenie */}
       {expanded && (
         <div className="mt-5 space-y-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* W wąskim panelu nad mapą powierzchnia i cena idą jedna pod drugą. */}
+          <div className={`grid grid-cols-1 gap-4 ${filtryNaMapie ? '' : 'md:grid-cols-2'}`}>
             <div>
               <label className="block text-[12px] uppercase tracking-[0.26em] text-fg">
                 Powierzchnia
@@ -1855,7 +1876,7 @@ export default function KupSearch({
       {/* Akcje. Mobile: „Wyczyść”+„Mapa” po połowie w jednym rzędzie, „Szukaj” pełną szerokością
           pod spodem (główne CTA, największy cel dotyku). Desktop (sm+): inner div = display:contents,
           więc trzy przyciski trafiają wprost do rzędu po prawej, auto-szerokość — jak wcześniej. */}
-      <div className="mt-6 hidden gap-3 md:flex md:flex-row md:flex-wrap md:items-center md:justify-end">
+      <div className={`mt-6 hidden gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end ${filtryNaMapie ? '' : 'md:flex'}`}>
         <div className="flex gap-3 sm:contents">
           <button
             type="button"
@@ -1994,9 +2015,9 @@ export default function KupSearch({
             zostaje tylko w akcentach (pinezka, ikona mapy, powiadomienia); tło czyste jak
             lista ofert pod spodem. Hero z gradientem zostaje na głównej/sprawdź/blogu. */}
         <div
-          className={`relative mx-auto max-w-6xl px-3 md:z-10 md:px-4 md:py-10 ${
+          className={`relative mx-auto max-w-6xl px-3 md:px-4 md:py-10 ${
             searchOpen ? 'z-[130] py-8' : 'z-10 py-4'
-          }`}
+          } ${filtryNaMapie ? 'md:z-[130]' : 'md:z-10'}`}
         >
           {/* Zwinięty pasek (mobile I desktop — spójnie): adres (tap rozwija kartę) + dwa
               przyciski Mapa|Filtry. Pływający przycisk mapy zniknął, mapa żyje tu. Na mobile
@@ -2088,13 +2109,20 @@ export default function KupSearch({
           {/* Pełna karta. Na telefonie pełnoekranowy panel filtrów z przyklejonym przyciskiem
               „Pokaż N działek" (jak w aplikacjach dużych portali), na komputerze karta w stronie. */}
           <div
-            className={`${searchOpen ? 'flex md:block' : 'hidden'} fixed inset-0 z-[130] flex-col bg-bg md:relative md:inset-auto md:z-auto md:rounded-2xl md:border md:border-fg/10 md:bg-surface-2/78 md:p-8 md:backdrop-blur-sm`}
+            className={
+              filtryNaMapie
+                ? `${searchOpen ? 'flex' : 'hidden'} fixed inset-0 z-[130] flex-col bg-bg md:left-auto md:w-[460px] md:border-l md:border-fg/10 md:shadow-[0_0_60px_rgba(0,0,0,0.18)]`
+                : `${searchOpen ? 'flex md:block' : 'hidden'} fixed inset-0 z-[130] flex-col bg-bg md:relative md:inset-auto md:z-auto md:rounded-2xl md:border md:border-fg/10 md:bg-surface-2/78 md:p-8 md:backdrop-blur-sm`
+            }
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-fg/10 px-5 py-3.5 md:hidden">
+            <div className={`flex shrink-0 items-center justify-between border-b border-fg/10 px-5 py-3.5 ${filtryNaMapie ? '' : 'md:hidden'}`}>
               <span className="text-[18px] font-semibold tracking-tight text-fg">Filtry</span>
               <button
                 type="button"
-                onClick={() => setSearchOpen(false)}
+                onClick={() => {
+                  setSearchOpen(false);
+                  setFiltryNaMapie(false);
+                }}
                 aria-label="Zamknij filtry"
                 className="-mr-2 flex h-10 w-10 items-center justify-center rounded-full text-fg/75 transition hover:bg-fg/5 hover:text-fg"
               >
@@ -2103,7 +2131,7 @@ export default function KupSearch({
                 </svg>
               </button>
             </div>
-            <div className="mb-3 hidden justify-end md:flex">
+            <div className={`mb-3 hidden justify-end ${filtryNaMapie ? '' : 'md:flex'}`}>
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
@@ -2113,10 +2141,10 @@ export default function KupSearch({
                 <span className="text-[8px]">▲</span>
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 md:overflow-visible md:p-0">
+            <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 ${filtryNaMapie ? '' : 'md:overflow-visible md:p-0'}`}>
               {filterContent}
             </div>
-            <div className="flex shrink-0 items-center gap-5 border-t border-fg/10 bg-bg px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 md:hidden">
+            <div className={`flex shrink-0 items-center gap-5 border-t border-fg/10 bg-bg px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 ${filtryNaMapie ? '' : 'md:hidden'}`}>
               <button
                 type="button"
                 onClick={reset}
@@ -2126,7 +2154,7 @@ export default function KupSearch({
               </button>
               <button
                 type="button"
-                onClick={() => void applyAndSearch()}
+                onClick={() => void applyAndSearch(filtryNaMapie)}
                 disabled={loading}
                 className="h-12 flex-1 rounded-xl bg-brand px-4 text-[14px] font-semibold text-ink transition active:scale-[0.99] disabled:opacity-60"
               >
@@ -2271,6 +2299,12 @@ export default function KupSearch({
                 }
               }}
               closeLabel={initialFocusId ? 'Wróć do oferty' : undefined}
+              onOpenFilters={() => {
+                setFiltryNaMapie(true);
+                setExpanded(true);
+                setSearchOpen(true);
+              }}
+              filtersCount={aktywneFiltry.length}
             />
           </aside>
         )}

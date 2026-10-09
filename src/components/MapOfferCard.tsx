@@ -33,6 +33,7 @@ type Photo = { url: string; kolejnosc?: number };
 type Detail = {
   photos: string[];
   loc: string | null;
+  gmina: string | null;
   area: number | null;
   przezn: string[];
   prad: string | null;
@@ -71,6 +72,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
             .map((p) => p.url)
             .filter(Boolean),
           loc: data.locationLabel ?? null,
+          gmina: data.adminGmina ?? null,
           area: typeof data.powierzchniaM2 === 'number' ? data.powierzchniaM2 : null,
           przezn: Array.isArray(data.przeznaczenia) ? data.przeznaczenia : [],
           prad: data.prad ?? null,
@@ -219,6 +221,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
               cena={pin.cena}
               isRent={isRent}
               loc={loc}
+              gmina={detail?.loc ? detail.gmina : null}
               area={detail?.area ?? 0}
               przezn={przezn}
               media={parcelMediaLabel(detail ?? {})}

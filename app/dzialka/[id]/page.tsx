@@ -18,6 +18,7 @@ import { normalizeText } from '@/lib/dzialkiSearch';
 import { decodeHtmlEntities } from '@/lib/formatOpis';
 import { ladnaNazwaObrebu } from '@/lib/dzialkaZOpisu';
 import { ladnaLokalizacja } from '@/lib/lokalizacjaOferty';
+import { publicznaOferta } from '@/lib/publicznaOferta';
 
 // Oferta renderowana po stronie serwera (ISR): Google dostaje pełny HTML,
 // użytkownik gotową treść, a baza jest odpytywana najwyżej raz na 60 s per oferta.
@@ -445,7 +446,8 @@ export default async function Page({ params }: PageProps) {
 
       <DzialkaClient
         key={id}
-        initial={dzialka}
+        // Do przeglądarki bez e-maili i tokenów (propsy klienta lądują w HTML).
+        initial={dzialka ? publicznaOferta(dzialka) : null}
         priceTrend={priceTrend}
         wizytowkaSlug={wizytowkaSlug}
         raportDzialki={raport ? { numer: raport.dane.parcel.parcelNumber } : null}
