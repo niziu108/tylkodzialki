@@ -1,5 +1,6 @@
 'use client';
 
+import { ladnaNazwaObrebu } from '@/lib/dzialkaZOpisu';
 import { useEffect, useRef, useState } from 'react';
 import { loadGoogleMaps } from '@/lib/googleMaps';
 import { createParcelOverlay } from '@/lib/parcelOverlay';
@@ -644,8 +645,14 @@ export default function SprawdzSearch({
               </div>
               <p className="mt-2 text-[15px] leading-7 text-fg/80">
                 <span className="font-medium text-fg">To nie jest Twoja działka.</span> Tak wygląda
-                gotowy raport dla prawdziwej działki w miejscowości{' '}
-                {demo.parcel.commune ?? 'w Polsce'}. Wpisz swój adres na górze, a w tym samym
+                gotowy raport dla prawdziwej działki
+                {/* Obręb to wieś, w której leży działka; gmina bywa inną nazwą (Bądzyń, gm. Tuszyn). */}
+                {demo.parcel.region && demo.parcel.commune && demo.parcel.region !== demo.parcel.commune
+                  ? ` w miejscowości ${ladnaNazwaObrebu(demo.parcel.region)}, gm. ${demo.parcel.commune}`
+                  : demo.parcel.commune
+                    ? ` w gminie ${demo.parcel.commune}`
+                    : ' w Polsce'}
+                . Wpisz swój adres na górze, a w tym samym
                 miejscu pojawi się raport Twojej działki.
               </p>
               {demoZebrano ? (

@@ -6,70 +6,67 @@
 // i oferty licza sie na zywo z naszej bazy przy renderze strony (app/sprawdz-dzialke/page.tsx),
 // wiec demo nie pokazuje nieaktualnych kwot.
 //
-// Odswiezenie: npx tsx scripts/demo-zamroz.ts 51.679286 19.486612
+// Odswiezenie: npx tsx scripts/demo-zamroz.ts 51.601904 19.472102
 
 import type { ParcelReport } from '@/lib/uldk';
 import type { MpzpInfo } from '@/lib/mpzp';
 import type { PogInfo } from '@/lib/pog';
 
 /** Kiedy pobrano dane rejestrowe (pokazywane w stopce demo). */
-export const DEMO_ZEBRANO = '2026-09-02';
+export const DEMO_ZEBRANO = '2026-10-09';
 
 export const DEMO_PARCEL: ParcelReport = {
-  "id": "100610_4.0012.1035/7",
-  "parcelNumber": "1035/7",
+  "id": "100611_5.0001.3/24",
+  "parcelNumber": "3/24",
   "voivodeship": "łódzkie",
   "county": "powiat łódzki wschodni",
-  "commune": "Rzgów",
-  "region": "Rzgów",
-  "areaM2": 1498,
+  "commune": "Tuszyn",
+  "region": "Bądzyń",
+  "areaM2": 996,
   "dims": {
-    "widthM": 59,
-    "depthM": 47
+    "widthM": 36,
+    "depthM": 29
   },
   "rings": [
     [
       {
-        "lat": 51.6794456754805,
-        "lng": 19.4868712999263
+        "lat": 51.6020095059382,
+        "lng": 19.472300390787
       },
       {
-        "lat": 51.6793210839948,
-        "lng": 19.486382949233
+        "lat": 51.6020021938951,
+        "lng": 19.4717939559161
       },
       {
-        "lat": 51.679268156259,
-        "lng": 19.4861751905337
+        "lat": 51.601747826624,
+        "lng": 19.4718033623756
       },
       {
-        "lat": 51.6790272009126,
-        "lng": 19.4863392480119
+        "lat": 51.6017534313647,
+        "lng": 19.4723098517202
       },
       {
-        "lat": 51.6792095321649,
-        "lng": 19.4870321573895
-      },
-      {
-        "lat": 51.6794456754805,
-        "lng": 19.4868712999263
+        "lat": 51.6020095059382,
+        "lng": 19.472300390787
       }
     ]
   ],
   "center": {
-    "lat": 51.67928622071539,
-    "lng": 19.486612024170114
+    "lat": 51.60190449275204,
+    "lng": 19.47210159031718
   }
 };
 
 export const DEMO_MPZP: MpzpInfo | null = {
-  "planName": "DLA CZĘŚCI MIASTA RZGOWA, REJON ULIC: KOPERNIKA – GÓRNA – BEMA - ŁÓDZKA",
-  "functionName": "Tereny zabudowy mieszkaniowej jednorodzinnej",
-  "functionSymbol": "4MN",
+  "planName": "GMINY TUSZYN",
+  "functionName": "Zabudowa mieszkaniowa jednorodzinna; Zabudowa letniskowa",
+  "functionSymbol": "1MN,ML",
   "maxHeight": null,
   "intensity": null,
-  "effectiveFrom": "2014-01-15",
-  "resolution": "XLII/384/2014",
-  "status": "obowiązujący"
+  "effectiveFrom": "2004-06-18",
+  "resolution": "XVIII/116/04",
+  "status": "obowiązujący",
+  "resolutionUrl": null
 };
 
 export const DEMO_POG: PogInfo | null = null;
