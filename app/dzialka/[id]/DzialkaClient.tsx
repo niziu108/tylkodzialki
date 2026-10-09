@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { HeartIcon } from '@/components/OfferCard';
 import { OfficeLogo } from '@/components/OfficeLogo';
 import { formatOpis, plainText } from '@/lib/formatOpis';
+import { ladnaLokalizacja, pelnaLokalizacja } from '@/lib/lokalizacjaOferty';
 import { DOJAZD_LABEL } from '@/lib/dojazd';
 import AlertBar from '@/components/AlertBar';
 import type { AlertCriteria } from '@/lib/alertCriteria';
@@ -31,6 +32,14 @@ type Dzialka = {
   lat?: number | null;
   lng?: number | null;
   mapsUrl?: string | null;
+
+  // Oś administracyjna z geokodowania (gmina, powiat, województwo) do linii pod tytułem.
+  adminGmina?: string | null;
+  adminPowiat?: string | null;
+  adminWoj?: string | null;
+
+  publishedAt?: string | Date | null;
+  createdAt?: string | Date | null;
 
   przeznaczenia?: string[];
 
@@ -149,6 +158,67 @@ function labelSwiatlowod(v?: string | null) {
     MOZLIWOSC_PODLACZENIA: 'Możliwość podłączenia',
   };
   return map[v] ?? v;
+}
+
+type StanMedium = 'jest' | 'blisko' | 'mozliwosc';
+
+// Stan medium do znaczka przy uzbrojeniu. Zielony tylko wtedy, gdy medium jest NA działce
+// (studnia, szambo i oczyszczalnia też są na działce), tak jak w twardych filtrach /kup.
+// „W drodze" i „warunki wydane" to krok od działki, reszta to sama możliwość.
+function stanMedium(v?: string | null): StanMedium {
+  const s = v ?? '';
+  if (/NA_DZIALCE|STUDNIA|SZAMBO|OCZYSZCZALNIA/.test(s)) return 'jest';
+  if (/W_DRODZE|WARUNKI/.test(s)) return 'blisko';
+  return 'mozliwosc';
+}
+
+function Medium({ nazwa, opis, stan }: { nazwa: string; opis: string; stan: StanMedium }) {
+  const jest = stan === 'jest';
+  return (
+    <div className="flex min-w-0 items-start gap-3">
+      <span
+        aria-hidden="true"
+        className={cx(
+          'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
+          jest ? 'bg-brand text-white' : stan === 'blisko' ? 'border-[1.5px] border-brand/60' : 'border-[1.5px] border-fg/20'
+        )}
+      >
+        {jest ? (
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+          </svg>
+        ) : stan === 'blisko' ? (
+          <span className="h-2 w-2 rounded-full bg-brand/70" />
+        ) : null}
+      </span>
+      <div className="min-w-0">
+        <div className="text-[14px] font-medium leading-snug text-fg/95">{nazwa}</div>
+        <div className={cx('text-[13px] leading-snug', jest ? 'text-brand-text' : 'text-fg/62')}>{opis}</div>
+      </div>
+    </div>
+  );
+}
+
+// Cecha w rzędzie skrótów pod ceną. Neutralna, nie zielona: zieleń to u nas wybór w filtrach.
+function Cecha({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-fg/12 bg-fg/[0.03] px-3 py-1.5 text-[13px] leading-none text-fg/85">
+      {children}
+    </span>
+  );
+}
+
+// Data z jawną strefą: serwer (UTC) i przeglądarka muszą wypisać ten sam dzień, inaczej hydracja się kłóci.
+function dataDodania(v?: string | Date | null): string | null {
+  if (!v) return null;
+  const dt = new Date(v);
+  if (Number.isNaN(dt.getTime())) return null;
+  return new Intl.DateTimeFormat('pl-PL', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Europe/Warsaw',
+  }).format(dt);
 }
 
 // formatOpis wydzielone do src/lib/formatOpis.ts (testowane, m.in. pod kątem XSS).
@@ -568,9 +638,16 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   }, [priceTrend, isRent]);
 
   const przezn = Array.isArray(d?.przeznaczenia) ? d.przeznaczenia.filter(Boolean) : [];
-  const przeznText = przezn.length ? przezn.map(labelPrzeznaczenie).join(', ') : null;
 
-  const loc = plainText(d?.locationLabel) || null;
+  const loc = ladnaLokalizacja(plainText(d?.locationLabel)) || null;
+  // Linia pod tytułem: miejscowość z gminą, powiatem i województwem (jak na dużych portalach).
+  const locPelna =
+    pelnaLokalizacja({
+      label: plainText(d?.locationLabel),
+      gmina: d?.adminGmina,
+      powiat: d?.adminPowiat,
+      woj: d?.adminWoj,
+    }) || null;
   const isApproxLocation = d?.locationMode === 'APPROX';
 
   const mapSrc = useMemo(() => {
@@ -691,7 +768,91 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const biuroLogoBg = Boolean(d?.biuroLogoBg);
   const biuroPartner = Boolean(d?.biuroPartner);
 
-  const hasDocs = Boolean(d?.mpzp || d?.wzWydane || d?.projektDomu);
+  const dodano = dataDodania(d?.publishedAt ?? d?.createdAt);
+
+  // Karta sprzedającego: kto sprzedaje i jak się skontaktować. Na komputerze stoi pod ceną
+  // z przyciskami (jak karta agenta na dużych portalach), na telefonie niżej i bez przycisków,
+  // bo tam kontakt obsługuje przyklejony dolny pasek.
+  const maSprzedajacego =
+    sprzedajacyTyp === 'BIURO' || sprzedajacyTyp === 'PRYWATNIE' || Boolean(telefon);
+  const kartaSprzedajacego = maSprzedajacego
+    ? (zPrzyciskami: boolean) => (
+        <div className={cx(zPrzyciskami && 'rounded-2xl border border-fg/10 bg-bg/70 p-5')}>
+          <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">
+            {sprzedajacyTyp === 'BIURO'
+              ? 'Ogłoszenie biura nieruchomości'
+              : sprzedajacyTyp === 'PRYWATNIE'
+                ? 'Ogłoszenie prywatne'
+                : 'Kontakt'}
+          </div>
+
+          {sprzedajacyTyp === 'BIURO' ? (
+            <div className="mt-3 flex flex-col items-start gap-3 text-[14px] text-fg/85">
+              {biuroLogoUrl ? (
+                wizytowkaSlug && !preview ? (
+                  <Link href={`/biuro/${wizytowkaSlug}`} className="inline-block w-fit">
+                    <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
+                  </Link>
+                ) : (
+                  <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
+                )
+              ) : null}
+
+              {biuroOpiekun ? (
+                <div className="break-words">
+                  Opiekun: <span className="font-medium text-fg/95">{biuroOpiekun}</span>
+                </div>
+              ) : null}
+
+              {/* „Nasz partner" to zdanie o relacji z biurem, więc stoi przy jego znaku firmowym. */}
+              {biuroPartner ? <span className="text-fg/85">Nasz partner strategiczny</span> : null}
+
+              {wizytowkaSlug && !preview ? (
+                <Link
+                  href={`/biuro/${wizytowkaSlug}`}
+                  className="inline-block w-fit text-fg/85 underline decoration-fg/25 underline-offset-8 transition hover:decoration-fg/60"
+                >
+                  Zobacz wszystkie ogłoszenia tego biura
+                </Link>
+              ) : null}
+            </div>
+          ) : sprzedajacyTyp === 'PRYWATNIE' && sprzedajacyImie ? (
+            <div className="mt-3 break-words text-[14px] text-fg/85">
+              Sprzedaje: <span className="font-medium text-fg/95">{sprzedajacyImie}</span>
+            </div>
+          ) : null}
+
+          {zPrzyciskami && telefon ? (
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              {phoneRevealed ? (
+                <a
+                  href={`tel:${telefon.replace(/\s+/g, '')}`}
+                  className="flex h-11 min-w-0 items-center justify-center rounded-2xl bg-brand px-3 text-[14px] font-semibold text-ink transition hover:brightness-105"
+                >
+                  <span className="truncate">{telefon}</span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={revealPhone}
+                  className="flex h-11 items-center justify-center rounded-2xl bg-brand px-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-ink transition hover:brightness-105 active:scale-[0.98]"
+                >
+                  Pokaż numer
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={openMessage}
+                className="flex h-11 items-center justify-center rounded-2xl border border-brand/60 px-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text transition hover:bg-brand/10 active:scale-[0.98]"
+              >
+                Napisz
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )
+    : null;
+
   const showMap = Boolean(mapSrc);
 
 
@@ -1248,192 +1409,118 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 {tytul}
               </h1>
 
-              {!preview && !isEnded && showAlert && alertCriteria ? (
-                <div className="mt-5">
-                  <AlertBar criteria={alertCriteria} onCreated={rememberAlertLocation} />
+              {/* Pełna lokalizacja zaraz pod tytułem: kupujący najpierw pyta „gdzie", dopiero potem czyta resztę. */}
+              {locPelna ? (
+                <div className="mt-2.5 flex items-start gap-1.5 text-[14px] leading-snug text-fg/70">
+                  <svg viewBox="0 0 24 24" className="mt-[1px] h-4 w-4 shrink-0 text-fg/50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" />
+                    <circle cx="12" cy="9.5" r="2.5" />
+                  </svg>
+                  <span className="min-w-0 break-words">{locPelna}</span>
                 </div>
               ) : null}
 
-              <Hr className="mt-6" />
+              {/* Znak zaufania: działka z ogłoszenia potwierdzona w ewidencji gruntów. Prowadzi do raportu pod ofertą. */}
+              {raportDzialki ? (
+                <a
+                  href="#raport-dzialki"
+                  onClick={(e) => {
+                    const cel = document.getElementById('raport-dzialki');
+                    if (!cel) return;
+                    e.preventDefault();
+                    cel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="mt-3 inline-flex w-fit items-center gap-2 rounded-full bg-brand/12 px-3 py-1.5 text-[13px] font-medium text-brand-text transition hover:bg-brand/20"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6L12 3z" />
+                    <path d="m8.8 12 2.2 2.2 4.3-4.4" />
+                  </svg>
+                  Działka nr {raportDzialki.numer} sprawdzona w ewidencji gruntów
+                </a>
+              ) : null}
 
-              <FieldBlock label={isRent ? 'Cena najmu' : 'Cena'}>
-                <div className="min-w-0 text-[15px] md:text-[16px] font-medium text-fg/95 break-words">
-                  {formatPLN(d.cenaPln)}
-                  {isRent ? (
-                    <span className="ml-1 text-[13px] text-fg/72 font-normal">/mc</span>
-                  ) : null}
+              {/* Cena jako najmocniejszy element strony po tytule, zł/m² tuż obok. */}
+              <div className="mt-5">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="text-[30px] md:text-[34px] font-semibold leading-none tracking-tight text-fg">
+                    {formatPLN(d.cenaPln)}
+                    {isRent ? <span className="ml-1 text-[16px] font-normal text-fg/70">/mc</span> : null}
+                  </span>
                   {zlZaM2 ? (
-                    <span className="ml-2 text-[12px] text-fg/70 font-normal">
-                      ({formatIntPL(zlZaM2)} zł/m²)
-                    </span>
+                    <span className="text-[15px] text-fg/65">{formatIntPL(zlZaM2)} zł/m²</span>
                   ) : null}
                 </div>
                 {priceInsight ? (
                   <div
-                    className={`mt-1.5 inline-flex items-center gap-1.5 text-[12px] font-medium ${
+                    className={`mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium ${
                       priceInsight.dropped ? 'text-brand-text' : 'text-fg/62'
                     }`}
                   >
-                    <span className="text-[13px] leading-none">{priceInsight.dropped ? '↓' : '↑'}</span>
+                    <span className="text-[14px] leading-none">{priceInsight.dropped ? '↓' : '↑'}</span>
                     <span>
                       Cena {priceInsight.dropped ? 'niższa' : 'wyższa'} o {priceInsight.pct}%
                       {priceInsight.since ? ` niż ${priceInsight.since}` : ''}
                     </span>
                   </div>
                 ) : null}
-              </FieldBlock>
+              </div>
 
-              <Hr />
+              {/* Najważniejsze cechy jednym rzędem: do decyzji „czytam dalej czy wracam do listy" wystarczy jedno spojrzenie. */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {area ? (
+                  <Cecha>
+                    {formatIntPL(area)} m²
+                    {area >= 10000 ? (
+                      <span className="ml-1 text-fg/62">
+                        ({new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 2 }).format(area / 10000)} ha)
+                      </span>
+                    ) : null}
+                  </Cecha>
+                ) : null}
+                {przezn.map((p) => (
+                  <Cecha key={p}>{labelPrzeznaczenie(p)}</Cecha>
+                ))}
+                {d.mpzp ? <Cecha>Plan miejscowy (MPZP)</Cecha> : null}
+                {d.wzWydane ? <Cecha>Wydane WZ</Cecha> : null}
+                {d.projektDomu ? <Cecha>Projekt domu</Cecha> : null}
+                {dojazdLabel ? <Cecha>Dojazd: {dojazdLabel.toLowerCase()}</Cecha> : null}
+              </div>
 
-              <FieldBlock label="Powierzchnia">
-                <div className="text-[15px] md:text-[16px] font-medium text-fg/95 break-words">
-                  {formatIntPL(area)} m²
+              {!preview && !isEnded && showAlert && alertCriteria ? (
+                <div className="mt-5">
+                  <AlertBar criteria={alertCriteria} onCreated={rememberAlertLocation} />
                 </div>
-              </FieldBlock>
-
-              <Hr />
-
-              {przeznText ? (
-                <>
-                  <FieldBlock label="Przeznaczenie">
-                    <div className="min-w-0 text-fg/90 text-[14px] leading-snug whitespace-normal break-words">
-                      {przeznText}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
               ) : null}
+
+              {/* Na komputerze kontakt stoi zaraz pod ceną, widoczny bez przewijania.
+                  Na telefonie kontakt obsługuje dolny pasek, a karta sprzedającego jest niżej. */}
+              {kartaSprzedajacego ? (
+                <div className="mt-6 hidden md:block">{kartaSprzedajacego(true)}</div>
+              ) : null}
+
+              <Hr className="mt-6" />
 
               {hasUzbrojenie ? (
                 <>
                   <FieldBlock label="Uzbrojenie">
-                    <div className="space-y-2 text-[14px] text-fg/85">
-                      {prad ? <div>Prąd: <span className="text-fg/95">{prad}</span></div> : null}
-                      {woda ? <div>Woda: <span className="text-fg/95">{woda}</span></div> : null}
-                      {kan ? <div>Kanalizacja: <span className="text-fg/95">{kan}</span></div> : null}
-                      {gaz ? <div>Gaz: <span className="text-fg/95">{gaz}</span></div> : null}
-                      {sw ? <div>Światłowód: <span className="text-fg/95">{sw}</span></div> : null}
+                    <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-3.5">
+                      {prad ? <Medium nazwa="Prąd" opis={prad} stan={stanMedium(d.prad)} /> : null}
+                      {woda ? <Medium nazwa="Woda" opis={woda} stan={stanMedium(d.woda)} /> : null}
+                      {kan ? <Medium nazwa="Kanalizacja" opis={kan} stan={stanMedium(d.kanalizacja)} /> : null}
+                      {gaz ? <Medium nazwa="Gaz" opis={gaz} stan={stanMedium(d.gaz)} /> : null}
+                      {sw ? <Medium nazwa="Światłowód" opis={sw} stan={stanMedium(d.swiatlowod)} /> : null}
                     </div>
                   </FieldBlock>
                   <Hr />
                 </>
               ) : null}
 
-              {dojazdLabel ? (
-                <>
-                  <FieldBlock label="Dojazd">
-                    <div className="text-[14px] text-fg/90">{dojazdLabel}</div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {sprzedajacyTyp === 'PRYWATNIE' ? (
-                <>
-                  <FieldBlock label="Ogłoszenie prywatne">
-                    <div className="space-y-2 text-[14px] text-fg/85">
-                      {sprzedajacyImie ? (
-                        <div className="break-words">
-                          Imię: <span className="text-fg/95">{sprzedajacyImie}</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {sprzedajacyTyp === 'BIURO' ? (
-                <>
-                  <FieldBlock label="Ogłoszenie biura nieruchomości">
-                    <div className="space-y-3 text-[14px] text-fg/85">
-                      {biuroOpiekun ? (
-                        <div className="break-words">
-                          Opiekun: <span className="text-fg/95">{biuroOpiekun}</span>
-                        </div>
-                      ) : null}
-
-                      {/* Logo i link do wizytówki jeden pod drugim — link obok logotypu
-                          rozjeżdżał się w bok i wyglądał jak przypadkowo doklejony. */}
-                      <div className="flex flex-col items-start gap-3">
-                        {biuroLogoUrl ? (
-                          wizytowkaSlug && !preview ? (
-                            <Link href={`/biuro/${wizytowkaSlug}`} className="inline-block w-fit">
-                              <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
-                            </Link>
-                          ) : (
-                            <OfficeLogo src={biuroLogoUrl} alt="Logo biura" variant="detail" eager bg={biuroLogoBg} />
-                          )
-                        ) : null}
-
-                        {/* Podpis pod logotypem, a nie w etykiecie bloku: „nasz partner"
-                            to zdanie o relacji z biurem, więc stoi przy jego znaku firmowym,
-                            a nagłówek bloku zostaje neutralny jak przy każdej innej ofercie. */}
-                        {biuroPartner ? (
-                          <span className="text-[14px] text-fg/85">Nasz partner strategiczny</span>
-                        ) : null}
-
-                        {wizytowkaSlug && !preview ? (
-                          <Link
-                            href={`/biuro/${wizytowkaSlug}`}
-                            className="inline-block w-fit text-[14px] text-fg/85 underline decoration-fg/25 underline-offset-8 transition hover:decoration-fg/60"
-                          >
-                            Zobacz wszystkie ogłoszenia tego biura
-                          </Link>
-                        ) : null}
-                      </div>
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {/* Kontakt tylko na desktopie — na mobile obsługuje go przyklejony dolny
-                  pasek (Zadzwoń / Napisz), więc nie dublujemy „Pokaż numer". */}
-              {telefon ? (
-                <div className="hidden md:block">
-                  <FieldBlock label="Kontakt">
-                    {phoneRevealed ? (
-                      <a
-                        href={`tel:${telefon.replace(/\s+/g, '')}`}
-                        className="min-w-0 text-[16px] font-medium text-fg/95 underline decoration-white/20 underline-offset-8 transition break-all hover:decoration-white/40"
-                      >
-                        {telefon}
-                      </a>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={revealPhone}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-brand/60 bg-brand/10 px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text transition hover:bg-brand/15 active:scale-[0.98]"
-                      >
-                        Pokaż numer
-                      </button>
-                    )}
-                  </FieldBlock>
+              {kartaSprzedajacego ? (
+                <div className="md:hidden">
+                  <div className="py-5">{kartaSprzedajacego(false)}</div>
                   <Hr />
                 </div>
-              ) : null}
-
-              {numerOferty ? (
-                <>
-                  <FieldBlock label="Numer oferty">
-                    <div className="text-fg/90 text-[14px] break-words">{numerOferty}</div>
-                  </FieldBlock>
-                  <Hr />
-                </>
-              ) : null}
-
-              {hasDocs ? (
-                <>
-                  <FieldBlock label="Dokumenty / plan">
-                    <div className="space-y-2 text-[14px] text-fg/85">
-                      {d.mpzp ? <div>Obowiązuje MPZP</div> : null}
-                      {d.wzWydane ? <div>Wydane warunki zabudowy</div> : null}
-                      {d.projektDomu ? <div>Działka posiada projekt domu</div> : null}
-                    </div>
-                  </FieldBlock>
-                  <Hr />
-                </>
               ) : null}
 
               {(klasaZiemi || wymiary || ksiega) ? (
@@ -1445,6 +1532,21 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                       {ksiega ? <div>Księga wieczysta: <span className="text-fg/95">{ksiega}</span></div> : null}
                     </div>
                   </FieldBlock>
+                  <Hr />
+                </>
+              ) : null}
+
+              {numerOferty || dodano ? (
+                <>
+                  <div className="py-4 text-[13px] leading-relaxed text-fg/62">
+                    {numerOferty ? (
+                      <>
+                        Nr oferty <span className="break-all text-fg/85">{numerOferty}</span>
+                      </>
+                    ) : null}
+                    {numerOferty && dodano ? <span className="mx-2">·</span> : null}
+                    {dodano ? <span suppressHydrationWarning>Dodano {dodano}</span> : null}
+                  </div>
                   <Hr />
                 </>
               ) : null}
@@ -1918,21 +2020,21 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           list-style: decimal !important;
           list-style-position: outside;
         }
+        .td-opis ul + p,
+        .td-opis ol + p {
+          margin-top: 12px;
+        }
         .td-opis li {
           margin: 6px 0;
           overflow-wrap: anywhere;
           word-break: break-word;
         }
         .td-opis a {
-          color: rgba(243, 239, 245, 0.85);
+          color: inherit;
           text-decoration: underline;
-          text-underline-offset: 6px;
-          text-decoration-color: rgba(243, 239, 245, 0.25);
+          text-underline-offset: 4px;
           overflow-wrap: anywhere;
           word-break: break-word;
-        }
-        .td-opis a:hover {
-          text-decoration-color: rgba(243, 239, 245, 0.45);
         }
 
         /* Miejsce na przyklejony pasek „Zadzwoń / Napisz” zostawiamy na samym dole strony.

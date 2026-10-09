@@ -226,8 +226,9 @@ export default function RaportOferty({
           {zrodlo === 'OPIS'
             ? 'Działkę wskazał numer podany w ogłoszeniu i sprawdzony w ewidencji gruntów: zgadza się gmina, położenie i powierzchnia. Przed zakupem potwierdź numer u sprzedającego.'
             : 'Działkę wskazał ogłoszeniodawca, stawiając pinezkę na mapie.'}{' '}
-          Ewidencja gruntów (ULDK) i plany (GUGiK): stan na {plDate(sprawdzono)}. Ceny liczone na
-          bieżąco z ogłoszeń w naszym serwisie i z Rejestru Cen Nieruchomości.{' '}
+          Ewidencja gruntów (ULDK) i plany (GUGiK): stan na {plDate(sprawdzono)}.
+          {/* Zdanie o cenach tylko przy bloku cen: bez niego czytelnik szukał cen, których nie ma. */}
+          {ceny ? ' Ceny liczone na bieżąco z ogłoszeń w naszym serwisie i z Rejestru Cen Nieruchomości.' : ''}{' '}
           <Link href="/sprawdz-dzialke" className="text-fg/70 underline decoration-1 underline-offset-2 hover:text-fg">
             Sprawdź inną działkę
           </Link>

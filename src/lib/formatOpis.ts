@@ -176,17 +176,60 @@ export function formatOpis(raw?: string | null): string | null {
   return html || null;
 }
 
+// Wypunktowanie pisane ręcznie w CRM: linia zaczyna się od „- ", „• " albo „– ".
+const PUNKT = /^[-•–]\s+/;
+
 // Tekst poza listami dzielimy na akapity (podwójny enter) i łamania linii (pojedynczy).
 function renderTextChunk(chunk: string): string {
   return chunk
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .replace(/[ \t]+\n/g, "\n")
+    // Eksporty gubią enter przed punktem: „atutem.- Wyznaczona", „logistyką:- Trasa S7".
+    // Myślnik doklejony do kropki/dwukropka i przed wielką literą to początek punktu,
+    // a nie myślnik w zdaniu („Gdańsk - Warszawa" ma spację przed, więc zostaje).
+    .replace(/([.:;!?])-[ \t]+(?=\p{Lu})/gu, "$1\n- ")
     .split(/\n{2,}/)
     .map((p) => p.trim())
     .filter(Boolean)
-    .map((p) => `<p>${p.replace(/\n/g, "<br />")}</p>`)
+    .map(renderAkapit)
     .join("");
+}
+
+// Akapit z liniami. Co najmniej dwie linie-punkty z rzędu stają się prawdziwą listą <ul>;
+// pojedyncza linia z myślnikiem zostaje tekstem (to częściej zdanie niż lista).
+function renderAkapit(akapit: string): string {
+  const linie = akapit.split("\n");
+  let html = "";
+  let tekst: string[] = [];
+  let punkty: string[] = [];
+
+  const zamknijTekst = () => {
+    const t = tekst.map((l) => l.trim()).filter(Boolean);
+    if (t.length) html += `<p>${t.join("<br />")}</p>`;
+    tekst = [];
+  };
+  const zamknijPunkty = () => {
+    if (punkty.length >= 2) {
+      zamknijTekst();
+      html += `<ul>${punkty.map((p) => `<li>${p.replace(PUNKT, "").trim()}</li>`).join("")}</ul>`;
+    } else {
+      tekst.push(...punkty);
+    }
+    punkty = [];
+  };
+
+  for (const linia of linie) {
+    if (PUNKT.test(linia.trim())) {
+      punkty.push(linia.trim());
+    } else {
+      zamknijPunkty();
+      tekst.push(linia);
+    }
+  }
+  zamknijPunkty();
+  zamknijTekst();
+  return html;
 }
 
 // Porządkujemy blok listy: znosimy odstępy/łamania między znacznikami (żeby nie robić z nich

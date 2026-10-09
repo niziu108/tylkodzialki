@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import type { SprzedajacyTyp } from '@prisma/client';
 import { offerPriceLabel, pricePerM2, formatIntPL } from '@/lib/format';
 import { plainText } from '@/lib/formatOpis';
+import { ladnaLokalizacja } from '@/lib/lokalizacjaOferty';
 import { IconPin, IconArea, IconLayers, IconPlug, IconUser, IconBuilding } from './CardIcons';
 import { OfficeLogo } from './OfficeLogo';
 
@@ -72,7 +73,8 @@ export function CardBody({
   const ic = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
   // Tytuł i lokalizacja to czysty tekst — dekodujemy encje (ó, m²) i ucinamy tagi z CRM.
   const tytulClean = plainText(tytul);
-  const locClean = plainText(loc);
+  // Feedy CRM podają miejscowość wersalikami (BROGI), poprawiamy tylko wyświetlanie.
+  const locClean = ladnaLokalizacja(plainText(loc));
 
   return (
     <div className={`${compact ? 'px-4 py-4' : 'p-5 pt-6 lg:pt-5'} ${horizontal ? 'lg:flex lg:h-full lg:flex-col' : ''} ${fill ? 'flex h-full flex-1 flex-col' : ''}`}>

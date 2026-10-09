@@ -17,6 +17,7 @@ import { getSeoRegion } from '@/lib/seo-locations';
 import { normalizeText } from '@/lib/dzialkiSearch';
 import { decodeHtmlEntities } from '@/lib/formatOpis';
 import { ladnaNazwaObrebu } from '@/lib/dzialkaZOpisu';
+import { ladnaLokalizacja } from '@/lib/lokalizacjaOferty';
 
 // Oferta renderowana po stronie serwera (ISR): Google dostaje pełny HTML,
 // użytkownik gotową treść, a baza jest odpytywana najwyżej raz na 60 s per oferta.
@@ -145,7 +146,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const area = formatArea(dzialka.powierzchniaM2);
   const price = formatPrice(dzialka.cenaPln);
-  const location = cleanText(dzialka.locationLabel) || 'Polska';
+  const location = ladnaLokalizacja(cleanText(dzialka.locationLabel)) || 'Polska';
 
   const firstPurpose = Array.isArray(dzialka.przeznaczenia)
     ? dzialka.przeznaczenia[0]
@@ -351,7 +352,7 @@ export default async function Page({ params }: PageProps) {
     typeof dzialka?.lng === 'number' &&
     Number.isFinite(dzialka.lat) &&
     Number.isFinite(dzialka.lng);
-  const addressLocality = dzialka ? cleanText(dzialka.locationLabel) : '';
+  const addressLocality = dzialka ? ladnaLokalizacja(cleanText(dzialka.locationLabel)) : '';
   const addressRegion = dzialka ? regionNameFromLocationFull(dzialka.locationFull) : null;
   const images = dzialka ? getSortedImages(dzialka) : [];
   const datePosted = dzialka ? (dzialka.publishedAt ?? dzialka.createdAt) : null;
