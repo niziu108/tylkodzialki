@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 import type { SprzedajacyTyp } from '@prisma/client';
 import { offerPriceLabel, pricePerM2, formatIntPL } from '@/lib/format';
 import { plainText } from '@/lib/formatOpis';
-import { ladnaLokalizacja } from '@/lib/lokalizacjaOferty';
+import { pelnaLokalizacja } from '@/lib/lokalizacjaOferty';
 import { IconPin, IconArea, IconLayers, IconPlug, IconUser, IconBuilding } from './CardIcons';
 import { OfficeLogo } from './OfficeLogo';
 
@@ -20,6 +20,8 @@ export function CardBody({
   isRent,
   tytul,
   loc,
+  gmina = null,
+  nowa = false,
   distanceKm = null,
   obnizkaPct = null,
   area,
@@ -41,6 +43,10 @@ export function CardBody({
   /** Pominięty na mapie (w ciasnym popupie zbędny). */
   tytul?: string | null;
   loc: string;
+  /** Gmina z osi admin: przy miejscowości dopisujemy „gm. X" (gdy to nie ta sama nazwa). */
+  gmina?: string | null;
+  /** Znaczek „Nowa" przy cenie (oferta opublikowana w ostatnich dniach). */
+  nowa?: boolean;
   /** Odległość od punktu odniesienia (raport „Sprawdź działkę"); null = nie pokazujemy. */
   distanceKm?: number | null;
   /** Obniżka ceny tej oferty w % (historia cen, lib/obnizka.ts); null = bez znaczka. */
@@ -74,7 +80,8 @@ export function CardBody({
   // Tytuł i lokalizacja to czysty tekst — dekodujemy encje (ó, m²) i ucinamy tagi z CRM.
   const tytulClean = plainText(tytul);
   // Feedy CRM podają miejscowość wersalikami (BROGI), poprawiamy tylko wyświetlanie.
-  const locClean = ladnaLokalizacja(plainText(loc));
+  // Sama „Nowa Wieś" mówi niewiele, więc dopisujemy gminę z osi administracyjnej.
+  const locClean = pelnaLokalizacja({ label: plainText(loc), gmina });
 
   return (
     <div className={`${compact ? 'px-4 py-4' : 'p-5 pt-6 lg:pt-5'} ${horizontal ? 'lg:flex lg:h-full lg:flex-col' : ''} ${fill ? 'flex h-full flex-1 flex-col' : ''}`}>
@@ -92,6 +99,14 @@ export function CardBody({
               </span>
             )}
             {zlM2 ? <span className="text-[13px] leading-none text-fg/68">· {formatIntPL(zlM2)} zł/m²</span> : null}
+            {nowa ? (
+              <span
+                suppressHydrationWarning
+                className="inline-flex items-center rounded-full bg-fg px-2.5 py-1 text-[12px] font-medium leading-none text-bg"
+              >
+                Nowa
+              </span>
+            ) : null}
             {/* Fakt o samej ofercie (cena spadła od pierwszej zapisanej u nas), nie porównanie
                 z okolicą. Bramki i próg 5% w lib/obnizka.ts. */}
             {obnizkaPct ? (

@@ -57,6 +57,10 @@ export type OfferData = {
   powierzchniaM2: number;
   transakcja?: TransakcjaTyp | null;
   locationLabel?: string | null;
+  /** Gmina z geokodowania (oś admin) do dopisku „gm. X" przy miejscowości na karcie. */
+  adminGmina?: string | null;
+  /** Data publikacji u nas, do znaczka „Nowa" (pierwsze 3 dni). */
+  publishedAt?: string | Date | null;
   /** Odległość od sprawdzanego punktu (raport „Sprawdź działkę"). Puste na zwykłych listach. */
   distanceKm?: number | null;
   przeznaczenia?: Przeznaczenie[];
@@ -92,6 +96,15 @@ function labelPrzeznaczenie(p: Przeznaczenie) {
   };
 
   return map[p] ?? String(p);
+}
+
+// „Nowa" przez 3 doby od publikacji u nas. Krótko, żeby znaczek coś znaczył: przy 8 tys.
+// ofert i ~200 nowych tygodniowo wyróżnia się garstka kart, a nie pół listy.
+const NOWA_MS = 3 * 24 * 60 * 60 * 1000;
+function isNowa(publishedAt?: string | Date | null) {
+  if (!publishedAt) return false;
+  const t = new Date(publishedAt).getTime();
+  return Number.isFinite(t) && Date.now() - t < NOWA_MS;
 }
 
 function isFeaturedActive(d: OfferData) {
@@ -521,6 +534,8 @@ export function OfferCard({
           isRent={isRent}
           tytul={d.tytul}
           loc={loc}
+          gmina={d.locationLabel?.trim() ? (d.adminGmina ?? null) : null}
+          nowa={isNowa(d.publishedAt)}
           distanceKm={d.distanceKm ?? null}
           obnizkaPct={isRent ? null : (d.obnizkaPct ?? null)}
           area={area}

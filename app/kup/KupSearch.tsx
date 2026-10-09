@@ -85,6 +85,26 @@ const TRANSAKCJA: { key: TransakcjaKey; label: string }[] = [
 
 const TRANSAKCJA_KEYS: TransakcjaKey[] = TRANSAKCJA.map((t) => t.key);
 
+// Skróty pod polem na głównej: jeden klik = lista danego rodzaju działek (z lokalizacją,
+// jeśli ktoś już ją wpisał). Kolejność wg tego, czego kupujący szukają najczęściej.
+const SKROTY: { key: Przeznaczenie; label: string }[] = [
+  { key: 'BUDOWLANA', label: 'Budowlane' },
+  { key: 'REKREACYJNA', label: 'Rekreacyjne' },
+  { key: 'ROLNA', label: 'Rolne' },
+  { key: 'INWESTYCYJNA', label: 'Inwestycyjne' },
+  { key: 'LESNA', label: 'Leśne' },
+];
+
+// Etykiety do pigułek aktywnych filtrów (zwykła pisownia, nie wersaliki jak w panelu).
+const PRZEZN_LABEL: Record<Przeznaczenie, string> = {
+  INWESTYCYJNA: 'Inwestycyjna',
+  BUDOWLANA: 'Budowlana',
+  ROLNA: 'Rolna',
+  LESNA: 'Leśna',
+  REKREACYJNA: 'Rekreacyjna',
+  SIEDLISKOWA: 'Siedliskowa',
+};
+
 const PAGE_SIZE = 20;
 const STORAGE_KEY = 'TD_KUP_STATE_V2';
 
@@ -1235,7 +1255,7 @@ export default function KupSearch({
     };
   }, [loading, err, count, applied]);
 
-  async function applyAndSearch(asMap = false) {
+  async function applyAndSearch(asMap = false, przeznOverride?: Przeznaczenie[]) {
     // Fallback: browser autocomplete may fill the DOM input without triggering React onChange
     const effectiveLocText = locText.trim() || (inputRef.current?.value?.trim() ?? '');
 
@@ -1268,7 +1288,7 @@ export default function KupSearch({
       priceMax: digitsOnly(priceMax),
       areaMin: digitsOnly(areaMin),
       areaMax: digitsOnly(areaMax),
-      przezn,
+      przezn: przeznOverride ?? przezn,
       media,
       dojazd,
       transakcja,
@@ -1452,6 +1472,141 @@ export default function KupSearch({
     [applied]
   );
 
+  /* Licznik na żywo w przycisku „Pokaż N działek": każda zmiana filtra pyta bazę o samą
+     liczbę (take=1), z krótkim opóźnieniem, żeby seria kliknięć dała jedno zapytanie. Jak na
+     dużych portalach: zanim zatwierdzisz, wiesz, ile zobaczysz. Wpisana, ale niewybrana
+     z podpowiedzi lokalizacja nie ma jeszcze punktu, więc wtedy liczby nie zgadujemy. */
+  const draftFilters = useMemo<AppliedFilters | null>(() => {
+    const loc = locText.trim();
+    let c = center;
+    if (loc && !c) {
+      if (loc !== applied.locText.trim()) return null;
+      c = applied.center;
+    }
+    const keepBBox = !loc && applied.bbox ? applied.bbox : null;
+    return {
+      locText: loc,
+      radiusKm,
+      center: keepBBox ? null : c,
+      priceMin: digitsOnly(priceMin),
+      priceMax: digitsOnly(priceMax),
+      areaMin: digitsOnly(areaMin),
+      areaMax: digitsOnly(areaMax),
+      przezn,
+      media,
+      dojazd,
+      transakcja,
+      bbox: keepBBox,
+      sort: applied.sort,
+    };
+  }, [locText, center, radiusKm, priceMin, priceMax, areaMin, areaMax, przezn, media, dojazd, transakcja, applied]);
+
+  const draftKey = draftFilters ? makeParams(draftFilters, 1).toString() : '';
+  const appliedKey = makeParams(applied, 1).toString();
+  const [draftCount, setDraftCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (navigationMode || !searchOpen) return;
+    if (!draftFilters) {
+      setDraftCount(null);
+      return;
+    }
+    // Filtry bez zmian = liczba z listy pod spodem, bez pytania bazy.
+    if (draftKey === appliedKey) {
+      setDraftCount(loading ? null : count);
+      return;
+    }
+
+    let cancelled = false;
+    const t = window.setTimeout(async () => {
+      try {
+        const params = makeParams(draftFilters, 1);
+        params.set('take', '1');
+        const data = await fetchDzialki(params);
+        if (!cancelled) setDraftCount(Number(data.total ?? data.count ?? 0));
+      } catch {
+        if (!cancelled) setDraftCount(null);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey, appliedKey, searchOpen, navigationMode, loading, count]);
+
+  const pokazLabel = loading
+    ? 'Szukam…'
+    : draftCount == null
+      ? 'Pokaż wyniki'
+      : draftCount === 0
+        ? 'Brak działek dla tych filtrów'
+        : `Pokaż ${formatPLThousands(String(draftCount))} ${plural(draftCount, 'działkę', 'działki', 'działek')}`;
+
+  // Pełnoekranowe filtry na telefonie: strona pod spodem nie może się przewijać.
+  useEffect(() => {
+    if (navigationMode || !searchOpen) return;
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.documentElement.style.overflow = prev;
+    };
+  }, [searchOpen, navigationMode]);
+
+  /* Aktywne filtry jako pigułki z × pod paskiem wyszukiwania: widać, co zawęża wynik, i każdy
+     filtr zdejmuje się jednym kliknięciem, bez otwierania panelu. Lokalizacji tu nie ma, bo
+     stoi w samym pasku. */
+  const fmtZakres = (od: string, doo: string, jedn: string) => {
+    const a = od ? formatPLThousands(od) : '';
+    const b = doo ? formatPLThousands(doo) : '';
+    if (a && b) return `${a} – ${b} ${jedn}`;
+    return a ? `od ${a} ${jedn}` : `do ${b} ${jedn}`;
+  };
+  const aktywneFiltry: { key: string; label: string; usun: (f: AppliedFilters) => AppliedFilters }[] = [
+    ...(applied.priceMin || applied.priceMax
+      ? [{
+          key: 'cena',
+          label: fmtZakres(applied.priceMin, applied.priceMax, 'zł'),
+          usun: (f: AppliedFilters) => ({ ...f, priceMin: '', priceMax: '' }),
+        }]
+      : []),
+    ...(applied.areaMin || applied.areaMax
+      ? [{
+          key: 'pow',
+          label: fmtZakres(applied.areaMin, applied.areaMax, 'm²'),
+          usun: (f: AppliedFilters) => ({ ...f, areaMin: '', areaMax: '' }),
+        }]
+      : []),
+    ...applied.przezn.map((k) => ({
+      key: `p-${k}`,
+      label: PRZEZN_LABEL[k],
+      usun: (f: AppliedFilters) => ({ ...f, przezn: f.przezn.filter((x) => x !== k) }),
+    })),
+    ...applied.media.map((k) => ({
+      key: `m-${k}`,
+      label: MEDIA.find((m) => m.key === k)?.label ?? k,
+      usun: (f: AppliedFilters) => ({ ...f, media: f.media.filter((x) => x !== k) }),
+    })),
+    ...applied.transakcja.map((k) => ({
+      key: `t-${k}`,
+      label: TRANSAKCJA.find((t) => t.key === k)?.label ?? k,
+      usun: (f: AppliedFilters) => ({ ...f, transakcja: f.transakcja.filter((x) => x !== k) }),
+    })),
+    ...applied.dojazd.map((k) => ({
+      key: `d-${k}`,
+      label: `Dojazd: ${DOJAZD_LABEL[k].toLowerCase()}`,
+      usun: (f: AppliedFilters) => ({ ...f, dojazd: f.dojazd.filter((x) => x !== k) }),
+    })),
+  ];
+
+  function usunFiltr(usun: (f: AppliedFilters) => AppliedFilters) {
+    const next = usun(applied);
+    applyStateToInputs(next);
+    fetchDataWith(next, 1);
+  }
+
   const mapAsideClass = mapOpen ? 'fixed inset-0 z-[120] bg-[#e8eaed]' : 'hidden';
 
   const filterContent = (
@@ -1502,8 +1657,8 @@ export default function KupSearch({
         </div>
       </div>
 
-      {/* Row 2: Toggle only */}
-      <div className="mt-4">
+      {/* Row 2: Toggle only. Na telefonie filtry są pełnym ekranem i zawsze rozwinięte. */}
+      <div className="mt-4 hidden md:block">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
@@ -1700,7 +1855,7 @@ export default function KupSearch({
       {/* Akcje. Mobile: „Wyczyść”+„Mapa” po połowie w jednym rzędzie, „Szukaj” pełną szerokością
           pod spodem (główne CTA, największy cel dotyku). Desktop (sm+): inner div = display:contents,
           więc trzy przyciski trafiają wprost do rzędu po prawej, auto-szerokość — jak wcześniej. */}
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+      <div className="mt-6 hidden gap-3 md:flex md:flex-row md:flex-wrap md:items-center md:justify-end">
         <div className="flex gap-3 sm:contents">
           <button
             type="button"
@@ -1725,16 +1880,73 @@ export default function KupSearch({
           className="w-full rounded-xl bg-brand px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-strong disabled:opacity-60 sm:w-auto"
           disabled={loading}
         >
-          {loading ? 'Szukam…' : 'Szukaj'}
+          {pokazLabel}
         </button>
       </div>
     </div>
   );
 
+  /* Strona główna: jedno pole i jeden przycisk, jak na dużych portalach. Zasięg (domyślne
+     20 km) i pozostałe filtry są na liście. Pod polem Mapa (druga główna droga szukania)
+     i skróty rodzajów działek, każdy prowadzi prosto do gotowej listy. */
   if (navigationMode) {
     return (
-      <div className="rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8">
-        {filterContent}
+      <div className="mx-auto w-full max-w-2xl text-left">
+        <form
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void applyAndSearch();
+          }}
+          className={`flex items-center gap-2 rounded-2xl border bg-surface/95 p-2 pl-4 shadow-[0_22px_60px_-30px_rgba(35,58,14,0.45)] backdrop-blur-sm transition focus-within:border-brand/60 md:pl-5 ${
+            locError ? 'border-red-400/70' : 'border-fg/12'
+          }`}
+        >
+          <MapPinGlyph className="h-5 w-5 shrink-0 text-brand" />
+          <input
+            ref={inputRef}
+            value={locText}
+            onChange={(e) => {
+              setLocText(e.target.value);
+              setCenter(null);
+              if (locError) setLocError(null);
+            }}
+            aria-label="Gdzie szukasz działki"
+            className="min-w-0 flex-1 bg-transparent py-3 text-[16px] text-fg outline-none placeholder:text-fg/62 md:text-[17px]"
+            onFocus={ensureLocationAutocomplete}
+          />
+          <button
+            type="submit"
+            className="shrink-0 rounded-xl bg-brand px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-ink transition hover:bg-brand-strong md:px-9"
+          >
+            Szukaj
+          </button>
+        </form>
+
+        {locError ? <p className="mt-2.5 text-center text-[13px] text-red-600/90">{locError}</p> : null}
+
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => void applyAndSearch(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-brand/55 bg-surface/80 px-4 py-2 text-[13px] font-medium text-fg backdrop-blur-sm transition hover:border-brand hover:bg-surface"
+          >
+            <MapGlyph className="h-4 w-4 text-brand" />
+            Mapa ofert
+          </button>
+          {SKROTY.map((sk) => (
+            <button
+              key={sk.key}
+              type="button"
+              onClick={() => void applyAndSearch(false, [sk.key])}
+              // Na telefonie bez „Inwestycyjne": pięć pigułek układa się w równe dwa rzędy,
+              // przy sześciu ostatnia zostawała sama w trzecim.
+              className={`${sk.key === 'INWESTYCYJNA' ? 'hidden sm:inline-block' : ''} rounded-full border border-fg/12 bg-surface/60 px-4 py-2 text-[13px] text-fg/85 backdrop-blur-sm transition hover:border-fg/30 hover:text-fg`}
+            >
+              {sk.label}
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
@@ -1782,8 +1994,8 @@ export default function KupSearch({
             zostaje tylko w akcentach (pinezka, ikona mapy, powiadomienia); tło czyste jak
             lista ofert pod spodem. Hero z gradientem zostaje na głównej/sprawdź/blogu. */}
         <div
-          className={`relative z-10 mx-auto max-w-6xl px-3 md:px-4 md:py-10 ${
-            searchOpen ? 'py-8' : 'py-4'
+          className={`relative mx-auto max-w-6xl px-3 md:z-10 md:px-4 md:py-10 ${
+            searchOpen ? 'z-[130] py-8' : 'z-10 py-4'
           }`}
         >
           {/* Zwinięty pasek (mobile I desktop — spójnie): adres (tap rozwija kartę) + dwa
@@ -1799,9 +2011,10 @@ export default function KupSearch({
                   // kursor w polu lokalizacji z zaznaczonym tekstem. flushSync wymusza
                   // synchroniczne rozwinięcie (pole trafia do DOM natychmiast), żeby fokus
                   // złapał się w TYM SAMYM geście dotyku — inaczej iOS nie pokaże klawiatury.
+                  // Na telefonie filtry to pełny ekran, więc pokazujemy w nim od razu wszystko.
                   flushSync(() => {
                     setSearchOpen(true);
-                    setExpanded(false);
+                    setExpanded(window.matchMedia('(max-width: 767px)').matches);
                   });
                   const el = inputRef.current;
                   if (el) {
@@ -1834,19 +2047,63 @@ export default function KupSearch({
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[13px] font-medium uppercase tracking-[0.10em] text-fg/90 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
                 >
                   Filtry
-                  <span className="text-[10px] text-brand">▼</span>
+                  {aktywneFiltry.length ? (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-semibold leading-none text-ink">
+                      {aktywneFiltry.length}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-brand">▼</span>
+                  )}
                 </button>
               </div>
             </div>
+
+            {aktywneFiltry.length ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {aktywneFiltry.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => usunFiltr(f.usun)}
+                    aria-label={`Usuń filtr: ${f.label}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-brand bg-brand/15 py-1.5 pl-3.5 pr-2.5 text-[13px] text-brand-text transition hover:bg-brand/25"
+                  >
+                    {f.label}
+                    <span aria-hidden="true" className="text-[15px] leading-none opacity-70">×</span>
+                  </button>
+                ))}
+                {aktywneFiltry.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="px-2 text-[13px] text-fg/70 underline decoration-fg/25 underline-offset-4 transition hover:text-fg"
+                  >
+                    Wyczyść wszystko
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
-          {/* Pełna karta: chowana gdy zwinięte (mobile i desktop tak samo). */}
+          {/* Pełna karta. Na telefonie pełnoekranowy panel filtrów z przyklejonym przyciskiem
+              „Pokaż N działek" (jak w aplikacjach dużych portali), na komputerze karta w stronie. */}
           <div
-            className={`rounded-2xl border border-fg/10 bg-surface-2/78 p-5 backdrop-blur-sm md:p-8 ${
-              searchOpen ? 'block' : 'hidden'
-            }`}
+            className={`${searchOpen ? 'flex md:block' : 'hidden'} fixed inset-0 z-[130] flex-col bg-bg md:relative md:inset-auto md:z-auto md:rounded-2xl md:border md:border-fg/10 md:bg-surface-2/78 md:p-8 md:backdrop-blur-sm`}
           >
-            <div className="mb-3 flex justify-end">
+            <div className="flex shrink-0 items-center justify-between border-b border-fg/10 px-5 py-3.5 md:hidden">
+              <span className="text-[18px] font-semibold tracking-tight text-fg">Filtry</span>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                aria-label="Zamknij filtry"
+                className="-mr-2 flex h-10 w-10 items-center justify-center rounded-full text-fg/75 transition hover:bg-fg/5 hover:text-fg"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6 6 18" />
+                </svg>
+              </button>
+            </div>
+            <div className="mb-3 hidden justify-end md:flex">
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
@@ -1856,7 +2113,26 @@ export default function KupSearch({
                 <span className="text-[8px]">▲</span>
               </button>
             </div>
-            {filterContent}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 md:overflow-visible md:p-0">
+              {filterContent}
+            </div>
+            <div className="flex shrink-0 items-center gap-5 border-t border-fg/10 bg-bg px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 md:hidden">
+              <button
+                type="button"
+                onClick={reset}
+                className="text-[14px] text-fg/75 underline decoration-fg/25 underline-offset-4"
+              >
+                Wyczyść
+              </button>
+              <button
+                type="button"
+                onClick={() => void applyAndSearch()}
+                disabled={loading}
+                className="h-12 flex-1 rounded-xl bg-brand px-4 text-[14px] font-semibold text-ink transition active:scale-[0.99] disabled:opacity-60"
+              >
+                {pokazLabel}
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -1864,7 +2140,7 @@ export default function KupSearch({
       {/* Odstępy listy (czyste tło — bez siatki i poświaty, właściciel woli przejrzystość).
           Na mobile ciasny odstęp nad Sortuj — wcześniej przerwa wyszukiwarka→Sortuj była
           jak menu→wyszukiwarka; Sortuj ma siedzieć tuż pod paskiem. */}
-      <div className="pt-2 pb-20 md:pt-8">
+      <div className="pt-2 pb-20 md:pt-2">
       <section className="mx-auto max-w-6xl px-3 md:px-4">
         {/* „Sortuj:" zdjęte — w to miejsce liczba ofert (po lewej), a sam wybór sortowania
             po prawej. Krócej i użyteczniej niż zbędna etykieta. */}
@@ -1910,14 +2186,9 @@ export default function KupSearch({
 
         <AlertBar criteria={alertCriteria} />
 
-        <PagerResponsive
-          page={safePage}
-          totalPages={totalPages}
-          onPrev={goPrev}
-          onNext={goNext}
-          onGo={goTo}
-          className="mb-6 mt-6"
-        />
+        {/* Numery stron tylko pod listą (jak na dużych portalach): u góry liczba ofert
+            i sortowanie, a pierwsza oferta zaraz pod nimi. */}
+        <div className="h-5" />
 
         {!loading && !err && items.length === 0 ? (
           /* Zamiast „Brak wyników." i ślepego zaułka: mówimy, CZEGO nie znaleziono, i dajemy
