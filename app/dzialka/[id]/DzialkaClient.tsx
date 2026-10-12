@@ -8,8 +8,6 @@ import { OfficeLogo } from '@/components/OfficeLogo';
 import { formatOpis, plainText } from '@/lib/formatOpis';
 import { ladnaLokalizacja, pelnaLokalizacja } from '@/lib/lokalizacjaOferty';
 import { DOJAZD_LABEL } from '@/lib/dojazd';
-import AlertBar from '@/components/AlertBar';
-import type { AlertCriteria } from '@/lib/alertCriteria';
 import type { OfferPriceTrend } from '@/lib/dzialkaPriceHistory';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -202,7 +200,7 @@ function Medium({ nazwa, opis, stan }: { nazwa: string; opis: string; stan: Stan
 // Cecha w rzędzie skrótów pod ceną. Neutralna, nie zielona: zieleń to u nas wybór w filtrach.
 function Cecha({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-fg/12 bg-fg/[0.03] px-3 py-1.5 text-[13px] leading-none text-fg/85">
+    <span className="inline-flex items-center rounded-full border border-fg/14 bg-fg/[0.03] px-3.5 py-2 text-[14px] font-medium leading-none text-fg/90">
       {children}
     </span>
   );
@@ -434,39 +432,6 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   // liczymy jako lead (kontakt), żeby nikt nie spisał numeru z ekranu bez śladu w statystykach.
   const [phoneRevealed, setPhoneRevealed] = useState(false);
 
-  // Alert pod tytułem oferty pokazujemy dopiero, gdy ktoś ogląda drugą (lub kolejną)
-  // działkę w tej sesji — czyli już widać, że przegląda, a nie na pierwszej sekundzie
-  // pierwszego wejścia. Wtedy prośba o e-mail jest zasłużona, a nie nachalna.
-  const [showAlert, setShowAlert] = useState(false);
-
-  // Klucz okolicy dla alertu: miejscowość (a przy jej braku zaokrąglone współrzędne).
-  // Po nim rozpoznajemy, czy dla tej okolicy ktoś już włączył powiadomienie.
-  const alertLocationKey = useMemo<string | null>(() => {
-    if (!d) return null;
-    const town = (d.locationLabel ?? '').split(',')[0]?.trim();
-    if (town) return town.toLowerCase();
-    if (typeof d.lat === 'number' && typeof d.lng === 'number') {
-      return `geo:${d.lat.toFixed(2)},${d.lng.toFixed(2)}`;
-    }
-    return null;
-  }, [d]);
-
-  // Po włączeniu powiadomienia zapamiętujemy okolicę w localStorage (trzyma się między
-  // sesjami). Bieżącej oferty tu NIE chowamy — alert ma zostać, żeby pokazać „Sprawdź
-  // skrzynkę". Chowa się dopiero przy wejściu w kolejną ofertę z tej samej okolicy.
-  const rememberAlertLocation = () => {
-    if (!alertLocationKey) return;
-    try {
-      const raw = localStorage.getItem('TD_ALERT_SUBSCRIBED');
-      const arr = raw ? JSON.parse(raw) : [];
-      const set = Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === 'string') : [];
-      if (!set.includes(alertLocationKey)) {
-        set.push(alertLocationKey);
-        localStorage.setItem('TD_ALERT_SUBSCRIBED', JSON.stringify(set.slice(-100)));
-      }
-    } catch {}
-  };
-
   // Kontakt „Napisz wiadomość" (desktop). Domyślnie: kod QR z gotowym SMS-em na numer
   // opiekuna (ten sam tor co mobile). Formularz mailowy zostaje tylko jako zapas dla
   // ofert bez telefonu.
@@ -548,41 +513,6 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       cache: 'no-store',
     }).catch(() => {});
   }, [id, preview]);
-
-  // Widoczność alertu liczymy raz na ofertę (zależy od id i okolicy, NIE od zapisu na
-  // bieżącej stronie — dlatego czytamy localStorage bezpośrednio, a nie ze stanu Reacta).
-  // Dzięki temu po kliknięciu „Włącz" alert zostaje z potwierdzeniem, a chowa się dopiero
-  // przy wejściu w kolejną ofertę z okolicy, którą ktoś już zapisał.
-  useEffect(() => {
-    if (!id || preview) {
-      setShowAlert(false);
-      return;
-    }
-
-    try {
-      // Ile różnych ofert obejrzanych w tej sesji (klucze TD_DETAIL_VIEWED_*, bieżącą doliczamy).
-      const PREFIX = 'TD_DETAIL_VIEWED_';
-      const viewed = new Set<string>();
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const k = sessionStorage.key(i);
-        if (k && k.startsWith(PREFIX)) viewed.add(k.slice(PREFIX.length));
-      }
-      viewed.add(id);
-      const enough = viewed.size >= 2;
-
-      // Czy dla tej okolicy ktoś już włączył powiadomienie (localStorage, między sesjami).
-      let subscribed = false;
-      if (alertLocationKey) {
-        const raw = localStorage.getItem('TD_ALERT_SUBSCRIBED');
-        const arr = raw ? JSON.parse(raw) : [];
-        subscribed = Array.isArray(arr) && arr.includes(alertLocationKey);
-      }
-
-      setShowAlert(enough && !!alertLocationKey && !subscribed);
-    } catch {
-      setShowAlert(false);
-    }
-  }, [id, preview, alertLocationKey]);
 
   useEffect(() => {
   if (!d?.id) return;
@@ -718,31 +648,6 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
   const opisZnaki = plainText(d?.opis).length;
   // Tytuł to czysty tekst — dekodujemy encje (ó, m²) i usuwamy ewentualne tagi z eksportu CRM.
   const tytul = plainText(d?.tytul);
-
-  // Kryteria alertu wyciągnięte z oglądanej działki: okolica (miejscowość z etykiety
-  // + współrzędne w promieniu 10 km) oraz przeznaczenie. Ten sam kształt, co alert
-  // z wyszukiwarki, więc silnik dopasowania (geo) działa identycznie.
-  const alertCriteria = useMemo<AlertCriteria | null>(() => {
-    if (!d) return null;
-    const town = (d.locationLabel ?? '').split(',')[0]?.trim() || null;
-    const hasGeo = typeof d.lat === 'number' && typeof d.lng === 'number';
-    if (!town && !hasGeo) return null;
-
-    return {
-      query: town,
-      priceMin: null,
-      priceMax: null,
-      areaMin: null,
-      areaMax: null,
-      przeznaczenia: (Array.isArray(d.przeznaczenia)
-        ? d.przeznaczenia
-        : []) as AlertCriteria['przeznaczenia'],
-      transakcja: [],
-      lat: hasGeo ? (d.lat as number) : null,
-      lng: hasGeo ? (d.lng as number) : null,
-      radiusKm: hasGeo ? 10 : null,
-    };
-  }, [d]);
 
   const isEnded = (d?.status ?? '') === 'ZAKONCZONE';
   // Dla ofert zakończonych chowamy cały kontakt (telefon, SMS, formularz), żeby archiwalna
@@ -1436,7 +1341,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                     <path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6L12 3z" />
                     <path d="m8.8 12 2.2 2.2 4.3-4.4" />
                   </svg>
-                  Działka nr {raportDzialki.numer} sprawdzona w ewidencji gruntów
+                  Działka {raportDzialki.numer} sprawdzona w ewidencji
                 </a>
               ) : null}
 
@@ -1487,17 +1392,12 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 {dojazdLabel ? <Cecha>Dojazd: {dojazdLabel.toLowerCase()}</Cecha> : null}
               </div>
 
-              {!preview && !isEnded && showAlert && alertCriteria ? (
-                <div className="mt-5">
-                  <AlertBar criteria={alertCriteria} onCreated={rememberAlertLocation} />
-                </div>
-              ) : null}
-
               {/* Na komputerze kontakt stoi zaraz pod ceną, widoczny bez przewijania.
                   Na telefonie kontakt obsługuje dolny pasek, a karta sprzedającego jest niżej. */}
               {kartaSprzedajacego ? (
                 <div className="mt-6 hidden md:block">{kartaSprzedajacego(true)}</div>
               ) : null}
+
 
               <Hr className="mt-6" />
 
@@ -1522,6 +1422,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   <Hr />
                 </div>
               ) : null}
+
 
               {(klasaZiemi || wymiary || ksiega) ? (
                 <>
