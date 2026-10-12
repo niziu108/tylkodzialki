@@ -1,5 +1,5 @@
 import './globals.css';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import GlobalNav from '@/components/GlobalNav';
 import Providers from '@/components/Providers';
@@ -22,6 +22,9 @@ const bebas = Bebas_Neue({
 
 const siteUrl = 'https://tylkodzialki.pl';
 const siteName = 'tylkodzialki.pl';
+
+// Kolor paska przeglądarki i aplikacji (PWA) = tło nagłówka, żeby góra ekranu była jednolita.
+export const viewport: Viewport = { themeColor: '#f6f7f3' };
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -48,6 +51,9 @@ export const metadata: Metadata = {
   creator: 'tylkodzialki.pl',
   publisher: 'tylkodzialki.pl',
   manifest: '/site.webmanifest',
+  // Strona instalowalna jak aplikacja (PWA): na iPhonie „Do ekranu początkowego" otwiera ją
+  // bez paska Safari, z naszą nazwą pod ikoną.
+  appleWebApp: { capable: true, title: 'tylkodziałki', statusBarStyle: 'default' },
   openGraph: {
     type: 'website',
     url: siteUrl,

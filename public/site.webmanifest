@@ -1,1 +1,64 @@
-{"name":"tylkodzialki.pl","short_name":"tylkodzialki","icons":[{"src":"/android-chrome-192x192.png","sizes":"192x192","type":"image/png"},{"src":"/android-chrome-512x512.png","sizes":"512x512","type":"image/png"}],"theme_color":"#7aa333","background_color":"#ffffff","display":"standalone"}
+{
+  "id": "/",
+  "name": "tylkodzialki.pl – działki na sprzedaż",
+  "short_name": "tylkodziałki",
+  "description": "Działki na sprzedaż w całej Polsce: lista, mapa ofert i raport działki.",
+  "lang": "pl",
+  "start_url": "/?utm_source=pwa&utm_medium=app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f7f3",
+  "theme_color": "#f6f7f3",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Szukaj działki",
+      "url": "/kup",
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Mapa ofert",
+      "url": "/kup?widok=mapa",
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Sprawdź działkę",
+      "url": "/sprawdz-dzialke",
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
