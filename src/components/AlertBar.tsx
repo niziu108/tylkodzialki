@@ -129,17 +129,20 @@ export default function AlertBar({
   return (
     <div className="group flex flex-col items-start gap-0.5">
       {!emailOpen ? (
-        <button
-          type="button"
-          onClick={handleClick}
-          disabled={state === 'sending'}
-          className="inline-flex items-center gap-2 text-[13px] font-medium text-brand-text transition hover:text-brand-text disabled:opacity-60"
-        >
-          <span className="text-brand-text">
+        // Wyraźny przycisk z obramowaniem: sam zielony napis z dzwonkiem wyglądał jak informacja,
+        // a nie coś do kliknięcia. Obok, w jednej linii, czego powiadomienie dotyczy.
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <button
+            type="button"
+            onClick={handleClick}
+            disabled={state === 'sending'}
+            className="inline-flex items-center gap-2 rounded-full border border-brand/50 bg-brand/[0.07] px-4 py-2 text-[13px] font-semibold text-brand-text transition hover:border-brand hover:bg-brand/15 disabled:opacity-60"
+          >
             <BellIcon />
-          </span>
-          {state === 'sending' ? 'Włączam…' : 'Powiadom mnie o nowych ofertach'}
-        </button>
+            {state === 'sending' ? 'Włączam…' : 'Powiadamiaj mnie o nowych działkach'}
+          </button>
+          {label ? <span className="text-[12px] leading-snug text-fg/68">{label}</span> : null}
+        </div>
       ) : (
         <div className="flex w-full max-w-sm flex-col gap-2">
           <div className="flex flex-col gap-0.5">
@@ -186,15 +189,8 @@ export default function AlertBar({
         </div>
       )}
 
-      {/* Kontekst pod przyciskiem: zawsze widoczny, żeby było jasne, jakiej okolicy/filtrów dotyczy. */}
-      {!emailOpen ? (
-        <span className="block pl-6 text-[12px] leading-snug text-fg/68">
-          {label}
-        </span>
-      ) : null}
-
       {state === 'error' && msg ? (
-        <span className="pl-1 text-[12px] text-red-400/85">{msg}</span>
+        <span className="pl-1 text-[12px] text-red-600">{msg}</span>
       ) : null}
     </div>
   );

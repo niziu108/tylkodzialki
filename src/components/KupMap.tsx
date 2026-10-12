@@ -690,7 +690,7 @@ export default function KupMap({
       {/* Karta oferty po kliknięciu pinu — własny panel u dołu (nie dymek Google). */}
       {selected && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[8] flex justify-center px-3 pb-3">
-          <div className="pointer-events-auto w-full max-w-[360px]">
+          <div className="pointer-events-auto w-full max-w-[360px] md:max-w-[440px]">
             <MapOfferCard key={selected.id} pin={selected} onClose={clearSelection} />
           </div>
         </div>

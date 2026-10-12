@@ -34,6 +34,7 @@ type Detail = {
   photos: string[];
   loc: string | null;
   gmina: string | null;
+  tytul: string | null;
   area: number | null;
   przezn: string[];
   prad: string | null;
@@ -73,6 +74,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
             .filter(Boolean),
           loc: data.locationLabel ?? null,
           gmina: data.adminGmina ?? null,
+          tytul: typeof data.tytul === 'string' ? data.tytul : null,
           area: typeof data.powierzchniaM2 === 'number' ? data.powierzchniaM2 : null,
           przezn: Array.isArray(data.przeznaczenia) ? data.przeznaczenia : [],
           prad: data.prad ?? null,
@@ -147,7 +149,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
           >
             {/* Karuzela */}
             <div
-              className="relative aspect-[16/10] w-full overflow-hidden bg-surface-2"
+              className="relative aspect-[16/10] w-full overflow-hidden bg-surface-2 md:aspect-[16/9]"
               onTouchStart={(e) => {
                 touchStartX.current = e.changedTouches[0]?.clientX ?? null;
               }}
@@ -216,48 +218,95 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
               )}
             </div>
 
-            {/* Ciało — wspólne z listą i „podobnymi" (bez tytułu, kompaktowo). */}
-            <CardBody
-              cena={pin.cena}
-              isRent={isRent}
-              loc={loc}
-              gmina={detail?.loc ? detail.gmina : null}
-              area={detail?.area ?? 0}
-              przezn={przezn}
-              media={parcelMediaLabel(detail ?? {})}
-              compact
-              sellerType={
-                detail?.sprzedajacyTyp === 'BIURO' || detail?.sprzedajacyTyp === 'PRYWATNIE'
-                  ? detail.sprzedajacyTyp
-                  : null
-              }
-              biuroNazwa={detail?.biuroNazwa ?? null}
-              biuroLogoUrl={detail?.biuroLogoUrl ?? null}
-              biuroLogoBg={detail?.biuroLogoBg ?? false}
-              heartSlot={
-                <button
-                  type="button"
-                  aria-label={isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleFavorite(pin.id);
-                  }}
-                  className={`flex h-8 w-8 items-center justify-center transition active:scale-90 ${
-                    isFavorite ? 'text-brand-text' : 'text-brand-text/80 hover:text-brand-text'
-                  }`}
-                >
-                  <HeartIcon filled={isFavorite} />
-                </button>
-              }
-              extra={
-                pin.approx ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/12 px-2.5 py-1 text-[12px] text-brand-text">
-                    ◎ Lokalizacja przybliżona
-                  </span>
-                ) : undefined
-              }
-            />
+            {/* Ciało wspólne z listą. Telefon: kompaktowo i bez tytułu, jak karta z listy, żeby
+                okienko nie zasłaniało mapy. Komputer: większe, z tytułem, bo miejsca jest dość
+                (jak karty po kliknięciu pinezki na dużych portalach). */}
+            <div className="md:hidden">
+  <CardBody
+                cena={pin.cena}
+                isRent={isRent}
+                loc={loc}
+                gmina={detail?.loc ? detail.gmina : null}
+                area={detail?.area ?? 0}
+                przezn={przezn}
+                media={parcelMediaLabel(detail ?? {})}
+                compact
+                sellerType={
+                  detail?.sprzedajacyTyp === 'BIURO' || detail?.sprzedajacyTyp === 'PRYWATNIE'
+                    ? detail.sprzedajacyTyp
+                    : null
+                }
+                biuroNazwa={detail?.biuroNazwa ?? null}
+                biuroLogoUrl={detail?.biuroLogoUrl ?? null}
+                biuroLogoBg={detail?.biuroLogoBg ?? false}
+                heartSlot={
+                  <button
+                    type="button"
+                    aria-label={isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleFavorite(pin.id);
+                    }}
+                    className={`flex h-8 w-8 items-center justify-center transition active:scale-90 ${
+                      isFavorite ? 'text-brand-text' : 'text-brand-text/80 hover:text-brand-text'
+                    }`}
+                  >
+                    <HeartIcon filled={isFavorite} />
+                  </button>
+                }
+                extra={
+                  pin.approx ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/12 px-2.5 py-1 text-[12px] text-brand-text">
+                      ◎ Lokalizacja przybliżona
+                    </span>
+                  ) : undefined
+                }
+              />
+            </div>
+            <div className="hidden md:block">
+  <CardBody
+                cena={pin.cena}
+                isRent={isRent}
+                loc={loc}
+                gmina={detail?.loc ? detail.gmina : null}
+                area={detail?.area ?? 0}
+                przezn={przezn}
+                media={parcelMediaLabel(detail ?? {})}
+                tytul={detail?.tytul ?? null}
+                sellerType={
+                  detail?.sprzedajacyTyp === 'BIURO' || detail?.sprzedajacyTyp === 'PRYWATNIE'
+                    ? detail.sprzedajacyTyp
+                    : null
+                }
+                biuroNazwa={detail?.biuroNazwa ?? null}
+                biuroLogoUrl={detail?.biuroLogoUrl ?? null}
+                biuroLogoBg={detail?.biuroLogoBg ?? false}
+                heartSlot={
+                  <button
+                    type="button"
+                    aria-label={isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleFavorite(pin.id);
+                    }}
+                    className={`flex h-8 w-8 items-center justify-center transition active:scale-90 ${
+                      isFavorite ? 'text-brand-text' : 'text-brand-text/80 hover:text-brand-text'
+                    }`}
+                  >
+                    <HeartIcon filled={isFavorite} />
+                  </button>
+                }
+                extra={
+                  pin.approx ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/12 px-2.5 py-1 text-[12px] text-brand-text">
+                      ◎ Lokalizacja przybliżona
+                    </span>
+                  ) : undefined
+                }
+              />
+            </div>
           </a>
         </div>
       </div>
