@@ -28,6 +28,7 @@ export default function FeaturedRail({ items }: { items: OfferData[] }) {
                 // z poziomym przewijaniem całego rzędu promowanych (na telefonie oferta
                 // uciekała, gdy chciało się przewinąć zdjęcie). Pełna galeria jest w ofercie.
                 singleImage
+                bezZnakuWyroznienia
                 // Wyróżnione są POD pełnoekranowym hero (min-h-100svh), więc ich
                 // zdjęcia mają być lazy. Wcześniej 2 pierwsze ładowały się eager i
                 // konkurowały o pasmo z obrazem hero => wyższe LCP na głównej (4,1 s)

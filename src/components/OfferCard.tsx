@@ -429,6 +429,7 @@ export function OfferCard({
   horizontal = false,
   fill = false,
   singleImage = false,
+  bezZnakuWyroznienia = false,
   isFavorite,
   onToggleFavorite,
   onClick,
@@ -444,6 +445,9 @@ export function OfferCard({
   /** Rail promowanych na głównej: tylko okładka, bez karuzeli — swipe zdjęć gryzł się
    *  z poziomym przewijaniem rzędu. Bok przewija kafelki, góra/dół scrolluje stronę. */
   singleImage?: boolean;
+  /** Sekcja „Wyróżnione oferty" na głównej: wszystkie karty są tam wyróżnione, więc ramka
+   *  i napis na każdej powtarzałyby nagłówek sekcji. Wyróżnienie widać tylko wśród zwykłych ofert. */
+  bezZnakuWyroznienia?: boolean;
   isFavorite: boolean;
   onToggleFavorite: (dzialkaId: string) => void;
   /** /kup: zapis pozycji scrolla przed nawigacją (przywracanie przy powrocie). */
@@ -466,7 +470,7 @@ export function OfferCard({
     ? d.przeznaczenia.map(labelPrzeznaczenie).join(', ')
     : '—';
 
-  const featured = isFeaturedActive(d);
+  const featured = !bezZnakuWyroznienia && isFeaturedActive(d);
   const cardRef = useRef<HTMLAnchorElement | null>(null);
 
   useEffect(() => {
