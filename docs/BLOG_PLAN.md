@@ -32,6 +32,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Obszar uzupełnienia zabudowy: jak sprawdzić, czy obejmuje Twoją działkę (slug: obszar-uzupelnienia-zabudowy-jak-sprawdzic) [dopisany, reforma; źródła: rejestr-urbanistyczny.gov.pl, BIP gminy, geoportal, e-Wyrys mObywatel]
 - [x] Strefa planistyczna działki: co oznacza i jak ją sprawdzić (slug: strefa-planistyczna-dzialki-jak-sprawdzic) [dopisany, reforma; strefy SW/SJ/SZ = mieszkaniowe]
 - [x] Co można zbudować na działce i jak to sprawdzić (slug: co-mozna-zbudowac-na-dzialce-jak-sprawdzic) [dopisany; PILLAR spinajacy plan/WZ/strefa/OUZ/odrolnienie]
+- [x] Jak czytać wypis z rejestru gruntów (slug: jak-czytac-wypis-z-rejestru-gruntow) [dopisany; EGiB, oznaczenia+klasa, pelny vs uproszczony]
 - [x] Działka w obszarze Natura 2000: co wolno (slug: dzialka-natura-2000-co-wolno)
 - [x] Działka na terenie zalewowym: ryzyka i ograniczenia (slug: dzialka-na-terenie-zalewowym-ryzyka)
 - [x] Strefa ochronna linii energetycznej i gazociągu: co to znaczy (slug: strefa-ochronna-linii-energetycznej-i-gazociagu)
