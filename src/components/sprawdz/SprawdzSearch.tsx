@@ -392,7 +392,7 @@ export default function SprawdzSearch({
           {/* Widoczny nagłówek: bez niego strona otwierała się samym pustym polem i nigdzie nie
               było napisane, że raport jest darmowy i bez konta. */}
           <div className="mb-7 w-full max-w-2xl text-center md:mb-9">
-            <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-fg md:text-[42px]">
+            <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-fg [text-wrap:balance] md:text-[42px]">
               Sprawdź działkę za darmo
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-[15px] leading-7 text-fg/70 md:text-base">
@@ -471,11 +471,13 @@ export default function SprawdzSearch({
               </p>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            {/* Telefon: przyciski jeden pod drugim, główny na górze (wersaliki w połowie ekranu
+                łamały się na dwie linie). Od sm obok siebie, jak wcześniej. */}
+            <div className="mt-4 flex flex-col-reverse gap-3 sm:grid sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => setMapOpen(true)}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-brand/60 px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-brand-text transition hover:border-brand hover:text-brand-text"
+                className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-xl border border-brand/60 px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-brand-text transition hover:border-brand hover:text-brand-text"
               >
                 Wskaż na mapie
               </button>
@@ -484,7 +486,7 @@ export default function SprawdzSearch({
                 type="button"
                 onClick={handlePrimary}
                 disabled={loading}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-xl bg-brand px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright disabled:opacity-60"
               >
                 {loading ? 'Sprawdzam…' : mode === 'numer' ? 'Znajdź działkę' : 'Sprawdź działkę'}
               </button>
@@ -633,11 +635,11 @@ export default function SprawdzSearch({
           Znika, gdy tylko ruszy sprawdzanie (loading), żeby nikt nie wziął cudzych danych za swoje. */}
       <div ref={reportRef} className="mx-auto max-w-6xl scroll-mt-24 px-6 md:px-10">
         {result ? (
-          <div className="mt-14">
+          <div className="mt-6 md:mt-14">
             <Raport data={result} />
           </div>
         ) : demo && !loading ? (
-          <div className="mt-14">
+          <div className="mt-4 md:mt-14">
             {/* Ostrzeżenie musi być nie do przeoczenia: to cudza działka, nie Twoja. */}
             <div className="rounded-2xl border border-brand/35 bg-brand/10 px-5 py-4 md:px-7 md:py-5">
               <div className="text-[12px] font-medium uppercase tracking-[0.2em] text-brand-text">
