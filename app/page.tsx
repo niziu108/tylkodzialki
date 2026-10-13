@@ -323,7 +323,9 @@ export default async function HomePage() {
             <KupSearch navigationMode={true} />
           </div>
 
-          <div className="mt-6">
+          {/* Na komputerze sprzedających prowadzi przycisk „Sprzedaj działkę” w menu, więc tu tylko
+              telefon i tablet (tam menu jest w burgerze). */}
+          <div className="mt-6 lg:hidden">
             <Link
               href="/sprzedaj"
               className="text-sm text-fg/70 transition hover:text-fg"
