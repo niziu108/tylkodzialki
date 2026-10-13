@@ -163,10 +163,9 @@ export function buildOpisZDanych(input: OpisInput): string {
   if (mozliwosc.length) zdaniaMedia.push(`Możliwość podłączenia: ${mozliwosc.join(', ')}.`);
   zdaniaMedia.push(...osobne);
 
-  // Brak jakiejkolwiek informacji o mediach to też informacja, i to ważna dla kupującego.
-  if (!zdaniaMedia.length) zdaniaMedia.push('Działka nieuzbrojona.');
-
-  akapity.push(zdaniaMedia.join(' '));
+  // Bez wybranych mediów nic nie piszemy. BRAK to w formularzu „nie zaznaczono", nie
+  // deklaracja sprzedającego, więc „Działka nieuzbrojona." bywało nieprawdą (13.10).
+  if (zdaniaMedia.length) akapity.push(zdaniaMedia.join(' '));
 
   // 4. Plan, dokumenty, grunt.
   const zdaniaFormalne: string[] = [];

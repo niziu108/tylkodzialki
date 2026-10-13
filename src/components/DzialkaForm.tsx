@@ -2484,13 +2484,18 @@ export default function DzialkaForm({
               </button>
             </div>
 
+            {/* Media bez opcji „Brak" i bez niczego zaznaczonego na start (13.10). Wcześniej
+                „Brak przyłącza" było wybrane z góry, więc kto pominął krok, deklarował brak
+                prądu, choć mógł go mieć. W bazie brak wyboru to dalej BRAK (pole wymagane,
+                tak samo zapisują CRM-y), a oferta i tak pokazuje tylko to, co wybrano.
+                Ponowny klik w zaznaczoną pigułkę odznacza wybór. */}
             <div className="space-y-6">
               <SectionTitle>Prąd</SectionTitle>
               <ChoiceRow
                 value={prad}
                 onChange={(v) => setPrad(v as any)}
+                clearValue="BRAK_PRZYLACZA"
                 options={[
-                  { value: 'BRAK_PRZYLACZA', label: 'Brak przyłącza' },
                   { value: 'PRZYLACZE_NA_DZIALCE', label: 'Na działce' },
                   { value: 'PRZYLACZE_W_DRODZE', label: 'W drodze' },
                   { value: 'WARUNKI_PRZYLACZENIA_WYDANE', label: 'Warunki wydane' },
@@ -2505,8 +2510,8 @@ export default function DzialkaForm({
               <ChoiceRow
                 value={woda}
                 onChange={(v) => setWoda(v as any)}
+                clearValue="BRAK_PRZYLACZA"
                 options={[
-                  { value: 'BRAK_PRZYLACZA', label: 'Brak' },
                   { value: 'WODOCIAG_NA_DZIALCE', label: 'Na działce' },
                   { value: 'WODOCIAG_W_DRODZE', label: 'W drodze' },
                   { value: 'STUDNIA_GLEBINOWA', label: 'Studnia głębinowa' },
@@ -2521,8 +2526,8 @@ export default function DzialkaForm({
               <ChoiceRow
                 value={kanalizacja}
                 onChange={(v) => setKanalizacja(v as any)}
+                clearValue="BRAK"
                 options={[
-                  { value: 'BRAK', label: 'Brak' },
                   { value: 'MIEJSKA_NA_DZIALCE', label: 'Miejska na działce' },
                   { value: 'MIEJSKA_W_DRODZE', label: 'Miejska w drodze' },
                   { value: 'SZAMBO', label: 'Szambo' },
@@ -2538,8 +2543,8 @@ export default function DzialkaForm({
               <ChoiceRow
                 value={gaz}
                 onChange={(v) => setGaz(v as any)}
+                clearValue="BRAK"
                 options={[
-                  { value: 'BRAK', label: 'Brak' },
                   { value: 'GAZ_NA_DZIALCE', label: 'Na działce' },
                   { value: 'GAZ_W_DRODZE', label: 'W drodze' },
                   { value: 'MOZLIWOSC_PODLACZENIA', label: 'Możliwość podłączenia' },
@@ -2553,8 +2558,8 @@ export default function DzialkaForm({
               <ChoiceRow
                 value={swiatlowod}
                 onChange={(v) => setSwiatlowod(v as SwiatlowodStatus)}
+                clearValue="BRAK"
                 options={[
-                  { value: 'BRAK', label: 'Brak' },
                   { value: 'W_DRODZE', label: 'W drodze' },
                   { value: 'NA_DZIALCE', label: 'Na działce' },
                   { value: 'MOZLIWOSC_PODLACZENIA', label: 'Możliwość podłączenia' },

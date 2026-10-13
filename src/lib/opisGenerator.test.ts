@@ -36,7 +36,7 @@ describe('buildOpisZDanych', () => {
     expect(opis).not.toContain('AB1C');
   });
 
-  it('mówi wprost, gdy działka jest nieuzbrojona', () => {
+  it('nie twierdzi, że działka jest nieuzbrojona, gdy media nie są wybrane', () => {
     const opis = buildOpisZDanych({
       przeznaczenia: ['ROLNA'],
       powierzchniaM2: 5000,
@@ -48,7 +48,7 @@ describe('buildOpisZDanych', () => {
     });
 
     expect(opis).toContain('Działka rolna o powierzchni 5 000 m².');
-    expect(opis).toContain('Działka nieuzbrojona.');
+    expect(opis).not.toContain('nieuzbrojona');
   });
 
   it('łączy kilka przeznaczeń spójnikiem, bez przecinka przed „i"', () => {
