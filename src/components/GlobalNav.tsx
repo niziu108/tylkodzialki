@@ -343,6 +343,18 @@ export default function GlobalNav() {
                   </>
                 )}
               </div>
+
+              {/* Druga linia menu: poradniki i ceny, mniejsze i spokojniejsze niż główne akcje
+                  (jak sekcje „Porady" w menu dużych portali). Na komputerze są w stopce. */}
+              <div className="flex items-center gap-3 text-[15px] text-fg/70">
+                <button onClick={() => go('/blog')} className="transition hover:text-fg">
+                  Wiedza o działkach
+                </button>
+                <span aria-hidden="true" className="text-fg/30">·</span>
+                <button onClick={() => go('/ceny')} className="transition hover:text-fg">
+                  Ceny działek
+                </button>
+              </div>
             </div>
           </motion.aside>
         )}
