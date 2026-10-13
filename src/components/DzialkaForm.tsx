@@ -1972,10 +1972,14 @@ export default function DzialkaForm({
               <h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">
                 Sprzedaj działkę
               </h1>
+              {/* Opis tylko na pierwszym kroku: dalej powtarzał się na każdym ekranie
+                  i na telefonie zabierał trzy linie nad polami. */}
+              {step === 0 ? (
               <p className="mt-3 max-w-[42rem] text-[15px] leading-7 text-fg/72">
                 Wystawienie jest bezpłatne, a konto zakładasz dopiero przy publikacji. Ogłoszenie
                 zobaczą kupujący, którzy szukają wyłącznie działek.
               </p>
+              ) : null}
             </div>
           ) : null}
 
@@ -2128,7 +2132,11 @@ export default function DzialkaForm({
                   />
                 </label>
 
-                {location && location.locationMode === 'EXACT' ? (
+                {/* Bez tego przycisku, gdy nasze zdjęcie z lotu ptaka już jest w galerii:
+                    stał obok jako drugi zielony przycisk i nic nie robił. */}
+                {location &&
+                location.locationMode === 'EXACT' &&
+                !(aerialId && uploaded.some((p) => (p.publicId ?? p.url) === aerialId)) ? (
                   <button
                     type="button"
                     onClick={() => void pullAerialPhoto()}
@@ -2151,7 +2159,7 @@ export default function DzialkaForm({
                       setUploaded([]);
                       setActiveIdx(0);
                     }}
-                    className="inline-flex items-center justify-center rounded-2xl border border-fg/15 bg-fg/[0.03] px-5 py-3 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
+                    className="inline-flex items-center justify-center px-2 py-3 text-sm text-fg/62 underline-offset-4 transition hover:text-fg hover:underline"
                   >
                     Usuń wszystkie
                   </button>
@@ -2405,7 +2413,7 @@ export default function DzialkaForm({
               required
               error={fieldErrors.has('telefon')}
             />
-            <p className="mt-2 text-[13px] text-fg/62">Na ten numer kupujący zadzwonią albo napiszą SMS-a.</p>
+            <p className="mt-2 text-[13px] text-fg/62 [text-wrap:pretty]">Na ten numer kupujący zadzwonią albo napiszą SMS-a.</p>
           </div>
           )}
 

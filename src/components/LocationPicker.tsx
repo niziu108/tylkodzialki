@@ -384,7 +384,7 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         value={mode}
         onChange={(v) => setMode(v as LocationMode)}
         options={[
-          { value: 'EXACT', label: 'Dokładna lokalizacja' },
+          { value: 'EXACT', label: 'Dokładna' },
           { value: 'APPROX', label: 'Przybliżona' },
         ]}
       />

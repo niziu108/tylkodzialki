@@ -121,8 +121,10 @@ export function UnderlineField({
 // na dwie linie i były wyższe od sąsiadów. Teraz każda wypełnia komórkę siatki:
 // jednakowa szerokość w kolumnie i jednakowa wysokość (min. 48 px, co przy
 // okazji daje porządny cel dotyku na telefonie), tekst wyśrodkowany.
+// Od 13.10 zwykłymi literami w 14 px (jak filtry na /kup): wersaliki łamały na telefonie
+// „DOKŁADNA / LOKALIZACJA", „BIURO / NIERUCHOMOŚCI" i „MOŻLIWOŚĆ / PRZYŁĄCZENIA".
 const CHIP_BASE =
-  'flex min-h-[48px] items-center justify-center rounded-full border px-2.5 py-2 text-center text-[12px] uppercase leading-[1.25] tracking-[0.06em] transition';
+  'flex min-h-[48px] items-center justify-center rounded-full border px-2.5 py-2 text-center text-[14px] leading-[1.25] transition';
 const CHIP_ON = 'border-brand bg-brand/20 text-brand-text';
 const CHIP_OFF = 'border-fg/25 text-fg/70 hover:border-fg/45';
 

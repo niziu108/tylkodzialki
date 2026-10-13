@@ -1774,7 +1774,7 @@ export default function KupSearch({
                     type="button"
                     onClick={() => toggleTransakcja(t.key)}
                     className={[
-                      'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                      'rounded-full border px-3.5 py-2 text-[14px] transition',
                       active
                         ? 'border-brand bg-brand/20 text-brand-text'
                         : 'border-fg/25 text-fg/70 hover:border-fg/45',
@@ -1800,7 +1800,7 @@ export default function KupSearch({
                     type="button"
                     onClick={() => togglePrzezn(p.key)}
                     className={[
-                      'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                      'rounded-full border px-3.5 py-2 text-[14px] transition',
                       active
                         ? 'border-brand bg-brand/20 text-brand-text'
                         : 'border-fg/25 text-fg/70 hover:border-fg/45',
@@ -1826,7 +1826,7 @@ export default function KupSearch({
                     type="button"
                     onClick={() => toggleMedia(m.key)}
                     className={[
-                      'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                      'rounded-full border px-3.5 py-2 text-[14px] transition',
                       active
                         ? 'border-brand bg-brand/20 text-brand-text'
                         : 'border-fg/25 text-fg/70 hover:border-fg/45',
@@ -1856,7 +1856,7 @@ export default function KupSearch({
                     type="button"
                     onClick={() => toggleDojazd(k)}
                     className={[
-                      'rounded-full border px-3 py-2 text-[12px] uppercase tracking-[0.14em] transition',
+                      'rounded-full border px-3.5 py-2 text-[14px] transition',
                       active
                         ? 'border-brand bg-brand/20 text-brand-text'
                         : 'border-fg/25 text-fg/70 hover:border-fg/45',
