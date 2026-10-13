@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
+import Link from 'next/link';
 import Logo from './Logo';
 
 function BurgerIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -131,53 +132,53 @@ export default function GlobalNav() {
             <Logo className="h-10 lg:h-12" />
           </button>
 
-          <nav className="hidden items-center gap-4 md:flex lg:gap-10">
+          {/* Menu jak na dużych portalach: prawdziwe linki (nowa karta kółkiem myszy, Google widzi
+              nawigację), zaznaczona bieżąca sekcja, a „Sprzedaj działkę" jako przycisk w rogu,
+              bo to akcja, która przynosi podaż. Poniżej lg menu chowa się do burgera. */}
+          <nav className="hidden items-center gap-8 lg:flex xl:gap-10">
+            {([
+              ['/kup', 'Szukaj działki'],
+              ['/sprawdz-dzialke', 'Sprawdź działkę'],
+              ['/dla-biur', 'Dla biur'],
+            ] as const).map(([href, label]) => {
+              const aktywny = pathname === href || !!pathname?.startsWith(`${href}/`);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={aktywny ? 'page' : undefined}
+                  className={`${navBtnBase} ${aktywny ? 'text-fg' : navBtnWhite}`}
+                >
+                  {label}
+                  {aktywny ? (
+                    <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-brand" />
+                  ) : null}
+                </Link>
+              );
+            })}
+
+            <span aria-hidden="true" className="h-6 w-px bg-fg/12" />
+
             {isLogged ? (
-              <button
-                onClick={() => go('/ulubione')}
+              <Link
+                href="/ulubione"
                 className={`${navBtnBase} ${navBtnGreen}`}
                 aria-label="Ulubione działki"
                 title="Ulubione"
               >
                 <HeartIcon className="h-[22px] w-[22px]" />
-              </button>
+              </Link>
             ) : null}
 
-            <button
-              onClick={() => go('/kup')}
-              className={`${navBtnBase} ${navBtnWhite}`}
-            >
-              Szukaj działki
-            </button>
-
-            <button
-              onClick={() => go('/sprzedaj')}
-              className={`${navBtnBase} ${navBtnWhite}`}
-            >
-              Sprzedaj działkę
-            </button>
-
-            <button
-              onClick={() => go('/sprawdz-dzialke')}
-              className={`${navBtnBase} ${navBtnWhite}`}
-            >
-              Sprawdź działkę
-            </button>
-
-            <button
-              onClick={() => go('/dla-biur')}
-              className={`${navBtnBase} ${navBtnWhite}`}
-            >
-              Dla biur
-            </button>
-
             {!isLogged ? (
-              <button
-                onClick={goAuth}
-                className={`${navBtnBase} ${navBtnGreen}`}
+              <Link
+                href="/logowanie"
+                onClick={() => setOpen(false)}
+                className={`${navBtnBase} ${navBtnWhite} gap-2`}
               >
+                <PersonIcon className="h-[20px] w-[20px]" />
                 Zaloguj się
-              </button>
+              </Link>
             ) : (
               <div
                 ref={accountRef}
@@ -188,8 +189,9 @@ export default function GlobalNav() {
                 <button
                   type="button"
                   onClick={() => setAccountOpen((v) => !v)}
-                  className={`${navBtnBase} ${navBtnGreen}`}
+                  className={`${navBtnBase} ${navBtnWhite} gap-2`}
                 >
+                  <PersonIcon className="h-[20px] w-[20px]" />
                   Moje konto
                 </button>
 
@@ -233,6 +235,13 @@ export default function GlobalNav() {
                 </AnimatePresence>
               </div>
             )}
+
+            <Link
+              href="/sprzedaj"
+              className="inline-flex h-11 items-center justify-center rounded-full border border-brand/70 px-6 text-[15px] font-semibold text-brand-text transition hover:border-brand hover:bg-brand hover:text-ink"
+            >
+              Sprzedaj działkę
+            </Link>
           </nav>
         </div>
       </header>
@@ -242,7 +251,7 @@ export default function GlobalNav() {
           type="button"
           aria-label="Ulubione działki"
           onClick={() => go('/ulubione')}
-          className="fixed right-[62px] top-4 z-[120] flex h-10 w-10 items-center justify-center text-brand-text md:hidden"
+          className="fixed right-[62px] top-4 z-[120] flex h-10 w-10 items-center justify-center text-brand-text lg:hidden"
         >
           <HeartIcon className="h-5 w-5" />
         </button>
@@ -252,7 +261,7 @@ export default function GlobalNav() {
         type="button"
         aria-label={isLogged ? 'Moje konto' : 'Zaloguj się lub zarejestruj'}
         onClick={() => (isLogged ? go('/panel') : goAuth())}
-        className={`fixed ${isLogged ? 'right-[108px]' : 'right-[62px]'} top-4 z-[120] flex h-10 w-10 items-center justify-center text-fg/85 md:hidden`}
+        className={`fixed ${isLogged ? 'right-[108px]' : 'right-[62px]'} top-4 z-[120] flex h-10 w-10 items-center justify-center text-fg/85 lg:hidden`}
       >
         <PersonIcon className="h-[22px] w-[22px]" />
       </button>
@@ -260,7 +269,7 @@ export default function GlobalNav() {
       <motion.button
         aria-label={open ? 'Zamknij menu' : 'Otwórz menu'}
         onClick={() => setOpen((s) => !s)}
-        className="fixed right-4 top-4 z-[120] flex h-10 w-10 items-center justify-center p-0 text-fg/85 md:hidden"
+        className="fixed right-4 top-4 z-[120] flex h-10 w-10 items-center justify-center p-0 text-fg/85 lg:hidden"
         animate={{ rotate: open ? 180 : 0 }}
         transition={{ duration: 0.35 }}
       >
@@ -290,7 +299,7 @@ export default function GlobalNav() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '-100%', opacity: 0 }}
             transition={{ duration: 0.28 }}
-            className="fixed inset-0 z-[110] flex flex-col bg-bg text-fg md:hidden"
+            className="fixed inset-0 z-[110] flex flex-col bg-bg text-fg lg:hidden"
           >
             <button
               aria-hidden
