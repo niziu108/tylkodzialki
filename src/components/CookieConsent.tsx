@@ -192,55 +192,44 @@ export default function CookieConsent() {
   return (
     <>
       {showBanner && (
-        <div className="fixed inset-x-0 bottom-0 z-[160] px-4 pb-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-5xl rounded-[28px] border border-fg/10 bg-surface-2/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.10)] backdrop-blur-md sm:p-6">
-            <div className="grid gap-5 lg:grid-cols-[1.5fr_auto] lg:items-end">
-              <div className="space-y-3">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-brand-text">
-                  Pliki cookies
-                </p>
+        // Wąski pasek przy dole ekranu, jak na dużych portalach: jedno zdanie i przyciski
+        // w jednej linii. Wcześniej karta na ok. 300 px zasłaniała środek strony głównej.
+        // „Odrzucam" jest tak samo dostępne jak „Akceptuję" (wymóg RODO, bez ukrywania odmowy).
+        <div className="fixed inset-x-0 bottom-0 z-[160] px-3 pb-3 sm:px-6 sm:pb-5">
+          <div className="mx-auto flex max-w-4xl flex-col gap-3 rounded-2xl border border-fg/10 bg-surface/95 p-4 shadow-[0_16px_50px_rgba(0,0,0,0.12)] backdrop-blur-md md:flex-row md:items-center md:gap-6 md:px-5 md:py-3.5">
+            <p className="text-[13px] leading-5 text-fg/75 md:flex-1 md:text-[14px]">
+              Używamy cookies niezbędnych do działania serwisu, a za Twoją zgodą także analitycznych
+              i marketingowych.{' '}
+              <a href="/cookies" className="text-fg/80 underline decoration-fg/25 underline-offset-2 transition hover:text-fg">
+                Polityka cookies
+              </a>
+            </p>
 
-                <p className="text-sm leading-7 text-fg/72">
-                  Używamy niezbędnych plików cookies, aby serwis działał
-                  prawidłowo. Za Twoją zgodą możemy także używać cookies
-                  analitycznych i marketingowych. Możesz zaakceptować, odrzucić
-                  opcjonalne albo ustawić swoje preferencje.
-                </p>
-
-                <p className="text-xs leading-6 text-fg/68">
-                  Więcej informacji znajdziesz w Polityce cookies i Polityce
-                  prywatności.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={rejectOptional}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-fg/12 px-5 text-sm text-fg/80 transition hover:bg-fg/5 hover:text-fg"
-                >
-                  Odrzucam opcjonalne
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSettings(true);
-                    setShowBanner(false);
-                  }}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-fg/12 px-5 text-sm text-fg/80 transition hover:bg-fg/5 hover:text-fg"
-                >
-                  Ustawienia
-                </button>
-
-                <button
-                  type="button"
-                  onClick={acceptAll}
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-fg transition hover:opacity-90"
-                >
-                  Akceptuję wszystkie
-                </button>
-              </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSettings(true);
+                  setShowBanner(false);
+                }}
+                className="mr-1 px-2 text-[13px] text-fg/70 underline decoration-fg/25 underline-offset-4 transition hover:text-fg"
+              >
+                Ustawienia
+              </button>
+              <button
+                type="button"
+                onClick={rejectOptional}
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-fg/15 px-4 text-[13px] font-medium text-fg/85 transition hover:bg-fg/5 hover:text-fg md:flex-none"
+              >
+                Odrzucam
+              </button>
+              <button
+                type="button"
+                onClick={acceptAll}
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-brand px-4 text-[13px] font-semibold text-ink transition hover:bg-brand-strong md:flex-none"
+              >
+                Akceptuję
+              </button>
             </div>
           </div>
         </div>
