@@ -314,8 +314,17 @@ export default function PanelDzialkiList({ items }: { items: Dzialka[] }) {
 
   if (!items?.length) {
     return (
-      <div className="rounded-3xl border border-fg/12 bg-surface-2/20 p-6 text-fg/70">
-        Nie masz jeszcze żadnych ogłoszeń.
+      <div className="rounded-2xl border border-fg/10 bg-surface px-6 py-8 text-center md:py-10">
+        <div className="text-[17px] font-semibold text-fg">Nie masz jeszcze ogłoszeń</div>
+        <p className="mx-auto mt-2 max-w-sm text-[14px] leading-6 text-fg/68">
+          Wystawienie działki jest bezpłatne i zajmuje kilka minut.
+        </p>
+        <Link
+          href="/sprzedaj"
+          className="mt-5 inline-flex h-12 items-center justify-center rounded-xl bg-brand px-7 text-[15px] font-semibold text-ink transition hover:bg-brand-strong"
+        >
+          Sprzedaj działkę
+        </Link>
       </div>
     );
   }

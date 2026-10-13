@@ -16,6 +16,12 @@ function formatDatePL(value: string | null) {
   return new Date(value).toLocaleDateString('pl-PL');
 }
 
+// „Działki budowlane PUSZCZYKOWO + 5 km" -> „Działki budowlane Puszczykowo + 5 km".
+// Tylko słowa z samych wielkich liter dłuższe niż 3 znaki (skróty typu „MPZP" i tak tu nie trafiają).
+function ladnaEtykieta(label: string) {
+  return label.replace(/\p{Lu}{4,}/gu, (w) => w[0] + w.slice(1).toLowerCase());
+}
+
 export default function PanelAlertsList({ initialAlerts }: { initialAlerts: PanelAlert[] }) {
   const [alerts, setAlerts] = useState<PanelAlert[]>(initialAlerts);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -72,36 +78,43 @@ export default function PanelAlertsList({ initialAlerts }: { initialAlerts: Pane
     );
   }
 
+  // Wiersze z cienką linią zamiast kart w ramkach, akcje zwykłymi słowami zamiast
+  // wersalików w przyciskach (blade „USUŃ" było słabo czytelne). Nazwy miejscowości
+  // z feedów bywają wersalikami („PUSZCZYKOWO"), więc wyświetlamy je normalnie (13.10).
   return (
-    <div className="space-y-3">
+    <div className="divide-y divide-fg/10 border-y border-fg/10">
       {alerts.map((a) => (
         <div
           key={a.id}
-          className="flex flex-col gap-4 rounded-2xl border border-fg/10 bg-fg/[0.03] p-5 md:flex-row md:items-center md:justify-between"
+          className="flex flex-col gap-2.5 py-4 md:flex-row md:items-center md:justify-between md:gap-6"
         >
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span
-                className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase tracking-[0.14em] ${
-                  a.isActive ? 'bg-brand/20 text-brand-text' : 'bg-fg/10 text-fg/70'
-                }`}
-              >
+            <div className="text-[15px] font-medium leading-snug text-fg">{ladnaEtykieta(a.label)}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[13px] text-fg/62">
+              <span className={`inline-flex items-center gap-1.5 ${a.isActive ? 'text-brand-text' : ''}`}>
+                <span
+                  aria-hidden="true"
+                  className={`h-1.5 w-1.5 rounded-full ${a.isActive ? 'bg-brand' : 'bg-fg/30'}`}
+                />
                 {a.isActive ? 'Aktywny' : 'Wstrzymany'}
               </span>
-            </div>
-            <div className="mt-2 truncate text-[15px] font-medium text-fg">{a.label}</div>
-            <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-fg/68">
-              <span>Utworzony: {formatDatePL(a.createdAt)}</span>
-              <span>Ostatni mail: {formatDatePL(a.lastNotifiedAt)}</span>
+              <span aria-hidden="true">·</span>
+              <span>od {formatDatePL(a.createdAt)}</span>
+              {a.lastNotifiedAt ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>ostatni e-mail {formatDatePL(a.lastNotifiedAt)}</span>
+                </>
+              ) : null}
             </div>
           </div>
 
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 items-center gap-5 text-[14px]">
             <button
               type="button"
               onClick={() => toggle(a.id, !a.isActive)}
               disabled={busyId === a.id}
-              className="rounded-xl border border-fg/14 px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/75 transition hover:border-fg/30 hover:text-fg disabled:opacity-50"
+              className="font-medium text-fg/75 underline decoration-fg/20 underline-offset-4 transition hover:text-fg disabled:opacity-50"
             >
               {a.isActive ? 'Wstrzymaj' : 'Wznów'}
             </button>
@@ -109,7 +122,7 @@ export default function PanelAlertsList({ initialAlerts }: { initialAlerts: Pane
               type="button"
               onClick={() => remove(a.id)}
               disabled={busyId === a.id}
-              className="rounded-xl border border-red-400/25 px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-red-300/85 transition hover:border-red-400/55 hover:text-red-300 disabled:opacity-50"
+              className="font-medium text-red-700 underline decoration-red-700/25 underline-offset-4 transition hover:decoration-red-700 disabled:opacity-50"
             >
               Usuń
             </button>

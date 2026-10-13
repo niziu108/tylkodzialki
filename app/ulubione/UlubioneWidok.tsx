@@ -25,7 +25,7 @@ export default function UlubioneWidok({ items }: { items: FavoriteOffer[] }) {
         <div className="mt-5">
           <Link
             href="/kup"
-            className="inline-flex rounded-full border border-brand/60 px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text transition hover:bg-brand hover:text-ink"
+            className="inline-flex rounded-full border border-brand/60 px-5 py-3 text-[14px] font-semibold text-brand-text transition hover:bg-brand hover:text-ink"
           >
             Przeglądaj działki
           </Link>
@@ -36,14 +36,11 @@ export default function UlubioneWidok({ items }: { items: FavoriteOffer[] }) {
 
   return (
     <>
-      <div className="mb-10 border-b border-fg/10 pb-8">
-        <div className="text-[64px] font-semibold leading-none text-brand-text md:text-[88px]">
-          {items.length}
-        </div>
-        <div className="mt-4 inline-block border-b border-brand/55 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-text/80 md:text-[12px]">
-          {odmianaOfert(items.length)}
-        </div>
-      </div>
+      {/* Zwykły nagłówek listy zamiast wielkiej zielonej liczby (88 px) z wersalikiem:
+          to lista do przeglądania, nie statystyka (13.10). */}
+      <h2 className="mb-5 text-[19px] font-semibold tracking-tight text-fg">
+        {items.length} {odmianaOfert(items.length)}
+      </h2>
 
       <KupList items={items} loading={false} error={null} />
     </>

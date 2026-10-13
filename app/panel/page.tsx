@@ -263,43 +263,25 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
   return (
     <main className="min-h-screen bg-bg text-fg/85">
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-8">
-        <div className="mb-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <div className="mb-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
-              {/* Jeden tytul zamiast dwoch: drobne „Panel klienta" nad wielkim „Panel
-                  uzytkownika" bylo tym samym napisem dwa razy. Zostaje zielony naglowek,
-                  a pod nim samo konto (nazwa, jesli jest, i mail). */}
-              <div className="text-[15px] font-semibold uppercase tracking-[0.22em] text-brand-text md:text-[18px]">
-                Panel klienta
-              </div>
-              <div className="mt-3 h-px w-12 bg-brand/55" />
-
-              {user.name ? (
-                <div className="mt-4 truncate text-[24px] font-semibold leading-tight text-fg md:text-[28px]">
-                  {user.name}
-                </div>
-              ) : null}
-
-              {user.email ? (
-                <div className="mt-3 truncate text-[15px] text-fg/72 md:text-[16px]">
-                  {user.email}
+              {/* Tytuł jak w menu („Moje konto"), pod nim jedna linia z kontem. Wcześniej
+                  zielony wersalik „PANEL KLIENTA", kreska, imię i mail osobno: na telefonie
+                  ~200 px nagłówka, zanim pojawiło się cokolwiek do zrobienia (13.10). */}
+              <h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">Moje konto</h1>
+              {user.name || user.email ? (
+                <div className="mt-1.5 truncate text-[14px] text-fg/62">
+                  {[user.name, user.email].filter(Boolean).join(" · ")}
                 </div>
               ) : null}
             </div>
 
             {/* Bez przycisku zakupu w nagłówku: wyróżnienie kupuje się przy konkretnej ofercie
-                („Wyróżnij" w wierszu), a nagłówek ma być spokojny. Duży przycisk tylko dla konta
-                bez ogłoszeń, bo wtedy jedynym sensownym krokiem jest wystawić działkę. */}
+                („Wyróżnij" w wierszu), a nagłówek ma być spokojny. Konto bez ogłoszeń dostaje
+                „Sprzedaj działkę" w pustym stanie listy, nie w nagłówku: na komputerze stał
+                obok identycznego przycisku w menu. */}
             <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
-              {liczbaOfert === 0 ? (
-                <Link
-                  href="/sprzedaj"
-                  className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-6 text-[14px] font-semibold text-ink transition hover:bg-brand-strong"
-                >
-                  Sprzedaj działkę
-                </Link>
-              ) : null}
-
               <div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
                 {liczbaOfert > 0 && user.featuredCredits > 0 ? (
                   <span className="text-brand-text">
@@ -359,24 +341,26 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           ))}
         </div>
 
+        {/* Jeden rząd także na telefonie (krótsze nazwy, w razie czego przewijany w bok):
+            cztery zakładki łamały się na dwie linie. */}
         <div className="mb-8 border-b border-fg/12">
-          <div className="flex flex-wrap gap-x-7 gap-y-2 text-[15px] md:text-[16px]">
+          <div className="-mb-px flex gap-x-6 overflow-x-auto whitespace-nowrap text-[15px] [scrollbar-width:none] md:gap-x-8 md:text-[16px]">
             {(czescKupuje
               ? ([
                   ["ulubione", "Ulubione"],
                   ["alerty", "Alerty"],
                 ] as const)
               : ([
-                  ["ogloszenia", "Twoje ogłoszenia"],
+                  ["ogloszenia", "Ogłoszenia"],
                   ["statystyki", "Statystyki"],
-                  ["crm", "Integracja CRM"],
+                  ["crm", "CRM"],
                   ["faktury", "Faktury"],
                 ] as const)
             ).map(([tab, label]) => (
               <Link
                 key={tab}
                 href={`/panel?tab=${tab}`}
-                className={`-mb-px border-b-2 pb-4 transition ${
+                className={`border-b-2 pb-3.5 transition ${
                   activeTab === tab ? "border-brand text-fg" : "border-transparent text-fg/65 hover:text-fg"
                 }`}
               >
@@ -390,7 +374,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           <>
             {/* Najważniejsze liczby panelu: czy oferty pracują. Ostatnie 30 dni ze snapshotów,
                 a dopóki snapshotów jest za mało, liczby od początku z żywych liczników. */}
-            {(() => {
+            {/* Bez kafli przy pustym koncie: cztery zera i kreski to szum. */}
+            {liczbaOfert > 0 && (() => {
               const ma30 = !!statsSeries && statsSeries.snapshotDaysInWindow >= 2;
               const z = ma30 ? statsSeries!.windowTotals : statsSeries?.allTime ?? null;
               const dopisek = ma30 ? "ostatnie 30 dni" : "łącznie";
@@ -415,6 +400,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               );
             })()}
 
+            {liczbaOfert > 0 ? (
             <div className="mb-4 flex items-center justify-between gap-4">
               <h2 className="text-[19px] font-semibold tracking-tight text-fg">Twoje ogłoszenia</h2>
               {liczbaOfert > 0 ? (
@@ -426,6 +412,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
                 </Link>
               ) : null}
             </div>
+            ) : null}
 
             <PanelDzialkiList items={items as any} />
           </>
