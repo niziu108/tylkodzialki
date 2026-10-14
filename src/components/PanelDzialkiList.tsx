@@ -549,12 +549,12 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
       {/* Wiersz oferty jak w panelach dużych portali: miniatura, najważniejsze dane, wyniki
           i dwie główne akcje. Pełna karta zajmowała cały ekran na ofertę, a przy kilkudziesięciu
           ogłoszeniach panel był długim przewijaniem. Klik w zdjęcie lub tytuł otwiera ofertę. */}
-      <div className="flex gap-4 p-3 sm:gap-5 sm:p-4">
+      <div className="flex gap-3.5 p-3 sm:gap-5 sm:p-4">
         <Link
           href={`/dzialka/${d.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="relative block h-[92px] w-[112px] shrink-0 overflow-hidden rounded-xl bg-fg/5 sm:h-[120px] sm:w-[180px]"
+          className="relative block h-[84px] w-[96px] shrink-0 overflow-hidden rounded-xl bg-fg/5 sm:h-[120px] sm:w-[180px]"
         >
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -580,7 +580,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="text-[18px] font-semibold leading-none text-fg sm:text-[20px]">
+                <span className="whitespace-nowrap text-[18px] font-semibold leading-none text-fg sm:text-[20px]">
                   {d.cenaPln > 0 ? `${formatIntPL(d.cenaPln)} zł` : 'Zapytaj o cenę'}
                   {isRent ? <span className="text-[13px] font-normal text-fg/70">/mc</span> : null}
                 </span>
@@ -590,7 +590,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
                 href={`/dzialka/${d.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-1.5 line-clamp-1 text-[15px] font-medium text-fg/90 hover:underline sm:text-[16px]"
+                className="mt-1.5 line-clamp-2 text-[15px] font-medium leading-snug text-fg/90 hover:underline sm:line-clamp-1 sm:text-[16px]"
               >
                 {d.tytul}
               </Link>
@@ -601,11 +601,15 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
               </div>
             </div>
 
-            <StatusPill ended={ended} featured={isFeaturedActive} wygaslo={d.status !== 'ZAKONCZONE'} />
+            {/* Na telefonie status idzie do stopki wiersza: obok ceny ściskał kolumnę do kilku
+                liter („125 000 / zł", „Działka…", „Ty…") (14.10). */}
+            <div className="hidden sm:block">
+              <StatusPill ended={ended} featured={isFeaturedActive} wygaslo={d.status !== 'ZAKONCZONE'} />
+            </div>
           </div>
 
           {/* Wyniki zawsze na widoku: biuro ocenia portal po tym, czy oferta ma wejścia i telefony. */}
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] tabular-nums text-fg/70">
+          <div className="mt-3 hidden flex-wrap gap-x-5 gap-y-1 text-[13px] tabular-nums text-fg/70 sm:flex">
             <Liczba value={viewsCount} label="wyświetleń" />
             <Liczba value={detailViewsCount} label="wejść" />
             <Liczba value={leadsCount} label="kontaktów" mocno />
@@ -614,8 +618,31 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
         </div>
       </div>
 
+      {/* Telefon: wyniki w jednym pasku na całą szerokość karty, pod miniaturą. */}
+      <div className="grid grid-cols-4 gap-1 px-3 pb-3 text-center tabular-nums sm:hidden">
+        {(
+          [
+            [viewsCount, 'wyświetleń', false],
+            [detailViewsCount, 'wejść', false],
+            [leadsCount, 'kontaktów', true],
+            [favoritesCount, 'zapisów', false],
+          ] as const
+        ).map(([v, l, mocno]) => (
+          <div key={l} className="rounded-lg bg-fg/[0.03] py-1.5">
+            <div className={`text-[15px] font-semibold leading-tight ${mocno && v > 0 ? 'text-brand-text' : 'text-fg'}`}>
+              {formatIntPL(v)}
+            </div>
+            <div className="text-[12px] text-fg/62">{l}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2 border-t border-fg/8 px-3 py-2.5 sm:px-4">
-        <span className="mr-auto text-[12px] text-fg/62">
+        <span className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-fg/62 sm:mr-auto sm:w-auto">
+          <span className="sm:hidden">
+            <StatusPill ended={ended} featured={isFeaturedActive} wygaslo={d.status !== 'ZAKONCZONE'} />
+          </span>
+          <span>
           {isCrm ? (
             <span className="inline-flex items-center gap-1.5">
               <IconSync className="h-3.5 w-3.5 text-brand" />
@@ -633,6 +660,7 @@ function PanelDzialkaCard({ d }: { d: Dzialka }) {
           {isFeaturedActive ? (
             <span className="text-brand-text"> · wyróżnione do {formatDatePL(d.featuredUntil)}</span>
           ) : null}
+          </span>
         </span>
 
         {!isCrm ? (

@@ -151,8 +151,9 @@ export default function PanelStatystyki({
             </div>
           </div>
 
-          {/* Przełącznik metryki — podkreślenia, nie pigułki */}
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-[13px]">
+          {/* Przełącznik metryki — podkreślenia, nie pigułki. Jeden rząd także na telefonie
+              (przewijany w bok), „Wiadomości" spadały do drugiej linii. */}
+          <div className="-mx-1 flex gap-x-4 overflow-x-auto whitespace-nowrap px-1 text-[13px] [scrollbar-width:none] sm:gap-x-5">
             {METRICS.map((m) => {
               const active = m.key === metric;
               return (
