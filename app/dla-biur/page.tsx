@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
-import AgencyCounter from '@/components/AgencyCounter';
+import AgencyCounter, { odmianaBiur } from '@/components/AgencyCounter';
 import DlaBiurForm from '@/components/DlaBiurForm';
 import ScrollFill from '@/components/ScrollFill';
 import { OfficeLogo } from '@/components/OfficeLogo';
@@ -149,14 +149,18 @@ export default async function DlaBiurPage() {
       style={{ background: PAGE_BG }}
     >
       {/* HERO — pełna wysokość; 2 kolumny na desktopie (lewo wielki licznik, prawo teksty), od lewej też na mobile */}
-      <section className="relative flex min-h-[100svh] items-center overflow-hidden border-b border-fg/10">
+      {/* Pełna wysokość tylko od lg: na telefonie hasło stało w środku ekranu z pustym
+          pasem nad nim, a przyciski i pas logotypów spadały pod zgięcie. */}
+      <section className="relative flex items-center overflow-hidden border-b border-fg/10 lg:min-h-[100svh]">
         <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:54px_54px] opacity-35" />
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(122,163,51,0.18),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(47,94,70,0.05),transparent_34%)]" />
         <div className="pointer-events-none absolute left-[-140px] top-24 z-0 h-[420px] w-[420px] rounded-full bg-brand/10 blur-[120px]" />
 
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-16 text-left md:px-10 md:py-20 lg:grid-cols-2 lg:gap-16">
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-12 px-6 pb-12 pt-10 text-left md:px-10 md:py-20 lg:grid-cols-2 lg:gap-16">
+          {/* Wielki licznik tylko na komputerze. Na telefonie stał nad hasłem i spychał
+              przyciski pod ekran; tam liczba biur jest jedną linią pod przyciskami (14.10). */}
           {agencyCount > 0 ? (
-            <div className="flex justify-start">
+            <div className="hidden justify-start lg:flex">
               <AgencyCounter target={agencyCount} />
             </div>
           ) : null}
@@ -194,6 +198,13 @@ export default async function DlaBiurPage() {
                 Jak to działa
               </Link>
             </div>
+
+            {agencyCount > 0 ? (
+              <p className="mt-6 flex items-center gap-2.5 text-[14px] text-fg/72 lg:hidden">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-brand" aria-hidden="true" />
+                Zaufało nam już {agencyCount.toLocaleString('pl-PL')} {odmianaBiur(agencyCount)} nieruchomości
+              </p>
+            ) : null}
           </div>
         </div>
       </section>
@@ -236,7 +247,7 @@ export default async function DlaBiurPage() {
       <section className="relative overflow-hidden">
         <ScrollFill />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-14 md:px-10 md:py-28">
           <div className="max-w-3xl">
             <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
               Integracje
@@ -246,7 +257,7 @@ export default async function DlaBiurPage() {
               Łączymy się z każdym systemem CRM.
             </h2>
 
-            <p className="mt-6 text-base leading-8 text-fg/70 md:text-lg">
+            <p className="mt-4 text-[15px] leading-7 text-fg/70 md:mt-6 md:text-lg md:leading-8">
               Nieważne, w jakim programie prowadzisz oferty. I tak się
               podłączymy. Import działa w tle: nowe działki pojawiają się na
               portalu same, zmiany cen i statusów aktualizują się
@@ -254,21 +265,23 @@ export default async function DlaBiurPage() {
             </p>
           </div>
 
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Na telefonie wiersze z linią zamiast czterech wysokich kart (sekcja miała
+              1640 px), od sm karty jak wcześniej. */}
+          <div className="mt-8 grid border-t border-fg/12 sm:mt-12 sm:gap-5 sm:border-t-0 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f, i) => (
               <div
                 key={f.title}
-                className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-7 backdrop-blur transition hover:border-brand/35"
+                className="group border-b border-fg/12 py-5 sm:rounded-[28px] sm:border sm:bg-surface-2/60 sm:p-7 sm:backdrop-blur sm:transition sm:hover:border-brand/35"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10 text-base font-semibold text-brand-text">
+                <div className="hidden h-12 w-12 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10 text-base font-semibold text-brand-text sm:flex">
                   {String(i + 1).padStart(2, '0')}
                 </div>
 
-                <h3 className="mt-5 text-lg font-semibold text-fg">
+                <h3 className="text-[17px] font-semibold text-fg sm:mt-5 sm:text-lg">
                   {f.title}
                 </h3>
 
-                <p className="mt-3 text-sm leading-7 text-fg/72">{f.body}</p>
+                <p className="mt-1.5 text-sm leading-6 text-fg/72 sm:mt-3 sm:leading-7">{f.body}</p>
               </div>
             ))}
           </div>
@@ -283,7 +296,7 @@ export default async function DlaBiurPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(122,163,51,0.12),transparent_30%),radial-gradient(circle_at_86%_80%,rgba(47,94,70,0.05),transparent_32%)]" />
         <ScrollFill className="md:hidden" />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-14 md:px-10 md:py-28">
           <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
             Jak to działa
           </div>
@@ -292,21 +305,23 @@ export default async function DlaBiurPage() {
             Trzy kroki. Resztę robimy my.
           </h2>
 
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
+          <div className="mt-8 grid border-t border-fg/12 md:mt-12 md:gap-5 md:border-t-0 md:grid-cols-3">
             {STEPS.map((s) => (
               <div
                 key={s.n}
-                className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-8 backdrop-blur transition duration-200 hover:border-brand/50 hover:bg-brand/[0.05]"
+                className="group flex gap-4 border-b border-fg/12 py-5 md:block md:rounded-[28px] md:border md:bg-surface-2/60 md:p-8 md:backdrop-blur md:transition md:duration-200 md:hover:border-brand/50 md:hover:bg-brand/[0.05]"
               >
-                <div className="text-[40px] font-bold leading-none text-brand-strong transition-colors duration-200 group-hover:text-brand-text">
+                <div className="w-9 shrink-0 text-[24px] font-bold leading-none text-brand-strong transition-colors duration-200 group-hover:text-brand-text md:w-auto md:text-[40px]">
                   {s.n}
                 </div>
 
-                <h3 className="mt-5 text-xl font-semibold text-fg">
-                  {s.title}
-                </h3>
+                <div>
+                  <h3 className="text-[17px] font-semibold text-fg md:mt-5 md:text-xl">
+                    {s.title}
+                  </h3>
 
-                <p className="mt-3 text-sm leading-7 text-fg/72">{s.body}</p>
+                  <p className="mt-1.5 text-sm leading-6 text-fg/72 md:mt-3 md:leading-7">{s.body}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -318,7 +333,7 @@ export default async function DlaBiurPage() {
       <section className="relative overflow-hidden">
         <ScrollFill />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-14 md:px-10 md:py-28">
           <div className="max-w-3xl">
             <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">
               Twój klient
@@ -328,23 +343,23 @@ export default async function DlaBiurPage() {
               Kupujący dzwoni prosto do Ciebie.
             </h2>
 
-            <p className="mt-6 text-base leading-8 text-fg/70 md:text-lg">
+            <p className="mt-4 text-[15px] leading-7 text-fg/70 md:mt-6 md:text-lg md:leading-8">
               Nie wchodzimy między Ciebie a klienta. Przy każdej ofercie stoi
               Twoje logo, nazwa biura i numer opiekuna. Zapytanie idzie na ten
               numer, a nie do naszej skrzynki.
             </p>
           </div>
 
-          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="mt-8 grid border-t border-fg/12 sm:mt-12 sm:gap-5 sm:border-t-0 sm:grid-cols-2 lg:grid-cols-4">
             {LEAD_POINTS.map((p) => (
               <li
                 key={p.title}
-                className="group rounded-[28px] border border-fg/12 bg-surface-2/60 p-7 backdrop-blur transition hover:border-brand/35"
+                className="group flex gap-3.5 border-b border-fg/12 py-5 sm:block sm:rounded-[28px] sm:border sm:bg-surface-2/60 sm:p-7 sm:backdrop-blur sm:transition sm:hover:border-brand/35"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/15 sm:mt-0 sm:h-12 sm:w-12 sm:rounded-2xl sm:border sm:border-brand/25 sm:bg-brand/10">
                   <svg
                     viewBox="0 0 20 20"
-                    className="h-5 w-5 text-brand-text"
+                    className="h-3.5 w-3.5 text-brand-text sm:h-5 sm:w-5"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.2"
@@ -356,9 +371,11 @@ export default async function DlaBiurPage() {
                   </svg>
                 </div>
 
-                <h3 className="mt-5 text-lg font-semibold text-fg">{p.title}</h3>
+                <div>
+                  <h3 className="text-[17px] font-semibold text-fg sm:mt-5 sm:text-lg">{p.title}</h3>
 
-                <p className="mt-3 text-sm leading-7 text-fg/72">{p.body}</p>
+                  <p className="mt-1.5 text-sm leading-6 text-fg/72 sm:mt-3 sm:leading-7">{p.body}</p>
+                </div>
               </li>
             ))}
           </ul>
@@ -410,7 +427,7 @@ export default async function DlaBiurPage() {
       <section id="kontakt" className="relative scroll-mt-24 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(122,163,51,0.14),transparent_34%)]" />
 
-        <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 md:px-10 md:py-28">
+        <div className="relative z-10 mx-auto max-w-6xl px-6 py-14 md:px-10 md:py-28">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
             <div>
               <div className="text-[12px] uppercase tracking-[0.22em] text-brand-text">

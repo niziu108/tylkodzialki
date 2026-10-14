@@ -6,6 +6,15 @@ function fmt(n: number): string {
   return n.toLocaleString('pl-PL');
 }
 
+// 1 biuro / 2-4 biura (bez 12-14) / 5+ biur. Wcześniej zawsze „biur", czyli „153 biur".
+export function odmianaBiur(n: number): string {
+  const d = n % 10;
+  const s = n % 100;
+  if (n === 1) return 'biuro';
+  if (d >= 2 && d <= 4 && !(s >= 12 && s <= 14)) return 'biura';
+  return 'biur';
+}
+
 export default function AgencyCounter({ target }: { target: number }) {
   return (
     <div className="flex flex-col items-start leading-none">
@@ -18,7 +27,7 @@ export default function AgencyCounter({ target }: { target: number }) {
       </span>
 
       <span className="mt-1 text-[13px] uppercase tracking-[0.26em] text-brand-text md:text-[16px] lg:text-[18px]">
-        biur nieruchomości
+        {odmianaBiur(target)} nieruchomości
       </span>
     </div>
   );
