@@ -335,7 +335,7 @@ function OpisBlok({
         <button
           type="button"
           onClick={() => setRozwiniety(!rozwiniety)}
-          className="mt-4 flex w-fit text-[12px] uppercase tracking-[0.18em] text-brand-text underline decoration-brand/40 underline-offset-8 transition hover:text-brand-text"
+          className="mt-4 flex w-fit text-[15px] font-medium text-brand-text underline decoration-brand/40 underline-offset-[6px] transition hover:decoration-brand"
         >
           {rozwiniety ? 'Zwiń opis' : 'Pokaż cały opis'}
         </button>
@@ -740,7 +740,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <button
                   type="button"
                   onClick={revealPhone}
-                  className="flex h-11 items-center justify-center rounded-2xl bg-brand px-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-ink transition hover:brightness-105 active:scale-[0.98]"
+                  className="flex h-11 items-center justify-center rounded-2xl bg-brand px-3 text-[15px] font-semibold text-ink transition hover:brightness-105 active:scale-[0.98]"
                 >
                   Pokaż numer
                 </button>
@@ -748,7 +748,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               <button
                 type="button"
                 onClick={openMessage}
-                className="flex h-11 items-center justify-center rounded-2xl border border-brand/60 px-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text transition hover:bg-brand/10 active:scale-[0.98]"
+                className="flex h-11 items-center justify-center rounded-2xl border border-brand/60 px-3 text-[15px] font-semibold text-brand-text transition hover:bg-brand/10 active:scale-[0.98]"
               >
                 Napisz
               </button>
@@ -1092,7 +1092,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             href="/kup"
             scroll={false}
             onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition"
+            className="inline-flex items-center gap-2 text-[14px] leading-none py-2 text-fg/70 hover:text-fg transition"
           >
             <span className="relative top-[-1px]">←</span> {backToMap ? 'Wróć do mapy' : 'Wróć do listy'}
           </Link>
@@ -1126,7 +1126,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             href="/kup"
             scroll={false}
             onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition"
+            className="inline-flex items-center gap-2 text-[14px] leading-none py-2 text-fg/70 hover:text-fg transition"
           >
             <span className="relative top-[-1px]">←</span> {backToMap ? 'Wróć do mapy' : 'Wróć do listy'}
           </Link>
@@ -1148,7 +1148,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
             href="/kup"
             scroll={false}
             onClick={onBackToListClick}
-            className="inline-flex items-center gap-2 text-[13px] leading-none py-2 tracking-[0.18em] uppercase text-fg/70 hover:text-fg transition"
+            className="inline-flex items-center gap-2 text-[14px] leading-none py-2 text-fg/70 hover:text-fg transition"
           >
             <span className="relative top-[-1px]">←</span> {backToMap ? 'Wróć do mapy' : 'Wróć do listy'}
           </Link>
@@ -1305,7 +1305,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
           <aside className="min-w-0 -mx-4 rounded-none bg-surface-2/20 lg:mx-0 lg:rounded-3xl">
             <div ref={parametryRef} className="px-4 pb-6 pt-0 lg:p-7">
               {isRent ? (
-                <span className="mb-1 flex w-fit items-center rounded-full border border-fg/30 bg-fg/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-fg/90 lg:mb-0">
+                <span className="mb-1 flex w-fit items-center rounded-full border border-fg/30 bg-fg/10 px-3 py-1 text-[13px] font-semibold text-fg/90 lg:mb-0">
                   Na wynajem
                 </span>
               ) : null}
@@ -1489,7 +1489,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                         e.preventDefault();
                         cel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }}
-                      className="mt-3 flex w-fit text-[12px] uppercase tracking-[0.18em] text-brand-text underline decoration-brand/40 underline-offset-8 transition hover:text-brand-text"
+                      className="mt-3 flex w-fit text-[15px] font-medium text-brand-text underline decoration-brand/40 underline-offset-[6px] transition hover:decoration-brand"
                     >
                       Raport działki nr {raportDzialki.numer} ↓
                     </a>
@@ -1528,7 +1528,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
       {/* Sygnał, że podgląd jest klikalny i prowadzi do mapy z ofertami w okolicy. */}
       <div className="pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-90 transition group-hover:opacity-100">
-        <span className="m-3 inline-flex items-center gap-2 rounded-full border border-brand/60 bg-bg/90 px-4 py-2 text-[12px] font-medium uppercase tracking-[0.14em] text-fg backdrop-blur">
+        <span className="m-3 inline-flex items-center gap-2 rounded-full border border-brand/60 bg-bg/90 px-4 py-2 text-[14px] font-medium text-fg backdrop-blur">
           Zobacz oferty w okolicy
         </span>
       </div>
@@ -1622,7 +1622,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
       <a
         href={`tel:${telefonHref}`}
         onClick={() => trackContact('phone')}
-        className="flex h-12 items-center justify-center rounded-2xl border border-brand/70 bg-surface-2/92 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/80 shadow-[0_0_22px_rgba(0,0,0,0.08)] transition active:scale-[0.98]"
+        className="flex h-12 items-center justify-center rounded-2xl border border-brand/70 bg-surface-2/92 text-[16px] font-semibold text-fg/85 shadow-[0_0_22px_rgba(0,0,0,0.08)] transition active:scale-[0.98]"
       >
         Zadzwoń
       </a>
@@ -1631,7 +1631,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
         <a
           href={smsHref}
           onClick={() => trackContact('message')}
-          className="flex h-12 items-center justify-center rounded-2xl border border-fg/15 bg-brand/95 text-[12px] font-semibold uppercase tracking-[0.18em] text-ink shadow-[0_0_22px_rgba(0,0,0,0.08)] transition active:scale-[0.98]"
+          className="flex h-12 items-center justify-center rounded-2xl border border-fg/15 bg-brand/95 text-[16px] font-semibold text-ink shadow-[0_0_22px_rgba(0,0,0,0.08)] transition active:scale-[0.98]"
         >
           Napisz
         </a>
@@ -1656,7 +1656,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               ♡
             </div>
 
-            <div className="text-[25px] font-semibold uppercase tracking-[0.13em] text-fg">
+            <div className="text-[24px] font-semibold tracking-tight text-fg">
               Zapisz ofertę
             </div>
 
@@ -1668,14 +1668,14 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
               <button
                 type="button"
                 onClick={() => setFavoriteModalOpen(false)}
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-fg/12 bg-fg/[0.035] px-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/75 transition hover:bg-fg/[0.06] hover:text-fg"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-fg/12 bg-fg/[0.035] px-4 text-[15px] font-semibold text-fg/75 transition hover:bg-fg/[0.06] hover:text-fg"
               >
                 Przeglądaj dalej
               </button>
 
               <Link
                 href="/logowanie"
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-4 text-[12px] font-black uppercase tracking-[0.18em] text-ink transition hover:brightness-110"
+                className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-4 text-[15px] font-semibold text-ink transition hover:brightness-110"
               >
                 Przejdź do logowania
               </Link>
@@ -1745,7 +1745,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <button
                   type="button"
                   onClick={() => setMsgOpen(false)}
-                  className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-2xl border border-fg/12 bg-fg/[0.035] px-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-fg/75 transition hover:bg-fg/[0.06] hover:text-fg"
+                  className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-2xl border border-fg/12 bg-fg/[0.035] px-4 text-[15px] font-semibold text-fg/75 transition hover:bg-fg/[0.06] hover:text-fg"
                 >
                   Gotowe
                 </button>
@@ -1764,7 +1764,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                 <button
                   type="button"
                   onClick={() => setMsgOpen(false)}
-                  className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-brand px-4 text-[12px] font-black uppercase tracking-[0.18em] text-ink transition hover:brightness-110"
+                  className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-brand px-4 text-[15px] font-semibold text-ink transition hover:brightness-110"
                 >
                   Gotowe
                 </button>
@@ -1873,7 +1873,7 @@ const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
                   <button
                     type="submit"
                     disabled={msgSending}
-                    className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-6 text-[12px] font-black uppercase tracking-[0.18em] text-ink transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-6 text-[15px] font-semibold text-ink transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {msgSending ? 'Wysyłanie…' : 'Wyślij wiadomość'}
                   </button>
