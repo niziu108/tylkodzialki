@@ -49,26 +49,6 @@ type Props = {
   userEmail?: string | null;
 };
 
-// Kroki "jak podłączyć CRM" pokazywane biuru bez integracji (lokalne dane tekstowe,
-// nie komponent — współdzielony pozostaje sam formularz DlaBiurForm).
-const CONNECT_STEPS = [
-  {
-    n: "01",
-    title: "Zgłoś się do nas",
-    body: "Wypełnij formularz poniżej. Dopytamy o Twój system CRM i liczbę ofert działek.",
-  },
-  {
-    n: "02",
-    title: "Podłączamy Twój CRM",
-    body: "Konfigurujemy integrację po naszej stronie. Nie musisz nic instalować ani programować.",
-  },
-  {
-    n: "03",
-    title: "Oferty zawsze aktualne",
-    body: "Działki importują się i synchronizują automatycznie. Ty zajmujesz się sprzedażą.",
-  },
-];
-
 // Trzy stany statusu z briefu: Oczekuje na konfigurację / Aktywna / Błąd synchronizacji.
 // "Błąd synchronizacji" opieramy na lastErrorMessage — przy udanej synchronizacji
 // worker czyści to pole do null, więc sygnał jest aktualny, nie zaległy.
@@ -262,8 +242,8 @@ export default function CrmIntegrationPanel({
               automatycznie synchronizowane z tylkodzialki.pl.
             </p>
 
-            <div className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-yellow-500/25 bg-yellow-500/10 px-4 py-2.5 text-sm font-semibold text-yellow-200">
-              <span className="h-2 w-2 rounded-full bg-yellow-300" />
+            <div className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-amber-600/25 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-800">
+              <span className="h-2 w-2 rounded-full bg-amber-500" />
               Status: Oczekuje na konfigurację
             </div>
           </div>
@@ -271,53 +251,25 @@ export default function CrmIntegrationPanel({
       );
     }
 
-    // Brak integracji i brak zgłoszenia: jak podłączyć + współdzielony formularz.
+    // Brak integracji i brak zgłoszenia: jedno zdanie, status i formularz. Wcześniej plakietka,
+    // nagłówek, trzy karty kroków i formularz w ramce w ramce (ok. 4 ekrany na telefonie),
+    // a „jak to działa" i tak opisuje /dla-biur (14.10).
     return (
-      <div className="rounded-[28px] border border-fg/10 bg-fg/[0.03] p-8 md:p-10">
-        <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="max-w-2xl">
-            <div className="inline-flex rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-text">
-              Integracja CRM
-            </div>
+      <div>
+        <p className="max-w-2xl text-[15px] leading-7 text-fg/72">
+          Podłączamy Twój system po naszej stronie, bez instalowania czegokolwiek. Działki
+          importują się same i aktualizują automatycznie.{" "}
+          <a href="/dla-biur" className="text-brand-text underline decoration-brand/30 underline-offset-4 hover:decoration-brand">
+            Jak to działa
+          </a>
+        </p>
 
-            <h2 className="mt-4 text-2xl font-semibold text-fg">
-              Podłącz swój CRM
-            </h2>
-
-            <p className="mt-3 leading-7 text-fg/70">
-              Łączymy się z Twoim systemem po naszej stronie. Nie musisz nic
-              instalować ani programować. Wypełnij formularz, a zajmiemy się
-              resztą: Twoje działki będą się importować i codziennie
-              synchronizować automatycznie.
-            </p>
-          </div>
-
-          <div className="shrink-0 rounded-2xl border border-fg/10 bg-surface px-4 py-3 text-sm">
-            <div className="text-fg/68">Status</div>
-            <div className="mt-1 font-semibold text-fg/70">
-              Brak integracji
-            </div>
-          </div>
+        <div className="mt-4 inline-flex items-center gap-2 text-[14px] text-fg/70">
+          <span className="h-2 w-2 rounded-full bg-fg/30" aria-hidden="true" />
+          Status: brak integracji
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {CONNECT_STEPS.map((s) => (
-            <div
-              key={s.n}
-              className="rounded-2xl border border-fg/10 bg-surface p-5"
-            >
-              <div className="text-2xl font-bold leading-none text-brand-strong">
-                {s.n}
-              </div>
-              <h3 className="mt-3 text-base font-semibold text-fg">
-                {s.title}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-fg/70">{s.body}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 rounded-[24px] border border-fg/12 bg-surface-2/60 p-6 md:p-8">
+        <div className="mt-6 max-w-2xl rounded-2xl border border-fg/10 bg-surface p-5 md:p-7">
           <DlaBiurForm
             initialValues={{ email: userEmail ?? "" }}
             onSuccess={markRequested}

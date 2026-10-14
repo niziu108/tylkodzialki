@@ -560,10 +560,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
         ) : (
           <>
             <div className="mb-5 text-[19px] font-medium text-fg">
-              Integracje CRM{" "}
-              <span className="text-[15px] font-normal text-fg/62">
-                (dla biur)
-              </span>
+              Integracja CRM
             </div>
 
             <CrmIntegrationPanel
