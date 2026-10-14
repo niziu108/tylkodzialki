@@ -170,7 +170,11 @@ function pinIcon(text: string, state: PinState): google.maps.Icon {
 }
 
 function clusterIcon(count: number): google.maps.Icon {
-  const size = count < 10 ? 42 : count < 50 ? 50 : count < 200 ? 58 : count < 1000 ? 66 : 74;
+  // Na telefonie bąble o ok. 1/5 mniejsze: przy widoku całej Polski na 375 px najeżdżały
+  // na siebie i zasłaniały mapę (14.10).
+  const maly = typeof window !== 'undefined' && window.innerWidth < 640;
+  const base = count < 10 ? 42 : count < 50 ? 50 : count < 200 ? 58 : count < 1000 ? 66 : 74;
+  const size = maly ? Math.round(base * 0.8) : base;
   const cached = clusterIconCache.get(size);
   if (cached) return cached;
 
@@ -498,7 +502,8 @@ export default function KupMap({
           // — satelita jest świetna do oglądania działek.
           styles: MAP_STYLE,
           disableDefaultUI: true,
-          zoomControl: true,
+          // Na telefonie bez przycisków +/- (przybliża się dwoma palcami), zostają na komputerze.
+          zoomControl: typeof window === 'undefined' || window.innerWidth >= 640,
           mapTypeControl: true,
           mapTypeControlOptions: {
             // Na telefonie pasek „Mapa | Satelita” zajmował pół szerokości ekranu i wchodził
@@ -515,6 +520,14 @@ export default function KupMap({
           minZoom: 5,
         });
         mapRef.current = map;
+
+        // Bez wybranej lokalizacji pokazujemy całą Polskę dopasowaną do ekranu. Stały zoom 6
+        // na telefonie ucinał Szczecin i Lublin, a na szerokim ekranie zostawiał pustkę.
+        if (!center) {
+          // Ruch kamery z kodu, nie od użytkownika: bez „Szukaj w tym obszarze" na starcie.
+          programmaticRef.current = true;
+          map.fitBounds({ south: 49.0, west: 14.1, north: 54.85, east: 24.15 }, 8);
+        }
 
         // Okrąg „obszaru" pokazywany po kliknięciu pinu z przybliżoną lokalizacją.
         circleRef.current = new google.maps.Circle({
@@ -673,7 +686,7 @@ export default function KupMap({
           <button
             type="button"
             onClick={handleSearchArea}
-            className="pointer-events-auto rounded-full border border-brand/60 bg-bg/95 px-4 py-2 text-[12px] font-medium uppercase tracking-[0.14em] text-fg shadow-[0_10px_30px_rgba(0,0,0,0.10)] backdrop-blur transition hover:border-brand hover:bg-surface sm:px-5 sm:py-2.5 sm:text-[12px]"
+            className="pointer-events-auto rounded-full border border-brand/60 bg-bg/95 px-4 py-2 text-[14px] font-medium text-fg shadow-[0_10px_30px_rgba(0,0,0,0.10)] backdrop-blur transition hover:border-brand hover:bg-surface sm:px-5 sm:py-2.5"
           >
             Szukaj w tym obszarze
           </button>
@@ -682,7 +695,7 @@ export default function KupMap({
 
       {/* Licznik ofert w kadrze (chowany, gdy otwarta karta oferty). */}
       {ready && !error && !selected && (
-        <div className="pointer-events-none absolute bottom-10 left-3 z-[5] rounded-full bg-bg/90 px-3 py-1.5 text-[12px] uppercase tracking-[0.14em] text-fg/70 backdrop-blur">
+        <div className="pointer-events-none absolute bottom-10 left-3 z-[5] rounded-full bg-bg/90 px-3 py-1.5 text-[13px] text-fg/72 backdrop-blur">
           {loaded ? `${formatIntPL(total)} w tym widoku` : 'Ładowanie…'}
         </div>
       )}
@@ -702,7 +715,7 @@ export default function KupMap({
           <button
             type="button"
             onClick={onOpenFilters}
-            className="flex items-center gap-2 rounded-full border border-fg/20 bg-bg/95 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.1em] text-fg shadow-lg backdrop-blur transition hover:border-fg/40 sm:px-4 sm:py-2.5 sm:tracking-[0.16em]"
+            className="flex items-center gap-2 rounded-full border border-fg/20 bg-bg/95 px-3.5 py-2 text-[14px] font-medium text-fg shadow-lg backdrop-blur transition hover:border-fg/40 sm:px-4 sm:py-2.5"
           >
             Filtry
             {filtersCount > 0 ? (
@@ -716,9 +729,18 @@ export default function KupMap({
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center gap-1.5 rounded-full border border-fg/20 bg-bg/95 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.1em] text-fg shadow-lg backdrop-blur transition hover:border-fg/40 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.16em]"
+            className="flex items-center gap-1.5 rounded-full border border-fg/20 bg-bg/95 px-3.5 py-2 text-[14px] font-medium text-fg shadow-lg backdrop-blur transition hover:border-fg/40 sm:gap-2 sm:px-4 sm:py-2.5"
           >
-            <span className="text-[15px] leading-none">{closeLabel ? '←' : '×'}</span> {closeLabel ?? 'Lista'}
+            {/* „Lista" z ikoną listy zamiast „×": krzyżyk czytał się jak „zamknij", a to
+                przełączenie widoku. */}
+            {closeLabel ? (
+              <span className="text-[15px] leading-none">←</span>
+            ) : (
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
+              </svg>
+            )}{' '}
+            {closeLabel ?? 'Lista'}
           </button>
         )}
       </div>
