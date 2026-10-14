@@ -29,8 +29,13 @@ export function ladnaLokalizacja(label?: string | null): string {
 }
 
 function bezDopisku(nazwa: string): string {
-  // „Człuchów (miasto)", „Bełżyce (gw)" → sama nazwa.
-  return nazwa.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  // „Człuchów (miasto)", „Bełżyce (gw)" → sama nazwa. Do tego słowo „gmina" z feedów:
+  // „Czerwieńsk-gmina", „Chełmża - gmina", „GMINA ZALEWO", „Zapolice - gmina wiejska".
+  return nazwa
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/^gmina\s+/i, '')
+    .replace(/\s*-?\s*gmina(\s+(miejska|wiejska|miejsko-wiejska))?\s*$/i, '')
+    .trim();
 }
 
 /**

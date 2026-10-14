@@ -37,6 +37,15 @@ describe('pelnaLokalizacja', () => {
     ).toBe('Wierzbica, pow. radomski, woj. mazowieckie');
   });
 
+  it('zdejmuje słowo „gmina" z nazwy gminy z feedu', () => {
+    const gm = (g: string) => pelnaLokalizacja({ label: 'Leśniów Wielki', gmina: g });
+    expect(gm('Czerwieńsk-gmina')).toBe('Leśniów Wielki, gm. Czerwieńsk');
+    expect(gm('Chełmża - gmina')).toBe('Leśniów Wielki, gm. Chełmża');
+    expect(gm('GMINA ZALEWO')).toBe('Leśniów Wielki, gm. Zalewo');
+    expect(gm('Zapolice - gmina wiejska')).toBe('Leśniów Wielki, gm. Zapolice');
+    expect(gm('TOMASZÓW LUBELSKI GMINA')).toBe('Leśniów Wielki, gm. Tomaszów Lubelski');
+  });
+
   it('pomija powiat miasta na prawach powiatu', () => {
     expect(pelnaLokalizacja({ label: 'Kraków', gmina: 'Kraków', powiat: 'powiat Kraków', woj: 'małopolskie' })).toBe(
       'Kraków, woj. małopolskie'

@@ -2052,7 +2052,7 @@ export default function KupSearch({
                 <button
                   type="button"
                   onClick={openMap}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[13px] font-medium uppercase tracking-[0.10em] text-fg/90 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[15px] font-medium text-fg/90 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
                 >
                   <MapGlyph className="h-4 w-4 text-brand" />
                   Mapa
@@ -2065,7 +2065,7 @@ export default function KupSearch({
                     setSearchOpen(true);
                     setExpanded(true);
                   }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[13px] font-medium uppercase tracking-[0.10em] text-fg/90 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-fg/25 bg-surface-2/78 py-3 text-[15px] font-medium text-fg/90 backdrop-blur-sm transition hover:border-fg/40 md:flex-none md:px-8"
                 >
                   Filtry
                   {aktywneFiltry.length ? (
@@ -2169,7 +2169,7 @@ export default function KupSearch({
           <button
             type="button"
             onClick={() => setSortOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-xl border border-fg/25 px-4 py-2.5 text-[12px] uppercase tracking-[0.18em] text-fg/80 transition hover:border-fg/40"
+            className="flex items-center gap-2 rounded-xl border border-fg/25 px-4 py-2.5 text-[14px] text-fg/80 transition hover:border-fg/40"
           >
             {SORT_OPTIONS.find((o) => o.value === applied.sort)?.label ?? 'Najnowsze'}
             <span className="text-[8px] text-fg/64">{sortOpen ? '▲' : '▼'}</span>

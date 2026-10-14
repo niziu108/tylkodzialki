@@ -390,19 +390,21 @@ function Carousel({
             </div>
           ) : null}
 
+          {/* Strzałki tylko na komputerze (po najechaniu). Na telefonie zdjęcia przesuwa się
+              palcem, a dwa szare kółka zasłaniały środek każdego zdjęcia na liście (14.10). */}
           {list.length > 1 && (
             <>
               <button
                 type="button"
                 onClick={prev}
-                className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute left-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white backdrop-blur-sm transition md:block md:opacity-0 md:group-hover:opacity-100"
               >
                 ‹
               </button>
               <button
                 type="button"
                 onClick={next}
-                className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white opacity-100 backdrop-blur-sm transition md:opacity-0 md:group-hover:opacity-100"
+                className="absolute right-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 rounded-full bg-black/40 text-white backdrop-blur-sm transition md:block md:opacity-0 md:group-hover:opacity-100"
               >
                 ›
               </button>
