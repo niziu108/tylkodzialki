@@ -331,6 +331,9 @@ export async function getFeaturedListings(limit = 8) {
     WHERE status::text = 'AKTYWNE'
       AND ("expiresAt" IS NULL OR "expiresAt" > NOW())
       AND "isFeatured" = false
+      -- Dobór na główną tylko ze zdjęciem: karta „Zdjęcie wkrótce" w najbardziej widocznym
+      -- miejscu wyglądała jak błąd (14.10). Płatnych wyróżnień ten warunek nie dotyczy.
+      AND EXISTS (SELECT 1 FROM "Zdjecie" z WHERE z."dzialkaId" = "Dzialka".id)
     ORDER BY md5(id || ${seed})
     LIMIT ${fillCount}
   `;

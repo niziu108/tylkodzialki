@@ -181,7 +181,12 @@ function PopularSearchesSection({ ceny }: { ceny: PolandPriceBoard | null }) {
                   ) : null}
 
                   <div className={`${regionCena ? "mt-5" : "mt-7"} grid gap-2`}>
-                    {region.cities.map((city) => {
+                    {(() => {
+                      // Miasto bez mediany (za mało ofert, np. Prudnik) stało bez ceny. Pokazujemy
+                      // tylko miasta z ceną, chyba że cen nie ma wcale (wtedy same linki).
+                      const zCena = region.cities.filter((c) => !!cityMedian.get(c.slug));
+                      return zCena.length ? zCena : region.cities;
+                    })().map((city) => {
                       const cena = cityMedian.get(city.slug) ?? null;
                       return (
                         <Link
@@ -226,8 +231,10 @@ export default async function HomePage() {
 
   const [featuredListings, latestArticles, listingCount, przyklad, ceny, noweTydzien] = await Promise.all([
     getFeaturedListings(8),
+    // Na głównej tylko poradniki dla kupujących. „Aktualności" (np. współpraca z CRM)
+    // są dla biur i zostają na blogu (14.10).
     prisma.article.findMany({
-      where: { isPublished: true },
+      where: { isPublished: true, OR: [{ category: null }, { category: { not: "aktualnosci" } }] },
       orderBy: [{ createdAt: "desc" }],
       take: 6,
     }),
@@ -397,18 +404,19 @@ export default async function HomePage() {
               </h2>
 
               <div className="mt-8 grid gap-x-14 gap-y-4 sm:grid-cols-2 lg:grid-cols-1">
-                {W_RAPORCIE.map((item) => (
-                  <div key={item} className="flex items-start gap-3">
+                {/* Na telefonie trzy najmocniejsze punkty (sekcja miała 1,5 ekranu), reszta od sm. */}
+                {W_RAPORCIE.map((item, i) => (
+                  <div key={item} className={`items-start gap-3 ${i >= 3 ? "hidden sm:flex" : "flex"}`}>
                     <CheckIcon className="mt-[3px] h-[18px] w-[18px]" />
                     <p className="text-[15px] leading-7 text-fg/75">{item}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-10">
+              <div className="mt-8 md:mt-10">
                 <Link
                   href="/sprawdz-dzialke"
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-brand-bright"
+                  className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-brand px-8 text-[15px] font-semibold text-ink transition hover:bg-brand-bright sm:w-auto"
                 >
                   Sprawdź swoją działkę
                 </Link>
