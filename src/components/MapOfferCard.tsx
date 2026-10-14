@@ -149,7 +149,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
           >
             {/* Karuzela */}
             <div
-              className="relative aspect-[16/10] w-full overflow-hidden bg-surface-2 md:aspect-[16/9]"
+              className="relative aspect-[2/1] w-full overflow-hidden bg-surface-2 md:aspect-[16/9]"
               onTouchStart={(e) => {
                 touchStartX.current = e.changedTouches[0]?.clientX ?? null;
               }}
@@ -181,13 +181,13 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
 
               {pin.featured && (
-                <span className="absolute left-3 top-3 rounded-full border border-brand/40 bg-brand/90 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-black">
+                <span className="absolute left-3 top-3 rounded-full border border-brand/40 bg-brand/90 px-2.5 py-1 text-[12px] font-semibold tracking-[0.08em] text-black">
                   WYRÓŻNIONE
                 </span>
               )}
 
               {isRent && (
-                <span className="absolute left-3 bottom-3 rounded-full border border-white/30 bg-black/65 px-2.5 py-1 text-[9px] font-semibold tracking-[0.14em] text-white backdrop-blur-sm">
+                <span className="absolute left-3 bottom-3 rounded-full border border-white/30 bg-black/65 px-2.5 py-1 text-[12px] font-semibold tracking-[0.08em] text-white backdrop-blur-sm">
                   NA WYNAJEM
                 </span>
               )}
@@ -198,7 +198,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
                     type="button"
                     aria-label="Poprzednie zdjęcie"
                     onClick={(e) => go(-1, e)}
-                    className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/70"
+                    className="absolute left-2 top-1/2 hidden h-8 w-8 md:flex -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/70"
                   >
                     ‹
                   </button>
@@ -206,7 +206,7 @@ export default function MapOfferCard({ pin, onClose }: { pin: MapPin; onClose?: 
                     type="button"
                     aria-label="Następne zdjęcie"
                     onClick={(e) => go(1, e)}
-                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/70"
+                    className="absolute right-2 top-1/2 hidden h-8 w-8 md:flex -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/70"
                   >
                     ›
                   </button>
