@@ -521,13 +521,9 @@ export default function KupMap({
         });
         mapRef.current = map;
 
-        // Bez wybranej lokalizacji pokazujemy całą Polskę dopasowaną do ekranu. Stały zoom 6
-        // na telefonie ucinał Szczecin i Lublin, a na szerokim ekranie zostawiał pustkę.
-        if (!center) {
-          // Ruch kamery z kodu, nie od użytkownika: bez „Szukaj w tym obszarze" na starcie.
-          programmaticRef.current = true;
-          map.fitBounds({ south: 49.0, west: 14.1, north: 54.85, east: 24.15 }, 8);
-        }
+        // Start bez lokalizacji zostaje na zoomie 6 ze środkiem Polski. Próba fitBounds do
+        // granic kraju (14.10) na telefonie skakała do zoomu 5 (Google ma tylko całe stopnie),
+        // czyli pół Europy z małą Polską. Lepiej lekko uciąć brzegi niż zgubić kraj.
 
         // Okrąg „obszaru" pokazywany po kliknięciu pinu z przybliżoną lokalizacją.
         circleRef.current = new google.maps.Circle({
