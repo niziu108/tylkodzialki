@@ -116,11 +116,13 @@ function SmartImg({
   alt,
   className,
   eager = false,
+  onError,
 }: {
   src: string;
   alt: string;
   className?: string;
   eager?: boolean;
+  onError?: () => void;
 }) {
   return (
     <img
@@ -130,6 +132,7 @@ function SmartImg({
       loading={eager ? 'eager' : 'lazy'}
       decoding="async"
       draggable={false}
+      onError={onError}
     />
   );
 }
@@ -287,9 +290,16 @@ function Carousel({
   /** Rail wyróżnionych: wyższy kadr zdjęcia na mobile (karta szersza, foto większe). */
   fill?: boolean;
 }) {
+  // Zdjęcia, które się nie wczytały (np. import CRM podmienił pliki, a strona z cache ma stare
+  // adresy): wypadają z listy, karta pokazuje kolejne, a bez żadnego neutralne tło zamiast
+  // podpisu w pustym prostokącie (15.10).
+  const [zepsute, setZepsute] = useState<Set<string>>(() => new Set());
   const list = useMemo(
-    () => (photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : []),
-    [photos, coverFallback]
+    () =>
+      (photos.length ? photos.map((p) => p.url) : coverFallback ? [coverFallback] : []).filter(
+        (u) => !zepsute.has(u)
+      ),
+    [photos, coverFallback, zepsute]
   );
 
   const has = list.length > 0;
@@ -366,10 +376,16 @@ function Carousel({
       {has ? (
         <>
           <SmartImg
+            key={list[i] ?? list[0]}
             src={list[i] ?? list[0]}
             alt={title}
             className="h-full w-full object-cover"
             eager={eagerImage}
+            onError={() => {
+              const u = list[i] ?? list[0];
+              setZepsute((s) => new Set(s).add(u));
+              setI(0);
+            }}
           />
 
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
