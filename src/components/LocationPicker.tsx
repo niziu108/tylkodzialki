@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { createParcelOverlay } from '@/lib/parcelOverlay';
-import { Tabs } from '@/components/dzialka-form/ui';
 
 type LocationMode = 'EXACT' | 'APPROX';
 
@@ -379,16 +378,6 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         className="field-box w-full text-[16px] text-fg outline-none placeholder:text-fg/45 focus:ring-0"
       />
 
-      {/* Te same zielone pigułki co reszta wyborów w kreatorze (np. sprzedaż / wystawienie). */}
-      <Tabs
-        value={mode}
-        onChange={(v) => setMode(v as LocationMode)}
-        options={[
-          { value: 'EXACT', label: 'Dokładna' },
-          { value: 'APPROX', label: 'Przybliżona' },
-        ]}
-      />
-
       {/* Przycisk mapy jest zielony, dopóki mapa to następny krok (dokładna lokalizacja bez
           wskazanej działki). Potem obrysowany, żeby nie konkurował z „Dalej". */}
       {(() => {
@@ -396,13 +385,16 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         const mapaToNastepnyKrok = mode === 'EXACT' && !recznyPunkt;
         return (
           <>
+            {/* Jeden przycisk na całą szerokość pod polem, zamiast pary pigułek „Dokładna /
+                Przybliżona" i krótszego przycisku pod nimi (krzywo, dwa zielone elementy jeden
+                pod drugim). Wybór „tylko okolica" to przełącznik niżej (15.10). */}
             <button
               type="button"
               onClick={() => setMapOpen(true)}
               className={
                 mapaToNastepnyKrok
-                  ? 'inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-6 text-[15px] font-semibold text-ink transition hover:bg-brand-bright'
-                  : 'inline-flex h-12 items-center gap-2 rounded-xl border border-brand/60 px-6 text-[15px] font-semibold text-brand-text transition hover:bg-brand/10'
+                  ? 'inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand px-6 text-[15px] font-semibold text-ink transition hover:bg-brand-bright'
+                  : 'inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-brand/60 px-6 text-[15px] font-semibold text-brand-text transition hover:bg-brand/10'
               }
             >
               <PinGlyph />
@@ -413,6 +405,8 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
                   : 'Wskaż na mapie'}
             </button>
 
+            {/* Przy „tylko okolica" opis jest przy przełączniku, więc tu bez powtórzenia. */}
+            {mode === 'EXACT' ? (
             <p className="text-[13px] leading-relaxed text-fg/68">
               {mode === 'EXACT'
                 ? recznyPunkt
@@ -422,6 +416,26 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
                     : 'Wpisz miejscowość, a potem kliknij swoją działkę na mapie. Uzupełnimy jej dane z ewidencji.'
                 : 'Na mapie ogłoszenia pokażemy przybliżony obszar (okrąg ok. 800 m).'}
             </p>
+            ) : null}
+
+            <label className="flex cursor-pointer items-start gap-3 border-t border-fg/10 pt-5">
+              <input
+                type="checkbox"
+                className="peer sr-only"
+                checked={mode === 'APPROX'}
+                onChange={(e) => setMode((e.target.checked ? 'APPROX' : 'EXACT') as LocationMode)}
+              />
+              <span
+                aria-hidden="true"
+                className="relative mt-0.5 h-6 w-10 shrink-0 rounded-full bg-fg/15 transition peer-checked:bg-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-4"
+              />
+              <span>
+                <span className="block text-[15px] font-medium text-fg">Pokaż kupującym tylko okolicę</span>
+                <span className="mt-0.5 block text-[13px] leading-5 text-fg/62">
+                  Zamiast dokładnego miejsca na mapie będzie okrąg ok. 800 m.
+                </span>
+              </span>
+            </label>
           </>
         );
       })()}

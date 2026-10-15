@@ -1976,31 +1976,12 @@ export default function DzialkaForm({
               zdjęte od razu: koszt oraz konto. Wcześniej padały dopiero w bramce logowania,
               czyli po wypełnieniu całego kreatora. Tylko w trybie dodawania. */}
           {mode === 'create' ? (
-            <div className="mb-6 md:mb-8">
-              <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-fg md:text-[36px]">
+            <div>
+              {/* Bez widocznego nagłówka nad kartą: kto tu wszedł, wie, że dodaje ogłoszenie, więc
+                  od razu „Krok 1 z 5". H1 zostaje dla wyszukiwarki i czytników ekranu (15.10). */}
+              <h1 className="sr-only">
                 Sprzedaj działkę
               </h1>
-              {/* Opis i korzyści tylko na pierwszym kroku: dalej powtarzały się na każdym
-                  ekranie i na telefonie zabierały miejsce nad polami. */}
-              {step === 0 ? (
-                <>
-                  <p className="mt-2 max-w-[38rem] text-[15px] leading-7 text-fg/70 md:text-[16px]">
-                    Twoje ogłoszenie zobaczą ludzie, którzy szukają wyłącznie działek.
-                  </p>
-                  <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2.5 text-[14px] text-fg/80">
-                    {['Bezpłatnie', 'Konto zakładasz na końcu', 'Raport działki pod ogłoszeniem'].map((k) => (
-                      <li key={k} className="inline-flex items-center gap-2">
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand/15 text-brand-text" aria-hidden="true">
-                          <svg viewBox="0 0 20 20" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M4 10.5 8 14.5 16 6" />
-                          </svg>
-                        </span>
-                        {k}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
             </div>
           ) : null}
 
@@ -2856,7 +2837,6 @@ export default function DzialkaForm({
                   <span className="hidden sm:inline">← </span>Wstecz
                 </button>
 
-
                 <button
                   key="wizard-next"
                   type="button"
@@ -2918,6 +2898,21 @@ export default function DzialkaForm({
                 </button>
               </div>
             )}
+
+            {/* Trzy obawy zdjęte pod przyciskami na każdym kroku, cicho, bez nagłówka nad
+                formularzem (decyzja 15.10). Tylko przy dodawaniu. */}
+            {mode === 'create' ? (
+              <ul className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-[13px] text-fg/62">
+                {['Bezpłatnie', 'Konto zakładasz na końcu', 'Raport działki pod ogłoszeniem'].map((k) => (
+                  <li key={k} className="inline-flex items-center gap-1.5">
+                    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 text-brand" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 10.5 8 14.5 16 6" />
+                    </svg>
+                    {k}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         </form>
         </div>
