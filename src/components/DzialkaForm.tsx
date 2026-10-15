@@ -2252,9 +2252,7 @@ export default function DzialkaForm({
               )}
             </div>
 
-            <Hr className="mt-6" />
           </div>
-
           )}
 
           {stepKey === 'basics' && (
@@ -2482,9 +2480,7 @@ export default function DzialkaForm({
               ) : null}
             </div>
 
-            <Hr className="mt-6" />
           </div>
-
           )}
 
           {stepKey === 'details' && (
@@ -2827,9 +2823,7 @@ export default function DzialkaForm({
               </p>
             ) : null}
 
-            <Hr className="mt-6" />
           </div>
-
           )}
 
           {err && <div className="text-sm font-medium text-red-700">{err}</div>}

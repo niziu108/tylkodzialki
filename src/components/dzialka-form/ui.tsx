@@ -135,7 +135,9 @@ export function Tabs({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3">
+    // Przy dwóch opcjach (Sprzedaż / Wynajem, Dokładna / Przybliżona) dwie równe kolumny także
+    // na komputerze; w siatce 3-kolumnowej zostawała pusta trzecia komórka.
+    <div className={cx('grid auto-rows-fr grid-cols-2 gap-2', options.length > 2 && 'sm:grid-cols-3')}>
       {options.map((o) => {
         const active = value === o.value;
         return (
