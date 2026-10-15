@@ -401,8 +401,8 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
               onClick={() => setMapOpen(true)}
               className={
                 mapaToNastepnyKrok
-                  ? 'inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-6 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright'
-                  : 'inline-flex h-12 items-center gap-2 rounded-xl border border-brand/60 px-6 text-[12px] font-medium uppercase tracking-[0.18em] text-brand-text transition hover:bg-brand/10'
+                  ? 'inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-6 text-[15px] font-semibold text-ink transition hover:bg-brand-bright'
+                  : 'inline-flex h-12 items-center gap-2 rounded-xl border border-brand/60 px-6 text-[15px] font-semibold text-brand-text transition hover:bg-brand/10'
               }
             >
               <PinGlyph />

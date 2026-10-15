@@ -1,5 +1,6 @@
 'use client';
 
+import HeroGradientBg from '@/components/HeroGradientBg';
 import { ladnaLokalizacja } from '@/lib/lokalizacjaOferty';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -1895,11 +1896,19 @@ export default function DzialkaForm({
   }
 
   return (
-    <main className="min-h-screen" style={{ background: BG, color: FG }}>
+    <main className="relative min-h-screen" style={{ background: BG, color: FG }}>
+      {/* Pierwszy ekran sprzedaży w tym samym tle co główna (tint + spotlight), żeby wejście
+          z „Sprzedaj działkę" nie wyglądało jak surowy formularz. Bez ekranu powitalnego
+          i dodatkowego kliknięcia: lokalizacja zostaje od razu pod nagłówkiem (15.10). */}
+      {mode === 'create' && step === 0 ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] overflow-hidden md:h-[600px]" aria-hidden="true">
+          <HeroGradientBg />
+        </div>
+      ) : null}
       {/* Siatka 3-kolumnowa: lewy margines (kroki) — formularz (środek strony) — prawy margines.
           Równe kolumny 1fr wyśrodkowują formularz na stronie, a kroki lądują w lewym marginesie.
           Pasek boczny pokazujemy od xl (niżej za mało miejsca w gutterze → poziomy pasek u góry). */}
-      <div className="mx-auto grid max-w-[88rem] grid-cols-1 xl:grid-cols-[1fr_minmax(0,48rem)_1fr]">
+      <div className="relative z-10 mx-auto grid max-w-[88rem] grid-cols-1 xl:grid-cols-[1fr_minmax(0,48rem)_1fr]">
         {/* Pasek kroków — desktop: pionowy, przy lewej krawędzi */}
         <aside className="hidden xl:block xl:justify-self-start">
           <div className="sticky top-8 pl-6 pt-12">
@@ -1968,17 +1977,36 @@ export default function DzialkaForm({
               zdjęte od razu: koszt oraz konto. Wcześniej padały dopiero w bramce logowania,
               czyli po wypełnieniu całego kreatora. Tylko w trybie dodawania. */}
           {mode === 'create' ? (
-            <div className="mb-6">
-              <h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">
+            <div className={step === 0 ? 'mb-8 md:mb-10 md:pt-4' : 'mb-6'}>
+              <h1
+                className={
+                  step === 0
+                    ? 'text-[32px] font-semibold leading-[1.1] tracking-tight text-fg md:text-[44px]'
+                    : 'text-2xl font-semibold tracking-tight text-fg md:text-3xl'
+                }
+              >
                 Sprzedaj działkę
               </h1>
-              {/* Opis tylko na pierwszym kroku: dalej powtarzał się na każdym ekranie
-                  i na telefonie zabierał trzy linie nad polami. */}
+              {/* Opis i korzyści tylko na pierwszym kroku: dalej powtarzały się na każdym
+                  ekranie i na telefonie zabierały miejsce nad polami. */}
               {step === 0 ? (
-              <p className="mt-3 max-w-[42rem] text-[15px] leading-7 text-fg/72">
-                Wystawienie jest bezpłatne, a konto zakładasz dopiero przy publikacji. Ogłoszenie
-                zobaczą kupujący, którzy szukają wyłącznie działek.
-              </p>
+                <>
+                  <p className="mt-3 max-w-[38rem] text-[16px] leading-7 text-fg/72 md:text-[17px]">
+                    Twoje ogłoszenie zobaczą ludzie, którzy szukają wyłącznie działek.
+                  </p>
+                  <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2.5 text-[14px] text-fg/80">
+                    {['Bezpłatnie', 'Konto zakładasz na końcu', 'Raport działki pod ogłoszeniem'].map((k) => (
+                      <li key={k} className="inline-flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand/15 text-brand-text" aria-hidden="true">
+                          <svg viewBox="0 0 20 20" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 10.5 8 14.5 16 6" />
+                          </svg>
+                        </span>
+                        {k}
+                      </li>
+                    ))}
+                  </ul>
+                </>
               ) : null}
             </div>
           ) : null}
