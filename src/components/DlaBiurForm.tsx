@@ -110,7 +110,7 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
         </div>
         <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-fg">Dziękujemy za zgłoszenie.</h3>
         <p className="mt-3 max-w-md text-[15px] leading-7 text-fg/72">
-          Załóż konto biura, a dane do eksportu z CRM wyślemy jeszcze dziś.
+          Załóż konto biura, a od razu wyślemy dane do eksportu z CRM.
         </p>
         <Link
           href="/logowanie?tryb=rejestracja&callbackUrl=%2Fpanel%3Ftab%3Dcrm"
