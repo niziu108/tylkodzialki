@@ -108,10 +108,9 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
             <path d="M4 10.5 8 14.5 16 6" />
           </svg>
         </div>
-        <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-fg">Dziękujemy, odezwiemy się tego samego dnia roboczego.</h3>
+        <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-fg">Dziękujemy za zgłoszenie.</h3>
         <p className="mt-3 max-w-md text-[15px] leading-7 text-fg/72">
-          Chcesz szybciej? Załóż konto biura. To minuta, a dane do eksportu z CRM wyślemy od razu
-          po rozmowie, bez dodatkowych maili.
+          Załóż konto biura, a dane do eksportu z CRM wyślemy jeszcze dziś.
         </p>
         <Link
           href="/logowanie?tryb=rejestracja&callbackUrl=%2Fpanel%3Ftab%3Dcrm"
@@ -119,7 +118,6 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
         >
           Załóż konto biura
         </Link>
-        <p className="mt-3 text-[13px] text-fg/62">Możesz też poczekać na naszą wiadomość.</p>
       </div>
     );
   }
