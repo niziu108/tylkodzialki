@@ -251,7 +251,8 @@ html.preview-active .global-nav { display: none !important; }
    żeby z podglądu nie dało się wyjść w serwis (np. klik w logo). */
 html.preview-frame .global-nav,
 html.preview-frame #footer,
-html.preview-frame .td-cookie-bar { display: none !important; }
+html.preview-frame .td-cookie-bar,
+html.preview-frame .global-nav-ikona { display: none !important; }
 
 /* Podpowiedzi Google Places — zgodne z motywem */
 .pac-container {

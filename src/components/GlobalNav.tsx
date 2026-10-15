@@ -251,7 +251,7 @@ export default function GlobalNav() {
           type="button"
           aria-label="Ulubione działki"
           onClick={() => go('/ulubione')}
-          className="fixed right-[62px] top-4 z-[120] flex h-10 w-10 items-center justify-center text-brand-text lg:hidden"
+          className="global-nav-ikona fixed right-[62px] top-4 z-[120] flex h-10 w-10 items-center justify-center text-brand-text lg:hidden"
         >
           <HeartIcon className="h-5 w-5" />
         </button>
@@ -261,7 +261,7 @@ export default function GlobalNav() {
         type="button"
         aria-label={isLogged ? 'Moje konto' : 'Zaloguj się lub zarejestruj'}
         onClick={() => (isLogged ? go('/panel') : goAuth())}
-        className={`fixed ${isLogged ? 'right-[108px]' : 'right-[62px]'} top-4 z-[120] flex h-10 w-10 items-center justify-center text-fg/85 lg:hidden`}
+        className={`global-nav-ikona fixed ${isLogged ? 'right-[108px]' : 'right-[62px]'} top-4 z-[120] flex h-10 w-10 items-center justify-center text-fg/85 lg:hidden`}
       >
         <PersonIcon className="h-[22px] w-[22px]" />
       </button>
@@ -269,7 +269,7 @@ export default function GlobalNav() {
       <motion.button
         aria-label={open ? 'Zamknij menu' : 'Otwórz menu'}
         onClick={() => setOpen((s) => !s)}
-        className="fixed right-4 top-4 z-[120] flex h-10 w-10 items-center justify-center p-0 text-fg/85 lg:hidden"
+        className="global-nav-ikona fixed right-4 top-4 z-[120] flex h-10 w-10 items-center justify-center p-0 text-fg/85 lg:hidden"
         animate={{ rotate: open ? 180 : 0 }}
         transition={{ duration: 0.35 }}
       >
