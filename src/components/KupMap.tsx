@@ -114,7 +114,7 @@ function pinLabelFor(p: MapPin) {
  * Cache oszczędza budowanie SVG i — ważniejsze — dekodowanie obrazka przez
  * przeglądarkę: zamiast tysiąca unikalnych data-URI mamy ich kilkadziesiąt. */
 
-type PinState = 'normal' | 'featured' | 'active' | 'self';
+type PinState = 'normal' | 'featured' | 'active' | 'self' | 'visited';
 
 const pinIconCache = new Map<string, google.maps.Icon>();
 const clusterIconCache = new Map<number, google.maps.Icon>();
@@ -142,7 +142,10 @@ function pinIcon(text: string, state: PinState): google.maps.Icon {
       ? { bg: '#9fd14b', fg: '#0c0c0c', border: '#ffffff' }
       : state === 'featured'
         ? { bg: '#7aa333', fg: '#0c0c0c', border: '#8dbb3a' }
-        : { bg: '#1b1b1b', fg: '#ffffff', border: '#5f7d2a' };
+        : state === 'visited'
+          ? // Obejrzana oferta (jak w Airbnb): jasny pin, od razu widać, co już było klikane.
+            { bg: '#ffffff', fg: '#4b4b4b', border: '#c9c9c4' }
+          : { bg: '#1b1b1b', fg: '#ffffff', border: '#5f7d2a' };
 
   const h = isSelf ? 30 : 26;
   const tail = isSelf ? 8 : 7;
@@ -296,13 +299,27 @@ export default function KupMap({
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<MapPin | null>(null);
 
+  // Oferty obejrzane na mapie w tej sesji (także po wejściu w ofertę i powrocie).
+  const visitedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('td-mapa-obejrzane');
+      if (raw) visitedRef.current = new Set(JSON.parse(raw) as string[]);
+    } catch {}
+  }, []);
+  const stanBazowy = useCallback(
+    (p: MapPin): PinState =>
+      visitedRef.current.has(p.id) ? 'visited' : p.featured ? 'featured' : 'normal',
+    []
+  );
+
   const setActive = useCallback((id: string | null) => {
     const prev = styledActiveRef.current;
     if (prev && prev !== id) {
       const m = pinByIdRef.current.get(prev);
       const p = m?.get('td_pin') as MapPin | undefined;
       if (m && p) {
-        m.setIcon(pinIcon(pinLabelFor(p), p.featured ? 'featured' : 'normal'));
+        m.setIcon(pinIcon(pinLabelFor(p), stanBazowy(p)));
         m.setZIndex(p.featured ? 200 : 100);
       }
     }
@@ -315,7 +332,7 @@ export default function KupMap({
       }
     }
     styledActiveRef.current = id;
-  }, []);
+  }, [stanBazowy]);
 
   const clearSelection = useCallback(() => {
     setSelected(null);
@@ -338,6 +355,11 @@ export default function KupMap({
           c.setVisible(false);
         }
       }
+
+      visitedRef.current.add(p.id);
+      try {
+        sessionStorage.setItem('td-mapa-obejrzane', JSON.stringify([...visitedRef.current].slice(-300)));
+      } catch {}
 
       onActiveChange?.(p.id);
       setActive(p.id);
@@ -376,7 +398,7 @@ export default function KupMap({
           m.setPosition(pos);
         }
         m.set('td_pin', p);
-        m.setIcon(pinIcon(pinLabelFor(p), p.featured ? 'featured' : 'normal'));
+        m.setIcon(pinIcon(pinLabelFor(p), stanBazowy(p)));
         m.setZIndex(p.featured ? 200 : 100);
         m.setLabel(null);
         m.setVisible(true);
@@ -416,7 +438,7 @@ export default function KupMap({
       styledActiveRef.current = null;
       if (activeId) setActive(activeId);
     },
-    [activeId, selfId, selectPin, setActive]
+    [activeId, selfId, selectPin, setActive, stanBazowy]
   );
 
   /* ── Pobranie danych dla bieżącego kadru ─────────────────────────────────── */
