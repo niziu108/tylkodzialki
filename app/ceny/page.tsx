@@ -374,7 +374,40 @@ export default async function CenyIndexPage() {
           Mediana zł/m² ofert działek budowlanych w okolicy miasta (ok. 40 km). W mieście zobaczysz
           zakres cen, ceny wg typu działki i trend.
         </p>
-        <div className="mt-6 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Telefon: województwa jako rozwijane wiersze. Pełna lista 16 województw po 6 miast
+            miała ponad 6 ekranów (5200 px). Linki zostają w HTML, Google widzi wszystkie (15.10). */}
+        <div className="mt-6 border-t border-fg/10 sm:hidden">
+          {regionsWithCities.map(({ region, cities }) => (
+            <details key={region.slug} className="group border-b border-fg/10">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3.5 text-[15px] font-medium text-fg [&::-webkit-details-marker]:hidden">
+                {region.name}
+                <span className="flex items-center gap-3 text-[13px] font-normal text-fg/62">
+                  {cities.length} {cities.length === 1 ? 'miasto' : cities.length < 5 ? 'miasta' : 'miast'}
+                  <svg viewBox="0 0 20 20" className="h-4 w-4 transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m5 8 5 5 5-5" />
+                  </svg>
+                </span>
+              </summary>
+              <ul className="pb-3">
+                {cities.map(({ city, detail }) => (
+                  <li key={city.slug}>
+                    <Link
+                      href={`/ceny/${city.slug}`}
+                      className="flex items-baseline justify-between gap-4 py-2 pl-3 text-sm text-fg/85 hover:text-brand-text"
+                    >
+                      <span>Ceny działek {city.name}</span>
+                      <span className="whitespace-nowrap text-[13px] text-fg/62">
+                        {detail.pricePerM2 ? zlM2(detail.pricePerM2.median) : 'b.d.'}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
+        </div>
+
+        <div className="mt-6 hidden gap-x-10 gap-y-10 sm:grid sm:grid-cols-2 lg:grid-cols-3">
           {regionsWithCities.map(({ region, cities }) => (
             <div key={region.slug}>
               <h3 className="flex items-baseline justify-between gap-4 text-[13px] font-semibold uppercase tracking-wide text-fg/62">
