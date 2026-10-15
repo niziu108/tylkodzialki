@@ -405,7 +405,7 @@ export default function SprawdzSearch({
             {/* Wybór wejścia. Pole adresu zostaje w DOM także w trybie numeru (tylko ukryte),
                 bo podpięty do niego podpowiadacz Google inicjuje się raz przy starcie i po
                 odmontowaniu inputu już by nie wrócił. */}
-            <div className="mb-4 flex overflow-hidden rounded-xl border border-fg/20 text-[12px] font-medium uppercase tracking-[0.14em]">
+            <div className="mb-4 flex overflow-hidden rounded-xl border border-fg/20 text-[14px] font-medium">
               {(
                 [
                   { value: 'adres', label: 'Adres' },
@@ -477,7 +477,7 @@ export default function SprawdzSearch({
               <button
                 type="button"
                 onClick={() => setMapOpen(true)}
-                className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-xl border border-brand/60 px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-brand-text transition hover:border-brand hover:text-brand-text"
+                className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-xl border border-brand/60 px-4 text-[15px] font-semibold text-brand-text transition hover:border-brand hover:text-brand-text"
               >
                 Wskaż na mapie
               </button>
@@ -486,7 +486,7 @@ export default function SprawdzSearch({
                 type="button"
                 onClick={handlePrimary}
                 disabled={loading}
-                className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-xl bg-brand px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-ink transition hover:bg-brand-bright disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-xl bg-brand px-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright disabled:opacity-60"
               >
                 {loading ? 'Sprawdzam…' : mode === 'numer' ? 'Znajdź działkę' : 'Sprawdź działkę'}
               </button>
@@ -581,7 +581,7 @@ export default function SprawdzSearch({
 
             {/* Przełącznik podkładu: zwykła mapa / satelita. Na satelicie łatwiej trafić w działkę
                 po zabudowie i drogach, a granice z WMS nadal się rysują na wierzchu. */}
-            <div className="pointer-events-auto flex w-44 overflow-hidden rounded-xl bg-surface/95 text-[12px] font-medium uppercase tracking-[0.14em] shadow-lg backdrop-blur">
+            <div className="pointer-events-auto flex w-44 overflow-hidden rounded-xl bg-surface/95 text-[14px] font-medium shadow-lg backdrop-blur">
               {([false, true] as const).map((sat) => {
                 const active = satellite === sat;
                 return (
@@ -602,7 +602,7 @@ export default function SprawdzSearch({
           <button
             type="button"
             onClick={() => setMapOpen(false)}
-            className="pointer-events-auto inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-surface/95 px-4 text-[12px] font-medium uppercase tracking-[0.18em] text-fg/80 shadow-lg backdrop-blur transition hover:text-fg"
+            className="pointer-events-auto inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-surface/95 px-4 text-[14px] font-medium text-fg/80 shadow-lg backdrop-blur transition hover:text-fg"
           >
             Zamknij ✕
           </button>
@@ -623,7 +623,7 @@ export default function SprawdzSearch({
             type="button"
             onClick={handleCheck}
             disabled={loading || !point}
-            className="inline-flex h-12 items-center justify-center rounded-full bg-brand px-8 text-[12px] font-medium uppercase tracking-[0.22em] text-ink shadow-[0_12px_40px_rgba(0,0,0,0.25)] transition hover:bg-brand-bright disabled:opacity-60"
+            className="inline-flex h-12 items-center justify-center rounded-full bg-brand px-8 text-[15px] font-semibold text-ink shadow-[0_12px_40px_rgba(0,0,0,0.25)] transition hover:bg-brand-bright disabled:opacity-60"
           >
             {loading ? 'Sprawdzam…' : 'Sprawdź tę działkę'}
           </button>

@@ -65,10 +65,8 @@ export function Row({ label, value }: { label: string; value: string | null }) {
 function PriceRow({ label, stat, sub = false }: { label: string; stat: PriceStat; sub?: boolean }) {
   if (!stat.pricePerM2 || stat.sampleCount < MIN_OFERT_DO_CENY) return null;
   return (
-    <div className="grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-t border-fg/10 py-3 md:grid-cols-[14rem_1fr]">
-      <span
-        className={`text-[13px] text-fg/62 md:uppercase md:tracking-[0.1em] ${sub ? 'md:normal-case md:tracking-normal' : ''}`}
-      >
+    <div className="grid grid-cols-[10rem_1fr] items-baseline gap-x-6 border-t border-fg/10 py-3 md:grid-cols-[18rem_1fr]">
+      <span className={`text-[14px] text-fg/62 ${sub ? 'pl-3' : ''}`}>
         {label}
       </span>
       <span className="text-[15px] font-medium text-fg">
