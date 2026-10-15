@@ -221,6 +221,26 @@ select option:hover {
   border-bottom-color: color-mix(in srgb, #ef4444 70%, transparent);
 }
 
+/* Pole w ramce (kreator dodawania działki, od 15.10): od razu widać, gdzie pisać. Linia pod
+   polem (.field-line) zostaje w formularzach-wizytówkach (/dla-biur, /partnerstwo). */
+.field-box {
+  border: 1px solid color-mix(in srgb, var(--fg) 16%, transparent);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 12px 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field-box:hover { border-color: color-mix(in srgb, var(--fg) 28%, transparent); }
+.field-box:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+.field-box-error,
+.field-box-error:focus {
+  border-color: color-mix(in srgb, #ef4444 75%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, #ef4444 12%, transparent);
+}
+
 input::placeholder { text-decoration: none !important; }
 textarea::placeholder { text-decoration: none !important; }
 

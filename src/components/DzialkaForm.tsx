@@ -1,6 +1,5 @@
 'use client';
 
-import HeroGradientBg from '@/components/HeroGradientBg';
 import { ladnaLokalizacja } from '@/lib/lokalizacjaOferty';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -226,17 +225,23 @@ const AUTO_PUBLISH_MAX_RETRIES = 8;
 const AUTO_PUBLISH_RETRY_DELAY_MS = 1500;
 const MAX_PHOTOS = MAX_PHOTOS_PER_OFFER; // limit zdjęć na ofertę — jedno źródło prawdy: src/lib/photoLimits.ts
 
-type WizardStep = { title: string; short: string };
+type WizardStep = { title: string; short: string; pytanie: string; opis?: string };
 
 // Kolejność kroków: NAJPIERW lokalizacja, bo z dokładnie zaznaczonej działki uzupełniamy
 // powierzchnię, przeznaczenie z planu, tytuł i zdjęcie z lotu ptaka. Treść bloków renderujemy po
 // kluczu, nie po indeksie, żeby zmiana kolejności nie wymagała przenumerowania `stepKey === '...'`.
 const STEPS: WizardStep[] = [
-  { title: 'Lokalizacja', short: 'Lokalizacja' },
-  { title: 'Podstawowe informacje', short: 'Podstawy' },
-  { title: 'Zdjęcia', short: 'Zdjęcia' },
-  { title: 'Szczegóły i uzbrojenie', short: 'Szczegóły' },
-  { title: 'Kto sprzedaje', short: 'Sprzedający' },
+  // `pytanie` = nagłówek karty kroku: mówi wprost, co teraz zrobić (jak w kreatorach dużych portali).
+  {
+    title: 'Lokalizacja',
+    short: 'Lokalizacja',
+    // Bez `opis`: podpowiedź pod przyciskiem mapy zmienia się z każdym krokiem wskazywania.
+    pytanie: 'Gdzie leży działka?',
+  },
+  { title: 'Podstawowe informacje', short: 'Podstawy', pytanie: 'Cena i podstawowe dane' },
+  { title: 'Zdjęcia', short: 'Zdjęcia', pytanie: 'Zdjęcia działki', opis: `Od 1 do ${MAX_PHOTOS_PER_OFFER} zdjęć. Pierwsze będzie okładką ogłoszenia.` },
+  { title: 'Szczegóły i uzbrojenie', short: 'Szczegóły', pytanie: 'Media i szczegóły', opis: 'Ten krok jest opcjonalny, ale pełne ogłoszenia dostają więcej telefonów.' },
+  { title: 'Kto sprzedaje', short: 'Sprzedający', pytanie: 'Dane do kontaktu', opis: 'Na ten numer zadzwonią kupujący.' },
 ];
 const STEP_KEYS = ['location', 'basics', 'photos', 'details', 'seller'] as const;
 const LAST_STEP = STEPS.length - 1;
@@ -1897,14 +1902,8 @@ export default function DzialkaForm({
 
   return (
     <main className="relative min-h-screen" style={{ background: BG, color: FG }}>
-      {/* Pierwszy ekran sprzedaży w tym samym tle co główna (tint + spotlight), żeby wejście
-          z „Sprzedaj działkę" nie wyglądało jak surowy formularz. Bez ekranu powitalnego
-          i dodatkowego kliknięcia: lokalizacja zostaje od razu pod nagłówkiem (15.10). */}
-      {mode === 'create' && step === 0 ? (
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] overflow-hidden md:h-[600px]" aria-hidden="true">
-          <HeroGradientBg />
-        </div>
-      ) : null}
+      {/* 15.10 (druga wersja): bez zielonej poświaty, spokojne tło strony, a każdy krok w białej
+          karcie z nagłówkiem-pytaniem. Ma być przejrzyście: od razu widać, co i gdzie wpisać. */}
       {/* Siatka 3-kolumnowa: lewy margines (kroki) — formularz (środek strony) — prawy margines.
           Równe kolumny 1fr wyśrodkowują formularz na stronie, a kroki lądują w lewym marginesie.
           Pasek boczny pokazujemy od xl (niżej za mało miejsca w gutterze → poziomy pasek u góry). */}
@@ -1977,24 +1976,18 @@ export default function DzialkaForm({
               zdjęte od razu: koszt oraz konto. Wcześniej padały dopiero w bramce logowania,
               czyli po wypełnieniu całego kreatora. Tylko w trybie dodawania. */}
           {mode === 'create' ? (
-            <div className={step === 0 ? 'mb-8 md:mb-10 md:pt-4' : 'mb-6'}>
-              <h1
-                className={
-                  step === 0
-                    ? 'text-[32px] font-semibold leading-[1.1] tracking-tight text-fg md:text-[44px]'
-                    : 'text-2xl font-semibold tracking-tight text-fg md:text-3xl'
-                }
-              >
+            <div className="mb-6 md:mb-8">
+              <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-fg md:text-[36px]">
                 Sprzedaj działkę
               </h1>
               {/* Opis i korzyści tylko na pierwszym kroku: dalej powtarzały się na każdym
                   ekranie i na telefonie zabierały miejsce nad polami. */}
               {step === 0 ? (
                 <>
-                  <p className="mt-3 max-w-[38rem] text-[16px] leading-7 text-fg/72 md:text-[17px]">
+                  <p className="mt-2 max-w-[38rem] text-[15px] leading-7 text-fg/70 md:text-[16px]">
                     Twoje ogłoszenie zobaczą ludzie, którzy szukają wyłącznie działek.
                   </p>
-                  <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2.5 text-[14px] text-fg/80">
+                  <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2.5 text-[14px] text-fg/80">
                     {['Bezpłatnie', 'Konto zakładasz na końcu', 'Raport działki pod ogłoszeniem'].map((k) => (
                       <li key={k} className="inline-flex items-center gap-2">
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand/15 text-brand-text" aria-hidden="true">
@@ -2012,11 +2005,7 @@ export default function DzialkaForm({
           ) : null}
 
           {/* Pasek kroków — mobile/tablet (klikalny, poziomy u góry) */}
-          <div className="mb-7 xl:hidden">
-            <div className="mb-3 flex items-center justify-between text-[12px] font-medium">
-              <span className="text-fg/75">{STEPS[step].short}</span>
-              <span className="text-fg/68">Krok {step + 1} / {STEPS.length}</span>
-            </div>
+          <div className="mb-5 xl:hidden">
             <ol className="flex items-center">
               {STEPS.map((s, i) => {
                 const done = i < step;
@@ -2056,17 +2045,32 @@ export default function DzialkaForm({
             </ol>
           </div>
 
-        <form onSubmit={onSubmit} className="space-y-7">
+        <form
+          onSubmit={onSubmit}
+          className="space-y-7 rounded-3xl border border-fg/10 bg-surface px-5 pb-5 pt-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_12px_40px_rgba(0,0,0,0.04)] md:px-8 md:pb-6 md:pt-8"
+        >
+          <div>
+            <div className="text-[13px] font-medium text-brand-text">
+              Krok {step + 1} z {STEPS.length}
+            </div>
+            <h2 className="mt-1 text-[22px] font-semibold leading-tight tracking-tight text-fg md:text-[26px]">
+              {STEPS[step].pytanie}
+            </h2>
+            {STEPS[step].opis ? (
+              <p className="mt-2 max-w-[36rem] text-[14px] leading-6 text-fg/65">{STEPS[step].opis}</p>
+            ) : null}
+          </div>
+
           {validationErrors.length > 0 ? (
             <div
               ref={errSummaryRef}
-              className="rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-4"
+              className="rounded-2xl border border-red-500/25 bg-red-50 px-4 py-4"
             >
-              <div className="mb-2 text-sm font-semibold text-red-200">Uzupełnij brakujące pola:</div>
+              <div className="mb-2 text-sm font-semibold text-red-800">Uzupełnij brakujące pola:</div>
               <ul className="space-y-1">
                 {validationErrors.map((e, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-red-300/90">
-                    <span className="mt-0.5 shrink-0 text-red-400/70">·</span>
+                  <li key={i} className="flex items-start gap-2 text-sm text-red-700">
+                    <span className="mt-0.5 shrink-0 text-red-500">·</span>
                     {e}
                   </li>
                 ))}
@@ -2076,15 +2080,6 @@ export default function DzialkaForm({
 
           {stepKey === 'photos' && (
           <div className="space-y-6">
-            <div className="flex items-end justify-between gap-4">
-              <SectionTitle>
-                Zdjęcia <span className="text-brand-text">*</span>
-              </SectionTitle>
-              <div className="text-[13px] font-medium text-fg/70">
-                minimum 1 zdjęcie, maksymalnie {MAX_PHOTOS}
-              </div>
-            </div>
-
             {aerialNote ? (
               <div className="rounded-2xl border border-brand/25 bg-brand/[0.06] px-4 py-3 text-[13px] leading-6 text-fg/75">
                 Dodaliśmy zdjęcie z lotu ptaka Twojej działki (ortofotomapa z geoportalu). Możesz je
@@ -2265,7 +2260,7 @@ export default function DzialkaForm({
           {stepKey === 'basics' && (
           <div className="space-y-6">
             <div>
-              <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-fg/70">Typ oferty</div>
+              <div className="mb-3 text-[15px] font-semibold text-fg">Typ oferty</div>
               <Tabs
                 value={transakcja}
                 onChange={(v) => setTransakcja(v as 'SPRZEDAZ' | 'WYNAJEM')}
@@ -2383,7 +2378,7 @@ export default function DzialkaForm({
                 </div>
 
                 <div className="space-y-4">
-                  <div className="text-[12px] uppercase tracking-[0.18em] text-fg/70">Logo biura</div>
+                  <div className="text-[15px] font-semibold text-fg">Logo biura</div>
 
                   <div className="flex flex-wrap items-center gap-4">
                     <label
@@ -2496,11 +2491,8 @@ export default function DzialkaForm({
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-fg/12 bg-fg/[0.03] px-4 py-3">
               <div className="min-w-0">
-                <div className="text-[13px] font-semibold uppercase tracking-[0.14em] text-brand-text">
-                  Krok opcjonalny
-                </div>
-                <p className="mt-1 text-[13px] leading-6 text-fg/68">
-                  Uzbrojenie i szczegóły podnoszą zainteresowanie, ale nie są wymagane.
+                <p className="text-[14px] leading-6 text-fg/72">
+                  Nie masz tych informacji pod ręką? Możesz je dodać później.
                 </p>
               </div>
               <button
@@ -2662,7 +2654,7 @@ export default function DzialkaForm({
                   <button
                     type="button"
                     onClick={generujOpisZDanych}
-                    className="inline-flex min-h-[40px] items-center rounded-full border border-fg/25 px-4 text-[12px] uppercase tracking-[0.06em] text-fg/70 transition hover:border-fg/45 hover:text-fg"
+                    className="inline-flex min-h-[40px] items-center rounded-full border border-fg/25 px-4 text-[14px] text-fg/75 transition hover:border-fg/45 hover:text-fg"
                   >
                     Wygeneruj z danych
                   </button>
@@ -2789,11 +2781,11 @@ export default function DzialkaForm({
           {stepKey === 'location' && (
           <div className="space-y-5" data-field-error={fieldErrors.has('location') ? 'true' : undefined}>
             <div className={cx(
-              'text-[12px] uppercase tracking-[0.18em]',
-              fieldErrors.has('location') ? 'text-red-400/90' : 'text-fg/70'
+              'text-[15px] font-semibold',
+              fieldErrors.has('location') ? 'text-red-700' : 'text-fg'
             )}>
-              Lokalizacja
-              <span className={fieldErrors.has('location') ? 'text-red-400' : 'text-brand-text'}> *</span>
+              Miejscowość lub adres
+              <span className={fieldErrors.has('location') ? 'text-red-600' : 'text-brand-text'}> *</span>
             </div>
 
             <div className="mt-1">
@@ -2840,7 +2832,7 @@ export default function DzialkaForm({
 
           )}
 
-          {err && <div className="text-sm font-medium text-red-300">{err}</div>}
+          {err && <div className="text-sm font-medium text-red-700">{err}</div>}
           {ok && <div className="text-sm font-medium text-fg/85 underline decoration-brand-bright/50 underline-offset-8">{ok}</div>}
 
           {step === LAST_STEP && (
@@ -2851,7 +2843,7 @@ export default function DzialkaForm({
           )}
 
           {/* Nawigacja kreatora — przyklejona do dołu ekranu */}
-          <div className="-mx-6 border-t border-fg/10 px-6 pt-6 md:-mx-10 md:px-10">
+          <div className="-mx-5 border-t border-fg/10 px-5 pt-5 md:-mx-8 md:px-8 md:pt-6">
             {step < LAST_STEP ? (
               <div className="flex items-center justify-between gap-3">
                 <button
@@ -2870,9 +2862,6 @@ export default function DzialkaForm({
                   <span className="hidden sm:inline">← </span>Wstecz
                 </button>
 
-                <div className="hidden text-[13px] font-medium text-fg/64 sm:block">
-                  Krok {step + 1} z {STEPS.length}
-                </div>
 
                 <button
                   key="wizard-next"

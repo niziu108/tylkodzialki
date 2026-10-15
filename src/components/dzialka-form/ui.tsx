@@ -13,10 +13,10 @@ export function Hr({ className }: { className?: string }) {
   return <div className={cx('border-b border-fg/10', className)} />;
 }
 
-// Nagłówek sekcji = ten sam styl co etykiety pól (UnderlineField), żeby cały kreator był
-// typograficznie spójny: jedna, cicha mikro-etykieta wersalikami nad każdą grupą.
+// Nagłówek grupy pól: zwykłe litery, ciemny, ten sam co etykiety pól (UnderlineField).
+// Wcześniej cichy szary wersalik, przez co nie było widać, co jest etykietą, a co treścią (15.10).
 export function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="text-[12px] uppercase tracking-[0.18em] text-fg/70">{children}</h2>;
+  return <h3 className="text-[15px] font-semibold text-fg">{children}</h3>;
 }
 
 export function UnderlineField({
@@ -53,15 +53,12 @@ export function UnderlineField({
   return (
     <label className="block" data-field-error={error ? 'true' : undefined}>
       <div className="flex items-end justify-between gap-4">
-        <div className={cx(
-          'text-[12px] uppercase tracking-[0.18em]',
-          error ? 'text-red-400/90' : 'text-fg/70'
-        )}>
+        <div className={cx('text-[15px] font-semibold', error ? 'text-red-700' : 'text-fg')}>
           {label}
-          {required ? <span className={error ? 'text-red-400' : 'text-brand-text'}> *</span> : null}
+          {required ? <span className={error ? 'text-red-600' : 'text-brand-text'}> *</span> : null}
         </div>
         {showCounter && typeof maxLength === 'number' ? (
-          <div className="text-[12px] tracking-[0.12em] text-fg/64">
+          <div className="text-[12px] tabular-nums text-fg/62">
             {value.length}/{maxLength}
           </div>
         ) : null}
@@ -87,9 +84,9 @@ export function UnderlineField({
           placeholder={placeholder}
           maxLength={maxLength}
           className={cx(
-            'field-line mt-2 w-full resize-none overflow-hidden bg-transparent pb-2 text-[18px] leading-snug text-fg/90 md:text-[19px]',
-            'placeholder:text-fg/62 outline-none focus:ring-0',
-            error ? 'field-line-error' : ''
+            'field-box mt-2 w-full resize-none overflow-hidden text-[16px] leading-snug text-fg',
+            'placeholder:text-fg/45 outline-none focus:ring-0',
+            error ? 'field-box-error' : ''
           )}
         />
       ) : (
@@ -105,9 +102,9 @@ export function UnderlineField({
           className={cx(
             // .field-line = pełna linia pod polem (przebija globalny reset input{border:none});
             // szara w spoczynku, zielona tylko w foku (podczas pisania), czerwona przy błędzie.
-            'field-line mt-2 w-full bg-transparent pb-2 text-[18px] md:text-[19px] text-fg/90',
-            'placeholder:text-fg/62 outline-none focus:ring-0',
-            error ? 'field-line-error' : ''
+            'field-box mt-2 w-full text-[16px] text-fg',
+            'placeholder:text-fg/45 outline-none focus:ring-0',
+            error ? 'field-box-error' : ''
           )}
         />
       )}

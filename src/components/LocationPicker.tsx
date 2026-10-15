@@ -376,7 +376,7 @@ export default function LocationPicker({ value, onChange, onDokladnyPunkt }: Pro
         onKeyDown={(e) => {
           if (e.key === 'Enter') e.preventDefault();
         }}
-        className="field-line w-full bg-transparent pb-2 text-[18px] text-fg/90 outline-none placeholder:text-fg/62 focus:ring-0 md:text-[19px]"
+        className="field-box w-full text-[16px] text-fg outline-none placeholder:text-fg/45 focus:ring-0"
       />
 
       {/* Te same zielone pigułki co reszta wyborów w kreatorze (np. sprzedaż / wystawienie). */}

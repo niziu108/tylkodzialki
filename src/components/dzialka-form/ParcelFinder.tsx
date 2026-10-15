@@ -210,7 +210,7 @@ export default function ParcelFinder({
               }}
               placeholder="Zawęź: gmina, powiat albo województwo"
               aria-label="Zawęź listę działek"
-              className="field-line mt-3 w-full bg-transparent pb-2 text-[16px] text-fg outline-none placeholder:text-fg/55"
+              className="field-box mt-3 w-full text-[16px] text-fg outline-none placeholder:text-fg/45"
             />
           ) : null}
 
