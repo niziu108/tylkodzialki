@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 type Status = 'idle' | 'sending' | 'ok' | 'error';
 
@@ -50,6 +52,7 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [form, setForm] = useState({ ...EMPTY, ...initialValues });
+  const { status: sesja } = useSession();
 
   const set = (key: keyof typeof form) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -76,6 +79,11 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data?.ok) {
+        // E-mail z formularza czeka na rejestrację w sessionStorage, nie w adresie strony
+        // (adres trafia do historii, logów i statystyk).
+        try {
+          if (form.email) sessionStorage.setItem('td-rejestracja-email', form.email.trim());
+        } catch {}
         setStatus('ok');
         setForm({ ...EMPTY, ...initialValues }); // czysty pod kolejne zapytanie (zachowuje wartości startowe)
         onSuccess?.();
@@ -87,6 +95,33 @@ export default function DlaBiurForm({ initialValues, onSuccess }: DlaBiurFormPro
       setStatus('error');
       setErrorMsg('Brak połączenia. Spróbuj ponownie.');
     }
+  }
+
+  // Po wysłaniu, gdy biuro nie ma jeszcze konta: podziękowanie i zachęta do założenia konta.
+  // Konto i tak jest potrzebne do danych eksportu (FTP), więc odpada jedna wymiana maili.
+  // Lead jest już wysłany, kto nie kliknie, nic nie traci (15.10).
+  if (status === 'ok' && sesja === 'unauthenticated') {
+    return (
+      <div className="py-2">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand/15 text-brand-text">
+          <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 10.5 8 14.5 16 6" />
+          </svg>
+        </div>
+        <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-fg">Dziękujemy, odezwiemy się tego samego dnia roboczego.</h3>
+        <p className="mt-3 max-w-md text-[15px] leading-7 text-fg/72">
+          Chcesz szybciej? Załóż konto biura. To minuta, a dane do eksportu z CRM wyślemy od razu
+          po rozmowie, bez dodatkowych maili.
+        </p>
+        <Link
+          href="/logowanie?tryb=rejestracja&callbackUrl=%2Fpanel%3Ftab%3Dcrm"
+          className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-brand px-8 text-[15px] font-semibold text-ink transition hover:bg-brand-bright sm:w-auto"
+        >
+          Załóż konto biura
+        </Link>
+        <p className="mt-3 text-[13px] text-fg/62">Możesz też poczekać na naszą wiadomość.</p>
+      </div>
+    );
   }
 
   return (

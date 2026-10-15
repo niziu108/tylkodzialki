@@ -84,6 +84,17 @@ function AuthPageContent() {
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
+
+  // „Załóż konto biura" po formularzu /dla-biur: od razu zakładka rejestracji i e-mail
+  // z formularza (przekazany w sessionStorage, nie w adresie).
+  useEffect(() => {
+    if (sp.get('tryb') !== 'rejestracja') return;
+    setMode('register');
+    try {
+      const zapisany = sessionStorage.getItem('td-rejestracja-email');
+      if (zapisany) setEmail(zapisany);
+    } catch {}
+  }, [sp]);
   const [pass, setPass] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [rodo, setRodo] = useState(false);
