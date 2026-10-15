@@ -195,7 +195,7 @@ export default function CookieConsent() {
         // Wąski pasek przy dole ekranu, jak na dużych portalach: jedno zdanie i przyciski
         // w jednej linii. Wcześniej karta na ok. 300 px zasłaniała środek strony głównej.
         // „Odrzucam" jest tak samo dostępne jak „Akceptuję" (wymóg RODO, bez ukrywania odmowy).
-        <div className="fixed inset-x-0 bottom-0 z-[160] px-3 pb-3 sm:px-6 sm:pb-5">
+        <div className="td-cookie-bar fixed inset-x-0 bottom-0 z-[160] px-3 pb-3 sm:px-6 sm:pb-5">
           <div className="mx-auto flex max-w-4xl flex-col gap-3 rounded-2xl border border-fg/10 bg-surface/95 p-4 shadow-[0_16px_50px_rgba(0,0,0,0.12)] backdrop-blur-md md:flex-row md:items-center md:gap-6 md:px-5 md:py-3.5">
             <p className="text-[13px] leading-5 text-fg/75 md:flex-1 md:text-[14px]">
               Używamy cookies niezbędnych do działania serwisu, a za Twoją zgodą także analitycznych

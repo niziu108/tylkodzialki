@@ -13,6 +13,23 @@ export default function PodgladClient() {
   // Pełnoprawny podgląd: start od listy ofert, klik karty → wejście w ofertę.
   const [view, setView] = useState<'list' | 'detail'>('list');
 
+  // Podgląd to makieta, nie serwis: chowamy menu, stopkę i cookies (klasa w globals.css)
+  // i blokujemy linki, żeby klik np. w logo czy „Zobacz oferty biura" nie przenosił gdzie
+  // indziej wewnątrz podglądu (15.10). Przejście lista → oferta działa przez onClick.
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add('preview-frame');
+    const blokuj = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement | null)?.closest?.('a[href]');
+      if (a) e.preventDefault();
+    };
+    document.addEventListener('click', blokuj, true);
+    return () => {
+      html.classList.remove('preview-frame');
+      document.removeEventListener('click', blokuj, true);
+    };
+  }, []);
+
   useEffect(() => {
     // 1. Wczytanie danych przygotowanych przez formularz tuż przed otwarciem iframe.
     try {

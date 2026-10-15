@@ -2927,13 +2927,17 @@ export default function DzialkaForm({
         const showPhoneFrame = !previewIsPhone && previewDevice === 'mobile';
         return (
         <div className="fixed inset-0 z-[200] flex flex-col" style={{ background: BG, color: FG }}>
-          {/* Pasek górny: tytuł, przełącznik urządzenia (tylko na komputerze), zamknięcie */}
-          <div className="flex items-center justify-between gap-3 border-b border-fg/10 px-4 py-3 md:px-6">
-            <div className="min-w-0">
-              <div className="truncate text-[15px] font-semibold tracking-tight text-brand-text">
-                Podgląd Twojego ogłoszenia
-              </div>
-            </div>
+          {/* Pasek górny: powrót do edycji | przełącznik urządzenia (komputer) | Opublikuj.
+              Publikacja jest tu, a nie w pływającym przycisku na dole: na telefonie leżała na
+              zielonym pasku „Zadzwoń / Napisz" z samej oferty i oba się zlewały (15.10). */}
+          <div className="flex items-center justify-between gap-3 border-b border-fg/10 bg-surface px-3 py-2.5 md:px-6 md:py-3">
+            <button
+              type="button"
+              onClick={closePreview}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl px-2 text-[15px] font-medium text-fg/80 transition hover:text-fg"
+            >
+              <span aria-hidden="true">←</span> Edytuj
+            </button>
 
             {!previewIsPhone ? (
               <div className="flex items-center gap-5 sm:gap-7">
@@ -2963,12 +2967,20 @@ export default function DzialkaForm({
               </div>
             ) : null}
 
+            {previewIsPhone ? (
+              <div className="min-w-0 truncate text-[14px] font-medium text-fg/62">Podgląd</div>
+            ) : null}
+
             <button
               type="button"
-              onClick={closePreview}
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-2xl border border-fg/15 bg-fg/[0.03] px-4 text-sm font-semibold text-fg transition hover:border-fg/30 hover:bg-fg/[0.05]"
+              onClick={() => {
+                closePreview();
+                void submitListing(false, 0);
+              }}
+              disabled={loading || uploadingPhotos || uploadingLogo}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-brand px-4 text-[15px] font-semibold text-ink transition hover:bg-brand-bright disabled:opacity-60 md:px-6"
             >
-              Zamknij <span className="text-[16px] leading-none">×</span>
+              {mode === 'edit' ? 'Potwierdź zmiany' : 'Opublikuj'}
             </button>
           </div>
 
@@ -3003,18 +3015,6 @@ export default function DzialkaForm({
             </div>
           </div>
 
-          {/* Publikacja prosto z podglądu — gdy oferta się podoba, można wystawić od razu. */}
-          <button
-            type="button"
-            onClick={() => {
-              closePreview();
-              void submitListing(false, 0);
-            }}
-            disabled={loading || uploadingPhotos || uploadingLogo}
-            className="absolute bottom-5 right-5 z-10 inline-flex items-center gap-2 rounded-2xl bg-brand px-6 py-3.5 text-sm font-semibold text-black shadow-[0_12px_40px_rgba(0,0,0,0.25)] transition hover:opacity-90 disabled:opacity-60"
-          >
-            {mode === 'edit' ? 'Potwierdź zmiany' : 'Opublikuj ogłoszenie'}
-          </button>
         </div>
         );
       })() : null}
