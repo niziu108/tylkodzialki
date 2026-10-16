@@ -68,6 +68,7 @@ Kategoria w adminie: „Aktualności" (slug aktualnosci, dodana 2026-09; ikona o
 - [x] Jak obejrzeć działkę z lotu ptaka przed wyjazdem na oględziny (slug: dzialka-z-lotu-ptaka-ortofotomapa-przed-ogledzinami) [dopisany; ortofoto/satelita, nasz widok w Sprawdź działkę]
 - [x] Działka a hałas, zapach i uciążliwe sąsiedztwo: jak sprawdzić (slug: dzialka-halas-zapach-uciazliwe-sasiedztwo) [dopisany; wady niewidoczne w dokumentach]
 - [x] Działka a internet i zasięg: jak sprawdzić przed zakupem (slug: dzialka-a-internet-i-zasieg-jak-sprawdzic) [dopisany; swiatlowod/LTE/radiowy, praca zdalna]
+- [x] Jak przygotować działkę do sprzedaży, żeby szybciej znaleźć kupca (slug: jak-przygotowac-dzialke-do-sprzedazy) [dopisany; strona sprzedajacego, pod /sprzedaj i /ceny]
 - [ ] Jak sprawdzić dostępność przyłączy na działce
 - [x] Nasłonecznienie i ukształtowanie działki: jak ocenić (slug: naslonecznienie-i-uksztaltowanie-dzialki)
 
