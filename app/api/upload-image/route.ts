@@ -19,11 +19,25 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const optimized = await sharp(buffer)
-      .rotate()
-      .resize({ width: 2000, withoutEnlargement: true })
-      .webp({ quality: 82 })
-      .toBuffer();
+    // Nieczytelny format (np. HEIC, którego przeglądarka nie zmniejszyła) = jasny komunikat
+    // dla sprzedającego zamiast ogólnego błędu.
+    let optimized: Buffer;
+    try {
+      optimized = await sharp(buffer)
+        .rotate()
+        .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
+    } catch (e) {
+      console.error('UPLOAD_IMAGE_FORMAT', file.name, file.type, e);
+      return NextResponse.json(
+        {
+          ok: false,
+          message: `Nie możemy odczytać pliku „${file.name}". Zapisz zdjęcie jako JPG lub PNG i dodaj ponownie.`,
+        },
+        { status: 415 }
+      );
+    }
 
     const uploaded = await uploadBufferToR2({
       buffer: optimized,

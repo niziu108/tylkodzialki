@@ -340,9 +340,51 @@ function parseFormattedNumber(formatted: string) {
   return digits ? Number(digits) : NaN;
 }
 
+// Zmniejszenie zdjęcia w przeglądarce PRZED wysłaniem (16.10). Vercel przyjmuje do funkcji
+// najwyżej ok. 4,5 MB, a zdjęcia z telefonu i wizualizacje mają często 5-15 MB: takie pliki
+// odbijały się błędem 413, zanim dotarły do serwera (klient: przeszły 2 zdjęcia, reszta nie).
+// Dłuższy bok do 2400 px, JPEG 0,88: zwykle 0,5-1,5 MB, a serwer i tak robi z tego WebP 2000 px.
+// Gdy przeglądarka nie umie odczytać pliku (np. HEIC w Chrome), wysyłamy oryginał.
+const MAX_BOK_ZDJECIA = 2400;
+const LIMIT_BEZ_ZMIAN = 3_000_000;
+
+async function zmniejszZdjecie(file: File): Promise<File> {
+  try {
+    if (!file.type.startsWith('image/') || file.type === 'image/gif') return file;
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+    const skala = Math.min(1, MAX_BOK_ZDJECIA / Math.max(bmp.width, bmp.height));
+    if (skala === 1 && file.size <= LIMIT_BEZ_ZMIAN) {
+      bmp.close();
+      return file;
+    }
+    const w = Math.round(bmp.width * skala);
+    const h = Math.round(bmp.height * skala);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      bmp.close();
+      return file;
+    }
+    // Białe tło pod przezroczystością (PNG z wizualizacji), bo JPEG nie ma kanału alfa.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close();
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.88));
+    if (!blob) return file;
+    const nazwa = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+    return new File([blob], nazwa, { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
+
 async function uploadImageViaApi(file: File): Promise<{ url: string; key: string }> {
+  const doWyslania = await zmniejszZdjecie(file);
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', doWyslania);
 
   const res = await fetch('/api/upload-image', {
     method: 'POST',
@@ -351,8 +393,11 @@ async function uploadImageViaApi(file: File): Promise<{ url: string; key: string
 
   const data = await res.json().catch(() => null);
 
+  if (res.status === 413) {
+    throw new Error(`Zdjęcie „${file.name}" jest za duże. Zapisz je w mniejszym rozmiarze i dodaj ponownie.`);
+  }
   if (!res.ok || !data?.ok) {
-    throw new Error(data?.message || 'Nie udało się wgrać zdjęcia.');
+    throw new Error(data?.message || `Nie udało się wgrać zdjęcia „${file.name}".`);
   }
 
   return {
@@ -1027,18 +1072,23 @@ export default function DzialkaForm({
     setUploadingPhotos(true);
 
     try {
-      const results = await Promise.allSettled(
-        filesToUpload.map((file) => uploadImageViaApi(file))
-      );
+      // Po 3 naraz: 12 dużych zdjęć dekodowanych jednocześnie potrafiło zapchać pamięć telefonu.
+      const results: PromiseSettledResult<{ url: string; key: string }>[] = [];
+      for (let i = 0; i < filesToUpload.length; i += 3) {
+        const paczka = filesToUpload.slice(i, i + 3);
+        results.push(...(await Promise.allSettled(paczka.map((file) => uploadImageViaApi(file)))));
+      }
 
       const uploadedNow: UploadedPhoto[] = [];
       let failedCount = 0;
+      let pierwszyBlad: string | null = null;
 
       for (const result of results) {
         if (result.status === 'fulfilled') {
           uploadedNow.push({ url: result.value.url, publicId: result.value.key });
         } else {
           failedCount += 1;
+          if (!pierwszyBlad) pierwszyBlad = (result.reason as Error)?.message ?? null;
         }
       }
 
@@ -1057,9 +1107,12 @@ export default function DzialkaForm({
       }
 
       if (failedCount > 0 && uploadedNow.length > 0) {
-        setErr(`Nie udało się wgrać ${failedCount} z ${filesToUpload.length} zdjęć. Pozostałe dodano pomyślnie.`);
+        setErr(
+          `Nie udało się wgrać ${failedCount} z ${filesToUpload.length} zdjęć. Pozostałe dodano.` +
+            (pierwszyBlad ? ` ${pierwszyBlad}` : '')
+        );
       } else if (failedCount > 0) {
-        setErr('Nie udało się wgrać zdjęć. Spróbuj ponownie.');
+        setErr(pierwszyBlad || 'Nie udało się wgrać zdjęć. Spróbuj ponownie.');
       } else if (arr.length > remainingSlots) {
         setErr(`Możesz dodać maksymalnie ${MAX_PHOTOS} zdjęć. Nadmiarowe pliki zostały pominięte.`);
       }
