@@ -1,6 +1,7 @@
 'use client';
 
 import { ladnaLokalizacja } from '@/lib/lokalizacjaOferty';
+import { zmniejszZdjecie } from '@/lib/zmniejszZdjecie';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -340,49 +341,12 @@ function parseFormattedNumber(formatted: string) {
   return digits ? Number(digits) : NaN;
 }
 
-// Zmniejszenie zdjęcia w przeglądarce PRZED wysłaniem (16.10). Vercel przyjmuje do funkcji
-// najwyżej ok. 4,5 MB, a zdjęcia z telefonu i wizualizacje mają często 5-15 MB: takie pliki
-// odbijały się błędem 413, zanim dotarły do serwera (klient: przeszły 2 zdjęcia, reszta nie).
-// Dłuższy bok do 2400 px, JPEG 0,88: zwykle 0,5-1,5 MB, a serwer i tak robi z tego WebP 2000 px.
-// Gdy przeglądarka nie umie odczytać pliku (np. HEIC w Chrome), wysyłamy oryginał.
-const MAX_BOK_ZDJECIA = 2400;
-const LIMIT_BEZ_ZMIAN = 3_000_000;
-
-async function zmniejszZdjecie(file: File): Promise<File> {
-  try {
-    if (!file.type.startsWith('image/') || file.type === 'image/gif') return file;
-    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions);
-    const skala = Math.min(1, MAX_BOK_ZDJECIA / Math.max(bmp.width, bmp.height));
-    if (skala === 1 && file.size <= LIMIT_BEZ_ZMIAN) {
-      bmp.close();
-      return file;
-    }
-    const w = Math.round(bmp.width * skala);
-    const h = Math.round(bmp.height * skala);
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      bmp.close();
-      return file;
-    }
-    // Białe tło pod przezroczystością (PNG z wizualizacji), bo JPEG nie ma kanału alfa.
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(bmp, 0, 0, w, h);
-    bmp.close();
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.88));
-    if (!blob) return file;
-    const nazwa = file.name.replace(/\.[^.]+$/, '') + '.jpg';
-    return new File([blob], nazwa, { type: 'image/jpeg' });
-  } catch {
-    return file;
-  }
-}
-
-async function uploadImageViaApi(file: File): Promise<{ url: string; key: string }> {
-  const doWyslania = await zmniejszZdjecie(file);
+// Zmniejszanie przed wysłaniem: src/lib/zmniejszZdjecie.ts (limit Vercela ok. 4,5 MB na żądanie).
+async function uploadImageViaApi(
+  file: File,
+  opcje?: Parameters<typeof zmniejszZdjecie>[1]
+): Promise<{ url: string; key: string }> {
+  const doWyslania = await zmniejszZdjecie(file, opcje);
   const formData = new FormData();
   formData.append('file', doWyslania);
 
@@ -1136,7 +1100,8 @@ export default function DzialkaForm({
     setUploadingLogo(true);
 
     try {
-      const out = await uploadImageViaApi(file);
+      // Logo z przezroczystością (PNG): bez białego tła i bez JPEG.
+      const out = await uploadImageViaApi(file, { maxBok: 1200, przezroczystosc: true });
       setBiuroLogoUrl(out.url);
 
       if (logoInputRef.current) {

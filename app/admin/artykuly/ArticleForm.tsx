@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useRef, useState } from 'react';
+import { zmniejszZdjecie } from '@/lib/zmniejszZdjecie';
 import Link from 'next/link';
 import { ARTICLE_CATEGORIES, estimateReadingTime } from '@/lib/articleCategories';
 import type { ArticleFormState } from './actions';
@@ -29,8 +30,9 @@ type ArticleFormProps = {
 };
 
 async function uploadImageViaApi(file: File): Promise<{ url: string; key: string }> {
+  // Okładki z generatora mają po kilka MB: bez zmniejszenia odbijały się od limitu Vercela (413).
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', await zmniejszZdjecie(file));
 
   const res = await fetch('/api/upload-image', {
     method: 'POST',
