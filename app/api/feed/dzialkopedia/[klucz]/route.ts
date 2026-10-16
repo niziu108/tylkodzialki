@@ -11,7 +11,9 @@ import { ladnaLokalizacja } from '@/lib/lokalizacjaOferty';
 // (albo zmiana KLUCZ, wtedy stary adres daje 404). Ocena po 1-2 miesiącach po ruchu z
 // utm_source=dzialkopedia w GA i kontaktach.
 
-const WLACZONY = true;
+// WYŁĄCZONY 16.10: regulamin (pkt o zgodzie na publikację) obejmuje tylko serwis tylkodzialki.pl,
+// nie serwisy partnerskie. Włączyć dopiero po zmianie regulaminu (decyzja Daniela).
+const WLACZONY = false;
 const KLUCZ = '61daa44a0ea43d260a245f15';
 
 export const dynamic = 'force-dynamic';
